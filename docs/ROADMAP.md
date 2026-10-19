@@ -12,16 +12,26 @@
   prefs persist. Remaining: Theme Studio import/export, contrast audit.
 - **M5** ✅ core: module registry, validation, isolated sessions, error/retry;
   Sohbet loads inside its module. Remaining: hibernation, health checks.
-- **M6** ✅ core: tabs, navigation, address bar, bookmarks, per-tab sessions,
-  external handoff. Remaining: downloads shelf, history, find, zoom.
+- **M6** ✅ core: restorable tabs, navigation, address bar, bookmarks,
+  in-memory per-tab sessions, external handoff, persistent
+  downloads/history/bookmarks library, find-in-page, page zoom and a persisted
+  torrent queue that restores paused. Remaining: download-location picker,
+  per-site zoom memory and torrent scheduling.
 - **M7** ◐ security baseline implemented (sandbox, isolation, typed IPC bridge,
-  hardened webviews, permission deny-list, sender checks, atomic state).
-  Remaining: audit, profiles, permission UX.
-- **M8** ◐ 40 unit tests + typecheck + build + thirteen-capture pass. Remaining:
+  hardened webviews, explicit mic/camera prompt, other permissions denied,
+  HTTPS upgrades with fallback, tracking-parameter stripping, per-site
+  fingerprint farbling, EasyList Cookie, sender checks, atomic state).
+  Remaining: audit, profiles, persisted scopes, per-site privacy exceptions.
+- **M8** ◐ 103 unit tests + typecheck + build + sixteen-capture pass, restart,
+  download-history, torrent restore, find/zoom, default-browser, torrent,
+  torrent-UI, media-permission and privacy harnesses. Remaining: broader
   e2e/UI tests, backup/restore, measured performance comparison.
-- **M9** ◐ unsigned Setup and Portable EXEs build; custom-dir install, launched
-  app and clean uninstall verified. Signing, interactive-wizard QA and CI remain.
-- **M10** ✅ `XiONDiGiTaL/Kryvex` published (main, no force-push).
-- **M11** ◐ README, banner, thirteen real-UI screenshots, limitations, testing
-  docs and 0.3.0 release record delivered. Remaining: engineering report, signed
-  public release.
+- **M9** ◐ unsigned 0.4.0 Setup and Portable EXEs published from the complete
+  source tree; custom-dir install, installed and portable capture passes,
+  packaged paused-row smoke tests, checksums and clean uninstall verified.
+  Signing, interactive-wizard QA and CI remain.
+- **M10** ✅ `XiONDiGiTaL/Kryvex` published (main, no force-push); 0.3.0 and
+  0.4.0 releases published with checksum-verified artifacts.
+- **M11** ◐ README, banner, eighteen real-UI screenshots, limitations, testing
+  docs and 0.3.0/0.4.0 release records delivered. Remaining: engineering report
+  and a signed public release.

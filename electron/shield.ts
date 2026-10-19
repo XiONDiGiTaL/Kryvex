@@ -3,6 +3,7 @@ import { ElectronBlocker } from '@ghostery/adblocker-electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { ShieldStatus } from './types';
+import { webPrivacy, type PrivacyOptions } from './web-privacy';
 
 /**
  * Native network filtering.
@@ -28,7 +29,13 @@ const LIST_SOURCES = [
   },
   { label: 'EasyList', url: 'https://easylist.to/easylist/easylist.txt' },
   { label: 'EasyPrivacy', url: 'https://easylist.to/easylist/easyprivacy.txt' },
+  {
+    label: 'EasyList Cookie',
+    url: 'https://secure.fanboy.co.nz/fanboy-cookiemonster.txt',
+  },
 ] as const;
+
+const COOKIE_LIST = 'EasyList Cookie';
 
 const REFRESH_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 45_000;
@@ -52,6 +59,9 @@ interface ShieldConfig {
   updatedAt: number | null;
   filterCount: number;
   lists: string[];
+  httpsUpgrade: boolean;
+  stripTracking: boolean;
+  fingerprint: boolean;
 }
 
 const DEFAULT_CONFIG: ShieldConfig = {
@@ -60,6 +70,9 @@ const DEFAULT_CONFIG: ShieldConfig = {
   updatedAt: null,
   filterCount: 0,
   lists: [],
+  httpsUpgrade: true,
+  stripTracking: true,
+  fingerprint: true,
 };
 
 function configPath(): string {
@@ -79,6 +92,9 @@ function readConfig(): ShieldConfig {
       updatedAt: Number.isFinite(raw.updatedAt) ? Number(raw.updatedAt) : null,
       filterCount: Number.isFinite(raw.filterCount) ? Number(raw.filterCount) : 0,
       lists: Array.isArray(raw.lists) ? raw.lists.map(String).slice(0, 12) : [],
+      httpsUpgrade: raw.httpsUpgrade !== false,
+      stripTracking: raw.stripTracking !== false,
+      fingerprint: raw.fingerprint !== false,
     };
   } catch {
     return { ...DEFAULT_CONFIG };
@@ -132,12 +148,17 @@ class Shield {
       lists: this.config.lists,
       updatedAt: this.config.updatedAt,
       autoUpdate: this.config.autoUpdate,
+      httpsUpgrade: this.config.httpsUpgrade,
+      stripTracking: this.config.stripTracking,
+      fingerprint: this.config.fingerprint,
+      ...webPrivacy.stats(),
       ...(this.error ? { error: this.error } : {}),
     };
   }
 
   init(): void {
     this.config = readConfig();
+    this.applyPrivacyOptions();
     try {
       if (fs.existsSync(enginePath())) {
         const buffer = fs.readFileSync(enginePath());
@@ -160,12 +181,37 @@ class Shield {
   trackSession(ses: Session): void {
     this.sessions.add(ses);
     if (this.config.enabled && this.blocker) this.attach(ses);
+    else webPrivacy.setBlocker(ses, null);
+  }
+
+  setOption(option: string, enabled: boolean): ShieldStatus {
+    if (option === 'httpsUpgrade') this.config.httpsUpgrade = enabled;
+    else if (option === 'stripTracking') this.config.stripTracking = enabled;
+    else if (option === 'fingerprint') this.config.fingerprint = enabled;
+    else return this.status();
+    writeConfig(this.config);
+    this.applyPrivacyOptions();
+    if (option === 'fingerprint' && enabled) {
+      for (const ses of this.sessions) webPrivacy.ensureSession(ses, true);
+    }
+    return this.status();
+  }
+
+  private applyPrivacyOptions(): void {
+    const options: PrivacyOptions = {
+      httpsUpgrade: this.config.httpsUpgrade,
+      stripTracking: this.config.stripTracking,
+      fingerprint: this.config.fingerprint,
+    };
+    webPrivacy.setOptions(options);
   }
 
   async start(): Promise<void> {
     if (!this.config.enabled) return;
     const stale =
-      !this.config.updatedAt || Date.now() - this.config.updatedAt > REFRESH_AFTER_MS;
+      !this.config.updatedAt ||
+      Date.now() - this.config.updatedAt > REFRESH_AFTER_MS ||
+      !this.config.lists.includes(COOKIE_LIST);
     if (!this.blocker || stale) {
       await this.refresh().catch(() => undefined);
     }
@@ -181,6 +227,7 @@ class Shield {
         } catch {
           /* a session may already be destroyed */
         }
+        webPrivacy.setBlocker(ses, null);
       }
       registeredCosmeticChannels.clear();
       return this.status();
@@ -188,6 +235,7 @@ class Shield {
     if (this.blocker) {
       for (const ses of this.sessions) this.attach(ses);
     } else {
+      for (const ses of this.sessions) webPrivacy.setBlocker(ses, null);
       void this.refresh().catch(() => undefined);
     }
     return this.status();
@@ -223,6 +271,7 @@ class Shield {
         } catch {
           /* ignore */
         }
+        webPrivacy.setBlocker(ses, null);
       }
       registeredCosmeticChannels.clear();
       const serialized = next.serialize();
@@ -242,7 +291,11 @@ class Shield {
       this.config.filterCount = this.countFilters();
       writeConfig(this.config);
       this.phase = 'ready';
-      for (const ses of this.sessions) this.attach(ses);
+      if (this.config.enabled) {
+        for (const ses of this.sessions) this.attach(ses);
+      } else {
+        for (const ses of this.sessions) webPrivacy.setBlocker(ses, null);
+      }
       return this.status();
     } catch (error) {
       this.phase = this.blocker ? 'ready' : 'error';
@@ -262,7 +315,10 @@ class Shield {
   private attach(ses: Session): void {
     if (!this.blocker) return;
     try {
-      if (this.blocker.isBlockingEnabled(ses)) return;
+      if (this.blocker.isBlockingEnabled(ses)) {
+        webPrivacy.setBlocker(ses, this.blocker);
+        return;
+      }
       const originalHandle = ipcMain.handle.bind(ipcMain);
       (ipcMain as unknown as { handle: typeof ipcMain.handle }).handle = ((channel, listener) => {
         if (COSMETIC_CHANNELS.has(channel) && registeredCosmeticChannels.has(channel)) {
@@ -276,8 +332,13 @@ class Shield {
       } finally {
         (ipcMain as unknown as { handle: typeof ipcMain.handle }).handle = originalHandle;
       }
+      // Ghostery installs its own onBeforeRequest handler above. Replace it
+      // with the combined listener so URL privacy and network blocking both
+      // run; Electron keeps only the most recent handler per event.
+      webPrivacy.setBlocker(ses, this.blocker);
     } catch (error) {
       this.error = `Could not attach to a session: ${String(error)}`;
+      webPrivacy.setBlocker(ses, null);
     }
   }
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { PersistedState, Service, ServiceCategory } from '../types';
 import { CATEGORIES, SERVICE_COLORS } from '../lib/services';
+import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
 import { EmptyState, Icon, ServiceIcon } from '../components/ui';
 
@@ -19,6 +20,7 @@ export function Services({
   onTogglePin: (service: Service) => void;
   onDelete: (service: Service) => void;
 }) {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | ServiceCategory>('all');
 
@@ -44,16 +46,19 @@ export function Services({
     <section className="view services-view">
       <header className="view-head">
         <div>
-          <p className="eyebrow mono">MODULE REGISTRY / {state.services.length} INSTALLED</p>
-          <h1>Services</h1>
+          <p className="eyebrow mono">
+            {t('MODULE REGISTRY / {count} INSTALLED', { count: state.services.length })}
+          </p>
+          <h1>{t('Services')}</h1>
           <p className="lede">
-            Every entry is a module with its own URL, category and isolated session. Add anything
-            that runs in a browser.
+            {t(
+              'Every entry is a module with its own URL, category and isolated session. Add anything that runs in a browser.',
+            )}
           </p>
         </div>
         <button className="btn primary" onClick={onAdd}>
           <Icon name="plus" size={16} />
-          Add service
+          {t('Add service')}
         </button>
       </header>
 
@@ -63,24 +68,24 @@ export function Services({
           <input
             value={query}
             onChange={event => setQuery(event.target.value)}
-            placeholder="Filter by name or host"
-            aria-label="Filter services"
+            placeholder={t('Filter by name or host')}
+            aria-label={t('Filter services')}
           />
           {query ? (
-            <button className="icon-btn tiny" onClick={() => setQuery('')} aria-label="Clear filter">
+            <button className="icon-btn tiny" onClick={() => setQuery('')} aria-label={t('Clear filter')}>
               <Icon name="close" size={13} />
             </button>
           ) : null}
         </label>
 
-        <div className="filter-chips" role="tablist" aria-label="Filter by category">
+        <div className="filter-chips" role="tablist" aria-label={t('Filter by category')}>
           <button
             role="tab"
             aria-selected={filter === 'all'}
             className={`chip-btn ${filter === 'all' ? 'is-active' : ''}`}
             onClick={() => setFilter('all')}
           >
-            All <span className="mono">{state.services.length}</span>
+            {t('All')} <span className="mono">{state.services.length}</span>
           </button>
           {CATEGORIES.map(category => (
             <button
@@ -90,7 +95,7 @@ export function Services({
               className={`chip-btn ${filter === category.id ? 'is-active' : ''}`}
               onClick={() => setFilter(category.id)}
             >
-              {category.label} <span className="mono">{counts.get(category.id) ?? 0}</span>
+              {t(category.label)} <span className="mono">{counts.get(category.id) ?? 0}</span>
             </button>
           ))}
         </div>
@@ -98,16 +103,20 @@ export function Services({
 
       {visible.length === 0 ? (
         <EmptyState
-          title={state.services.length === 0 ? 'No modules installed' : 'Nothing matches that filter'}
+          title={
+            state.services.length === 0 ? t('No modules installed') : t('Nothing matches that filter')
+          }
           body={
             state.services.length === 0
-              ? 'Add a web app by URL — it gets its own persistent, isolated session and a permanent home here.'
-              : 'Try another search term or switch back to the All filter.'
+              ? t(
+                  'Add a web app by URL — it gets its own persistent, isolated session and a permanent home here.',
+                )
+              : t('Try another search term or switch back to the All filter.')
           }
           action={
             state.services.length === 0 ? (
               <button className="btn primary" onClick={onAdd}>
-                Add your first service
+                {t('Add your first service')}
               </button>
             ) : (
               <button
@@ -117,7 +126,7 @@ export function Services({
                   setFilter('all');
                 }}
               >
-                Clear filters
+                {t('Clear filters')}
               </button>
             )
           }
@@ -130,7 +139,7 @@ export function Services({
               className="service-card"
               tabIndex={0}
               role="button"
-              aria-label={`Open ${service.name}`}
+              aria-label={t('Open {name}', { name: service.name })}
               onClick={() => onOpen(service)}
               onKeyDown={event => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -149,8 +158,12 @@ export function Services({
                       event.stopPropagation();
                       onTogglePin(service);
                     }}
-                    aria-label={service.pinned ? `Unpin ${service.name}` : `Pin ${service.name}`}
-                    title={service.pinned ? 'Unpin' : 'Pin to sidebar'}
+                    aria-label={
+                      service.pinned
+                        ? t('Unpin {name}', { name: service.name })
+                        : t('Pin {name}', { name: service.name })
+                    }
+                    title={service.pinned ? t('Unpin') : t('Pin to sidebar')}
                   >
                     <Icon name="pin" size={15} />
                   </button>
@@ -160,8 +173,8 @@ export function Services({
                       event.stopPropagation();
                       onEdit(service);
                     }}
-                    aria-label={`Edit ${service.name}`}
-                    title="Edit"
+                    aria-label={t('Edit {name}', { name: service.name })}
+                    title={t('Edit')}
                   >
                     <Icon name="edit" size={15} />
                   </button>
@@ -171,8 +184,8 @@ export function Services({
                       event.stopPropagation();
                       onDelete(service);
                     }}
-                    aria-label={`Remove ${service.name}`}
-                    title="Remove"
+                    aria-label={t('Remove {name}', { name: service.name })}
+                    title={t('Remove')}
                   >
                     <Icon name="trash" size={15} />
                   </button>
@@ -184,11 +197,11 @@ export function Services({
 
               <footer className="service-card-foot">
                 <span className="tag mono">
-                  {CATEGORIES.find(item => item.id === service.category)?.label ?? 'Other'}
+                  {t(CATEGORIES.find(item => item.id === service.category)?.label ?? 'Other')}
                 </span>
                 <span className="color-mark" style={{ background: service.color }} aria-hidden="true" />
                 <span className="mono open-hint">
-                  Open <Icon name="forward" size={12} />
+                  {t('Open')} <Icon name="forward" size={12} />
                 </span>
               </footer>
             </article>
@@ -197,8 +210,9 @@ export function Services({
       )}
 
       <p className="footnote mono">
-        PALETTE {SERVICE_COLORS.length.toString().padStart(2, '0')} COLORS · MAX 100 MODULES · LOCAL
-        PERSISTENCE
+        {t('PALETTE {count} COLORS · MAX 100 MODULES · LOCAL PERSISTENCE', {
+          count: SERVICE_COLORS.length.toString().padStart(2, '0'),
+        })}
       </p>
     </section>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Service, Toast } from '../types';
 import { BRAND_ICONS } from '../lib/brand-icons';
+import { useT } from '../lib/i18n';
 import { DonkeyMark } from '../plugins/donkey';
 
 type IconName =
@@ -24,7 +25,9 @@ type IconName =
   | 'chevron'
   | 'edit'
   | 'help'
-  | 'command';
+  | 'command'
+  | 'download'
+  | 'history';
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -141,6 +144,20 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M9 17.5A2.5 2.5 0 1 1 6.5 15H9v2.5Z" />
       <path d="M15 17.5a2.5 2.5 0 1 0 2.5-2.5H15v2.5Z" />
       <path d="M9 9h6v6H9z" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M12 4v11" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+      <path d="M4.5 20h15" />
+    </>
+  ),
+  history: (
+    <>
+      <path d="M4 5v5h5" />
+      <path d="M5.2 9.2A7.5 7.5 0 1 1 4.7 14" />
+      <path d="M12 8v4.3l3 1.8" />
     </>
   ),
 };
@@ -337,6 +354,7 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const t = useT();
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -362,7 +380,7 @@ export function Modal({
             <h2>{title}</h2>
             {subtitle ? <p>{subtitle}</p> : null}
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Close dialog">
+          <button className="icon-btn" onClick={onClose} aria-label={t('Close dialog')}>
             <Icon name="close" />
           </button>
         </header>

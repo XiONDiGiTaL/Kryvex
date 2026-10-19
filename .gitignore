@@ -13,11 +13,10 @@ coverage/
 .npm-cache/
 .npmrc
 
-# reference clone (read-only evidence, never shipped)
-upstream/
 
 # logs and editor noise
 *.log
+.tmp-*
 .DS_Store
 Thumbs.db
 .idea/

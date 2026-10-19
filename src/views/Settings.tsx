@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react';
 import type {
   AppInfo,
+  DefaultBrowserStatus,
   ExtensionRecord,
+  LanguageSetting,
   PersistedState,
   Settings as SettingsModel,
   ShieldStatus,
   ViewId,
 } from '../types';
 import { THEMES } from '../lib/themes';
+import { extensionMessage, LANGUAGES, languageLabel, useI18n } from '../lib/i18n';
 import { THEME_PLUGINS } from '../plugins';
 import { DonkeyMark } from '../plugins/donkey';
 import { Icon, ThemeMark, type ThemeMarkKind } from '../components/ui';
 import { logoUrl } from '../assets';
 
-function timeLabel(timestamp: number | null): string {
-  if (!timestamp) return 'never';
-  return new Date(timestamp).toLocaleString(undefined, {
+type PrivacyOption = 'httpsUpgrade' | 'stripTracking' | 'fingerprint';
+
+function timeLabel(timestamp: number | null, locale: string, never: string): string {
+  if (!timestamp) return never;
+  return new Date(timestamp).toLocaleString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -41,9 +46,11 @@ export function Settings({
   onReset: () => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
 }) {
+  const { t, locale } = useI18n();
   const settings = state.settings;
   const [shield, setShield] = useState<ShieldStatus | null>(null);
   const [extensions, setExtensions] = useState<ExtensionRecord[]>([]);
+  const [defaultBrowser, setDefaultBrowser] = useState<DefaultBrowserStatus | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,14 +80,69 @@ export function Settings({
     };
   }, [isElectron]);
 
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    let alive = true;
+    void window.kryvex
+      .defaultBrowserStatus()
+      .then(next => {
+        if (alive) setDefaultBrowser(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [isElectron]);
+
+  async function makeDefaultBrowser() {
+    if (!window.kryvex) return;
+    setBusy('browser-default');
+    try {
+      const next = await window.kryvex.defaultBrowserSet();
+      setDefaultBrowser(next);
+      onToast(
+        next.isDefault
+          ? t('Kryvex is now the default browser.')
+          : t('Windows Default Apps opened. Choose Kryvex for http and https links.'),
+        next.isDefault ? 'success' : 'info',
+      );
+    } catch {
+      onToast(t('Could not open the default-browser settings.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function openDefaultBrowserSettings() {
+    if (!window.kryvex) return;
+    const opened = await window.kryvex.openDefaultApps();
+    if (!opened) onToast(t('Windows Default Apps could not be opened.'), 'danger');
+  }
+
   async function toggleShield(next: boolean) {
     if (!window.kryvex) return;
     setBusy('shield');
     try {
       setShield(await window.kryvex.shieldSetEnabled(next));
-      onToast(next ? 'Kryvex Shield enabled.' : 'Kryvex Shield disabled.', next ? 'success' : 'info');
+      onToast(
+        next ? t('Kryvex Shield enabled.') : t('Kryvex Shield disabled.'),
+        next ? 'success' : 'info',
+      );
     } catch {
-      onToast('Could not change the shield state.', 'danger');
+      onToast(t('Could not change the shield state.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function togglePrivacy(option: PrivacyOption, next: boolean) {
+    if (!window.kryvex) return;
+    setBusy('privacy');
+    try {
+      setShield(await window.kryvex.shieldSetOption(option, next));
+      onToast(t('Privacy protection updated.'), 'success');
+    } catch {
+      onToast(t('Could not change privacy protection.'), 'danger');
     } finally {
       setBusy(null);
     }
@@ -89,16 +151,18 @@ export function Settings({
   async function updateShield() {
     if (!window.kryvex) return;
     setBusy('shield-update');
-    onToast('Downloading filter lists…', 'info');
+    onToast(t('Downloading filter lists…'), 'info');
     try {
       const next = await window.kryvex.shieldUpdate();
       setShield(next);
       onToast(
-        next.phase === 'error' ? next.error ?? 'Filter update failed.' : 'Filter lists updated.',
+        next.phase === 'error'
+          ? next.error ?? t('Filter update failed.')
+          : t('Filter lists updated.'),
         next.phase === 'error' ? 'danger' : 'success',
       );
     } catch {
-      onToast('Filter update failed.', 'danger');
+      onToast(t('Filter update failed.'), 'danger');
     } finally {
       setBusy(null);
     }
@@ -112,9 +176,9 @@ export function Settings({
         ? await window.kryvex.extensionsInstallFolder()
         : await window.kryvex.extensionsInstall();
       setExtensions(result.records);
-      onToast(result.message, result.ok ? 'success' : 'warning');
+      onToast(extensionMessage(t, result.message), result.ok ? 'success' : 'warning');
     } catch {
-      onToast('Extension installation failed.', 'danger');
+      onToast(t('Extension installation failed.'), 'danger');
     } finally {
       setBusy(null);
     }
@@ -126,9 +190,9 @@ export function Settings({
     try {
       const result = await window.kryvex.extensionsSetEnabled(record.key, enabled);
       setExtensions(result.records);
-      onToast(result.message, result.ok ? 'success' : 'warning');
+      onToast(extensionMessage(t, result.message), result.ok ? 'success' : 'warning');
     } catch {
-      onToast('Could not change the extension state.', 'danger');
+      onToast(t('Could not change the extension state.'), 'danger');
     } finally {
       setBusy(null);
     }
@@ -140,9 +204,9 @@ export function Settings({
     try {
       const result = await window.kryvex.extensionsRemove(record.key);
       setExtensions(result.records);
-      onToast(result.message, result.ok ? 'warning' : 'danger');
+      onToast(extensionMessage(t, result.message), result.ok ? 'warning' : 'danger');
     } catch {
-      onToast('Could not remove the extension.', 'danger');
+      onToast(t('Could not remove the extension.'), 'danger');
     } finally {
       setBusy(null);
     }
@@ -154,22 +218,42 @@ export function Settings({
     <section className="view settings-view">
       <header className="view-head">
         <div>
-          <p className="eyebrow mono">CONFIGURATION / LOCAL ONLY</p>
-          <h1>Settings</h1>
+          <p className="eyebrow mono">{t('CONFIGURATION / LOCAL ONLY')}</p>
+          <h1>{t('Settings')}</h1>
           <p className="lede">
-            Appearance, protection, extensions and startup behavior. Everything is stored on this
-            machine; there is no account and no sync.
+            {t(
+              'Appearance, protection, extensions and startup behavior. Everything is stored on this machine; there is no account and no sync.',
+            )}
           </p>
         </div>
       </header>
 
       <section className="settings-block">
         <div className="section-head">
-          <h2>Appearance</h2>
+          <h2>{t('Appearance')}</h2>
           <span className="mono muted-label">
-            {THEMES.length} THEMES · {THEME_PLUGINS.length} PLUGIN
+            {THEMES.length} {t('THEMES')} · {THEME_PLUGINS.length} {t('PLUGIN')}
           </span>
         </div>
+
+        <div className="setting-row">
+          <div>
+            <strong>{t('Language')}</strong>
+            <p>{t('Use your system language or choose one for the whole interface.')}</p>
+          </div>
+          <select
+            value={settings.language}
+            onChange={event => onUpdate({ language: event.target.value as LanguageSetting })}
+            aria-label={t('Language')}
+          >
+            {LANGUAGES.map(language => (
+              <option key={language.id} value={language.id}>
+                {language.id === 'system' ? languageLabel(language.id, t) : language.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="theme-grid">
           {THEMES.map(theme => (
             <button
@@ -179,7 +263,7 @@ export function Settings({
               }`}
               onClick={() => {
                 onUpdate({ themeId: theme.id });
-                onToast(`${theme.name} theme applied.`, 'success');
+                onToast(t('{name} theme applied.', { name: t(theme.name) }), 'success');
               }}
               aria-pressed={settings.themeId === theme.id}
             >
@@ -206,10 +290,11 @@ export function Settings({
                 </span>
               </span>
               <span className="theme-meta">
-                <strong>{theme.name}</strong>
+                <strong>{t(theme.name)}</strong>
                 <span className="mono">
                   {theme.plugin ? 'PLUGIN · ' : ''}
-                  {theme.mode.toUpperCase()} · {theme.tokens.accent?.toUpperCase()}
+                  {t(theme.mode === 'dark' ? 'Dark' : 'Light')} ·{' '}
+                  {theme.tokens.accent?.toUpperCase()}
                 </span>
               </span>
               {settings.themeId === theme.id ? (
@@ -227,18 +312,20 @@ export function Settings({
               <DonkeyMark size={54} variant="tile" />
             </span>
             <div className="plugin-copy">
-              <span className="mono plugin-kicker">THEME PLUGIN / {plugin.author.toUpperCase()}</span>
-              <strong>{plugin.name}</strong>
-              <p>{plugin.description}</p>
+              <span className="mono plugin-kicker">
+                {t('THEME PLUGIN / {author}', { author: plugin.author.toUpperCase() })}
+              </span>
+              <strong>{t(plugin.name)}</strong>
+              <p>{t(plugin.description)}</p>
             </div>
             <button
               className={`btn ${settings.themeId === plugin.themeId ? 'ghost' : 'secondary'}`}
               onClick={() => {
                 onUpdate({ themeId: plugin.themeId });
-                onToast('Special Donkey Edition activated. Hee-haw.', 'success');
+                onToast(t('Special Donkey Edition activated. Hee-haw.'), 'success');
               }}
             >
-              {settings.themeId === plugin.themeId ? 'Active' : 'Activate'}
+              {settings.themeId === plugin.themeId ? t('Active') : t('Activate')}
             </button>
           </div>
         ))}
@@ -248,19 +335,20 @@ export function Settings({
         <section className="settings-block panel shield-panel">
           <div className="section-head">
             <h2>
-              <Icon name="shield" size={16} /> Kryvex Shield
+              <Icon name="shield" size={16} /> {t('Kryvex Shield')}
             </h2>
             <span className={`mono shield-state ${shieldReady ? 'is-ready' : ''}`}>
-              {isElectron ? (shield?.phase ?? 'STARTING').toUpperCase() : 'DESKTOP ONLY'}
+              {isElectron ? t((shield?.phase ?? 'STARTING').toUpperCase()) : t('DESKTOP ONLY')}
             </span>
           </div>
 
           <div className="setting-row">
             <div>
-              <strong>Native ad and tracker blocking</strong>
+              <strong>{t('Native ad and tracker blocking')}</strong>
               <p>
-                Network filtering inside Electron&apos;s session layer. No extension, no MV3 service
-                worker, no browser policy changes.
+                {t(
+                  "Network filtering inside Electron's session layer. No extension, no MV3 service worker, no browser policy changes.",
+                )}
               </p>
             </div>
             <button
@@ -278,26 +366,96 @@ export function Settings({
             <>
               <div className="shield-stats">
                 <div>
-                  <span className="mono">BLOCKED THIS SESSION</span>
-                  <strong>{shield.blocked.toLocaleString()}</strong>
+                  <span className="mono">{t('BLOCKED THIS SESSION')}</span>
+                  <strong>{shield.blocked.toLocaleString(locale)}</strong>
                 </div>
                 <div>
-                  <span className="mono">NETWORK FILTERS</span>
-                  <strong>{shield.filters.toLocaleString()}</strong>
+                  <span className="mono">{t('NETWORK FILTERS')}</span>
+                  <strong>{shield.filters.toLocaleString(locale)}</strong>
                 </div>
                 <div>
-                  <span className="mono">LISTS UPDATED</span>
-                  <strong className="shield-date">{timeLabel(shield.updatedAt)}</strong>
+                  <span className="mono">{t('LISTS UPDATED')}</span>
+                  <strong className="shield-date">
+                    {timeLabel(shield.updatedAt, locale, t('never'))}
+                  </strong>
+                </div>
+              </div>
+
+              <p className="shield-note mono shield-privacy-stats">
+                {t('{stripped} tracking parameters removed · {upgrades} HTTPS upgrades', {
+                  stripped: shield.paramsStripped,
+                  upgrades: shield.httpsUpgrades,
+                })}
+              </p>
+
+              <div className="privacy-settings">
+                <span className="mono privacy-kicker">{t('Privacy protections')}</span>
+                <div className="setting-row">
+                  <div>
+                    <strong>{t('Block fingerprinting')}</strong>
+                    <p>
+                      {t(
+                        'Adds stable, subtle noise to canvas, WebGL and audio-analysis readouts. Reload open pages to apply a change.',
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    className={`switch ${shield.fingerprint ? 'is-on' : ''}`}
+                    role="switch"
+                    aria-checked={shield.fingerprint}
+                    disabled={!isElectron || busy === 'privacy'}
+                    onClick={() => void togglePrivacy('fingerprint', !shield.fingerprint)}
+                  >
+                    <span />
+                  </button>
+                </div>
+                <div className="setting-row">
+                  <div>
+                    <strong>{t('Upgrade connections to HTTPS')}</strong>
+                    <p>
+                      {t(
+                        'Tries HTTPS first for top-level navigations, then retries over HTTP once if the secure connection fails.',
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    className={`switch ${shield.httpsUpgrade ? 'is-on' : ''}`}
+                    role="switch"
+                    aria-checked={shield.httpsUpgrade}
+                    disabled={!isElectron || busy === 'privacy'}
+                    onClick={() => void togglePrivacy('httpsUpgrade', !shield.httpsUpgrade)}
+                  >
+                    <span />
+                  </button>
+                </div>
+                <div className="setting-row">
+                  <div>
+                    <strong>{t('Strip tracking parameters')}</strong>
+                    <p>
+                      {t(
+                        'Removes known campaign and click identifiers from top-level navigations.',
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    className={`switch ${shield.stripTracking ? 'is-on' : ''}`}
+                    role="switch"
+                    aria-checked={shield.stripTracking}
+                    disabled={!isElectron || busy === 'privacy'}
+                    onClick={() => void togglePrivacy('stripTracking', !shield.stripTracking)}
+                  >
+                    <span />
+                  </button>
                 </div>
               </div>
 
               <div className="setting-row">
                 <div>
-                  <strong>Filter sources</strong>
+                  <strong>{t('Filter sources')}</strong>
                   <p className="mono shield-lists">
                     {shield.lists.length > 0
                       ? shield.lists.join(' · ')
-                      : 'uBlock Origin filters · Privacy · Badware · EasyList · EasyPrivacy'}
+                      : 'uBlock Origin filters · Privacy · Badware · EasyList · EasyPrivacy · EasyList Cookie'}
                   </p>
                 </div>
                 <button
@@ -306,36 +464,46 @@ export function Settings({
                   onClick={() => void updateShield()}
                 >
                   <Icon name="reload" size={13} />
-                  {busy === 'shield-update' ? 'Updating…' : 'Update lists'}
+                  {busy === 'shield-update' ? t('Updating…') : t('Update lists')}
                 </button>
               </div>
 
+              <p className="shield-note">
+                {t('EasyList Cookie hides many consent banners without clicking them.')}
+              </p>
+
               {shield.phase === 'loading' ? (
-                <p className="shield-note">Downloading and compiling filter lists in the background…</p>
+                <p className="shield-note">
+                  {t('Downloading and compiling filter lists in the background…')}
+                </p>
               ) : null}
               {shield.error ? <p className="shield-note is-error">{shield.error}</p> : null}
             </>
           ) : (
             <p className="shield-note">
               {isElectron
-                ? 'Reading shield state…'
-                : 'The shield runs in the Electron app. This web preview cannot filter network traffic.'}
+                ? t('Reading shield state…')
+                : t(
+                    'The shield runs in the Electron app. This web preview cannot filter network traffic.',
+                  )}
             </p>
           )}
 
           <div className="credit-box">
-            <span className="mono credit-kicker">THIRD-PARTY CREDITS</span>
+            <span className="mono credit-kicker">{t('THIRD-PARTY CREDITS')}</span>
             <p>
-              Kryvex Shield is powered by the <strong>uBlock Origin filter lists</strong> created by
-              Raymond Hill and the uBlock Origin contributors, together with EasyList and EasyPrivacy.
-              The blocking engine is <strong>@ghostery/adblocker</strong> (MPL-2.0), wrapped for
-              Electron by Ghostery.
+              {t('Kryvex Shield is powered by the')}{' '}
+              <strong>{t('uBlock Origin filter lists')}</strong>{' '}
+              {t(
+                'created by Raymond Hill and the uBlock Origin contributors, together with EasyList and EasyPrivacy. The blocking engine is',
+              )}{' '}
+              <strong>@ghostery/adblocker</strong>{' '}
+              {t('(MPL-2.0), wrapped for Electron by Ghostery.')}
             </p>
             <p className="credit-disclaimer">
-              Kryvex takes no credit for uBlock Origin, its filter lists, EasyList, EasyPrivacy or the
-              Ghostery engine. They remain the work of their respective authors. uBlock Origin is
-              licensed GPL-3.0; list data is downloaded at runtime and is not redistributed with this
-              app. No affiliation or endorsement is implied.
+              {t(
+                'Kryvex takes no credit for uBlock Origin, its filter lists, EasyList, EasyPrivacy or the Ghostery engine. They remain the work of their respective authors. uBlock Origin is licensed GPL-3.0; list data is downloaded at runtime and is not redistributed with this app. No affiliation or endorsement is implied.',
+              )}
             </p>
             <div className="credit-links">
               <button
@@ -366,13 +534,16 @@ export function Settings({
 
         <section className="settings-block panel">
           <div className="section-head">
-            <h2>Extensions</h2>
-            <span className="mono muted-label">{extensions.length} INSTALLED</span>
+            <h2>{t('Extensions')}</h2>
+            <span className="mono muted-label">
+              {t('{count} INSTALLED', { count: extensions.length })}
+            </span>
           </div>
 
           <p className="settings-copy">
-            Add Chrome-compatible extensions as unpacked folders, <code>.zip</code> or <code>.crx</code>.
-            They are loaded into each service and browser session by Electron.
+            {t(
+              'Add Chrome-compatible extensions as unpacked folders, .zip or .crx. They are loaded into each service and browser session by Electron.',
+            )}
           </p>
 
           <div className="extension-actions">
@@ -382,21 +553,22 @@ export function Settings({
               onClick={() => void installExtension(false)}
             >
               <Icon name="plus" size={13} />
-              Install package
+              {t('Install package')}
             </button>
             <button
               className="btn ghost small"
               disabled={!isElectron || busy === 'ext-folder'}
               onClick={() => void installExtension(true)}
             >
-              Install folder
+              {t('Install folder')}
             </button>
           </div>
 
           {extensions.length === 0 ? (
             <p className="shield-note">
-              No extensions installed. Kryvex Shield already covers ads and trackers, so no ad-block
-              extension is required.
+              {t(
+                'No extensions installed. Kryvex Shield already covers ads and trackers, so no ad-block extension is required.',
+              )}
             </p>
           ) : (
             <ul className="extension-list">
@@ -405,7 +577,8 @@ export function Settings({
                   <div className="extension-id">
                     <strong>{record.name}</strong>
                     <span className="mono">
-                      v{record.version} · MV{record.manifestVersion} · {record.loaded ? 'loaded' : 'not loaded'}
+                      v{record.version} · MV{record.manifestVersion} ·{' '}
+                      {record.loaded ? t('loaded') : t('not loaded')}
                     </span>
                     {record.error ? <span className="extension-error">{record.error}</span> : null}
                   </div>
@@ -416,13 +589,13 @@ export function Settings({
                       aria-checked={record.enabled}
                       disabled={busy === `ext-${record.key}`}
                       onClick={() => void toggleExtension(record, !record.enabled)}
-                      title={record.enabled ? 'Disable' : 'Enable'}
+                      title={record.enabled ? t('Disable') : t('Enable')}
                     >
                       <span />
                     </button>
                     <button
                       className="icon-btn"
-                      aria-label={`Remove ${record.name}`}
+                      aria-label={t('Remove {name}', { name: record.name })}
                       disabled={busy === `ext-${record.key}`}
                       onClick={() => void removeExtension(record)}
                     >
@@ -436,17 +609,21 @@ export function Settings({
 
           <div className="extension-notes">
             <p>
-              <strong>Chrome Web Store:</strong> store install buttons cannot run inside Electron.
-              Download the developer&apos;s package or unpacked build, then install it here.
+              <strong>{t('Chrome Web Store')}:</strong>{' '}
+              {t(
+                'store install buttons cannot run inside Electron. Open an extension page in the Browser; Kryvex will offer an install button.',
+              )}
             </p>
             <p>
-              <strong>Firefox add-ons:</strong> <code>.xpi</code> packages target Gecko, not Chromium.
-              Kryvex cannot run them; use the Firefox build where the extension exists, or ask the
-              developer for a Chrome build.
+              <strong>{t('Firefox add-ons')}:</strong>{' '}
+              {t(
+                '.xpi packages target Gecko, not Chromium. Kryvex cannot run them; use the Firefox build where the extension exists, or ask the developer for a Chrome build.',
+              )}
             </p>
             <p className="credit-disclaimer">
-              Extensions execute third-party code with extension privileges. Install only projects you
-              trust; Kryvex does not audit or endorse them.
+              {t(
+                'Extensions execute third-party code with extension privileges. Install only projects you trust; Kryvex does not audit or endorse them.',
+              )}
             </p>
           </div>
 
@@ -456,38 +633,38 @@ export function Settings({
               void window.kryvex?.openExternal('https://chromewebstore.google.com/')
             }
           >
-            Open the Chrome Web Store <Icon name="external" size={12} />
+            {t('Open the Chrome Web Store')} <Icon name="external" size={12} />
           </button>
         </section>
       </div>
 
       <div className="settings-columns">
         <section className="settings-block panel">
-          <h2>Workspace</h2>
+          <h2>{t('Workspace')}</h2>
 
           <div className="setting-row">
             <div>
-              <strong>Start view</strong>
-              <p>Where Kryvex opens on launch.</p>
+              <strong>{t('Start view')}</strong>
+              <p>{t('Where Kryvex opens on launch.')}</p>
             </div>
             <select
               value={settings.startView}
               onChange={event => onUpdate({ startView: event.target.value as ViewId })}
-              aria-label="Start view"
+              aria-label={t('Start view')}
             >
-              <option value="home">Home</option>
-              <option value="services">Services</option>
-              <option value="browser">Browser</option>
-              <option value="settings">Settings</option>
+              <option value="home">{t('Home')}</option>
+              <option value="services">{t('Services')}</option>
+              <option value="browser">{t('Browser')}</option>
+              <option value="settings">{t('Settings')}</option>
             </select>
           </div>
 
           <div className="setting-row">
             <div>
-              <strong>Density</strong>
-              <p>Compact tightens rows and cards.</p>
+              <strong>{t('Density')}</strong>
+              <p>{t('Compact tightens rows and cards.')}</p>
             </div>
-            <div className="segmented" role="radiogroup" aria-label="Density">
+            <div className="segmented" role="radiogroup" aria-label={t('Density')}>
               {(['comfortable', 'compact'] as const).map(value => (
                 <button
                   key={value}
@@ -496,7 +673,7 @@ export function Settings({
                   className={settings.density === value ? 'is-active' : ''}
                   onClick={() => onUpdate({ density: value })}
                 >
-                  {value === 'comfortable' ? 'Comfortable' : 'Compact'}
+                  {value === 'comfortable' ? t('Comfortable') : t('Compact')}
                 </button>
               ))}
             </div>
@@ -504,8 +681,8 @@ export function Settings({
 
           <div className="setting-row">
             <div>
-              <strong>Status bar</strong>
-              <p>Show the element and session readout.</p>
+              <strong>{t('Status bar')}</strong>
+              <p>{t('Show the element and session readout.')}</p>
             </div>
             <button
               className={`switch ${settings.showStatusBar ? 'is-on' : ''}`}
@@ -519,8 +696,8 @@ export function Settings({
 
           <div className="setting-row">
             <div>
-              <strong>Confirm before removing</strong>
-              <p>Ask before deleting a module.</p>
+              <strong>{t('Confirm before removing')}</strong>
+              <p>{t('Ask before deleting a module.')}</p>
             </div>
             <button
               className={`switch ${settings.confirmBeforeDelete ? 'is-on' : ''}`}
@@ -533,20 +710,59 @@ export function Settings({
           </div>
         </section>
 
-        <section className="settings-block panel">
-          <h2>Browser</h2>
+        <section className="settings-block panel browser-settings-panel">
+          <h2>{t('Browser')}</h2>
 
           <div className="setting-row">
             <div>
-              <strong>Search engine</strong>
-              <p>Used when the address bar is not a URL.</p>
+              <strong>{t('Default browser')}</strong>
+              <p>
+                {!isElectron
+                  ? t('Available in the Windows app.')
+                  : !defaultBrowser
+                    ? t('Checking Windows Default Apps…')
+                    : defaultBrowser.isDefault
+                      ? t('Kryvex handles http and https links from Windows.')
+                      : defaultBrowser.detail ?? t('Choose Kryvex in Windows Default Apps.')}
+              </p>
+            </div>
+            <div className="setting-action-stack">
+              <button
+                className="btn secondary small"
+                disabled={
+                  !isElectron ||
+                  !defaultBrowser?.canRegister ||
+                  Boolean(defaultBrowser?.isDefault) ||
+                  busy === 'browser-default'
+                }
+                onClick={() => void makeDefaultBrowser()}
+              >
+                <Icon name={defaultBrowser?.isDefault ? 'check' : 'globe'} size={13} />
+                {defaultBrowser?.isDefault
+                  ? t('Default browser')
+                  : busy === 'browser-default'
+                    ? t('Opening…')
+                    : t('Set as default')}
+              </button>
+              {defaultBrowser && !defaultBrowser.isDefault && defaultBrowser.supported ? (
+                <button className="link" onClick={() => void openDefaultBrowserSettings()}>
+                  {t('Windows settings')}
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="setting-row">
+            <div>
+              <strong>{t('Search engine')}</strong>
+              <p>{t('Used when the address bar is not a URL.')}</p>
             </div>
             <select
               value={settings.searchEngine}
               onChange={event =>
                 onUpdate({ searchEngine: event.target.value as SettingsModel['searchEngine'] })
               }
-              aria-label="Search engine"
+              aria-label={t('Search engine')}
             >
               <option value="duckduckgo">DuckDuckGo</option>
               <option value="google">Google</option>
@@ -556,8 +772,8 @@ export function Settings({
 
           <div className="setting-row">
             <div>
-              <strong>Sidebar</strong>
-              <p>Collapse to the icon rail.</p>
+              <strong>{t('Sidebar')}</strong>
+              <p>{t('Collapse to the icon rail.')}</p>
             </div>
             <button
               className={`switch ${settings.sidebarCollapsed ? 'is-on' : ''}`}
@@ -571,35 +787,36 @@ export function Settings({
 
           <div className="setting-row column">
             <div>
-              <strong>Session isolation</strong>
+              <strong>{t('Session isolation')}</strong>
               <p>
-                Each module and each tab gets a dedicated persistent partition. Clearing a site&apos;s
-                data is done from its own settings page.
+                {t(
+                  'Each module keeps a persistent partition. Each browser tab uses an in-memory partition that is discarded when the tab closes.',
+                )}
               </p>
             </div>
-            <code className="mono code-line">persist:svc-* · persist:browser-*</code>
+            <code className="mono code-line">persist:svc-* · browser-* (in-memory)</code>
           </div>
         </section>
       </div>
 
       <div className="settings-columns">
         <section className="settings-block panel">
-          <h2>Data</h2>
+          <h2>{t('Data')}</h2>
           <div className="setting-row">
             <div>
-              <strong>State file</strong>
-              <p>Plain JSON in the app&apos;s user-data directory.</p>
+              <strong>{t('State file')}</strong>
+              <p>{t("Plain JSON in the app's user-data directory.")}</p>
             </div>
             <code className="mono code-line">userData/kryvex-state.json</code>
           </div>
           <div className="setting-row">
             <div>
-              <strong>Reset workspace</strong>
-              <p>Removes services, bookmarks and preferences, then restores starters.</p>
+              <strong>{t('Reset workspace')}</strong>
+              <p>{t('Removes services, bookmarks and preferences, then restores starters.')}</p>
             </div>
             <button className="btn danger-outline" onClick={onReset}>
               <Icon name="trash" size={14} />
-              Reset
+              {t('Reset')}
             </button>
           </div>
         </section>
@@ -611,31 +828,36 @@ export function Settings({
                 <DonkeyMark size={72} variant="tile" />
               </span>
             ) : (
-              <img src={logoUrl} width={72} height={72} alt="Kryvex element tile" />
+              <img src={logoUrl} width={72} height={72} alt={t('Kryvex element tile')} />
             )}
             <div>
               <h2>Kryvex</h2>
               <p className="mono">
-                {mark === 'donkey' ? 'SPECIAL DONKEY EDITION · ' : 'ELEMENT x529 · Kx · '}v
-                {info?.version ?? '0.3.0'}
+                {mark === 'donkey'
+                  ? `${t('Special Donkey Edition')} · `
+                  : `${t('ELEMENT x529 · Kx')} · `}
+                v{info?.version ?? '0.4.0'}
               </p>
             </div>
           </div>
           <p className="about-copy">
-            A modular desktop workspace. Independent services, one engineered surface, every
-            session isolated. Built with Electron, React and TypeScript.
+            {t(
+              'A modular desktop workspace. Independent services, one engineered surface, every session isolated. Built with Electron, React and TypeScript.',
+            )}
           </p>
           <dl className="about-meta mono">
             <div>
-              <dt>Runtime</dt>
-              <dd>{isElectron ? `Electron ${info?.electron ?? '—'}` : 'Web preview'}</dd>
+              <dt>{t('Runtime')}</dt>
+              <dd>
+                {isElectron ? `Electron ${info?.electron ?? '—'}` : t('Web preview')}
+              </dd>
             </div>
             <div>
-              <dt>Chromium</dt>
+              <dt>{t('Chromium')}</dt>
               <dd>{info?.chrome ?? '—'}</dd>
             </div>
             <div>
-              <dt>License</dt>
+              <dt>{t('License')}</dt>
               <dd>MIT</dd>
             </div>
           </dl>
@@ -643,14 +865,14 @@ export function Settings({
             className="btn secondary"
             onClick={() => {
               void window.kryvex?.openExternal('https://github.com/XiONDiGiTaL/Kryvex');
-              onToast('Opening the repository.', 'info');
+              onToast(t('Opening the repository.'), 'info');
             }}
           >
             <Icon name="external" size={14} />
             github.com/XiONDiGiTaL/Kryvex
           </button>
           <div className="about-devs">
-            <span className="mono about-devs-label">DEVELOPERS</span>
+            <span className="mono about-devs-label">{t('DEVELOPERS')}</span>
             <div className="about-dev-links">
               <a
                 href="https://github.com/XiONDiGiTaL"
@@ -675,7 +897,9 @@ export function Settings({
           </div>
           <div className="about-foot">
             <ThemeMark mark={mark} size={16} />
-            <span className="mono">FICTIONAL ELEMENT — NOT A CHEMICAL CLAIM</span>
+            <span className="mono">
+              {t('FICTIONAL ELEMENT — NOT A CHEMICAL CLAIM')}
+            </span>
           </div>
         </section>
       </div>

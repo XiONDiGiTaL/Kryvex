@@ -1,11 +1,11 @@
 # Engineering Decision Log
 
-## ED-001 — Upstream checkout is reference-only
-**Decision:** `X:\Veyra\upstream\ferdium-app` (shallow clone, `develop`) is
-read-only evidence. Kryvex source will live directly under `X:\Veyra`
-(separate `package.json`, ids, branding), never inside the upstream dir.
-**Reason:** Directive forbids using either upstream checkout as destination.
-**Status:** Enforced. Verified 2026-10-19.
+## ED-001 — Purpose-built application shell
+**Decision:** Kryvex is an independent Electron application under `X:\Veyra`.
+No third-party desktop workspace code is copied, vendored or rebranded.
+**Reason:** A compact shell with a narrow IPC boundary is easier to audit and
+keeps the MIT licensing story unambiguous.
+**Status:** Implemented since v0.1.0.
 
 ## ED-002 — Naming: Veyra → Gatherium → Kryvex (risk open)
 **Veyra (rejected, 2026-10-19).** USPTO TSDR shows VEYRA standard-char mark,
@@ -15,17 +15,13 @@ veyraeditor.com, MS Store); Veyra Live comms app (Google Play); Veyra dating
 and VPN apps; second VEYRA application ser. 50009270 (Veyra IP LLC). Never
 launch publicly under Veyra.
 
-**Gatherium (superseded).** Nine candidates screened: Veyra (USPTO reg +
-Studio/Live), Switchyard (Mac productivity app + pending software TM),
-Waystation (macOS app + MCP service), Portage (Windows Store app + Gentoo),
-Crossbuck (railroad app), Roadstead (media platform), Moorline (Mac app),
-Converra (desktop workbench + Convera near-match), Workstead (employee app).
-Gatherium looked clean (one tiny unrelated GitHub repo, no store/desktop/USPTO
-hits) and an identity was built, then superseded the same day by the owner's
-choice of Kryvex (candidate 6). Gatherium remains the fallback candidate.
+**Gatherium (superseded).** Nine candidates were screened: Veyra, Switchyard,
+Waystation, Portage, Crossbuck, Roadstead, Moorline, Converra and Workstead.
+Gatherium looked clean and an identity was built, then it was superseded the
+same day by the owner's choice of Kryvex. Gatherium remains the fallback.
 
-**Kryvex (current — high risk).** Owner selected Kryvex and supplied a
-periodic-table identity direction. Conflict screen, 2026-10-19:
+**Kryvex (current — high risk).** Owner selected Kryvex with a periodic-table
+identity direction. Conflict screen, 2026-10-19:
   - Kryvex LLC — a KRYVEX AI platform, “The Terminal That Thinks”, listed in
     Intel's partner showcase → exact name, active software.
   - deepsingh245/Kryvex — zero-knowledge password vault (web/mobile).
@@ -48,64 +44,96 @@ symbol `Kr`), fictional element designation `x529` (initially `027`, changed
 for developer branding), tagline “Precision in Every Connection.”
 **Status:** brand system delivered 2026-10-19; clearance open.
 
-## ED-003 — Midori integration: fallback D
+## ED-003 — Browser engine: Electron Chromium, not Midori
 **Findings:** `midori-browser/core` is Vala + GTK3 + WebKitGTK, CMake,
 LGPL-2.1, unmaintained since Oct 2019 (v9.0 Jul 2019). No Electron/Windows
 embed path; historical MinGW docs only. Current Midori desktop is a separate
 Firefox-derived repo.
-**Decision:** Evaluate in order A→D per directive; A–C fail on maintenance/
-platform/integration grounds. Kryvex browser = Electron webview capabilities
-(Chromium), with a documented seam for a future engine. Record measurements
+**Decision:** Use Electron's Chromium webview for Kryvex modules and the
+browser, with a documented seam for a future engine. Record measurements
 before claiming anything "lightweight". Do not present Midori as integrated.
 **Status:** Decided; recorded in `docs/MIDORI_INTEGRATION.md`. No Midori code ships.
 
-## ED-004 — Keep Ferdium stack for the fork baseline
-**Decision:** Retain Electron + TypeScript/React/MobX + pnpm + electron-builder
-for M2/M3. No Rust/Go/Tauri rewrite. Architectural changes only from
-profiling or concrete incompatibility.
-**Reason:** Directive + buzzword rewrites carry unmeasured cost. Baseline
-first, then justify deltas.
-**Status:** Superseded by ED-008 for v0.1.0 — the Electron + TypeScript +
-React stack was kept, but no fork is shipped.
+## ED-004 — Keep Electron + React + TypeScript
+**Decision:** Retain Electron + TypeScript/React + pnpm + electron-builder.
+No Rust/Go/Tauri rewrite. Architectural changes only from profiling or a
+concrete platform incompatibility.
+**Reason:** Rewrites carry unmeasured cost. The current stack already supports
+isolated sessions, hardened webviews, native downloads and Windows packaging.
+**Status:** Enforced for v0.4.0.
 
-## ED-005 — Security hardening is mandatory fork work
-**Findings (verified):** Upstream main window sets `nodeIntegration: true`,
-`contextIsolation: false` (`src/index.ts:282-284`); recipe guide says recipe
-code can access Electron/Node APIs.
+## ED-005 — Security hardening is mandatory
 **Decision:** Kryvex must enable context isolation, disable Node integration in
 remote-content surfaces, scope preload bridges, validate IPC senders, and keep
-service content in isolated partitions/sessions. Document inherited issues in
-`docs/SECURITY_MODEL.md`.
-**Status:** Implemented in v0.1.0; see `docs/SECURITY_MODEL.md`.
+service content in isolated partitions/sessions.
+**Status:** Implemented; see `docs/SECURITY_MODEL.md`.
 
-## ED-006 — pnpm required for baseline honesty
-**Findings:** Upstream engines pin Node 24.20.0 + pnpm 12.3.4; env has Node
-24.19.0 + npm 12.0.2, no pnpm. Lockfile is `pnpm-lock.yaml`.
-**Decision:** Install pnpm via documented free route (corepack or official
-installer) inside M2 and record versions; never convert to npm silently.
-If installation is blocked, record the exact error as the M2 blocker.
-**Status:** Completed — pnpm 12.3.4 installed to a local tool dir (corepack blocked by EPERM); baseline recorded.
+## ED-006 — pnpm is the package manager
+**Decision:** Keep pnpm and the committed `pnpm-lock.yaml`; never convert to npm
+silently. Record the exact toolchain when a bootstrap step is blocked.
+**Status:** pnpm 12.3.4 installed in a local tool directory (corepack blocked by
+EPERM); baseline recorded.
 
 ## ED-007 — Sohbet integration without assumptions
 **Findings:** `https://sohbet.xiondigital.net` returns 200 (Next.js/Vercel).
-Frame-ancestors policy, auth/session behavior, notification support unknown.
-**Decision:** Dedicated service entry + isolated session/partition; verify
-X-Frame-Options/CSP at integration time; never disable web security globally;
-no Node in remote content; narrow IPC only. Document site-imposed limits.
-**Status:** Implemented — Sohbet loads in its own `persist:svc-*` module session (live probe, `loading: false`).
+Frame-ancestors policy, auth/session behavior and notification support are
+site-controlled.
+**Decision:** Dedicated service entry + isolated session/partition; never
+disable web security globally; no Node in remote content; narrow IPC only.
+**Status:** Implemented — Sohbet loads in its own `persist:svc-*` module session.
 
-## ED-008 — Ship a fresh shell instead of a Ferdium fork
-**Decision:** v0.1.0 is an independent Electron 44 + React 19 + TypeScript app
-(`electron/`, `src/`), not a rebranded Ferdium checkout. No upstream code is
-copied; the upstream clone remains reference-only.
-**Reason:** The upstream tree carries a large inherited surface, privileged
-recipe bridge and `nodeIntegration: true` defaults (ED-005). A small shell with
-four IPC calls, hardened webviews and token-driven UI delivers the requested
-module/browser/theming behaviour with a reviewable security boundary, and keeps
-licensing unambiguous (MIT, no Apache-2.0 attribution burden for a derivative).
-**Consequence:** Ferdium's recipe catalogue, hibernation, downloads UI and
-service presets are **not** inherited. Modules are URL-based. If catalogue
-parity becomes a requirement, evaluate a recipes integration separately rather
-than importing the whole app.
-**Status:** Implemented and verified 2026-10-19 (typecheck, 38 tests, build,
-route capture, live Sohbet module).
+## ED-008 — Browser downloads and history are first-class
+**Decision:** Downloads are observed in the trusted main process for every
+session, saved to the user's Downloads folder with collision-safe names, and
+exposed to the renderer as display records plus explicit pause/cancel/remove
+operations. History is persisted with the rest of the workspace state, capped
+at 500 entries and sanitised on load. The renderer never receives an arbitrary
+filesystem path or the ability to choose a deletion target.
+**Reason:** A download UI must not become a filesystem bridge. The main process
+owns the download item, its path and its lifecycle; the renderer only sees a
+tracked record ID.
+**Status:** Implemented in v0.4.0.
+
+## ED-009 — Default browser is opt-in and Windows-owned
+**Decision:** Kryvex registers `http` and `https` and writes per-user Default
+Apps capabilities only when the user presses **Set as default** in the
+installed Windows build, then opens Windows Default Apps for the final
+confirmation. Kryvex also accepts http(s) URLs passed on the command line and
+opens them in a browser tab. It never changes the system default silently.
+**Reason:** Windows 10/11 intentionally protect the default-browser choice.
+Pretending an app can override it would be inaccurate.
+**Status:** Implemented in v0.4.0; unsigned installer remains.
+
+## ED-010 — Browser hardening borrows goals, not Firefox code
+**Decision:** Kryvex adopts LibreWolf-inspired privacy goals only where
+Chromium/Electron provides an enforceable behaviour. These are no-pings,
+disabling DNS prefetch and domain-reliability telemetry, a WebRTC public-
+interface policy, explicit permission/device/Bluetooth denial, Global Privacy
+Control, cross-origin referrer trimming, and in-memory browser-tab partitions
+cleared on close. Firefox-specific RFP, dFPI, Safe Browsing and DoH prefs are
+not copied or claimed because they have no documented Electron equivalent.
+**Reason:** LibreWolf is Firefox-based, not Chromium-based. Copying its prefs
+would create dead configuration and a false security claim. Each retained
+control is implemented with a documented Electron session/webRequest API or a
+well-known Chromium switch, and is covered by tests or runtime probes.
+**Status:** Implemented 2026-10-19; see `electron/hardening.ts`,
+`electron/privacy.ts` and `docs/SECURITY_MODEL.md`.
+
+## ED-011 — Brave protections are clean-room Electron equivalents
+**Decision:** Implement a focused subset of Brave Shields as small Electron
+components: HTTPS upgrades with a one-time HTTP fallback, tracking-parameter
+stripping for top-level GET navigations, deterministic per-site canvas/WebGL/
+audio-analysis farbling in a frame preload, and EasyList Cookie in the existing
+local filter engine. Do not vendor Brave Core, fork Chromium, copy Brave source,
+or present the JavaScript wrappers as native-engine guarantees.
+**Reason:** Brave is MPL-2.0 and its protections rely on browser-engine
+patches. Copying files would add file-level MPL obligations and a large
+maintenance surface; an Electron-native subset is auditable, works with the
+current installer and keeps the MIT project boundary clear. Electron's
+`webRequest` supports only one listener per event, so the privacy rules are
+combined with Ghostery's blocker in a single pipeline instead of competing
+with it.
+**Status:** Implemented in v0.4.0; see `electron/brave-rules.ts`,
+`electron/web-privacy.ts`, `electron/farbling-preload.ts` and
+`docs/ATTRIBUTION.md`. Known limits: no native fingerprint guarantees, no Safe
+Browsing, and top-level HTTPS upgrades only.

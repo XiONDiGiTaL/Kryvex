@@ -1,5 +1,6 @@
 import type { AppInfo, PersistedState, Service, ViewId } from '../types';
 import { getTheme } from '../lib/themes';
+import { useT } from '../lib/i18n';
 import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from './ui';
 
 const NAV: Array<{ id: ViewId; label: string; icon: 'home' | 'layers' | 'globe' | 'sliders' }> = [
@@ -28,6 +29,7 @@ export function Header({
   isElectron: boolean;
   mark?: ThemeMarkKind;
 }) {
+  const t = useT();
   return (
     <header className="app-header">
       <div className="header-left">
@@ -43,38 +45,42 @@ export function Header({
         </div>
       </div>
 
-      <button className="command-trigger" onClick={onPalette} aria-label="Open command palette">
+      <button
+        className="command-trigger"
+        onClick={onPalette}
+        aria-label={t('Open command palette')}
+      >
         <Icon name="search" size={15} />
-        <span>Search services, views, actions</span>
+        <span>{t('Search services, views, actions')}</span>
         <kbd>Ctrl K</kbd>
       </button>
 
       <div className="header-right">
-        <div className="header-tools" aria-label="Quick access">
-          <button className="header-tool" onClick={onAdd} title="Add a service">
+        <div className="header-tools" aria-label={t('Quick access')}>
+          <button className="header-tool" onClick={onAdd} title={t('Add a service')}>
             <Icon name="plus" size={14} />
-            <span>Add</span>
+            <span>{t('Add')}</span>
           </button>
           <button
             className={`header-tool ${view === 'settings' ? 'is-active' : ''}`}
             onClick={onSettings}
-            title="Open settings (Ctrl 4)"
+            title={t('Open settings (Ctrl 4)')}
             aria-current={view === 'settings' ? 'page' : undefined}
           >
             <Icon name="sliders" size={14} />
-            <span>Settings</span>
+            <span>{t('Settings')}</span>
           </button>
-          <button className="header-tool" onClick={onHelp} title="Open quick help">
+          <button className="header-tool" onClick={onHelp} title={t('Open quick help')}>
             <Icon name="help" size={14} />
-            <span>Help</span>
+            <span>{t('Help')}</span>
           </button>
         </div>
-        <span className="element-chip" title="Fictional element x529 · Kx">
+        <span className="element-chip" title={t('Fictional element x529 · Kx')}>
           x529 <span className="element-symbol">Kx</span>
         </span>
         <span className={`shell-badge ${isElectron ? 'is-live' : ''}`}>
           <span className="status-dot" />
-          {isElectron ? 'Desktop' : 'Preview'}
+          {isElectron ? t('Desktop') : t('Preview')}
         </span>
         {isElectron ? <div className="window-controls-space" aria-hidden="true" /> : null}
       </div>
@@ -99,10 +105,11 @@ export function Sidebar({
   onOpenService: (service: Service) => void;
   onAdd: () => void;
 }) {
+  const t = useT();
   const pinned = state.services.filter(service => service.pinned);
 
   return (
-    <aside className={`app-sidebar ${collapsed ? 'is-collapsed' : ''}`} aria-label="Primary">
+    <aside className={`app-sidebar ${collapsed ? 'is-collapsed' : ''}`} aria-label={t('Primary')}>
       <nav className="nav-block">
         {NAV.map(item => (
           <button
@@ -110,12 +117,12 @@ export function Sidebar({
             className={`nav-item ${routeView === item.id ? 'is-active' : ''}`}
             onClick={() => onNavigate(item.id)}
             aria-current={routeView === item.id ? 'page' : undefined}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? t(item.label) : undefined}
           >
             <span className="nav-icon">
               <Icon name={item.icon} size={17} />
             </span>
-            <span className="nav-label">{item.label}</span>
+            <span className="nav-label">{t(item.label)}</span>
             {item.id === 'services' ? <span className="nav-count">{state.services.length}</span> : null}
             {routeView === item.id ? <span className="nav-active-bar" aria-hidden="true" /> : null}
           </button>
@@ -124,11 +131,11 @@ export function Sidebar({
 
       <div className="sidebar-section">
         <div className="sidebar-heading">
-          <span>PINNED</span>
+          <span>{t('PINNED')}</span>
           <span className="sidebar-mono">{pinned.length.toString().padStart(2, '0')}</span>
         </div>
         {pinned.length === 0 ? (
-          <p className="sidebar-empty">Pin a service to keep it one click away.</p>
+          <p className="sidebar-empty">{t('Pin a service to keep it one click away.')}</p>
         ) : (
           <ul className="pinned-list">
             {pinned.map(service => (
@@ -148,15 +155,15 @@ export function Sidebar({
       </div>
 
       <div className="sidebar-foot">
-        <button className="add-service-btn" onClick={onAdd} title="Add a service">
+        <button className="add-service-btn" onClick={onAdd} title={t('Add a service')}>
           <Icon name="plus" size={16} />
-          <span className="nav-label">Add service</span>
+          <span className="nav-label">{t('Add service')}</span>
         </button>
         <button
           className="collapse-btn"
           onClick={onToggle}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? t('Expand sidebar') : t('Collapse sidebar')}
+          title={collapsed ? t('Expand sidebar') : t('Collapse sidebar')}
         >
           <Icon name="chevron" size={16} className={collapsed ? '' : 'flip'} />
         </button>
@@ -178,36 +185,38 @@ export function StatusBar({
   isElectron: boolean;
   mark?: ThemeMarkKind;
 }) {
+  const t = useT();
   const theme = getTheme(themeId);
+  const themeName = t(theme.name);
   const pinned = state.services.filter(service => service.pinned).length;
 
   return (
     <footer className="status-bar">
       <span className="status-group mono">
         <span className="status-dot is-live" />
-        {isElectron ? 'LOCAL SHELL' : 'WEB PREVIEW'}
+        {isElectron ? t('LOCAL SHELL') : t('WEB PREVIEW')}
       </span>
       <span className="status-sep" aria-hidden="true">
         ·
       </span>
       <span className="mono status-brand">
         <ThemeMark mark={mark} size={12} />
-        {mark === 'donkey' ? 'DONKEY EDITION' : 'ELEMENT x529 / Kx'}
+        {mark === 'donkey' ? t('DONKEY EDITION') : t('ELEMENT x529 / Kx')}
       </span>
       <span className="status-grow" />
-      <span className="mono">{state.services.length} SERVICES</span>
+      <span className="mono">{t('{count} SERVICES', { count: state.services.length })}</span>
       <span className="status-sep" aria-hidden="true">
         ·
       </span>
-      <span className="mono">{pinned} PINNED</span>
+      <span className="mono">{t('{count} PINNED', { count: pinned })}</span>
       <span className="status-sep" aria-hidden="true">
         ·
       </span>
-      <span className="mono status-theme">{theme.name}</span>
+      <span className="mono status-theme">{themeName}</span>
       <span className="status-sep" aria-hidden="true">
         ·
       </span>
-      <span className="mono">v{appInfo?.version ?? '0.3.0'}</span>
+      <span className="mono">v{appInfo?.version ?? '0.4.0'}</span>
     </footer>
   );
 }

@@ -158,15 +158,18 @@ export function starterState(): PersistedState {
       createdAt: now + index,
     })),
     bookmarks: [],
+    history: [],
     settings: {
       themeId: 'kryvex-dark',
       density: 'comfortable',
       startView: 'home',
+      language: 'system',
       sidebarCollapsed: false,
       showStatusBar: true,
       searchEngine: 'duckduckgo',
       confirmBeforeDelete: true,
     },
     recent: [],
+    browser: { tabs: [], activeTabId: null },
   };
 }

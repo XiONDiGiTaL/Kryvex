@@ -25,12 +25,31 @@ extension loads, but requests are not cancelled and its dashboard does not
 initialize). Kryvex therefore does not ship a dead extension; it uses the
 project's filter data natively instead.
 
-## EasyList and EasyPrivacy
+## EasyList, EasyPrivacy and EasyList Cookie
 
-- **Projects:** https://easylist.to/ — EasyList and EasyPrivacy
+- **Projects:** https://easylist.to/ — EasyList and EasyPrivacy; EasyList Cookie
+  is the Fanboy Cookie Monster list at https://secure.fanboy.co.nz/
 - **License:** GPL-3.0 (list data)
 - **How Kryvex uses it:** downloaded at runtime alongside the uBO lists and
   compiled into the same local engine. Not redistributed with the app.
+- EasyList Cookie is used to hide many consent banners. Kryvex does not click
+  a consent choice on the user's behalf, and it does not claim that hiding a
+  banner records a legally valid consent decision.
+
+## Brave Browser and Brave Core
+
+- **Projects:** https://github.com/brave/brave-browser and
+  https://github.com/brave/brave-core
+- **License:** MPL-2.0
+- **How Kryvex uses it:** Brave is a feature reference for HTTPS upgrades,
+  tracking-parameter stripping, fingerprint farbling and consent-banner
+  filtering. Kryvex does **not** copy Brave source code or ship a Chromium
+  fork. The Electron-native implementations live in
+  `electron/brave-rules.ts`, `electron/web-privacy.ts` and
+  `electron/farbling-preload.ts`; they are smaller, independent approximations.
+- Brave's documentation and wiki were consulted for behaviour and
+  compatibility notes. No Brave trademark or branding is used, and no
+  affiliation or endorsement is implied.
 
 ## Ghostery Adblocker
 
@@ -41,7 +60,9 @@ project's filter data natively instead.
 - **How Kryvex uses it:** the unmodified npm packages provide the filtering
   engine and Electron `webRequest` adapter. Kryvex adds a small local shim in
   `electron/shield.ts` so one set of cosmetic-filter IPC handlers serves every
-  isolated session instead of throwing on the second partition.
+  isolated session instead of throwing on the second partition, and installs a
+  combined privacy listener in `electron/web-privacy.ts` because Electron keeps
+  only one `onBeforeRequest` handler per session.
 - Source for the MPL-2.0 components is available from the package links above
   and inside `node_modules` after installation.
 

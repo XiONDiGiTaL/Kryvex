@@ -1,8 +1,8 @@
-# Kryvex application architecture (v0.3.0)
+# Kryvex application architecture (v0.4.0)
 
-This document describes the app that lives in `electron/` and `src/`. It is
-deliberately separate from `ARCHITECTURE.md`, which maps the Ferdium upstream
-that was analysed as reference; Kryvex does not ship that code.
+This document describes the app that lives in `electron/` and `src/`. It is a
+purpose-built Electron application; no third-party desktop workspace is
+vendored or rebranded.
 
 ## Stack
 
@@ -12,9 +12,13 @@ that was analysed as reference; Kryvex does not ship that code.
 | Renderer | React 19 + TypeScript 7, bundled by Vite 8 |
 | State | Pure reducer-style helpers in `src/lib/store.ts`, persisted as JSON |
 | Styling | One stylesheet driven by CSS custom properties from `brand/tokens.json` |
-| Tests | Vitest, 40 unit tests over URL, services, catalogue, store, themes |
-| Shield | `@ghostery/adblocker` over downloaded uBO/EasyList lists |
+| Tests | Vitest, 103 unit tests over URL, services, catalogue, store, history, downloads, page zoom, themes, Windows browser registration, torrent rules and queue restore, media permissions and Brave-style URL rules |
+| Shield | `@ghostery/adblocker` over downloaded uBO/EasyList lists, with a combined privacy rewrite pipeline |
 | Extensions | Electron `session.extensions` with a guarded ZIP/CRX/folder installer |
+| Downloads | Chromium `will-download` events, main-process records, safe file lifecycle |
+| Torrents | WebTorrent 3 in the main process, magnet/.torrent input, fixed download root, live peer stats, persisted paused queue |
+| Voice/video | Per-session permission broker; explicit microphone/camera prompt for webviews |
+| Browser registration | Per-user Default Apps capabilities + `app.setAsDefaultProtocolClient` handoff |
 | Packaging | electron-builder (NSIS + portable, Windows), unsigned |
 
 ## Process model
@@ -27,6 +31,11 @@ state file (atomic)  ◄──  loadState / saveState  ──►  registry + val
 webview hardening         openExternal                theme + plugin engine
 permission policy         appInfo                     command palette
 shield + extensions       shield / extension calls    service + browser webviews
+URL privacy + farbling    privacy status              settings switches
+download manager          download records/actions    downloads/history bookmarks
+torrent queue             torrent records/actions     torrent rows + file lists
+permission broker         permission prompt response mic/camera prompt
+default browser           browser handoff             default-browser status
 capture routine
                                                         │
                                                         ▼
@@ -54,8 +63,9 @@ A module is a row of the registry, not executable code.
 | `lastOpened` | number? | Epoch ms, updated when opened |
 
 The session partition is derived, never user-supplied:
-`persist:svc-<id>` for modules, `persist:browser-<tabId>` for browser tabs.
-Both are enforced by `will-attach-webview`.
+`persist:svc-<id>` for modules and `browser-<tabId>` (in-memory) for browser
+tabs. Both forms are enforced by `will-attach-webview`; browser tabs are
+cleared when closed.
 
 ### Lifecycle
 
@@ -64,10 +74,9 @@ Both are enforced by `will-attach-webview`.
 3. **Active** — navigation events update the address display; the session is
    persistent for the lifetime of the profile.
 4. **Closed** — leaving the view destroys the webview element; the partition and
-   its cookies survive.
-
-There is no hibernation, crash isolation supervisor, or per-module permission
-grant yet. Those are roadmap items; do not describe them as implemented.
+   its cookies survive.There is no hibernation or crash isolation supervisor yet. Microphone and
+camera grants are per origin for the current app session, not a persisted
+per-module capability; a restart forgets them.
 
 ## State
 
@@ -78,11 +87,16 @@ grant yet. Those are roadmap items; do not describe them as implemented.
   version: 1,
   services: Service[],
   bookmarks: Bookmark[],
+  history: HistoryEntry[],   // max 500, newest first
   settings: {
     themeId, density, startView, sidebarCollapsed,
     showStatusBar, searchEngine, confirmBeforeDelete
   },
-  recent: string[]   // service ids, most recent first, max 8
+  recent: string[],  // service ids, most recent first, max 8
+  browser: {
+    tabs: BrowserTab[],     // max 20, http(s) or an empty new tab
+    activeTabId: string | null
+  }
 }
 ```
 
@@ -92,7 +106,8 @@ Persistence rules:
 - Written to `userData/kryvex-state.json` through a temp file + rename.
 - 1 MB cap; oversized or malformed payloads are rejected.
 - `sanitizeState` drops unsafe ids, non-http URLs, unknown themes, duplicate
-  services and orphaned recents. An empty service list stays empty.
+  services/history/bookmarks/tabs and orphaned recents, and repairs an active
+  tab id that does not match a saved tab. An empty service list stays empty.
 - Web preview falls back to `localStorage`.
 
 ## Theme pipeline
@@ -113,18 +128,42 @@ second stylesheet.
 ## Shield
 
 `electron/shield.ts` owns one compiled `ElectronBlocker`. It loads a cached
-engine from `userData/kryvex-shield-engine.bin`, or downloads the five lists
-(uBO filters/privacy/badware, EasyList, EasyPrivacy) and serialises a new one.
-It attaches to the default session and every partition discovered through
-`web-contents-created`. Toggling off disables each session; refreshing detaches
-the old engine first.
+engine from `userData/kryvex-shield-engine.bin`, or downloads the six lists
+(uBO filters/privacy/badware, EasyList, EasyPrivacy, EasyList Cookie) and
+serialises a new one. It attaches to the default session and every partition
+discovered through `web-contents-created`. Toggling off disables each session;
+refreshing detaches the old engine first.
 
-The upstream Electron adapter registers two global cosmetic-filter IPC
-handlers per enabled session. Electron only permits one handler per channel,
-so the shield installs a temporary `ipcMain.handle` guard that lets the first
-registration through and skips duplicates for later sessions. The handlers are
+Electron permits only one `onBeforeRequest` listener per session, so
+`electron/web-privacy.ts` installs the single listener after Ghostery enables
+its adapter. That listener performs HTTPS upgrades and tracking-parameter
+stripping, then delegates unchanged requests to the active blocker. A failed
+HTTPS navigation is recorded by URL and `webContents` id; `did-fail-load`
+allows one HTTP retry for that exact destination. `electron/brave-rules.ts`
+keeps the URL decisions pure and unit-tested.
+
+The Electron adapter registers two global cosmetic-filter IPC handlers per
+enabled session. Electron only permits one handler per channel, so the shield
+installs a temporary `ipcMain.handle` guard that lets the first registration
+through and skips duplicates for later sessions. The handlers are
 session-independent, so one copy is correct. This is the only modification to
 the adapter's behaviour and is documented in `docs/ATTRIBUTION.md`.
+
+## Fingerprinting and cookie banners
+
+`electron/farbling-preload.ts` is registered as a frame preload on webview
+sessions only. It calls `ipcRenderer.sendSync('kryvex:farbling:seed', site)`
+before page scripts run, then uses `contextBridge.executeInMainWorld` to wrap
+canvas `getImageData`/`toDataURL`/`toBlob`, WebGL `readPixels` and
+`AnalyserNode.getFloatFrequencyData`. The seed is an HMAC of the app-launch
+secret and the top-level origin. Wrappers perturb only low-order colour bits
+and inaudible analysis values, hash the original buffer to select positions,
+and preserve native return timing. The trusted shell is never patched.
+
+This is a JavaScript-level approximation, not a Chromium patch. A site can
+detect wrapped APIs, and worker/offscreen rendering is not fully covered.
+EasyList Cookie hides many consent banners but never clicks a consent choice;
+sites that block scrolling behind an overlay may still need manual action.
 
 ## Extensions
 
@@ -135,6 +174,82 @@ CRX3 headers to the ZIP payload, extracts to a temporary directory, validates
 Installed records persist in `kryvex-extensions.json`; enabled extensions attach
 to new sessions as they appear. Remove-only paths are checked against the
 managed directory. `.xpi` is rejected because Electron is Chromium, not Gecko.
+
+## Browser library and downloads
+
+`electron/downloads.ts` listens to `will-download` on every tracked session. It
+ows the `DownloadItem`, chooses a collision-safe path under the Windows
+Downloads folder, and publishes a `DownloadRecord` (filename, source, progress,
+state, timestamps). The renderer receives records through
+`kryvex:downloads:changed` and can call pause, cancel, open-file, show-in-folder,
+remove or delete-file by tracked ID. Delete-file is limited to paths the manager chose
+inside Downloads; the renderer never supplies a path. A completed `.torrent`
+download is handed to the torrent queue once, without changing the normal
+download record. Completed and interrupted records are written atomically to
+`userData/kryvex-downloads.json` by `electron/download-rules.ts`-validated data,
+so the Downloads tab is a real library rather than a per-session list. A
+download that was live when the app stopped is shown as interrupted, not
+running.
+
+`electron/torrents.ts` owns a persisted WebTorrent queue behind the same
+Downloads tab. Magnet links are validated (`urn:btih`, 40-hex or 32-base32,
+maximum 16 KiB) and `.torrent` files are limited to 10 MB. Every torrent gets a
+managed folder under `Downloads/Kryvex Torrents`; the renderer never supplies a
+path. The queue exposes progress, downloaded/uploaded bytes, down/up speed,
+ratio, remaining time, connected peers, seeders, leechers, active protocol
+badges, trackers and a capped file list. Pause stops new wires and closes the
+current ones; resume re-announces to trackers. Remove can keep data or delete
+only the managed folder.
+
+Queue records are written atomically to `userData/kryvex-torrents.json` (4 MB
+cap). Original `.torrent` metadata is copied to
+`userData/kryvex-torrent-metadata/<id>.torrent`, so the source file can be moved
+or deleted. On launch, `torrents.init()` validates those records, checks every
+restored path is inside the managed root, forces each row to `paused`, clears
+live speeds and peer counters, and does **not** construct a WebTorrent client.
+Resume is the only path that hydrates a row: it loads the saved `.torrent` (or
+magnet), verifies the existing pieces, and only then starts discovery. The
+queue is capped at 25.
+
+`src/views/Browser.tsx` keeps a side panel with Downloads, History and
+Bookmarks tabs. Torrent controls live inside Downloads; there is no standalone
+torrent page, search engine or directory. History is a capped `HistoryEntry[]`
+in persisted state, added on `did-navigate` and sanitised on load. Bookmarks
+remain in the same state file. The browser also accepts
+`#/browser?url=<http(s)>` to open a page in a tab.
+
+Open tabs are part of persisted state (`browser.tabs` / `browser.activeTabId`,
+validated down to twenty tabs). Tabs reopen by URL after a restart; page content
+is not cached, and browser tab partitions stay in-memory, so a restored tab
+starts signed out where it was signed in before.
+
+`Ctrl+F` opens find-in-page for the active tab (`findInPage` / `stopFindInPage`
+on the webview), with match counts and next/previous. `Ctrl +`/`Ctrl -` step the
+page zoom through fixed factors and `Ctrl 0` resets it; the toolbar shows the
+current factor and resets on click.
+
+## Media permissions
+
+`electron/permissions.ts` brokers `media` requests from webviews. The session
+policy still denies geolocation, notifications, USB/HID/serial, display capture
+and every other permission. A microphone/camera request is sent to the trusted
+shell with its validated HTTP(S) origin and requested devices; the page waits
+for the user's answer. Allow records only those devices for that origin until
+Kryvex exits. Block calls the Chromium callback with `false`, so the page sees a
+normal `getUserMedia` denial. The check handler reports existing grants only and
+requires both devices when Chromium omits a media type.
+
+## Default browser
+
+`electron/default-browser.ts` reports `app.isDefaultProtocolClient('http')` and
+`https`, registers both only from the installed Windows build on an explicit
+button press, and opens `ms-settings:defaultapps` for the final confirmation.
+`electron/windows-browser.ts` writes the per-user `RegisteredApplications` and
+`Clients\StartMenuInternet\Kryvex` capability keys that make Kryvex selectable;
+protocol commands alone are not enough on Windows 10/11.
+`process.argv` and the `second-instance` event are filtered for http(s) URLs and
+handed to the renderer; `takeBrowserUrls()` drains URLs queued before the
+renderer mounted. Kryvex never changes the system default silently.
 
 ## IPC surface
 
@@ -147,25 +262,57 @@ managed directory. `.xpi` is rejected because Electron is Chromium, not Gecko.
 | `kryvex:shield:status` | renderer → main | read-only status |
 | `kryvex:shield:enabled` | renderer → main | boolean + shell sender only |
 | `kryvex:shield:update` | renderer → main | shell sender only |
+| `kryvex:shield:option` | renderer → main | option name + boolean + shell sender |
+| `kryvex:farbling:seed` | webview preload → main (sync) | webview sender, http(s) site key, in-memory HMAC seed |
 | `kryvex:extensions:list` | renderer → main | read-only records |
 | `kryvex:extensions:install` | renderer → main | shell sender, native file dialog |
 | `kryvex:extensions:install-folder` | renderer → main | shell sender, native folder dialog |
 | `kryvex:extensions:enabled` | renderer → main | key + boolean + shell sender |
 | `kryvex:extensions:remove` | renderer → main | key + shell sender |
+| `kryvex:downloads:list` | renderer → main | read-only records |
+| `kryvex:downloads:pause` | renderer → main | tracked ID + shell sender |
+| `kryvex:downloads:cancel` | renderer → main | tracked ID + shell sender |
+| `kryvex:downloads:show` | renderer → main | tracked ID + shell sender |
+| `kryvex:downloads:remove` | renderer → main | tracked ID + boolean + shell sender |
+| `kryvex:downloads:clear` | renderer → main | shell sender only |
+| `kryvex:torrents:list` | renderer → main | read-only records |
+| `kryvex:torrents:add-magnet` | renderer → main | shell sender, validated magnet |
+| `kryvex:torrents:add-file` | renderer → main | shell sender, native file dialog |
+| `kryvex:torrents:pause` / `resume` / `show` | renderer → main | tracked ID + shell sender |
+| `kryvex:torrents:remove` | renderer → main | tracked ID + boolean + shell sender |
+| `kryvex:permissions:respond` | renderer → main | prompt ID + boolean + shell sender |
+| `kryvex:torrents:changed` | main → renderer | display records only |
+| `kryvex:torrents:notice` | main → renderer | stable message + tone |
+| `kryvex:browser:magnet` | main → renderer | validated magnet URI |
+| `kryvex:permissions:request` | main → renderer | origin + requested devices |
+| `kryvex:permissions:resolved` | main → renderer | prompt ID |
+| `kryvex:browser:default-status` | renderer → main | read-only status |
+| `kryvex:browser:default-set` | renderer → main | shell sender only |
+| `kryvex:browser:default-settings` | renderer → main | shell sender only |
+| `kryvex:browser:pending-urls` | renderer → main | shell sender only |
+| `kryvex:browser:open-url` | main → renderer | validated http(s) URL |
+| `kryvex:downloads:changed` | main → renderer | display records only |
 
 ## Security decisions
 
-- `will-attach-webview` deletes any preload, forces Node off, context isolation
-  and sandbox on, and rejects partitions outside the allowlist or `src` values
-  that are not http(s).
+- `will-attach-webview` deletes any page-supplied preload, forces Node off,
+  context isolation and sandbox on, and rejects partitions outside the
+  allowlist or `src` values that are not http(s). Kryvex's own farbling preload
+  is registered on the session after those checks, never from webview markup.
 - `app.on('web-contents-created')` sends `window.open` to the system browser
   after protocol validation and blocks non-http navigation inside webviews.
-- Permissions are denied except clipboard-sanitized-write and fullscreen.
+- Permissions are denied except clipboard-sanitized-write, fullscreen and an
+  explicit microphone/camera grant. Media requests are origin-scoped, in
+  memory and shown in the trusted shell; other devices stay denied.
+- Magnet navigation is validated, prevented from reaching Chromium's external
+  protocol handler and forwarded to the shell. Torrent folders and IDs are
+  chosen by main, not the renderer.
 - The shell window refuses navigation away from its own document.
 - `contextBridge` exposes a fixed typed API; there is no generic `ipcRenderer`.
-  Shield and extension mutations verify the sender is the shell window.
-- Extension packages and filter-list URLs never come from renderer input; the
-  main process owns both paths.
+  Shield, extension, download and browser mutations verify the sender is the
+  shell window.
+- Extension packages, filter-list URLs and download paths never come from
+  renderer input; the main process owns all three.
 
 ## Build and capture
 
@@ -177,20 +324,29 @@ pnpm capture   # build, launch with KRYVEX_CAPTURE=1, write screenshots/
 
 The capture routine drives real routes (`#/home`, `#/home?help=1`,
 `#/services`, `#/services?dialog=new`, `#/service/<id>`, `#/browser?newtab=1`,
-`#/settings`, shield/plugin scroll positions, `#/home?palette=1`,
-`#/home?theme=…`), waits for
-each view, and captures the window with `webContents.capturePage()`. It writes
-thirteen 1440×900 images. `pnpm capture` therefore doubles as a smoke test: the
-app must boot and render every route before screenshots exist.
+`#/browser?panel=downloads`, `#/browser?url=…&panel=history`, `#/settings`,
+shield/browser/plugin scroll positions, `#/home?palette=1`,
+`#/home?theme=…`), waits for each view, and captures the window with
+`webContents.capturePage()`. It writes sixteen 1440×900 images. `pnpm capture`
+therefore doubles as a smoke test: the app must boot and render every route
+before screenshots exist.
 
 ## Known gaps
 
-- No hibernation, downloads shelf, history manager, find-in-page, or zoom UI.
-- No custom-theme import/export; themes are six built-ins plus one plugin.
+- No hibernation or download-location picker.
+- Torrent rows restore paused, but no bandwidth scheduler, ratio limit,
+  per-file selection or sequential-download toggle exists.
+- No custom-theme import/export; themes are seven built-ins plus one plugin.
 - Shield is list-based; there is no per-site exception UI, custom filter editor,
   or request inspector. uBO's MV2 extension network layer is inert in Electron.
-- Extensions are Chrome-compatible only; Firefox XPI is rejected, and the
-  Chrome Web Store cannot be installed from inside Electron.
+- Fingerprint farbling is a preload wrapper, not a Chromium patch. It covers
+  main-thread canvas/WebGL/analyser readbacks and is stable per site, but
+  workers, offscreen contexts and determined detection are documented gaps.
+- HTTPS upgrades cover top-level GET navigations only; subresource upgrades and
+  interstitial warnings are not implemented.
+- Extensions are Chrome-compatible only; Firefox XPI is rejected. The Chrome
+  Web Store's own install button cannot run inside Electron, so Kryvex shows
+  its own install bar on detail pages and downloads the CRX directly.
 - Capture mode leaves a 138 px gap in the header where native window controls
   sit in the live app (they are not part of the captured web contents).
 - Packaging is configured but unsigned; no CI yet. `pnpm pack` is pnpm's tarball

@@ -1,4 +1,85 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+
+type DownloadState = 'progressing' | 'paused' | 'completed' | 'cancelled' | 'interrupted';
+
+interface DownloadRecord {
+  id: string;
+  filename: string;
+  url: string;
+  savePath: string;
+  receivedBytes: number;
+  totalBytes: number;
+  state: DownloadState;
+  startedAt: number;
+  updatedAt: number;
+}
+
+interface DownloadResult {
+  ok: boolean;
+  message: string;
+  records: DownloadRecord[];
+}
+
+interface DefaultBrowserStatus {
+  supported: boolean;
+  isDefault: boolean;
+  canRegister: boolean;
+  detail?: string;
+}
+
+type TorrentState = 'metadata' | 'downloading' | 'paused' | 'seeding' | 'error';
+type TorrentSource = 'magnet' | 'file';
+type MediaPermission = 'microphone' | 'camera';
+type ToastTone = 'info' | 'success' | 'warning' | 'danger';
+
+interface TorrentFileRecord {
+  name: string;
+  path: string;
+  length: number;
+  downloaded: number;
+  progress: number;
+}
+
+interface TorrentRecord {
+  id: string;
+  name: string;
+  infoHash: string;
+  magnetURI: string;
+  source: TorrentSource;
+  savePath: string;
+  state: TorrentState;
+  length: number;
+  downloaded: number;
+  uploaded: number;
+  downloadSpeed: number;
+  uploadSpeed: number;
+  ratio: number;
+  progress: number;
+  timeRemaining: number;
+  peers: number;
+  seeders: number;
+  leechers: number;
+  protocols: string[];
+  trackers: string[];
+  files: TorrentFileRecord[];
+  createdAt: number;
+  updatedAt: number;
+  error?: string;
+}
+
+interface TorrentResult {
+  ok: boolean;
+  message: string;
+  records: TorrentRecord[];
+  record?: TorrentRecord;
+}
+
+interface PermissionPrompt {
+  id: string;
+  origin: string;
+  host: string;
+  devices: MediaPermission[];
+}
 
 /**
  * The only bridge between the sandboxed renderer and the main process. No
@@ -14,14 +95,85 @@ const api = {
   shieldSetEnabled: (enabled: boolean): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:shield:enabled', enabled),
   shieldUpdate: (): Promise<unknown> => ipcRenderer.invoke('kryvex:shield:update'),
+  shieldSetOption: (option: string, enabled: boolean): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:shield:option', option, enabled),
   extensionsList: (): Promise<unknown> => ipcRenderer.invoke('kryvex:extensions:list'),
   extensionsInstall: (): Promise<unknown> => ipcRenderer.invoke('kryvex:extensions:install'),
   extensionsInstallFolder: (): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:extensions:install-folder'),
+  extensionsInstallWebStore: (extensionId: string): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:extensions:webstore', extensionId),
   extensionsSetEnabled: (key: string, enabled: boolean): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:extensions:enabled', key, enabled),
   extensionsRemove: (key: string): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:extensions:remove', key),
+  downloadsList: (): Promise<DownloadRecord[]> => ipcRenderer.invoke('kryvex:downloads:list'),
+  downloadsPause: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:downloads:pause', id),
+  downloadsCancel: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:downloads:cancel', id),
+  downloadsShow: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:downloads:show', id),
+  downloadsOpen: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:downloads:open', id),
+  downloadsRemove: (id: string, deleteFile: boolean): Promise<DownloadResult> =>
+    ipcRenderer.invoke('kryvex:downloads:remove', id, deleteFile),
+  downloadsClear: (): Promise<DownloadRecord[]> => ipcRenderer.invoke('kryvex:downloads:clear'),
+  onDownloadsChanged: (listener: (records: DownloadRecord[]) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, records: DownloadRecord[]) => listener(records);
+    ipcRenderer.on('kryvex:downloads:changed', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:downloads:changed', wrapped);
+  },
+  torrentsList: (): Promise<TorrentRecord[]> => ipcRenderer.invoke('kryvex:torrents:list'),
+  torrentsAddMagnet: (magnet: string): Promise<TorrentResult> =>
+    ipcRenderer.invoke('kryvex:torrents:add-magnet', magnet),
+  torrentsAddFile: (): Promise<TorrentResult> => ipcRenderer.invoke('kryvex:torrents:add-file'),
+  torrentsPause: (id: string): Promise<TorrentResult> =>
+    ipcRenderer.invoke('kryvex:torrents:pause', id),
+  torrentsResume: (id: string): Promise<TorrentResult> =>
+    ipcRenderer.invoke('kryvex:torrents:resume', id),
+  torrentsShow: (id: string): Promise<boolean> => ipcRenderer.invoke('kryvex:torrents:show', id),
+  torrentsRemove: (id: string, deleteData: boolean): Promise<TorrentResult> =>
+    ipcRenderer.invoke('kryvex:torrents:remove', id, deleteData),
+  onTorrentsChanged: (listener: (records: TorrentRecord[]) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, records: TorrentRecord[]) => listener(records);
+    ipcRenderer.on('kryvex:torrents:changed', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:torrents:changed', wrapped);
+  },
+  onTorrentsNotice: (
+    listener: (notice: { message: string; tone: ToastTone }) => void,
+  ): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, notice: { message: string; tone: ToastTone }) =>
+      listener(notice);
+    ipcRenderer.on('kryvex:torrents:notice', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:torrents:notice', wrapped);
+  },
+  onOpenMagnet: (listener: (magnet: string) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, magnet: string) => listener(magnet);
+    ipcRenderer.on('kryvex:browser:magnet', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:browser:magnet', wrapped);
+  },
+  onPermissionRequest: (listener: (request: PermissionPrompt) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, request: PermissionPrompt) => listener(request);
+    ipcRenderer.on('kryvex:permissions:request', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:permissions:request', wrapped);
+  },
+  respondPermission: (id: string, allow: boolean): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:permissions:respond', id, allow),
+  defaultBrowserStatus: (): Promise<DefaultBrowserStatus> =>
+    ipcRenderer.invoke('kryvex:browser:default-status'),
+  defaultBrowserSet: (): Promise<DefaultBrowserStatus> =>
+    ipcRenderer.invoke('kryvex:browser:default-set'),
+  openDefaultApps: (): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:browser:default-settings'),
+  takeBrowserUrls: (): Promise<string[]> => ipcRenderer.invoke('kryvex:browser:pending-urls'),
+  browserClearTab: (partition: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:browser:clear-tab', partition),
+  onOpenUrl: (listener: (url: string) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, url: string) => listener(url);
+    ipcRenderer.on('kryvex:browser:open-url', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:browser:open-url', wrapped);
+  },
   appInfo: (): Promise<{
     version: string;
     platform: string;

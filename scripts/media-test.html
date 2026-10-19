@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Waiting for permission</title>
+    <style>
+      body { font-family: system-ui, sans-serif; background: #0b0e12; color: #e6edf5; padding: 40px; }
+      p { color: #9aa6b5; }
+    </style>
+  </head>
+  <body>
+    <h1>Kryvex call permission test</h1>
+    <p id="state">Requesting microphone and camera…</p>
+    <script>
+      navigator.mediaDevices
+        .getUserMedia({ audio: true, video: true })
+        .then(stream => {
+          document.title = 'Media granted';
+          document.getElementById('state').textContent =
+            `Granted ${stream.getTracks().length} tracks`;
+          window.__kryvexMedia = stream;
+        })
+        .catch(error => {
+          document.title = 'Media blocked';
+          document.getElementById('state').textContent = `${error.name}: ${error.message}`;
+        });
+    </script>
+  </body>
+</html>

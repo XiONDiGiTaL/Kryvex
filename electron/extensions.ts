@@ -1,4 +1,4 @@
-import { app, dialog, type BrowserWindow, type Session } from 'electron';
+import { app, dialog, net, type BrowserWindow, type Session } from 'electron';
 import extract from 'extract-zip';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,6 +22,20 @@ interface InstallResult {
 }
 
 const MAX_EXTENSION_BYTES = 80 * 1024 * 1024;
+
+/** Windows can hold extracted files open briefly; cleanup must never mask an install. */
+function removeTree(target: string): boolean {
+  try {
+    fs.rmSync(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 120 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function rootDir(): string {
   return path.join(app.getPath('userData'), 'extensions');
@@ -61,12 +75,36 @@ function writeRecords(records: StoredExtension[]): void {
     fs.writeFileSync(tmp, JSON.stringify(records), 'utf8');
     fs.renameSync(tmp, target);
   } catch {
+    removeTree(tmp);
+  }
+}
+
+/** Chrome extensions often store the display name in _locales messages. */
+function resolveManifestName(dir: string, raw: string, defaultLocale: unknown): string {
+  const match = /^__MSG_(.+)__$/i.exec(raw.trim());
+  if (!match) return raw.slice(0, 80) || 'Unnamed extension';
+  const locales = [
+    typeof defaultLocale === 'string' ? defaultLocale : '',
+    'en',
+    'en_US',
+  ].filter(Boolean);
+  for (const locale of locales) {
     try {
-      fs.rmSync(tmp, { force: true });
+      const file = path.join(dir, '_locales', locale, 'messages.json');
+      const messages = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>;
+      const entry = Object.entries(messages).find(
+        ([key]) => key.toLowerCase() === match[1].toLowerCase(),
+      )?.[1];
+      const message =
+        entry && typeof entry === 'object' && typeof (entry as { message?: unknown }).message === 'string'
+          ? (entry as { message: string }).message
+          : null;
+      if (message) return message.slice(0, 80);
     } catch {
-      /* ignore */
+      /* try the next locale */
     }
   }
+  return 'Unnamed extension';
 }
 
 function validateManifest(dir: string): { name: string; version: string; manifestVersion: number } {
@@ -77,7 +115,8 @@ function validateManifest(dir: string): { name: string; version: string; manifes
   if (manifestVersion !== 2 && manifestVersion !== 3) {
     throw new Error('Only Manifest V2/V3 Chrome extensions are supported.');
   }
-  const name = typeof manifest.name === 'string' ? manifest.name.slice(0, 80) : 'Unnamed extension';
+  const rawName = typeof manifest.name === 'string' ? manifest.name : '';
+  const name = resolveManifestName(dir, rawName, manifest.default_locale);
   const version = typeof manifest.version === 'string' ? manifest.version.slice(0, 30) : '0.0.0';
   return { name, version, manifestVersion };
 }
@@ -143,6 +182,48 @@ class ExtensionManager {
     }));
   }
 
+  async installFromWebStore(extensionId: string): Promise<InstallResult> {
+    if (!/^[a-p]{32}$/.test(extensionId)) {
+      return this.result(false, 'That is not a valid Chrome Web Store extension ID.');
+    }
+    const target = path.join(rootDir(), `.webstore-${crypto.randomUUID()}.crx`);
+    try {
+      const url = new URL('https://clients2.google.com/service/update2/crx');
+      url.searchParams.set('response', 'redirect');
+      url.searchParams.set('prodversion', process.versions.chrome ?? '140.0.0.0');
+      url.searchParams.set('acceptformat', 'crx2,crx3');
+      url.searchParams.set('x', `id=${extensionId}&uc`);
+
+      const response = await net.fetch(url.toString(), { redirect: 'follow' });
+      if (!response.ok) {
+        return this.result(false, `Chrome Web Store returned HTTP ${response.status}.`);
+      }
+      const declared = Number(response.headers.get('content-length') ?? '0');
+      if (declared > MAX_EXTENSION_BYTES) {
+        return this.result(false, 'That extension package is larger than 80 MB.');
+      }
+      const buffer = Buffer.from(await response.arrayBuffer());
+      if (buffer.byteLength > MAX_EXTENSION_BYTES) {
+        return this.result(false, 'That extension package is larger than 80 MB.');
+      }
+      if (buffer.byteLength < 4) {
+        return this.result(false, 'Chrome Web Store returned an empty package.');
+      }
+      fs.mkdirSync(rootDir(), { recursive: true });
+      fs.writeFileSync(target, buffer);
+      return await this.installFromPath(target);
+    } catch (error) {
+      return this.result(
+        false,
+        error instanceof Error
+          ? error.message
+          : 'The Chrome Web Store extension could not be downloaded.',
+      );
+    } finally {
+      removeTree(target);
+    }
+  }
+
   async installFromDialog(folder: boolean): Promise<InstallResult> {
     if (!this.window) return this.result(false, 'The main window is not ready.');
     const picked = await dialog.showOpenDialog(this.window, {
@@ -195,7 +276,7 @@ class ExtensionManager {
 
       const manifest = validateManifest(extensionRoot);
       fs.cpSync(extensionRoot, target, { recursive: true });
-      fs.rmSync(temp, { recursive: true, force: true });
+      removeTree(temp);
 
       const record: StoredExtension = {
         key,
@@ -209,7 +290,7 @@ class ExtensionManager {
 
       const loaded = await this.loadInto(this.defaultSession, record);
       if (!loaded) {
-        fs.rmSync(target, { recursive: true, force: true });
+        removeTree(target);
         return this.result(false, 'Electron rejected the extension manifest.');
       }
 
@@ -220,8 +301,8 @@ class ExtensionManager {
       }
       return this.result(true, `${manifest.name} installed.`);
     } catch (error) {
-      fs.rmSync(temp, { recursive: true, force: true });
-      fs.rmSync(target, { recursive: true, force: true });
+      removeTree(temp);
+      removeTree(target);
       return this.result(
         false,
         error instanceof Error ? error.message : 'The extension could not be installed.',
@@ -254,7 +335,7 @@ class ExtensionManager {
     return this.result(true, `${record.name} disabled.`);
   }
 
-  remove(key: string): InstallResult {
+  async remove(key: string): Promise<InstallResult> {
     const record = this.records.find(item => item.key === key);
     if (!record) return this.result(false, 'That extension is not installed.');
     for (const ses of this.sessions) {
@@ -271,7 +352,11 @@ class ExtensionManager {
     this.records = this.records.filter(item => item.key !== key);
     writeRecords(this.records);
     if (record.dir.startsWith(rootDir()) && safeKey(record.key)) {
-      fs.rmSync(record.dir, { recursive: true, force: true });
+      // Chromium may still have the extension's service worker files mapped.
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        if (removeTree(record.dir) || !fs.existsSync(record.dir)) break;
+        await wait(250);
+      }
     }
     return this.result(true, `${record.name} removed.`);
   }

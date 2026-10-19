@@ -1,6 +1,7 @@
 import type { AppInfo, PersistedState, Service } from '../types';
 import { getTheme } from '../lib/themes';
 import { CATEGORIES } from '../lib/services';
+import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
 import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from '../components/ui';
 import { logoUrl } from '../assets';
@@ -9,14 +10,14 @@ function categoryLabel(id: Service['category']): string {
   return CATEGORIES.find(item => item.id === id)?.label ?? 'Other';
 }
 
-function relativeTime(timestamp: number | undefined): string {
-  if (!timestamp) return 'never';
+function relativeTime(timestamp: number | undefined, t: (key: string, vars?: Record<string, string | number>) => string): string {
+  if (!timestamp) return t('never');
   const minutes = Math.round((Date.now() - timestamp) / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t('just now');
+  if (minutes < 60) return t('{minutes}m ago', { minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+  if (hours < 24) return t('{hours}h ago', { hours });
+  return t('{days}d ago', { days: Math.round(hours / 24) });
 }
 
 export function Home({
@@ -38,7 +39,9 @@ export function Home({
   onAdd: () => void;
   onNavigate: (view: 'home' | 'services' | 'browser' | 'settings') => void;
 }) {
+  const t = useT();
   const theme = getTheme(themeId);
+  const themeName = t(theme.name);
   const pinned = state.services.filter(service => service.pinned);
   const quick = (pinned.length > 0 ? pinned : state.services).slice(0, 6);
   const recent = state.recent
@@ -50,40 +53,43 @@ export function Home({
     <section className="view home-view">
       <header className="view-head">
         <div>
-          <p className="eyebrow mono">WORKSPACE 01 / ELEMENT x529</p>
-          <h1>Everything connected, nothing scattered.</h1>
+          <p className="eyebrow mono">{t('WORKSPACE 01 / ELEMENT x529')}</p>
+          <h1>{t('Everything connected, nothing scattered.')}</h1>
           <p className="lede">
-            {state.services.length} modules ready. Each one keeps its own session, cookies and
-            sign-in, so switching context never means signing in again.
+            {t(
+              '{count} modules ready. Each one keeps its own session, cookies and sign-in, so switching context never means signing in again.',
+              { count: state.services.length },
+            )}
           </p>
         </div>
         <button className="btn primary" onClick={onAdd}>
           <Icon name="plus" size={16} />
-          Add service
+          {t('Add service')}
         </button>
       </header>
 
       <div className="hero-grid">
         <div className="hero-card">
           <div className="hero-copy">
-            <span className="chip mono">ELEMENT x529 — MODULAR TECHNOLOGY</span>
-            <h2>Precision in Every Connection.</h2>
+            <span className="chip mono">{t('ELEMENT x529 — MODULAR TECHNOLOGY')}</span>
+            <h2>{t('Precision in Every Connection.')}</h2>
             <p>
-              Kryvex treats every web app as a module: a URL, a purpose, an isolated session, and a
-              place in your workspace. Compose the surface you need instead of a haystack of tabs.
+              {t(
+                'Kryvex treats every web app as a module: a URL, a purpose, an isolated session, and a place in your workspace. Compose the surface you need instead of a haystack of tabs.',
+              )}
             </p>
             <div className="hero-stats">
               <div>
                 <strong>{state.services.length.toString().padStart(2, '0')}</strong>
-                <span>modules</span>
+                <span>{t('modules')}</span>
               </div>
               <div>
                 <strong>{(pinned.length + 0).toString().padStart(2, '0')}</strong>
-                <span>pinned</span>
+                <span>{t('pinned')}</span>
               </div>
               <div>
                 <strong>{state.bookmarks.length.toString().padStart(2, '0')}</strong>
-                <span>bookmarks</span>
+                <span>{t('bookmarks')}</span>
               </div>
             </div>
           </div>
@@ -92,44 +98,50 @@ export function Home({
               <ThemeMark mark="donkey" size={176} variant="tile" />
             </span>
           ) : (
-            <img className="hero-tile" src={logoUrl} width={176} height={176} alt="Kryvex element tile" />
+            <img
+              className="hero-tile"
+              src={logoUrl}
+              width={176}
+              height={176}
+              alt={t('Kryvex element tile')}
+            />
           )}
         </div>
 
         <aside className="panel runtime-panel">
-          <h3>Session health</h3>
+          <h3>{t('Session health')}</h3>
           <ul className="health-list">
             <li>
               <Icon name="shield" size={15} />
-              <span>Webview sandbox</span>
-              <b className="mono ok">ON</b>
+              <span>{t('Webview sandbox')}</span>
+              <b className="mono ok">{t('ON')}</b>
             </li>
             <li>
               <Icon name="layers" size={15} />
-              <span>Isolated sessions</span>
+              <span>{t('Isolated sessions')}</span>
               <b className="mono">{state.services.length.toString().padStart(2, '0')}</b>
             </li>
             <li>
               <Icon name="monitor" size={15} />
-              <span>Runtime</span>
+              <span>{t('Runtime')}</span>
               <b className="mono">{isElectron ? `E${info?.electron.split('.')[0] ?? ''}` : 'WEB'}</b>
             </li>
             <li>
               <Icon name="sliders" size={15} />
-              <span>Theme engine</span>
-              <b className="mono">{theme.name.toUpperCase()}</b>
+              <span>{t('Theme engine')}</span>
+              <b className="mono">{themeName.toUpperCase()}</b>
             </li>
           </ul>
           <p className="panel-note">
-            State is stored locally. Kryvex has no account, telemetry or cloud sync.
+            {t('State is stored locally. Kryvex has no account, telemetry or cloud sync.')}
           </p>
         </aside>
       </div>
 
       <section className="home-section" aria-labelledby="common-actions-title">
         <div className="section-head">
-          <h2 id="common-actions-title">Common actions</h2>
-          <span className="mono muted-label">EVERY ACTION IS A BUTTON</span>
+          <h2 id="common-actions-title">{t('Common actions')}</h2>
+          <span className="mono muted-label">{t('EVERY ACTION IS A BUTTON')}</span>
         </div>
         <div className="home-actions">
           <button className="home-action" onClick={onAdd}>
@@ -137,8 +149,8 @@ export function Home({
               <Icon name="plus" size={18} />
             </span>
             <span className="home-action-copy">
-              <strong>Add a service</strong>
-              <span>Turn any web app into a module.</span>
+              <strong>{t('Add a service')}</strong>
+              <span>{t('Turn any web app into a module.')}</span>
             </span>
             <Icon name="chevron" size={14} className="home-action-arrow" />
           </button>
@@ -147,8 +159,8 @@ export function Home({
               <Icon name="layers" size={18} />
             </span>
             <span className="home-action-copy">
-              <strong>Browse services</strong>
-              <span>Open, search, pin or edit modules.</span>
+              <strong>{t('Browse services')}</strong>
+              <span>{t('Open, search, pin or edit modules.')}</span>
             </span>
             <Icon name="chevron" size={14} className="home-action-arrow" />
           </button>
@@ -157,8 +169,8 @@ export function Home({
               <Icon name="globe" size={18} />
             </span>
             <span className="home-action-copy">
-              <strong>Open the browser</strong>
-              <span>A separate tabbed browsing space.</span>
+              <strong>{t('Open the browser')}</strong>
+              <span>{t('A separate tabbed browsing space.')}</span>
             </span>
             <Icon name="chevron" size={14} className="home-action-arrow" />
           </button>
@@ -167,8 +179,8 @@ export function Home({
               <Icon name="sliders" size={18} />
             </span>
             <span className="home-action-copy">
-              <strong>Open settings</strong>
-              <span>Themes, shield, extensions and startup.</span>
+              <strong>{t('Open settings')}</strong>
+              <span>{t('Themes, shield, extensions and startup.')}</span>
             </span>
             <Icon name="chevron" size={14} className="home-action-arrow" />
           </button>
@@ -177,9 +189,9 @@ export function Home({
 
       <section className="home-section">
         <div className="section-head">
-          <h2>Quick launch</h2>
+          <h2>{t('Quick launch')}</h2>
           <button className="link" onClick={() => onNavigate('services')}>
-            All services <Icon name="chevron" size={13} />
+            {t('All services')} <Icon name="chevron" size={13} />
           </button>
         </div>
 
@@ -187,11 +199,11 @@ export function Home({
           <div className="panel inline-empty">
             <ThemeMark mark={mark} size={30} variant="tile" />
             <div>
-              <strong>No modules yet.</strong>
-              <p>Add the first service and it will show up here.</p>
+              <strong>{t('No modules yet.')}</strong>
+              <p>{t('Add the first service and it will show up here.')}</p>
             </div>
             <button className="btn secondary" onClick={onAdd}>
-              Add service
+              {t('Add service')}
             </button>
           </div>
         ) : (
@@ -213,12 +225,12 @@ export function Home({
       <div className="home-columns">
         <section className="panel">
           <div className="section-head">
-            <h2>Recent activity</h2>
+            <h2>{t('Recent activity')}</h2>
             <span className="mono muted-label">{recent.length}/5</span>
           </div>
           {recent.length === 0 ? (
             <p className="panel-note">
-              Nothing opened yet. Launch a module and it will appear here.
+              {t('Nothing opened yet. Launch a module and it will appear here.')}
             </p>
           ) : (
             <ul className="recent-list">
@@ -228,9 +240,9 @@ export function Home({
                     <ServiceIcon service={service} size={26} />
                     <span className="recent-text">
                       <strong>{service.name}</strong>
-                      <span className="mono">{categoryLabel(service.category)}</span>
+                      <span className="mono">{t(categoryLabel(service.category))}</span>
                     </span>
-                    <span className="mono recent-time">{relativeTime(service.lastOpened)}</span>
+                    <span className="mono recent-time">{relativeTime(service.lastOpened, t)}</span>
                   </button>
                 </li>
               ))}
@@ -240,29 +252,29 @@ export function Home({
 
         <section className="panel">
           <div className="section-head">
-            <h2>Startup</h2>
-            <span className="mono muted-label">LOCAL</span>
+            <h2>{t('Startup')}</h2>
+            <span className="mono muted-label">{t('LOCAL')}</span>
           </div>
           <dl className="settings-summary">
             <div>
-              <dt>Start view</dt>
-              <dd>{state.settings.startView}</dd>
+              <dt>{t('Start view')}</dt>
+              <dd>{t(state.settings.startView === 'home' ? 'Home' : state.settings.startView === 'services' ? 'Services' : state.settings.startView === 'browser' ? 'Browser' : 'Settings')}</dd>
             </div>
             <div>
-              <dt>Theme</dt>
-              <dd>{theme.name}</dd>
+              <dt>{t('Theme')}</dt>
+              <dd>{themeName}</dd>
             </div>
             <div>
-              <dt>Density</dt>
-              <dd>{state.settings.density}</dd>
+              <dt>{t('Density')}</dt>
+              <dd>{t(state.settings.density === 'comfortable' ? 'Comfortable' : 'Compact')}</dd>
             </div>
             <div>
-              <dt>Search</dt>
+              <dt>{t('Search')}</dt>
               <dd>{state.settings.searchEngine}</dd>
             </div>
           </dl>
           <button className="link" onClick={() => onNavigate('settings')}>
-            Adjust in settings <Icon name="chevron" size={13} />
+            {t('Adjust in settings')} <Icon name="chevron" size={13} />
           </button>
         </section>
       </div>

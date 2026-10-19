@@ -1,6 +1,6 @@
 # Backlog (actionable, ordered)
 
-## Now (M3 — identity & fork)
+## Now (M3+ — product)
 M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
 - [x] All M1 analysis docs written from the cloned source.
 - [x] Name screen: Veyra rejected, Gatherium superseded, Kryvex selected
@@ -14,6 +14,21 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
   developer links to XiONDiGiTaL and player529.
 - [x] Click-first usability pass: header Add/Settings/Help, Home common actions,
   quick-help dialog and 0.3.0 Windows Setup/Portable release.
+- [x] Browser library: downloads with live actions, searchable history,
+  bookmark list, direct URL deep links and opt-in Windows default-browser setup.
+- [x] Brave-style privacy baseline: HTTPS upgrades with one-time fallback,
+  tracking-parameter stripping, per-site fingerprint farbling, EasyList Cookie,
+  independent privacy switches and a live verification harness.
+- [x] Browser session restore, persistent download history, find-in-page and
+  page zoom (covered by `pnpm verify:restart`, `pnpm verify:downloads` and
+  `pnpm verify:browser`).
+- [ ] Download-location picker and per-site zoom memory.
+- [x] Torrent queue restore after restart: rows reload paused with no client or
+  transfer, and resume only when the user asks (`pnpm verify:torrents`).
+- [ ] Per-site exceptions for HTTPS upgrades, tracking prevention and
+  fingerprinting; native-engine experiment for stronger fingerprint resistance.
+- [ ] Safe Browsing equivalent. Electron does not expose Chromium's protocol, so
+  this needs a deliberate reputation provider and privacy review before work.
 
 ## Done (M2 baseline — record)
 - [x] pnpm 12.3.4 via local `.tools/pnpm`; Node 24.19.0 delta recorded.

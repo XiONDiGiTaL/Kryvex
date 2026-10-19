@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n';
 import { Icon, Modal } from './ui';
 
 type HelpView = 'home' | 'services' | 'browser' | 'settings';
@@ -47,6 +48,8 @@ export function HelpDialog({
   onAdd: () => void;
   onNavigate: (view: HelpView) => void;
 }) {
+  const t = useT();
+
   function run(action: (typeof ACTIONS)[number]) {
     onClose();
     if (action.id === 'add') {
@@ -58,15 +61,15 @@ export function HelpDialog({
 
   return (
     <Modal
-      title="Quick help"
-      subtitle="Every action has a visible button. Keyboard shortcuts are optional."
+      title={t('Quick help')}
+      subtitle={t('Every action has a visible button. Keyboard shortcuts are optional.')}
       onClose={onClose}
       width={560}
       footer={
         <>
-          <span className="modal-hint">NO SHORTCUT REQUIRED</span>
+          <span className="modal-hint">{t('NO SHORTCUT REQUIRED')}</span>
           <button className="btn secondary" onClick={onClose}>
-            Close
+            {t('Close')}
           </button>
         </>
       }
@@ -78,8 +81,8 @@ export function HelpDialog({
               <Icon name={action.icon} size={19} />
             </span>
             <span className="help-action-copy">
-              <strong>{action.title}</strong>
-              <small>{action.body}</small>
+              <strong>{t(action.title)}</strong>
+              <small>{t(action.body)}</small>
             </span>
             <Icon name="chevron" size={14} className="help-action-arrow" />
           </button>
@@ -88,24 +91,24 @@ export function HelpDialog({
 
       <section className="help-keys" aria-labelledby="help-keys-title">
         <div className="section-head">
-          <h3 id="help-keys-title">Keyboard shortcuts</h3>
-          <span className="mono muted-label">OPTIONAL</span>
+          <h3 id="help-keys-title">{t('Keyboard shortcuts')}</h3>
+          <span className="mono muted-label">{t('OPTIONAL')}</span>
         </div>
         <dl>
           <div>
-            <dt>Search and actions</dt>
+            <dt>{t('Search and actions')}</dt>
             <dd>
               <kbd>Ctrl K</kbd>
             </dd>
           </div>
           <div>
-            <dt>Jump to Home / Services / Browser / Settings</dt>
+            <dt>{t('Jump to Home / Services / Browser / Settings')}</dt>
             <dd>
               <kbd>Ctrl 1–4</kbd>
             </dd>
           </div>
           <div>
-            <dt>Close a dialog or menu</dt>
+            <dt>{t('Close a dialog or menu')}</dt>
             <dd>
               <kbd>Esc</kbd>
             </dd>
@@ -114,8 +117,9 @@ export function HelpDialog({
       </section>
 
       <p className="help-note">
-        You can reach every view from the sidebar and every common action from the Home screen.
-        Your workspace stays on this machine.
+        {t(
+          'You can reach every view from the sidebar and every common action from the Home screen. Your workspace stays on this machine.',
+        )}
       </p>
     </Modal>
   );

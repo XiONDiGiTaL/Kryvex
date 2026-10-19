@@ -3,6 +3,8 @@ import type {
   AppInfo,
   Bookmark,
   BrowserTab,
+  HistoryEntry,
+  PermissionPrompt,
   PersistedState,
   Service,
   Settings as SettingsModel,
@@ -13,16 +15,22 @@ import type {
 import { applyBaseTokens, applyTheme, getTheme, isThemeId } from './lib/themes';
 import {
   addBookmark as addBookmarkToState,
+  addHistory as addHistoryToState,
   addService as addServiceToState,
+  clearHistory as clearHistoryFromState,
   markOpened,
   newState,
   removeBookmark as removeBookmarkFromState,
+  removeHistory as removeHistoryFromState,
   removeService,
   togglePin,
   updateService as updateServiceInState,
   updateSettings,
 } from './lib/store';
 import { loadState, saveState, saveStateNow } from './lib/storage';
+import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
+import { makeId } from './lib/services';
+import { hostOf } from './lib/url';
 import { Header, Sidebar, StatusBar } from './components/shell';
 import { ServiceDialog } from './components/ServiceDialog';
 import { HelpDialog } from './components/HelpDialog';
@@ -31,7 +39,7 @@ import { EmptyState, Icon, Modal, ToastHost } from './components/ui';
 import { Home } from './views/Home';
 import { Services } from './views/Services';
 import { ServiceView } from './views/ServiceView';
-import { Browser } from './views/Browser';
+import { Browser, type BrowserPanel } from './views/Browser';
 import { Settings } from './views/Settings';
 
 interface Route {
@@ -75,12 +83,18 @@ export default function App() {
     null,
   );
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
+  const [permissionQueue, setPermissionQueue] = useState<PermissionPrompt[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const persisted = useRef(false);
 
   const isElectron = typeof window !== 'undefined' && Boolean(window.kryvex);
+  const i18n = useMemo(
+    () => makeI18n(resolveLanguage(state.settings.language)),
+    [state.settings.language],
+  );
+  const t = i18n.t;
 
   const pushToast = useCallback((message: string, tone: ToastTone = 'info') => {
     const id = `t-${++toastSeq}`;
@@ -99,12 +113,104 @@ export default function App() {
     }
   }, []);
 
+  const openExternalTab = useCallback(
+    (url: string) => {
+      const id = makeId('t');
+      setTabs(current => [...current, { id, url, title: hostOf(url) }]);
+      setActiveTabId(id);
+      navigate('browser');
+    },
+    [navigate],
+  );
+
+  // Windows passes http(s) links to the registered browser through argv.
+  // Pull URLs queued before the renderer mounted, then listen for later ones.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    let alive = true;
+    const receive = (url: string) => {
+      if (alive) openExternalTab(url);
+    };
+    void window.kryvex
+      .takeBrowserUrls()
+      .then(urls => urls.forEach(receive))
+      .catch(() => undefined);
+    const stop = window.kryvex.onOpenUrl(receive);
+    return () => {
+      alive = false;
+      stop();
+    };
+  }, [isElectron, openExternalTab]);
+
+  // Magnet links intercepted by the main process are opened in the Downloads
+  // hub. Torrents are an internet tool, not a browsable catalogue.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    let alive = true;
+    const stopMagnet = window.kryvex.onOpenMagnet(magnet => {
+      void window.kryvex
+        ?.torrentsAddMagnet(magnet)
+        .then(result => {
+          if (!alive) return;
+          pushToast(t(result.message), result.ok ? 'success' : 'danger');
+          if (result.ok) navigate('browser?panel=downloads');
+        })
+        .catch(() => {
+          if (alive) pushToast(t('The torrent could not be added.'), 'danger');
+        });
+    });
+    const stopNotice = window.kryvex.onTorrentsNotice(notice => {
+      if (alive) pushToast(t(notice.message), notice.tone);
+    });
+    return () => {
+      alive = false;
+      stopMagnet();
+      stopNotice();
+    };
+  }, [isElectron, navigate, pushToast, t]);
+
+  // Camera and microphone prompts live in the trusted shell, never in the
+  // page that requested them. The page only receives the allow/deny result.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    return window.kryvex.onPermissionRequest(request => {
+      setPermissionQueue(current =>
+        current.some(item => item.id === request.id) ? current : [...current, request],
+      );
+    });
+  }, [isElectron]);
+
+  const permissionRequest = permissionQueue[0] ?? null;
+  const permissionDevices = permissionRequest
+    ? permissionRequest.devices
+        .map(device => (device === 'microphone' ? t('Microphone') : t('Camera')))
+        .join(' + ')
+    : '';
+
+  const answerPermission = useCallback(
+    (allow: boolean) => {
+      const request = permissionQueue[0];
+      if (!request) return;
+      setPermissionQueue(current => current.filter(item => item.id !== request.id));
+      void window.kryvex?.respondPermission(request.id, allow).catch(() => undefined);
+    },
+    [permissionQueue],
+  );
+
   // Boot: tokens, persisted state, route from the preferred start view.
   useEffect(() => {
     applyBaseTokens();
     void (async () => {
       const loaded = await loadState();
       setState(loaded);
+      // A URL handed to the app by Windows is queued before the renderer
+      // boots. Keep those new tabs and merge the saved session behind them.
+      setTabs(current => {
+        const alreadyOpen = new Set(current.map(tab => tab.id));
+        const restored = loaded.browser.tabs.filter(tab => !alreadyOpen.has(tab.id));
+        return current.length > 0 ? [...current, ...restored] : loaded.browser.tabs;
+      });
+      setActiveTabId(current => current ?? loaded.browser.activeTabId);
       setReady(true);
       if (!window.location.hash || window.location.hash === '#') {
         window.location.hash = `#/${loaded.settings.startView}`;
@@ -136,6 +242,10 @@ export default function App() {
   }, [themeId]);
 
   useEffect(() => {
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
+
+  useEffect(() => {
     document.documentElement.dataset.density = state.settings.density;
   }, [state.settings.density]);
 
@@ -147,6 +257,28 @@ export default function App() {
       persisted.current = true;
     }
   }, [state, ready]);
+
+  // Browser tabs live in App so they survive route changes. Keep the saved
+  // session in the same atomic state file as services, history and settings.
+  useEffect(() => {
+    if (!ready) return;
+    setState(current => {
+      const nextTabs = tabs.map(({ id, url, title }) => ({ id, url, title }));
+      const nextActiveId = nextTabs.some(tab => tab.id === activeTabId)
+        ? activeTabId
+        : (nextTabs[0]?.id ?? null);
+      const sameTabs =
+        current.browser.tabs.length === nextTabs.length &&
+        current.browser.tabs.every(
+          (tab, index) =>
+            tab.id === nextTabs[index]?.id &&
+            tab.url === nextTabs[index]?.url &&
+            tab.title === nextTabs[index]?.title,
+        );
+      if (sameTabs && current.browser.activeTabId === nextActiveId) return current;
+      return { ...current, browser: { tabs: nextTabs, activeTabId: nextActiveId } };
+    });
+  }, [activeTabId, ready, tabs]);
 
   useEffect(() => {
     const flush = () => void saveStateNow(state);
@@ -204,9 +336,14 @@ export default function App() {
         editing ? updateServiceInState(current, service) : addServiceToState(current, service),
       );
       setDialog(null);
-      pushToast(editing ? `${service.name} updated.` : `${service.name} added.`, 'success');
+      pushToast(
+        editing
+          ? t('{name} updated.', { name: service.name })
+          : t('{name} added.', { name: service.name }),
+        'success',
+      );
     },
-    [dialog, pushToast],
+    [dialog, pushToast, t],
   );
 
   const deleteService = useCallback(
@@ -215,20 +352,22 @@ export default function App() {
         setState(current => removeService(current, service.id));
         setConfirmRequest(null);
         if (route.serviceId === service.id) navigate('services');
-        pushToast(`${service.name} removed.`, 'warning');
+        pushToast(t('{name} removed.', { name: service.name }), 'warning');
       };
       if (!state.settings.confirmBeforeDelete) {
         remove();
         return;
       }
       setConfirmRequest({
-        title: `Remove ${service.name}?`,
-        body: 'The module and its place in recents are removed. The site itself is untouched; its session data stays on disk.',
-        label: 'Remove module',
+        title: t('Remove {name}?', { name: service.name }),
+        body: t(
+          'The module and its place in recents are removed. The site itself is untouched; its session data stays on disk.',
+        ),
+        label: t('Remove module'),
         onConfirm: remove,
       });
     },
-    [navigate, pushToast, route.serviceId, state.settings.confirmBeforeDelete],
+    [navigate, pushToast, route.serviceId, state.settings.confirmBeforeDelete, t],
   );
 
   const updateSettingsPatch = useCallback((patch: Partial<SettingsModel>) => {
@@ -237,17 +376,21 @@ export default function App() {
 
   const resetWorkspace = useCallback(() => {
     setConfirmRequest({
-      title: 'Reset the workspace?',
-      body: 'Services, bookmarks and preferences are replaced with the starter set. This cannot be undone.',
-      label: 'Reset everything',
+      title: t('Reset the workspace?'),
+      body: t(
+        'Services, bookmarks, history and preferences are replaced with the starter set. This cannot be undone.',
+      ),
+      label: t('Reset everything'),
       onConfirm: () => {
         setState(newState());
+        setTabs([]);
+        setActiveTabId(null);
         setConfirmRequest(null);
         navigate('home');
-        pushToast('Workspace reset to starters.', 'warning');
+        pushToast(t('Workspace reset to starters.'), 'warning');
       },
     });
-  }, [navigate, pushToast]);
+  }, [navigate, pushToast, t]);
 
   const addBookmark = useCallback(
     (bookmark: Bookmark) => {
@@ -260,25 +403,55 @@ export default function App() {
     setState(current => removeBookmarkFromState(current, id));
   }, []);
 
+  const addHistoryEntry = useCallback((entry: HistoryEntry) => {
+    setState(current => addHistoryToState(current, entry));
+  }, []);
+
+  const removeHistoryEntry = useCallback((id: string) => {
+    setState(current => removeHistoryFromState(current, id));
+  }, []);
+
+  const clearAllHistory = useCallback(() => {
+    setConfirmRequest({
+      title: t('Clear browsing history?'),
+      body: t(
+        'Every visited page is removed from Kryvex history. Bookmarks and downloads are kept.',
+      ),
+      label: t('Clear history'),
+      onConfirm: () => {
+        setState(current => clearHistoryFromState(current));
+        setConfirmRequest(null);
+        pushToast(t('Browsing history cleared.'), 'warning');
+      },
+    });
+  }, [pushToast, t]);
+
   const activeService = route.serviceId
     ? state.services.find(service => service.id === route.serviceId)
     : undefined;
 
+  const requestedPanel = route.query.get('panel');
+  const initialBrowserPanel: BrowserPanel | null =
+    requestedPanel === 'downloads' || requestedPanel === 'history' || requestedPanel === 'bookmarks'
+      ? requestedPanel
+      : null;
+
   const title = useMemo(() => {
-    if (route.serviceId) return activeService?.name ?? 'Missing module';
+    if (route.serviceId) return activeService?.name ?? t('Missing module');
     switch (route.view) {
       case 'services':
-        return 'Services';
+        return t('Services');
       case 'browser':
-        return 'Browser';
+        return t('Browser');
       case 'settings':
-        return 'Settings';
+        return t('Settings');
       default:
-        return 'Home';
+        return t('Home');
     }
-  }, [activeService?.name, route.serviceId, route.view]);
+  }, [activeService?.name, route.serviceId, route.view, t]);
 
   return (
+    <I18nProvider value={i18n}>
     <div className={`app ${isElectron ? 'is-electron' : 'is-web'} ${state.settings.showStatusBar ? '' : 'no-status'}`}>
       <Header
         title={title}
@@ -317,12 +490,14 @@ export default function App() {
           ) : (
             <div className="view">
               <EmptyState
-                title="That module is gone"
-                body="It was removed, or the link points at an identifier that no longer exists."
+                title={t('That module is gone')}
+                body={t(
+                  'It was removed, or the link points at an identifier that no longer exists.',
+                )}
                 mark={themeMark}
                 action={
                   <button className="btn primary" onClick={() => navigate('services')}>
-                    Back to services
+                    {t('Back to services')}
                   </button>
                 }
               />
@@ -347,22 +522,33 @@ export default function App() {
             onAdd={() => setDialog({ mode: 'new' })}
             onTogglePin={service => {
               setState(current => togglePin(current, service.id));
-              pushToast(service.pinned ? `${service.name} unpinned.` : `${service.name} pinned.`, 'info');
+              pushToast(
+                service.pinned
+                  ? t('{name} unpinned.', { name: service.name })
+                  : t('{name} pinned.', { name: service.name }),
+                'info',
+              );
             }}
             onDelete={deleteService}
           />
         ) : route.view === 'browser' ? (
           <Browser
+            key={route.key}
             state={state}
             tabs={tabs}
             activeTabId={activeTabId}
             setTabs={setTabs}
             setActiveTabId={setActiveTabId}
             initialTab={route.query.get('newtab') === '1'}
+            initialUrl={route.query.get('url')}
+            initialPanel={initialBrowserPanel}
             isElectron={isElectron}
             mark={themeMark}
             onAddBookmark={addBookmark}
             onRemoveBookmark={removeBookmark}
+            onAddHistory={addHistoryEntry}
+            onRemoveHistory={removeHistoryEntry}
+            onClearHistory={clearAllHistory}
             onToast={pushToast}
           />
         ) : (
@@ -397,7 +583,7 @@ export default function App() {
           onAdd={() => setDialog({ mode: 'new' })}
           onSetTheme={id => {
             updateSettingsPatch({ themeId: id });
-            pushToast('Theme updated.', 'success');
+            pushToast(t('Theme updated.'), 'success');
           }}
         />
       ) : null}
@@ -418,6 +604,42 @@ export default function App() {
         />
       ) : null}
 
+      {permissionRequest ? (
+        <Modal
+          title={t('{host} wants to use {devices}', {
+            host: permissionRequest.host,
+            devices: permissionDevices,
+          })}
+          subtitle={t('Media permission')}
+          onClose={() => answerPermission(false)}
+          width={460}
+          footer={
+            <div className="modal-actions">
+              <button className="btn ghost" onClick={() => answerPermission(false)}>
+                {t('Block')}
+              </button>
+              <button className="btn primary" onClick={() => answerPermission(true)}>
+                <Icon name="check" size={14} />
+                {t('Allow')}
+              </button>
+            </div>
+          }
+        >
+          <div className="permission-request">
+            <span className="permission-request-mark">
+              <Icon name="shield" size={22} />
+            </span>
+            <p>
+              {t(
+                'Allow {devices} for this site? Only continue if you trust it. This choice lasts until Kryvex restarts.',
+                { devices: permissionDevices },
+              )}
+            </p>
+            <span className="mono permission-origin">{permissionRequest.origin}</span>
+          </div>
+        </Modal>
+      ) : null}
+
       {confirmRequest ? (
         <Modal
           title={confirmRequest.title}
@@ -426,7 +648,7 @@ export default function App() {
           footer={
             <div className="modal-actions">
               <button className="btn ghost" onClick={() => setConfirmRequest(null)}>
-                Cancel
+                {t('Cancel')}
               </button>
               <button className="btn danger" onClick={confirmRequest.onConfirm}>
                 <Icon name="trash" size={14} />
@@ -441,5 +663,6 @@ export default function App() {
 
       <ToastHost toasts={toasts} />
     </div>
+    </I18nProvider>
   );
 }

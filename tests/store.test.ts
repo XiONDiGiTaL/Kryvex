@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   addBookmark,
+  addHistory,
   addService,
+  clearHistory,
   markOpened,
   newState,
   removeBookmark,
+  removeHistory,
   removeService,
   sanitizeState,
   togglePin,
@@ -79,6 +82,54 @@ describe('sanitizeState', () => {
     expect(state.bookmarks).toHaveLength(1);
     expect(state.bookmarks[0]?.url).toBe('https://example.com');
   });
+
+  it('starts without a restored browser session', () => {
+    expect(newState().browser).toEqual({ tabs: [], activeTabId: null });
+  });
+
+  it('restores browser tabs and repairs an invalid active tab', () => {
+    const state = sanitizeState({
+      browser: {
+        tabs: [
+          { id: 't-1', url: 'https://example.com', title: 'Example' },
+          { id: 't-2', url: '', title: '' },
+          { id: 't-2', url: 'https://example.org', title: 'Duplicate' },
+          { id: 't-3', url: 'javascript:alert(1)', title: 'Bad' },
+        ],
+        activeTabId: 't-missing',
+      },
+    });
+    expect(state.browser.tabs).toEqual([
+      { id: 't-1', url: 'https://example.com', title: 'Example' },
+      { id: 't-2', url: '', title: 'New tab' },
+    ]);
+    expect(state.browser.activeTabId).toBe('t-1');
+  });
+
+  it('caps restored browser tabs at twenty', () => {
+    const tabs = Array.from({ length: 25 }, (_, index) => ({
+      id: `t-${index}`,
+      url: `https://example.com/${index}`,
+      title: `Tab ${index}`,
+    }));
+    expect(sanitizeState({ browser: { tabs, activeTabId: 't-24' } }).browser.tabs).toHaveLength(
+      20,
+    );
+  });
+
+  it('sanitises history and drops unsafe, duplicate or non-http entries', () => {
+    const state = sanitizeState({
+      history: [
+        { id: 'h-1', url: 'https://example.com', title: 'Example', visitedAt: 1 },
+        { id: 'h-1', url: 'https://example.com/again', title: 'Duplicate id', visitedAt: 2 },
+        { id: 'h-2', url: 'javascript:alert(1)', title: 'Bad', visitedAt: 3 },
+        { id: 'h-3', url: 'https://example.org', title: '', visitedAt: 4 },
+      ],
+    });
+    expect(state.history).toHaveLength(2);
+    expect(state.history[0]?.id).toBe('h-1');
+    expect(state.history[1]?.title).toBe('https://example.org');
+  });
 });
 
 describe('operations', () => {
@@ -123,6 +174,29 @@ describe('operations', () => {
   it('ignores opening an unknown service', () => {
     const base = newState();
     expect(markOpened(base, 'missing')).toBe(base);
+  });
+
+  it('adds, deduplicates, removes and clears browser history', () => {
+    const base = newState();
+    const entry = {
+      id: 'h-1',
+      url: 'https://example.com',
+      title: 'Example',
+      visitedAt: 1_000,
+    };
+    const once = addHistory(base, entry);
+    expect(once.history).toHaveLength(1);
+    expect(addHistory(once, { ...entry, id: 'h-2', visitedAt: 2_000 })).toBe(once);
+
+    const second = addHistory(once, {
+      id: 'h-3',
+      url: 'https://example.org',
+      title: 'Second',
+      visitedAt: 20_000,
+    });
+    expect(second.history.map(item => item.id)).toEqual(['h-3', 'h-1']);
+    expect(removeHistory(second, 'h-1').history.map(item => item.id)).toEqual(['h-3']);
+    expect(clearHistory(second).history).toEqual([]);
   });
 
   it('deduplicates bookmarks by URL', () => {

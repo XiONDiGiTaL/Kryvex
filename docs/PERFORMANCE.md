@@ -23,11 +23,11 @@ cannot be eliminated by the host).
 
 ## Comparison rule
 
-Kryvex vs unmodified upstream on the SAME machine, SAME services/sessions/
+Kryvex vs a plain Electron shell on the SAME machine, SAME services/sessions/
 settings/workload. Report mean + range, never a single run.
 
 ## Suspects for profiling (from code reading, unconfirmed)
 
-Redundant React/MobX updates, polling/timers, listener leaks, background
-service webviews never suspended, duplicate resources, startup init order,
-bundle weight (82 runtime deps), extra background processes.
+Redundant React updates, polling/timers, listener leaks, background service
+webviews never suspended, duplicate resources, startup init order, bundle
+weight and extra background processes.

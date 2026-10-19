@@ -1,7 +1,7 @@
 {
   "name": "kryvex",
   "productName": "Kryvex",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A modular desktop workspace that brings independent web services, a browser and shared tools into one engineered surface.",
   "license": "MIT",
   "author": {
@@ -23,7 +23,12 @@
     "test": "vitest run",
     "capture": "node scripts/capture.mjs",
     "package:dir": "pnpm build && electron-builder --dir",
-    "package:win": "pnpm build && electron-builder"
+    "package:win": "pnpm build && electron-builder",
+    "verify:restart": "pnpm build && node scripts/verify-restart.cjs",
+    "verify:downloads": "pnpm build && electron scripts/verify-download-history.cjs",
+    "verify:torrents": "pnpm build && node scripts/verify-torrents.cjs",
+    "verify:torrent-restore-ui": "pnpm build && node scripts/verify-torrent-restore-ui.cjs",
+    "verify:browser": "pnpm build && node scripts/verify-browser-tools.cjs"
   },
   "build": {
     "appId": "net.xiondigital.kryvex",
@@ -37,6 +42,10 @@
       "dist/**/*",
       "dist-electron/**/*",
       "package.json"
+    ],
+    "asarUnpack": [
+      "**/*.node",
+      "node_modules/node-datachannel/**/*"
     ],
     "extraResources": [
       {
@@ -59,6 +68,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Kryvex",
+      "include": "build/installer.nsh",
       "uninstallDisplayName": "Kryvex ${version}",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
@@ -71,7 +81,8 @@
     "@ghostery/adblocker-electron": "^2.20.1",
     "extract-zip": "^2.0.1",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "webtorrent": "3.0.21"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

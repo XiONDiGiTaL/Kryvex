@@ -9,6 +9,10 @@ export interface WebviewElement extends HTMLElement {
   canGoForward: () => boolean;
   getURL: () => string;
   loadURL: (url: string) => Promise<void>;
+  findInPage: (text: string, options?: { forward?: boolean; findNext?: boolean }) => number;
+  stopFindInPage: (action: 'clearSelection' | 'keepSelection' | 'activateSelection') => void;
+  getZoomFactor: () => number;
+  setZoomFactor: (factor: number) => void;
 }
 
 export interface WebviewStatus {
@@ -18,6 +22,11 @@ export interface WebviewStatus {
   error: string | null;
 }
 
+export interface FindResult {
+  matches: number;
+  activeMatch: number;
+}
+
 interface WebviewProps {
   src: string;
   partition: string;
@@ -25,6 +34,7 @@ interface WebviewProps {
   onNavigate?: (url: string) => void;
   onTitle?: (title: string) => void;
   onStatus?: (status: WebviewStatus) => void;
+  onFound?: (result: FindResult) => void;
 }
 
 /**
@@ -32,7 +42,15 @@ interface WebviewProps {
  * JSX because React has no intrinsic tag for it; all hardening happens in the
  * main process, not here.
  */
-export function Webview({ src, partition, controller, onNavigate, onTitle, onStatus }: WebviewProps) {
+export function Webview({
+  src,
+  partition,
+  controller,
+  onNavigate,
+  onTitle,
+  onStatus,
+  onFound,
+}: WebviewProps) {
   const ref = useRef<WebviewElement | null>(null);
   const initialSrc = useRef(src);
 
@@ -62,6 +80,13 @@ export function Webview({ src, partition, controller, onNavigate, onTitle, onSta
       const detail = event as Event & { title: string };
       onTitle?.(detail.title);
     };
+    const onFoundInPage = (event: Event) => {
+      const detail = event as Event & { result?: { matches?: number; activeMatchOrdinal?: number } };
+      onFound?.({
+        matches: Number(detail.result?.matches ?? 0),
+        activeMatch: Number(detail.result?.activeMatchOrdinal ?? 0),
+      });
+    };
     const onFail = (event: Event) => {
       const detail = event as Event & { errorDescription?: string; isMainFrame?: boolean; validatedURL?: string };
       if (detail.isMainFrame === false) return;
@@ -79,6 +104,7 @@ export function Webview({ src, partition, controller, onNavigate, onTitle, onSta
     el.addEventListener('did-navigate', onNavigated);
     el.addEventListener('did-navigate-in-page', onNavigated);
     el.addEventListener('page-title-updated', onTitleUpdated);
+    el.addEventListener('found-in-page', onFoundInPage);
     el.addEventListener('did-fail-load', onFail);
 
     return () => {
@@ -88,6 +114,7 @@ export function Webview({ src, partition, controller, onNavigate, onTitle, onSta
       el.removeEventListener('did-navigate', onNavigated);
       el.removeEventListener('did-navigate-in-page', onNavigated);
       el.removeEventListener('page-title-updated', onTitleUpdated);
+      el.removeEventListener('found-in-page', onFoundInPage);
       el.removeEventListener('did-fail-load', onFail);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
