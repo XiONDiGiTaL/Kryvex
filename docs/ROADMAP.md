@@ -21,6 +21,5 @@
   tests, backup/restore, measured performance comparison.
 - **M9**: Windows installer/portable build succeeds; CI green; install docs.
 - **M10** ✅ `XiONDiGiTaL/Kryvex` published (main, no force-push).
-- **M11**: final review, release screenshots, honest limitations.
-- **M11**: final review, docs/screenshots of real UI, honest limitations,
-  engineering report (§24).
+- **M11** ◐ README, banner, real-UI screenshots, limitations and testing
+  docs delivered. Remaining: engineering report, signed release.

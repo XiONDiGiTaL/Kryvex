@@ -57,7 +57,7 @@ Firefox-derived repo.
 platform/integration grounds. Kryvex browser = Electron webview capabilities
 (Chromium), with a documented seam for a future engine. Record measurements
 before claiming anything "lightweight". Do not present Midori as integrated.
-**Status:** Decided; `docs/MIDORI_INTEGRATION.md` to write.
+**Status:** Decided; recorded in `docs/MIDORI_INTEGRATION.md`. No Midori code ships.
 
 ## ED-004 — Keep Ferdium stack for the fork baseline
 **Decision:** Retain Electron + TypeScript/React/MobX + pnpm + electron-builder
@@ -76,7 +76,7 @@ code can access Electron/Node APIs.
 remote-content surfaces, scope preload bridges, validate IPC senders, and keep
 service content in isolated partitions/sessions. Document inherited issues in
 `docs/SECURITY_MODEL.md`.
-**Status:** Planned (M5/M7).
+**Status:** Implemented in v0.1.0; see `docs/SECURITY_MODEL.md`.
 
 ## ED-006 — pnpm required for baseline honesty
 **Findings:** Upstream engines pin Node 24.20.0 + pnpm 12.3.4; env has Node
@@ -84,7 +84,7 @@ service content in isolated partitions/sessions. Document inherited issues in
 **Decision:** Install pnpm via documented free route (corepack or official
 installer) inside M2 and record versions; never convert to npm silently.
 If installation is blocked, record the exact error as the M2 blocker.
-**Status:** Pending M2.
+**Status:** Completed — pnpm 12.3.4 installed to a local tool dir (corepack blocked by EPERM); baseline recorded.
 
 ## ED-007 — Sohbet integration without assumptions
 **Findings:** `https://sohbet.xiondigital.net` returns 200 (Next.js/Vercel).
@@ -92,7 +92,7 @@ Frame-ancestors policy, auth/session behavior, notification support unknown.
 **Decision:** Dedicated service entry + isolated session/partition; verify
 X-Frame-Options/CSP at integration time; never disable web security globally;
 no Node in remote content; narrow IPC only. Document site-imposed limits.
-**Status:** Pending M5.
+**Status:** Implemented — Sohbet loads in its own `persist:svc-*` module session (live probe, `loading: false`).
 
 ## ED-008 — Ship a fresh shell instead of a Ferdium fork
 **Decision:** v0.1.0 is an independent Electron 44 + React 19 + TypeScript app

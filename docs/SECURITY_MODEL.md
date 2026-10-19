@@ -1,6 +1,9 @@
 # Security Model
 
-## Inherited findings (verified in upstream source)
+## Inherited findings (Ferdium reference, not shipped)
+
+These were the security problems that motivated a fresh shell (ED-008); none of
+this code is part of Kryvex v0.1.0.
 
 1. Main window: `nodeIntegration: true`, `contextIsolation: false`
    (`src/index.ts:282-284`). Any XSS in the shell renderer = full Node.
@@ -13,7 +16,7 @@
 4. Update config disables signature verification
    (`verifyUpdateCodeSignature: false`) — supply-chain risk if reused blindly.
 
-## Kryvex controls (to implement, M5/M7)
+## Design requirements (all implemented in v0.1.0; see the table below)
 
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox` where
   compatible; narrow `contextBridge` preloads per surface (app shell,
@@ -54,7 +57,7 @@
 
 ## Verification plan
 
-`docs/TESTING.md` (M8): startup, permission prompts, IPC-boundary tests,
+`docs/TESTING.md`: startup, permission prompts, IPC-boundary tests,
 private-session isolation, download handling, error recovery, shutdown.
 Record what was executed; never report unrun tests as passing.
 
