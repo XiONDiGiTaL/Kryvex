@@ -44,8 +44,8 @@ variants) so a rename does not require redesign; no domain purchase, store
 listing, paid brand spend, or public launch under Kryvex without counsel
 clearance. Working directory stays `X:\Veyra` — never rename or move it;
 future repo `kryvex`. Design choices: symbol `Kx` (avoids the real krypton
-symbol `Kr`), fictional element number `027`, tagline “Precision in Every
-Connection.”
+symbol `Kr`), fictional element designation `x529` (initially `027`, changed
+for developer branding), tagline “Precision in Every Connection.”
 **Status:** brand system delivered 2026-10-19; clearance open.
 
 ## ED-003 — Midori integration: fallback D

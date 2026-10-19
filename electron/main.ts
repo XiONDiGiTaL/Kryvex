@@ -1,6 +1,8 @@
 import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { extensions } from './extensions';
+import { shield } from './shield';
 
 const DEV_URL = process.env.KRYVEX_DEV_URL;
 const CAPTURE = process.env.KRYVEX_CAPTURE === '1';
@@ -67,6 +69,11 @@ function writeState(state: unknown): boolean {
  */
 function hardenWebContents(): void {
   app.on('web-contents-created', (_event, contents) => {
+    // Shared across the shell and every partition so the shield and installed
+    // extensions apply to service/browser webviews as they are created.
+    shield.trackSession(contents.session);
+    extensions.trackSession(contents.session);
+
     contents.setWindowOpenHandler(({ url }) => {
       if (isSafeUrl(url)) {
         void shell.openExternal(url);
@@ -168,9 +175,43 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
+function isShellSender(event: Electron.IpcMainInvokeEvent): boolean {
+  return Boolean(mainWindow && event.sender === mainWindow.webContents);
+}
+
 function registerIpc(): void {
   ipcMain.handle('kryvex:state:load', () => readState());
   ipcMain.handle('kryvex:state:save', (_event, state: unknown) => writeState(state));
+  ipcMain.handle('kryvex:shield:status', () => shield.status());
+  ipcMain.handle('kryvex:shield:enabled', (event, enabled: unknown) => {
+    if (!isShellSender(event) || typeof enabled !== 'boolean') return shield.status();
+    return shield.setEnabled(enabled);
+  });
+  ipcMain.handle('kryvex:shield:update', (event) => {
+    if (!isShellSender(event)) return shield.status();
+    return shield.refresh();
+  });
+  ipcMain.handle('kryvex:extensions:list', () => extensions.list());
+  ipcMain.handle('kryvex:extensions:install', (event) => {
+    if (!isShellSender(event)) return { ok: false, message: 'Untrusted sender.', records: extensions.list() };
+    return extensions.installFromDialog(false);
+  });
+  ipcMain.handle('kryvex:extensions:install-folder', (event) => {
+    if (!isShellSender(event)) return { ok: false, message: 'Untrusted sender.', records: extensions.list() };
+    return extensions.installFromDialog(true);
+  });
+  ipcMain.handle('kryvex:extensions:enabled', (event, key: unknown, enabled: unknown) => {
+    if (!isShellSender(event) || typeof key !== 'string' || typeof enabled !== 'boolean') {
+      return { ok: false, message: 'Invalid request.', records: extensions.list() };
+    }
+    return extensions.setEnabled(key, enabled);
+  });
+  ipcMain.handle('kryvex:extensions:remove', (event, key: unknown) => {
+    if (!isShellSender(event) || typeof key !== 'string') {
+      return { ok: false, message: 'Invalid request.', records: extensions.list() };
+    }
+    return extensions.remove(key);
+  });
   ipcMain.handle('kryvex:app:info', () => ({
     version: app.getVersion(),
     platform: process.platform,
@@ -197,14 +238,18 @@ function wait(ms: number): Promise<void> {
 async function runCapture(win: BrowserWindow): Promise<void> {
   const dir = process.env.KRYVEX_CAPTURE_DIR || path.join(process.cwd(), 'screenshots');
   fs.mkdirSync(dir, { recursive: true });
-  const shots: Array<{ name: string; hash: string; wait?: number; scroll?: 'bottom' }> = [
+  const shots: Array<{ name: string; hash: string; wait?: number; scroll?: 'bottom' | string }> = [
     { name: 'home', hash: '#/home' },
+    { name: 'help', hash: '#/home?help=1' },
     { name: 'services', hash: '#/services' },
     { name: 'add-service', hash: '#/services?dialog=new' },
     { name: 'service', hash: '#/service/s-starter-1', wait: 5000 },
     { name: 'browser', hash: '#/browser?newtab=1', wait: 1200 },
     { name: 'settings', hash: '#/settings' },
+    { name: 'settings-shield', hash: '#/settings', scroll: '.shield-panel' },
+    { name: 'settings-plugins', hash: '#/settings', scroll: '.plugin-card' },
     { name: 'settings-about', hash: '#/settings', scroll: 'bottom' },
+    { name: 'donkey-theme', hash: '#/home?theme=special-donkey' },
     { name: 'command-palette', hash: '#/home?palette=1' },
     { name: 'light-theme', hash: '#/home?theme=kryvex-light' },
   ];
@@ -218,6 +263,11 @@ async function runCapture(win: BrowserWindow): Promise<void> {
     if (shot.scroll === 'bottom') {
       await win.webContents.executeJavaScript(
         `document.querySelector('.app-main').scrollTop = 999999; true;`,
+      );
+      await wait(350);
+    } else if (shot.scroll) {
+      await win.webContents.executeJavaScript(
+        `document.querySelector(${JSON.stringify(shot.scroll)})?.scrollIntoView({ block: 'start' }); true;`,
       );
       await wait(350);
     }
@@ -250,6 +300,9 @@ if (!gotLock) {
   });
 
   app.whenReady().then(async () => {
+    shield.init();
+    extensions.init(session.defaultSession);
+    shield.trackSession(session.defaultSession);
     hardenWebContents();
     registerIpc();
     session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
@@ -257,6 +310,8 @@ if (!gotLock) {
     });
 
     mainWindow = createWindow();
+    extensions.attachWindow(mainWindow);
+    void shield.start();
 
     if (CAPTURE) {
       mainWindow.webContents.once('did-finish-load', () => {

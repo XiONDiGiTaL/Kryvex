@@ -10,7 +10,7 @@ import type {
   ToastTone,
   ViewId,
 } from './types';
-import { applyBaseTokens, applyTheme, isThemeId } from './lib/themes';
+import { applyBaseTokens, applyTheme, getTheme, isThemeId } from './lib/themes';
 import {
   addBookmark as addBookmarkToState,
   addService as addServiceToState,
@@ -25,6 +25,7 @@ import {
 import { loadState, saveState, saveStateNow } from './lib/storage';
 import { Header, Sidebar, StatusBar } from './components/shell';
 import { ServiceDialog } from './components/ServiceDialog';
+import { HelpDialog } from './components/HelpDialog';
 import { CommandPalette } from './components/CommandPalette';
 import { EmptyState, Icon, Modal, ToastHost } from './components/ui';
 import { Home } from './views/Home';
@@ -69,6 +70,7 @@ export default function App() {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [dialog, setDialog] = useState<{ mode: 'new' } | { mode: 'edit'; service: Service } | null>(
     null,
   );
@@ -127,6 +129,7 @@ export default function App() {
   const themeOverride = route.query.get('theme');
   const themeId =
     themeOverride && isThemeId(themeOverride) ? themeOverride : state.settings.themeId;
+  const themeMark = getTheme(themeId).mark ?? 'kx';
 
   useEffect(() => {
     applyTheme(themeId);
@@ -155,9 +158,11 @@ export default function App() {
   useEffect(() => {
     setDialog(null);
     setPaletteOpen(false);
+    setHelpOpen(false);
     document.querySelector('.app-main')?.scrollTo(0, 0);
     if (!ready) return;
     if (route.query.get('palette') === '1') setPaletteOpen(true);
+    if (route.query.get('help') === '1') setHelpOpen(true);
     if (route.query.get('dialog') === 'new') setDialog({ mode: 'new' });
   }, [ready, route.key]);
 
@@ -275,7 +280,16 @@ export default function App() {
 
   return (
     <div className={`app ${isElectron ? 'is-electron' : 'is-web'} ${state.settings.showStatusBar ? '' : 'no-status'}`}>
-      <Header title={title} onPalette={() => setPaletteOpen(true)} isElectron={isElectron} />
+      <Header
+        title={title}
+        view={route.view}
+        onPalette={() => setPaletteOpen(true)}
+        onAdd={() => setDialog({ mode: 'new' })}
+        onSettings={() => navigate('settings')}
+        onHelp={() => setHelpOpen(true)}
+        isElectron={isElectron}
+        mark={themeMark}
+      />
 
       <Sidebar
         state={state}
@@ -298,12 +312,14 @@ export default function App() {
               onEdit={service => setDialog({ mode: 'edit', service })}
               onDelete={deleteService}
               onToast={pushToast}
+              mark={themeMark}
             />
           ) : (
             <div className="view">
               <EmptyState
                 title="That module is gone"
                 body="It was removed, or the link points at an identifier that no longer exists."
+                mark={themeMark}
                 action={
                   <button className="btn primary" onClick={() => navigate('services')}>
                     Back to services
@@ -318,6 +334,7 @@ export default function App() {
             themeId={themeId}
             info={info}
             isElectron={isElectron}
+            mark={themeMark}
             onOpenService={openService}
             onAdd={() => setDialog({ mode: 'new' })}
             onNavigate={view => navigate(view)}
@@ -343,6 +360,7 @@ export default function App() {
             setActiveTabId={setActiveTabId}
             initialTab={route.query.get('newtab') === '1'}
             isElectron={isElectron}
+            mark={themeMark}
             onAddBookmark={addBookmark}
             onRemoveBookmark={removeBookmark}
             onToast={pushToast}
@@ -352,6 +370,7 @@ export default function App() {
             state={state}
             info={info}
             isElectron={isElectron}
+            mark={themeMark}
             onUpdate={updateSettingsPatch}
             onReset={resetWorkspace}
             onToast={pushToast}
@@ -360,7 +379,13 @@ export default function App() {
       </main>
 
       {state.settings.showStatusBar ? (
-        <StatusBar state={state} themeId={themeId} appInfo={info} isElectron={isElectron} />
+        <StatusBar
+          state={state}
+          themeId={themeId}
+          appInfo={info}
+          isElectron={isElectron}
+          mark={themeMark}
+        />
       ) : null}
 
       {paletteOpen ? (
@@ -374,6 +399,14 @@ export default function App() {
             updateSettingsPatch({ themeId: id });
             pushToast('Theme updated.', 'success');
           }}
+        />
+      ) : null}
+
+      {helpOpen ? (
+        <HelpDialog
+          onClose={() => setHelpOpen(false)}
+          onAdd={() => setDialog({ mode: 'new' })}
+          onNavigate={view => navigate(view)}
         />
       ) : null}
 

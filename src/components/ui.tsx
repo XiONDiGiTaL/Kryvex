@@ -1,5 +1,7 @@
-import { useEffect, type ReactNode } from 'react';
-import type { Toast } from '../types';
+import { useEffect, useState, type ReactNode } from 'react';
+import type { Service, Toast } from '../types';
+import { BRAND_ICONS } from '../lib/brand-icons';
+import { DonkeyMark } from '../plugins/donkey';
 
 type IconName =
   | 'home'
@@ -21,6 +23,7 @@ type IconName =
   | 'monitor'
   | 'chevron'
   | 'edit'
+  | 'help'
   | 'command';
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -124,6 +127,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="m13.4 6.1 4.5 4.5" />
     </>
   ),
+  help: (
+    <>
+      <circle cx="12" cy="12" r="8.6" />
+      <path d="M9.7 9.2a2.4 2.4 0 1 1 3.5 2.2c-.8.4-1.2 1-1.2 1.8" />
+      <path d="M12 16.9h.01" />
+    </>
+  ),
   command: (
     <>
       <path d="M9 6.5a2.5 2.5 0 1 0-2.5 2.5H9V6.5Z" />
@@ -189,6 +199,100 @@ export function KxMark({ size = 22, variant = 'solid' }: { size?: number; varian
       {glyph}
     </svg>
   );
+}
+
+export type ThemeMarkKind = 'kx' | 'donkey';
+
+/** The shell's brand mark follows the active theme (donkey for the plugin). */
+export function ThemeMark({
+  mark = 'kx',
+  size = 22,
+  variant = 'solid',
+}: {
+  mark?: ThemeMarkKind;
+  size?: number;
+  variant?: 'solid' | 'tile';
+}) {
+  return mark === 'donkey' ? (
+    <DonkeyMark size={size} variant={variant} />
+  ) : (
+    <KxMark size={size} variant={variant} />
+  );
+}
+
+/**
+ * Brand glyph when we know the mark, a direct favicon request to the service
+ * itself when we do not, and the letter tile as the final fallback.
+ */
+export function ServiceIcon({
+  service,
+  size = 38,
+  className,
+}: {
+  service: Pick<Service, 'url' | 'icon' | 'letter' | 'color'>;
+  size?: number;
+  className?: string;
+}) {
+  const [faviconFailed, setFaviconFailed] = useState(false);
+
+  useEffect(() => {
+    setFaviconFailed(false);
+  }, [service.url, service.icon]);
+
+  const brand = service.icon ? BRAND_ICONS[service.icon] : undefined;
+  if (brand) {
+    return (
+      <span
+        className={`service-glyph brand-glyph ${className ?? ''}`}
+        style={{
+          width: size,
+          height: size,
+          color: service.color,
+          background: `color-mix(in srgb, ${service.color} 16%, transparent)`,
+          borderColor: `color-mix(in srgb, ${service.color} 32%, transparent)`,
+        }}
+        title={brand.title}
+      >
+        <svg viewBox="0 0 24 24" width={Math.round(size * 0.54)} height={Math.round(size * 0.54)} aria-hidden="true">
+          <path d={brand.path} fill="currentColor" />
+        </svg>
+      </span>
+    );
+  }
+
+  let favicon = '';
+  try {
+    favicon = `${new URL(service.url).origin}/favicon.ico`;
+  } catch {
+    favicon = '';
+  }
+
+  if (favicon && !faviconFailed) {
+    return (
+      <span
+        className={`service-glyph favicon-glyph ${className ?? ''}`}
+        style={{
+          width: size,
+          height: size,
+          color: service.color,
+          background: `color-mix(in srgb, ${service.color} 12%, transparent)`,
+          borderColor: `color-mix(in srgb, ${service.color} 28%, transparent)`,
+        }}
+      >
+        <img
+          src={favicon}
+          alt=""
+          width={Math.round(size * 0.6)}
+          height={Math.round(size * 0.6)}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFaviconFailed(true)}
+        />
+      </span>
+    );
+  }
+
+  return <ServiceGlyph letter={service.letter} color={service.color} size={size} />;
 }
 
 export function ServiceGlyph({
@@ -273,14 +377,16 @@ export function EmptyState({
   title,
   body,
   action,
+  mark = 'kx',
 }: {
   title: string;
   body: string;
   action?: ReactNode;
+  mark?: ThemeMarkKind;
 }) {
   return (
     <div className="empty-state">
-      <KxMark size={64} variant="tile" />
+      <ThemeMark mark={mark} size={64} variant="tile" />
       <h3>{title}</h3>
       <p>{body}</p>
       {action}

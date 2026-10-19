@@ -1,11 +1,11 @@
 {
   "name": "kryvex",
   "productName": "Kryvex",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "A modular desktop workspace that brings independent web services, a browser and shared tools into one engineered surface.",
   "license": "MIT",
   "author": {
-    "name": "Xi\u00d8N",
+    "name": "XiØN",
     "url": "https://github.com/XiONDiGiTaL"
   },
   "repository": {
@@ -22,8 +22,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json",
     "test": "vitest run",
     "capture": "node scripts/capture.mjs",
-    "pack": "pnpm build && electron-builder --dir",
-    "dist": "pnpm build && electron-builder"
+    "package:dir": "pnpm build && electron-builder --dir",
+    "package:win": "pnpm build && electron-builder"
   },
   "build": {
     "appId": "net.xiondigital.kryvex",
@@ -52,12 +52,24 @@
       ]
     },
     "nsis": {
+      "artifactName": "Kryvex-Setup-${version}-${arch}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "perMachine": false
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Kryvex",
+      "uninstallDisplayName": "Kryvex ${version}",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "Kryvex-Portable-${version}-${arch}.${ext}"
     }
   },
   "dependencies": {
+    "@ghostery/adblocker-electron": "^2.20.1",
+    "extract-zip": "^2.0.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
@@ -68,15 +80,9 @@
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "44.2.0",
     "electron-builder": "^26.15.3",
+    "simple-icons": "^16.35.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.5"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "esbuild",
-      "electron-winstaller"
-    ]
   }
 }

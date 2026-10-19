@@ -3,7 +3,7 @@
 ## Inherited findings (Ferdium reference, not shipped)
 
 These were the security problems that motivated a fresh shell (ED-008); none of
-this code is part of Kryvex v0.1.0.
+this code is part of Kryvex v0.3.0.
 
 1. Main window: `nodeIntegration: true`, `contextIsolation: false`
    (`src/index.ts:282-284`). Any XSS in the shell renderer = full Node.
@@ -16,7 +16,7 @@ this code is part of Kryvex v0.1.0.
 4. Update config disables signature verification
    (`verifyUpdateCodeSignature: false`) — supply-chain risk if reused blindly.
 
-## Design requirements (all implemented in v0.1.0; see the table below)
+## Design requirements (all implemented in v0.3.0; see the table below)
 
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox` where
   compatible; narrow `contextBridge` preloads per surface (app shell,
@@ -32,7 +32,7 @@ this code is part of Kryvex v0.1.0.
   default; redaction of credentials/cookies/auth headers/sensitive URLs in
   log export; no secrets in git, logs, or artifacts (pre-push scan).
 
-## Implemented in v0.1.0 (source-verified)
+## Implemented in v0.3.0 (source-verified)
 
 | Control | Where |
 | --- | --- |
@@ -61,6 +61,6 @@ this code is part of Kryvex v0.1.0.
 private-session isolation, download handling, error recovery, shutdown.
 Record what was executed; never report unrun tests as passing.
 
-Executed so far: `pnpm typecheck` (0), `pnpm test` (38/38), `pnpm build` (0),
-`pnpm capture` (0, nine routes), live Sohbet module probe
+Executed so far: `pnpm typecheck` (0), `pnpm test` (40/40), `pnpm build` (0),
+`pnpm capture` (0, thirteen captures), live Sohbet module probe
 (`https://sohbet.xiondigital.net/`, `loading: false`).

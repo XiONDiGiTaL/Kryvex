@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PersistedState, Service, ViewId } from '../types';
 import { getTheme, THEMES } from '../lib/themes';
-import { Icon, ServiceGlyph } from './ui';
+import { Icon, ServiceIcon } from './ui';
 
 interface Command {
   id: string;
@@ -47,7 +47,7 @@ export function CommandPalette({
       label: service.name,
       hint: service.url.replace(/^https?:\/\//, ''),
       group: 'Services',
-      icon: <ServiceGlyph letter={service.letter} color={service.color} size={18} />,
+      icon: <ServiceIcon service={service} size={18} />,
       run: () => onOpenService(service),
     }));
     const themes: Command[] = THEMES.filter(theme => theme.id !== currentTheme.id).map(theme => ({

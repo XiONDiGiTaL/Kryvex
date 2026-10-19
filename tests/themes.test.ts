@@ -4,8 +4,8 @@ import { DEFAULT_THEME_ID, THEMES, getTheme, isThemeId } from '../src/lib/themes
 const REQUIRED = ['bg', 'surface', 'raised', 'line', 'ink', 'muted', 'accent', 'accentSoft'];
 
 describe('theme catalogue', () => {
-  it('ships the six documented themes', () => {
-    expect(THEMES).toHaveLength(6);
+  it('ships six core themes plus the donkey plugin', () => {
+    expect(THEMES).toHaveLength(7);
     expect(THEMES.map(theme => theme.id)).toEqual([
       'kryvex-dark',
       'kryvex-light',
@@ -13,7 +13,13 @@ describe('theme catalogue', () => {
       'graphite',
       'oled-black',
       'high-contrast',
+      'special-donkey',
     ]);
+    const donkey = getTheme('special-donkey');
+    expect(donkey.plugin).toBe(true);
+    expect(donkey.mark).toBe('donkey');
+    expect(donkey.tokens.accent).toBe('#F2C94C');
+    expect(donkey.tokens.bg).toBe('#070605');
   });
 
   it('gives every theme a complete token set', () => {

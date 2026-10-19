@@ -8,9 +8,12 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
 - [x] Baseline M2 green: install, typecheck, tests, no upstream edits.
 - [x] Kryvex identity: tile logo, small/tray/mono SVGs, `BRAND.md`, tokens,
   6 themes, PNG 16–512 + 7-size ICO, visual QA sheet.
-- [ ] Init `X:\Veyra` git repo, `.gitignore`, fork `package.json` ids,
+- [x] Init `X:\Veyra` git repo, `.gitignore`, fork `package.json` ids,
   product name, and icons into the source tree.
-- [ ] About/attribution page following `brand/BRAND.md` copy rules.
+- [x] About/attribution page following `brand/BRAND.md` copy rules, including
+  developer links to XiONDiGiTaL and player529.
+- [x] Click-first usability pass: header Add/Settings/Help, Home common actions,
+  quick-help dialog and 0.3.0 Windows Setup/Portable release.
 
 ## Done (M2 baseline — record)
 - [x] pnpm 12.3.4 via local `.tools/pnpm`; Node 24.19.0 delta recorded.

@@ -1,4 +1,5 @@
 import type { PersistedState, Service, ServiceCategory } from '../types';
+import { BRAND_ICONS } from './brand-icons';
 import { normalizeUrl } from './url';
 
 export const CATEGORIES: ReadonlyArray<{ id: ServiceCategory; label: string }> = [
@@ -46,6 +47,7 @@ export interface ServiceInput {
   color: string;
   pinned?: boolean;
   letter?: string;
+  icon?: string;
 }
 
 export interface ServiceResult {
@@ -78,6 +80,7 @@ export function validateServiceInput(input: ServiceInput): ServiceResult {
   if (!/^[\p{L}\p{N}]{1,2}$/u.test(letter)) {
     errors.letter = 'The glyph can contain one or two letters or digits.';
   }
+  const icon = input.icon && input.icon in BRAND_ICONS ? input.icon : undefined;
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };
 
@@ -93,6 +96,7 @@ export function validateServiceInput(input: ServiceInput): ServiceResult {
       letter,
       pinned: Boolean(input.pinned),
       createdAt: Date.now(),
+      ...(icon ? { icon: icon as Service['icon'] } : {}),
     },
   };
 }
@@ -115,6 +119,7 @@ export function starterState(): PersistedState {
       color: '#FB7185',
       letter: 'G',
       pinned: true,
+      icon: 'gmail',
     },
     {
       name: 'GitHub',
@@ -123,6 +128,7 @@ export function starterState(): PersistedState {
       color: '#94A3B8',
       letter: 'G',
       pinned: true,
+      icon: 'github',
     },
     {
       name: 'Notion',
@@ -131,6 +137,7 @@ export function starterState(): PersistedState {
       color: '#FBBF24',
       letter: 'N',
       pinned: false,
+      icon: 'notion',
     },
     {
       name: 'YouTube',
@@ -139,6 +146,7 @@ export function starterState(): PersistedState {
       color: '#FB7185',
       letter: 'Y',
       pinned: false,
+      icon: 'youtube',
     },
   ];
 

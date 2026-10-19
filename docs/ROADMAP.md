@@ -14,12 +14,14 @@
   Sohbet loads inside its module. Remaining: hibernation, health checks.
 - **M6** ✅ core: tabs, navigation, address bar, bookmarks, per-tab sessions,
   external handoff. Remaining: downloads shelf, history, find, zoom.
-- **M7** ◐ security baseline implemented (sandbox, isolation, four IPC calls,
-  hardened webviews, permission deny-list, atomic state). Remaining: audit,
-  profiles, permission UX.
-- **M8** ◐ 38 unit tests + typecheck + build + capture pass. Remaining: e2e/UI
-  tests, backup/restore, measured performance comparison.
-- **M9**: Windows installer/portable build succeeds; CI green; install docs.
+- **M7** ◐ security baseline implemented (sandbox, isolation, typed IPC bridge,
+  hardened webviews, permission deny-list, sender checks, atomic state).
+  Remaining: audit, profiles, permission UX.
+- **M8** ◐ 40 unit tests + typecheck + build + thirteen-capture pass. Remaining:
+  e2e/UI tests, backup/restore, measured performance comparison.
+- **M9** ◐ unsigned Setup and Portable EXEs build; custom-dir install, launched
+  app and clean uninstall verified. Signing, interactive-wizard QA and CI remain.
 - **M10** ✅ `XiONDiGiTaL/Kryvex` published (main, no force-push).
-- **M11** ◐ README, banner, real-UI screenshots, limitations and testing
-  docs delivered. Remaining: engineering report, signed release.
+- **M11** ◐ README, banner, thirteen real-UI screenshots, limitations, testing
+  docs and 0.3.0 release record delivered. Remaining: engineering report, signed
+  public release.

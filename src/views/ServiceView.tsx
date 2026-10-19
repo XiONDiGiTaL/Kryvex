@@ -2,9 +2,8 @@ import { useRef, useState } from 'react';
 import type { Service } from '../types';
 import { CATEGORIES, partitionFor } from '../lib/services';
 import { hostOf } from '../lib/url';
-import { Icon, ServiceGlyph } from '../components/ui';
+import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from '../components/ui';
 import { Webview, type WebviewElement, type WebviewStatus } from '../components/Webview';
-import { logoUrl } from '../assets';
 
 export function ServiceView({
   service,
@@ -13,9 +12,11 @@ export function ServiceView({
   onEdit,
   onDelete,
   onToast,
+  mark = 'kx',
 }: {
   service: Service;
   isElectron: boolean;
+  mark?: ThemeMarkKind;
   onBack: () => void;
   onEdit: (service: Service) => void;
   onDelete: (service: Service) => void;
@@ -39,7 +40,7 @@ export function ServiceView({
           <Icon name="back" size={16} />
         </button>
 
-        <ServiceGlyph letter={service.letter} color={service.color} size={30} />
+        <ServiceIcon service={service} size={30} />
 
         <div className="service-id">
           <div className="service-title-line">
@@ -88,7 +89,7 @@ export function ServiceView({
 
         {!isElectron ? (
           <div className="webview-fallback">
-            <img src={logoUrl} width={128} height={128} alt="" />
+            <ThemeMark mark={mark} size={128} variant="tile" />
             <h2>{service.name}</h2>
             <p>
               Service webviews render inside the Electron shell, where Kryvex can give this module

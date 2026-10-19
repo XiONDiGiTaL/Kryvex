@@ -2,7 +2,7 @@ import type { AppInfo, PersistedState, Service } from '../types';
 import { getTheme } from '../lib/themes';
 import { CATEGORIES } from '../lib/services';
 import { hostOf } from '../lib/url';
-import { Icon, KxMark, ServiceGlyph } from '../components/ui';
+import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from '../components/ui';
 import { logoUrl } from '../assets';
 
 function categoryLabel(id: Service['category']): string {
@@ -24,6 +24,7 @@ export function Home({
   themeId,
   info,
   isElectron,
+  mark = 'kx',
   onOpenService,
   onAdd,
   onNavigate,
@@ -32,6 +33,7 @@ export function Home({
   themeId: string;
   info: AppInfo | null;
   isElectron: boolean;
+  mark?: ThemeMarkKind;
   onOpenService: (service: Service) => void;
   onAdd: () => void;
   onNavigate: (view: 'home' | 'services' | 'browser' | 'settings') => void;
@@ -48,7 +50,7 @@ export function Home({
     <section className="view home-view">
       <header className="view-head">
         <div>
-          <p className="eyebrow mono">WORKSPACE 01 / ELEMENT 027</p>
+          <p className="eyebrow mono">WORKSPACE 01 / ELEMENT x529</p>
           <h1>Everything connected, nothing scattered.</h1>
           <p className="lede">
             {state.services.length} modules ready. Each one keeps its own session, cookies and
@@ -64,7 +66,7 @@ export function Home({
       <div className="hero-grid">
         <div className="hero-card">
           <div className="hero-copy">
-            <span className="chip mono">ELEMENT 027 — MODULAR TECHNOLOGY</span>
+            <span className="chip mono">ELEMENT x529 — MODULAR TECHNOLOGY</span>
             <h2>Precision in Every Connection.</h2>
             <p>
               Kryvex treats every web app as a module: a URL, a purpose, an isolated session, and a
@@ -85,7 +87,13 @@ export function Home({
               </div>
             </div>
           </div>
-          <img className="hero-tile" src={logoUrl} width={176} height={176} alt="Kryvex element tile" />
+          {mark === 'donkey' ? (
+            <span className="hero-tile donkey-hero">
+              <ThemeMark mark="donkey" size={176} variant="tile" />
+            </span>
+          ) : (
+            <img className="hero-tile" src={logoUrl} width={176} height={176} alt="Kryvex element tile" />
+          )}
         </div>
 
         <aside className="panel runtime-panel">
@@ -118,6 +126,55 @@ export function Home({
         </aside>
       </div>
 
+      <section className="home-section" aria-labelledby="common-actions-title">
+        <div className="section-head">
+          <h2 id="common-actions-title">Common actions</h2>
+          <span className="mono muted-label">EVERY ACTION IS A BUTTON</span>
+        </div>
+        <div className="home-actions">
+          <button className="home-action" onClick={onAdd}>
+            <span className="home-action-icon">
+              <Icon name="plus" size={18} />
+            </span>
+            <span className="home-action-copy">
+              <strong>Add a service</strong>
+              <span>Turn any web app into a module.</span>
+            </span>
+            <Icon name="chevron" size={14} className="home-action-arrow" />
+          </button>
+          <button className="home-action" onClick={() => onNavigate('services')}>
+            <span className="home-action-icon">
+              <Icon name="layers" size={18} />
+            </span>
+            <span className="home-action-copy">
+              <strong>Browse services</strong>
+              <span>Open, search, pin or edit modules.</span>
+            </span>
+            <Icon name="chevron" size={14} className="home-action-arrow" />
+          </button>
+          <button className="home-action" onClick={() => onNavigate('browser')}>
+            <span className="home-action-icon">
+              <Icon name="globe" size={18} />
+            </span>
+            <span className="home-action-copy">
+              <strong>Open the browser</strong>
+              <span>A separate tabbed browsing space.</span>
+            </span>
+            <Icon name="chevron" size={14} className="home-action-arrow" />
+          </button>
+          <button className="home-action" onClick={() => onNavigate('settings')}>
+            <span className="home-action-icon">
+              <Icon name="sliders" size={18} />
+            </span>
+            <span className="home-action-copy">
+              <strong>Open settings</strong>
+              <span>Themes, shield, extensions and startup.</span>
+            </span>
+            <Icon name="chevron" size={14} className="home-action-arrow" />
+          </button>
+        </div>
+      </section>
+
       <section className="home-section">
         <div className="section-head">
           <h2>Quick launch</h2>
@@ -128,7 +185,7 @@ export function Home({
 
         {quick.length === 0 ? (
           <div className="panel inline-empty">
-            <KxMark size={30} variant="tile" />
+            <ThemeMark mark={mark} size={30} variant="tile" />
             <div>
               <strong>No modules yet.</strong>
               <p>Add the first service and it will show up here.</p>
@@ -141,7 +198,7 @@ export function Home({
           <div className="quick-grid">
             {quick.map(service => (
               <button key={service.id} className="quick-card" onClick={() => onOpenService(service)}>
-                <ServiceGlyph letter={service.letter} color={service.color} size={36} />
+                <ServiceIcon service={service} size={36} />
                 <span className="quick-meta">
                   <strong>{service.name}</strong>
                   <span className="mono">{hostOf(service.url)}</span>
@@ -168,7 +225,7 @@ export function Home({
               {recent.map(service => (
                 <li key={service.id}>
                   <button onClick={() => onOpenService(service)}>
-                    <ServiceGlyph letter={service.letter} color={service.color} size={26} />
+                    <ServiceIcon service={service} size={26} />
                     <span className="recent-text">
                       <strong>{service.name}</strong>
                       <span className="mono">{categoryLabel(service.category)}</span>

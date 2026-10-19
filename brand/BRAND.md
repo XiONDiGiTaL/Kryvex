@@ -11,10 +11,10 @@ binds other materials without changing them. The identity therefore treats the
 product as an element on a periodic table of software — one tile in a larger
 system — rather than as a dashboard or a launcher. The tile is the brand.
 
-> **Fictional element notice.** Atomic number **027**, symbol **Kx**, and the
-> name Kryvex are branding inventions. They are not a claim about a real
-> chemical element (027 is cobalt in the real table; Kx is not an assigned
-> symbol). Never present Kryvex as a real element or as a scientific product.
+> **Fictional element notice.** Element designation **x529**, symbol **Kx**,
+> and the name Kryvex are branding inventions. `x529` is not a real atomic
+> number, and Kx is not an assigned chemical symbol. Never present Kryvex as
+> a real element or as a scientific product.
 
 ## 1. The tile
 
@@ -23,7 +23,7 @@ Every asset derives from one 512×512 tile:
 | Region | Content | Notes |
 | --- | --- | --- |
 | Plate | `#0B0E12` near-black graphite, radius 86/512 (17%), 6-unit `#394451` border | Flat fill; a 1-unit inner hairline at 35% adds machined edge without gradient |
-| Top left | `027` in mono, `#38BDF8` | The only number used anywhere in the identity |
+| Top left | `x529` in mono, `#38BDF8` | The only element designation used in the identity |
 | Top right | Three 10-unit signal squares, `#2DD4BF` at 35/60/100% | "Connected systems" motif; omitted below 64px |
 | Center | `Kx` constructed from 26-unit round-capped strokes, `#F0F3F7` | Drawn, not typed — no font dependency, identical on every OS |
 | Divider | 64×4 accent rule, `#38BDF8` | Separates symbol from name, like a table row rule |
@@ -35,8 +35,9 @@ a chemistry reference rather than a brand; `Kx` is unassigned, has two sharp
 diagonals that survive 16px, and stays distinct from the `KR` in the candidate
 mockups. `Krx` remains the spoken/written abbreviation; `Kx` is the symbol.
 
-**Why `027`.** It gives the tile its periodic-table grammar and is short enough
-to stay legible at 48px. It is fictional and constant — do not renumber it per
+**Why `x529`.** The tile keeps a short alphanumeric designation in the
+atomic-number slot, preserving the periodic-table grammar without pretending to
+be a real element. `x529` is fictional and constant — do not renumber it per
 release, module, or theme.
 
 ## 2. Variants and minimum sizes

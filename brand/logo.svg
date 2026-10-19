@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
      role="img" aria-labelledby="kryvex-title kryvex-desc">
   <title id="kryvex-title">Kryvex</title>
-  <desc id="kryvex-desc">Fictional periodic-table element tile: number 027, symbol Kx, wordmark KRYVEX, label MODULAR TECHNOLOGY.</desc>
+  <desc id="kryvex-desc">Fictional periodic-table element tile: number x529, symbol Kx, wordmark KRYVEX, label MODULAR TECHNOLOGY.</desc>
 
   <!-- Plate: near-black graphite with a fine metallic border -->
   <rect x="3" y="3" width="506" height="506" rx="86" fill="#0B0E12" stroke="#394451" stroke-width="6"/>
@@ -9,7 +9,7 @@
 
   <!-- Atomic number (fictional) -->
   <text x="46" y="80" fill="#38BDF8" font-family="'Cascadia Mono','JetBrains Mono',Consolas,ui-monospace,monospace"
-        font-size="26" font-weight="500" letter-spacing="3">027</text>
+        font-size="26" font-weight="500" letter-spacing="3">x529</text>
 
   <!-- Connected-systems signal, top right -->
   <g fill="#2DD4BF">

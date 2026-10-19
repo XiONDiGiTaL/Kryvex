@@ -1,12 +1,11 @@
 # Kryvex — Project Status
 
-**Product:** Kryvex Desktop 0.1.0 — a modular Electron workspace where web apps
-become isolated, themed, keyboard-reachable modules. Fictional element `027`,
+**Product:** Kryvex Desktop 0.3.0 — a modular Electron workspace where web apps
+become isolated, themed, keyboard-reachable modules. Fictional element `x529`,
 symbol `Kx`, tagline “Precision in Every Connection.”
 
-**Repository:** https://github.com/XiONDiGiTaL/Kryvex (public, `main`,
-commit `f7e4371` at time of writing; no force-push). Working directory remains
-`X:\Veyra`.
+**Repository:** https://github.com/XiONDiGiTaL/Kryvex (public, `main`, no
+force-push). Working directory remains `X:\Veyra`.
 
 **Naming risk (open):** an existing KRYVEX AI platform, a KRYVEX password
 vault, ~38 GitHub repos, a Play developer account and an unrelated salt-mill
@@ -37,31 +36,42 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   host-or-search resolution, bookmarks bar and toggle, per-tab persistent
   partitions, system-browser handoff. Downloads, history, find and zoom remain.
 - [ ] **M7 — Security (baseline shipped).** Sandboxed renderer, context
-  isolation, four narrowed IPC calls, hardened webviews, partition allowlist,
-  http(s)-only navigation, permission deny-list, externalised popups, atomic
-  capped state writes. Remaining: permission prompt UX, `pnpm audit`,
-  packaged-app integrity checks, renderer CSP, macOS/Linux validation.
-- [ ] **M8 — Testing (partial).** 38/38 unit tests, strict typecheck, build and
-  nine-route capture pass; live Sohbet probe passed. Remaining: e2e UI tests,
+  isolation, a narrowed typed IPC bridge, hardened webviews, partition
+  allowlist, http(s)-only navigation, permission deny-list, externalised
+  popups, atomic capped state writes, sender checks on shield/extension
+  mutations. Remaining: permission prompt UX, `pnpm audit`, packaged-app
+  integrity checks, renderer CSP, macOS/Linux validation.
+- [ ] **M8 — Testing (partial).** 40/40 unit tests, strict typecheck, build and
+  thirteen-capture pass; live Sohbet probe passed. Remaining: e2e UI tests,
   automated restart-persistence test, backup/restore, measured performance
   comparison (`docs/PERFORMANCE.md` still holds no numbers).
-- [ ] **M9 — Packaging & CI.** electron-builder config exists (NSIS +
-  portable, unsigned). No installer has been built or signed; no CI workflow.
+- [ ] **M9 — Packaging & CI.** Setup and Portable EXEs build with a selectable
+  install folder, Desktop/Start Menu shortcuts and an uninstaller. Custom-dir
+  install, installed-app launch and clean uninstall were verified. Remaining:
+  code signing, interactive wizard pass and CI.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
   secret-scanned, main pushed and verified remotely.
-- [ ] **M11 — Final review.** README with nine real screenshots, banner,
-  feature/security/limitation sections, and honest testing docs are in place.
-  Outstanding: engineering report and a signed release.
+- [ ] **M11 — Final review.** README with thirteen real screenshots, banner,
+  feature/security/limitation sections, honest testing docs and a 0.3.0 release
+  record are in place. Outstanding: engineering report and a signed public
+  release.
 
 ## Verified evidence (2026-10-19)
 
 - `pnpm typecheck` → exit 0 (renderer and main, strict TypeScript).
-- `pnpm test` → exit 0, 38/38 passed.
-- `pnpm build` → exit 0; `dist/assets/index-*.js` 287,233 B,
-  `index-*.css` 34,569 B; `dist-electron/` main + preload emitted.
-- `pnpm capture` → exit 0; nine 1440×900 PNGs regenerated from the running
-  Electron window (`home`, `services`, `add-service`, `service`, `browser`,
-  `command-palette`, `settings`, `settings-about`, `light-theme`).
+- `pnpm test` → exit 0, 40/40 passed.
+- `pnpm build` → exit 0; `dist/assets/index-*.js` 322.12 kB,
+  `index-*.css` 43.73 kB; `dist-electron/` main + preload emitted.
+- `pnpm capture` → exit 0; thirteen 1440×900 PNGs regenerated from the running
+  Electron window (`home`, `help`, `services`, `add-service`, `service`, `browser`,
+  `settings`, `settings-shield`, `settings-plugins`, `settings-about`,
+  `donkey-theme`, `command-palette`, `light-theme`).
+- Setup build → exit 0; `release/Kryvex-Setup-0.3.0-x64.exe` and
+  `release/Kryvex-Portable-0.3.0-x64.exe` are 108 MiB each. The setup installed
+  silently to a custom temporary folder, the installed `Kryvex.exe` completed
+  all thirteen capture routes, and the uninstaller removed the folder,
+  Desktop/Start Menu shortcuts and uninstall registry entry. Both EXEs report
+  `NotSigned`.
 - Live module probe: `https://sohbet.xiondigital.net/` loaded with
   `loading: false` inside a `persist:svc-*` webview.
 - Repository scan: no tracked `node_modules`, build output, upstream checkout,
@@ -77,9 +87,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 ## Known gaps
 
 - Windows only; no macOS/Linux run or platform icon sets.
-- No signed installer, auto-update, or CI.
-- No downloads manager, history browser, find-in-page, extensions or
-  hibernation.
+- No code-signed installer, auto-update, or CI.
+- No downloads manager, history browser, find-in-page or hibernation.
 - State persistence is unit-tested and wired through the verified IPC bridge,
   but no automated end-to-end restart test exists.
 - Some third-party services resist embedding (strict SSO, popups,

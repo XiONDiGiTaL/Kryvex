@@ -1,6 +1,6 @@
 # Theming (Kryvex Theme Studio — plan of record)
 
-Brand: **Kryvex** — a fictional periodic-table element (number `027`, symbol
+Brand: **Kryvex** — a fictional periodic-table element (designation `x529`, symbol
 `Kx`) rendered as a graphite tile with a metallic border and restrained
 electric-blue accent. Full identity rules live in `brand/BRAND.md`; this file
 covers the theme system that will ship in the app.
@@ -64,7 +64,7 @@ surfaces and a visible focus ring.
 - Splash/About use the full tile at ≥96px with the tagline.
 - Empty, loading and error states may use the tile at ≥64px, never as a
   full-bleed watermark.
-- The element number `027` is decorative metadata and never carries state or
+- The element designation `x529` is decorative metadata and never carries state or
   version information.
 
 ## Icon exports

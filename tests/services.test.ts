@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { BRAND_ICONS } from '../src/lib/brand-icons';
+import { SERVICE_PRESETS } from '../src/lib/catalog';
 import {
   SERVICE_COLORS,
   letterFor,
@@ -42,6 +44,14 @@ describe('validateServiceInput', () => {
     expect(result.errors.color).toBeTruthy();
   });
 
+  it('keeps a known brand icon and drops unknown ones', () => {
+    const accepted = validateServiceInput({ ...valid, icon: 'linear' });
+    expect(accepted.service?.icon).toBe('linear');
+    const rejected = validateServiceInput({ ...valid, icon: 'not-a-brand' });
+    expect(rejected.ok).toBe(true);
+    expect(rejected.service?.icon).toBeUndefined();
+  });
+
   it('rejects unknown categories', () => {
     const result = validateServiceInput({
       ...valid,
@@ -71,6 +81,20 @@ describe('helpers', () => {
     const b = makeId('b');
     expect(a).not.toBe(b);
     expect(a.startsWith('b-')).toBe(true);
+  });
+});
+
+describe('service catalogue', () => {
+  it('offers presets with real brand marks and https endpoints', () => {
+    expect(SERVICE_PRESETS.length).toBeGreaterThanOrEqual(12);
+    for (const preset of SERVICE_PRESETS) {
+      expect(preset.icon in BRAND_ICONS).toBe(true);
+      expect(preset.url.startsWith('https://')).toBe(true);
+      expect(preset.name.length).toBeGreaterThan(0);
+    }
+    expect(SERVICE_PRESETS.some(preset => preset.id === 'instagram')).toBe(true);
+    expect(SERVICE_PRESETS.some(preset => preset.id === 'telegram')).toBe(true);
+    expect(SERVICE_PRESETS.some(preset => preset.id === 'whatsapp')).toBe(true);
   });
 });
 

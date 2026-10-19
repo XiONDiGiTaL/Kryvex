@@ -8,6 +8,7 @@ import type {
   Settings,
   ViewId,
 } from '../types';
+import { BRAND_ICONS } from './brand-icons';
 import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
 import { isThemeId } from './themes';
 import { isHttpUrl } from './url';
@@ -44,6 +45,8 @@ function sanitizeService(raw: unknown): Service | null {
   const letter = /^[\p{L}\p{N}]{1,2}$/u.test(String(raw.letter ?? ''))
     ? String(raw.letter).toUpperCase()
     : name.charAt(0).toUpperCase();
+  const icon =
+    typeof raw.icon === 'string' && raw.icon in BRAND_ICONS ? (raw.icon as Service['icon']) : undefined;
   return {
     id,
     name,
@@ -54,6 +57,7 @@ function sanitizeService(raw: unknown): Service | null {
     pinned: Boolean(raw.pinned),
     createdAt: Number.isFinite(raw.createdAt) ? Number(raw.createdAt) : Date.now(),
     lastOpened: Number.isFinite(raw.lastOpened) ? Number(raw.lastOpened) : undefined,
+    ...(icon ? { icon } : {}),
   };
 }
 

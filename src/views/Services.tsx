@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { PersistedState, Service, ServiceCategory } from '../types';
 import { CATEGORIES, SERVICE_COLORS } from '../lib/services';
 import { hostOf } from '../lib/url';
-import { EmptyState, Icon, ServiceGlyph } from '../components/ui';
+import { EmptyState, Icon, ServiceIcon } from '../components/ui';
 
 export function Services({
   state,
@@ -141,7 +141,7 @@ export function Services({
               style={{ '--service-color': service.color } as React.CSSProperties}
             >
               <div className="service-card-head">
-                <ServiceGlyph letter={service.letter} color={service.color} size={40} />
+                <ServiceIcon service={service} size={40} />
                 <div className="service-card-actions">
                   <button
                     className={`icon-btn ${service.pinned ? 'is-on' : ''}`}

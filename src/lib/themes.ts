@@ -1,14 +1,19 @@
 import themesJson from '../../brand/themes.json';
 import tokensJson from '../../brand/tokens.json';
+import { PLUGIN_THEMES } from '../plugins';
 
 export interface Theme {
   id: string;
   name: string;
   mode: 'dark' | 'light';
   tokens: Record<string, string>;
+  /** Theme shipped as a plugin rather than in the core theme file. */
+  plugin?: boolean;
+  /** Which brand mark the shell should show while this theme is active. */
+  mark?: 'kx' | 'donkey';
 }
 
-export const THEMES: Theme[] = themesJson.themes as Theme[];
+export const THEMES: Theme[] = [...(themesJson.themes as Theme[]), ...PLUGIN_THEMES];
 export const DEFAULT_THEME_ID = THEMES[0]?.id ?? 'kryvex-dark';
 export const DEFAULT_THEME = THEMES[0] as Theme;
 

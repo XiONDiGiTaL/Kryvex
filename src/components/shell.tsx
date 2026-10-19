@@ -1,6 +1,6 @@
 import type { AppInfo, PersistedState, Service, ViewId } from '../types';
 import { getTheme } from '../lib/themes';
-import { Icon, KxMark, ServiceGlyph } from './ui';
+import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from './ui';
 
 const NAV: Array<{ id: ViewId; label: string; icon: 'home' | 'layers' | 'globe' | 'sliders' }> = [
   { id: 'home', label: 'Home', icon: 'home' },
@@ -11,18 +11,28 @@ const NAV: Array<{ id: ViewId; label: string; icon: 'home' | 'layers' | 'globe' 
 
 export function Header({
   title,
+  view,
   onPalette,
+  onAdd,
+  onSettings,
+  onHelp,
   isElectron,
+  mark = 'kx',
 }: {
   title: string;
+  view: ViewId;
   onPalette: () => void;
+  onAdd: () => void;
+  onSettings: () => void;
+  onHelp: () => void;
   isElectron: boolean;
+  mark?: ThemeMarkKind;
 }) {
   return (
     <header className="app-header">
       <div className="header-left">
         <span className="brand-chip" aria-hidden="true">
-          <KxMark size={19} />
+          <ThemeMark mark={mark} size={19} />
         </span>
         <div className="header-title">
           <span className="product-name">KRYVEX</span>
@@ -40,8 +50,27 @@ export function Header({
       </button>
 
       <div className="header-right">
-        <span className="element-chip" title="Fictional element 027 · Kx">
-          027 <span className="element-symbol">Kx</span>
+        <div className="header-tools" aria-label="Quick access">
+          <button className="header-tool" onClick={onAdd} title="Add a service">
+            <Icon name="plus" size={14} />
+            <span>Add</span>
+          </button>
+          <button
+            className={`header-tool ${view === 'settings' ? 'is-active' : ''}`}
+            onClick={onSettings}
+            title="Open settings (Ctrl 4)"
+            aria-current={view === 'settings' ? 'page' : undefined}
+          >
+            <Icon name="sliders" size={14} />
+            <span>Settings</span>
+          </button>
+          <button className="header-tool" onClick={onHelp} title="Open quick help">
+            <Icon name="help" size={14} />
+            <span>Help</span>
+          </button>
+        </div>
+        <span className="element-chip" title="Fictional element x529 · Kx">
+          x529 <span className="element-symbol">Kx</span>
         </span>
         <span className={`shell-badge ${isElectron ? 'is-live' : ''}`}>
           <span className="status-dot" />
@@ -109,7 +138,7 @@ export function Sidebar({
                   onClick={() => onOpenService(service)}
                   title={service.name}
                 >
-                  <ServiceGlyph letter={service.letter} color={service.color} size={22} />
+                  <ServiceIcon service={service} size={22} />
                   <span className="pinned-name">{service.name}</span>
                 </button>
               </li>
@@ -141,11 +170,13 @@ export function StatusBar({
   themeId,
   appInfo,
   isElectron,
+  mark = 'kx',
 }: {
   state: PersistedState;
   themeId: string;
   appInfo: AppInfo | null;
   isElectron: boolean;
+  mark?: ThemeMarkKind;
 }) {
   const theme = getTheme(themeId);
   const pinned = state.services.filter(service => service.pinned).length;
@@ -159,7 +190,10 @@ export function StatusBar({
       <span className="status-sep" aria-hidden="true">
         ·
       </span>
-      <span className="mono">ELEMENT 027 / Kx</span>
+      <span className="mono status-brand">
+        <ThemeMark mark={mark} size={12} />
+        {mark === 'donkey' ? 'DONKEY EDITION' : 'ELEMENT x529 / Kx'}
+      </span>
       <span className="status-grow" />
       <span className="mono">{state.services.length} SERVICES</span>
       <span className="status-sep" aria-hidden="true">
@@ -173,7 +207,7 @@ export function StatusBar({
       <span className="status-sep" aria-hidden="true">
         ·
       </span>
-      <span className="mono">v{appInfo?.version ?? '0.1.0'}</span>
+      <span className="mono">v{appInfo?.version ?? '0.3.0'}</span>
     </footer>
   );
 }

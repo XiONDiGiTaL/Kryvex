@@ -22,7 +22,7 @@
   <g transform="translate(80 92)">
     <rect width="188" height="188" rx="34" fill="#0B0E12" stroke="#394451" stroke-width="3"/>
     <rect x="9" y="9" width="170" height="170" rx="26" fill="none" stroke="#394451" stroke-width="1" opacity="0.35"/>
-    <text x="26" y="47" fill="#38BDF8" font-family="'Cascadia Mono',Consolas,'Courier New',monospace" font-size="20" letter-spacing="2">027</text>
+    <text x="26" y="47" fill="#38BDF8" font-family="'Cascadia Mono',Consolas,'Courier New',monospace" font-size="20" letter-spacing="2">x529</text>
     <g fill="#2DD4BF">
       <rect x="146" y="31" width="7" height="7" rx="1.5" opacity="0.4"/>
       <rect x="158" y="31" width="7" height="7" rx="1.5" opacity="0.65"/>
@@ -41,14 +41,14 @@
   <text x="314" y="196" fill="#F0F3F7" font-family="Inter,'Segoe UI',Helvetica,Arial,sans-serif" font-size="82" font-weight="600" letter-spacing="17">KRYVEX</text>
   <rect x="316" y="220" width="92" height="4" rx="2" fill="#38BDF8"/>
   <text x="314" y="272" fill="#9AA6B5" font-family="Inter,'Segoe UI',Helvetica,Arial,sans-serif" font-size="24" letter-spacing="0.4">Precision in Every Connection.</text>
-  <text x="314" y="330" fill="#38BDF8" font-family="'Cascadia Mono',Consolas,'Courier New',monospace" font-size="13" letter-spacing="4.4">MODULAR DESKTOP WORKSPACE — ELEMENT 027</text>
-  <text x="314" y="364" fill="#64707F" font-family="'Cascadia Mono',Consolas,'Courier New',monospace" font-size="12" letter-spacing="2.6">SERVICES · BROWSER · ISOLATED SESSIONS · SIX THEMES</text>
+  <text x="314" y="330" fill="#38BDF8" font-family="'Cascadia Mono',Consolas,'Courier New',monospace" font-size="13" letter-spacing="4.4">MODULAR DESKTOP WORKSPACE — ELEMENT x529</text>
+  <text x="314" y="364" fill="#64707F" font-family="'Cascadia Mono',Consolas,'Courier New',monospace" font-size="12" letter-spacing="2.6">SERVICES · SHIELD · EXTENSIONS · DONKEY EDITION</text>
 
   <!-- Fictional element row -->
   <g transform="translate(1136 88)">
     <g>
       <rect width="104" height="104" rx="16" fill="#0B0E12" stroke="#38BDF8" stroke-width="2"/>
-      <text x="12" y="26" fill="#38BDF8" font-family="'Cascadia Mono',Consolas,monospace" font-size="12">027</text>
+      <text x="12" y="26" fill="#38BDF8" font-family="'Cascadia Mono',Consolas,monospace" font-size="12">x529</text>
       <text x="52" y="72" text-anchor="middle" fill="#F0F3F7" font-family="Inter,'Segoe UI',Helvetica,sans-serif" font-size="34" font-weight="600">Kx</text>
       <text x="52" y="92" text-anchor="middle" fill="#9AA6B5" font-family="'Cascadia Mono',Consolas,monospace" font-size="7" letter-spacing="1.6">KRYVEX</text>
     </g>
@@ -61,20 +61,20 @@
     <g transform="translate(240 0)" opacity="0.38">
       <rect width="104" height="104" rx="16" fill="#12171E" stroke="#394451" stroke-width="2"/>
       <text x="12" y="26" fill="#64707F" font-family="'Cascadia Mono',Consolas,monospace" font-size="12">029</text>
-      <text x="52" y="72" text-anchor="middle" fill="#9AA6B5" font-family="Inter,'Segoe UI',Helvetica,sans-serif" font-size="32" font-weight="600">Br</text>
-      <text x="52" y="92" text-anchor="middle" fill="#4C5968" font-family="'Cascadia Mono',Consolas,monospace" font-size="7" letter-spacing="1.6">BROWSER</text>
+      <text x="52" y="72" text-anchor="middle" fill="#9AA6B5" font-family="Inter,'Segoe UI',Helvetica,sans-serif" font-size="32" font-weight="600">Sh</text>
+      <text x="52" y="92" text-anchor="middle" fill="#4C5968" font-family="'Cascadia Mono',Consolas,monospace" font-size="7" letter-spacing="1.6">SHIELD</text>
     </g>
     <g transform="translate(0 120)" opacity="0.42">
       <rect width="104" height="104" rx="16" fill="#12171E" stroke="#394451" stroke-width="2"/>
       <text x="12" y="26" fill="#64707F" font-family="'Cascadia Mono',Consolas,monospace" font-size="12">030</text>
-      <text x="52" y="72" text-anchor="middle" fill="#9AA6B5" font-family="Inter,'Segoe UI',Helvetica,sans-serif" font-size="32" font-weight="600">Ws</text>
-      <text x="52" y="92" text-anchor="middle" fill="#4C5968" font-family="'Cascadia Mono',Consolas,monospace" font-size="7" letter-spacing="1.6">WORKSPACE</text>
+      <text x="52" y="72" text-anchor="middle" fill="#9AA6B5" font-family="Inter,'Segoe UI',Helvetica,sans-serif" font-size="32" font-weight="600">Ad</text>
+      <text x="52" y="92" text-anchor="middle" fill="#4C5968" font-family="'Cascadia Mono',Consolas,monospace" font-size="7" letter-spacing="1.6">ADDONS</text>
     </g>
-    <g transform="translate(120 120)" opacity="0.3">
-      <rect width="104" height="104" rx="16" fill="#12171E" stroke="#394451" stroke-width="2"/>
-      <text x="12" y="26" fill="#64707F" font-family="'Cascadia Mono',Consolas,monospace" font-size="12">031</text>
-      <text x="52" y="72" text-anchor="middle" fill="#9AA6B5" font-family="Inter,'Segoe UI',Helvetica,sans-serif" font-size="32" font-weight="600">Tb</text>
-      <text x="52" y="92" text-anchor="middle" fill="#4C5968" font-family="'Cascadia Mono',Consolas,monospace" font-size="7" letter-spacing="1.6">TABS</text>
+    <g transform="translate(120 120)" opacity="0.9">
+      <rect width="104" height="104" rx="16" fill="#0A0804" stroke="#F2C94C" stroke-width="2"/>
+      <text x="12" y="26" fill="#F2C94C" font-family="'Cascadia Mono',Consolas,monospace" font-size="12">031</text>
+      <text x="52" y="72" text-anchor="middle" fill="#F6E7B4" font-family="Inter,'Segoe UI',Helvetica,sans-serif" font-size="32" font-weight="600">Dk</text>
+      <text x="52" y="92" text-anchor="middle" fill="#B39A5C" font-family="'Cascadia Mono',Consolas,monospace" font-size="7" letter-spacing="1.6">DONKEY</text>
     </g>
     <g transform="translate(240 120)" opacity="0.22">
       <rect width="104" height="104" rx="16" fill="#12171E" stroke="#394451" stroke-width="2"/>

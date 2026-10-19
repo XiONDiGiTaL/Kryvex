@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateActio
 import type { Bookmark, BrowserTab, PersistedState } from '../types';
 import { makeId } from '../lib/services';
 import { hostOf, resolveAddress } from '../lib/url';
-import { Icon, KxMark, ServiceGlyph } from '../components/ui';
+import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from '../components/ui';
 import { Webview, type WebviewElement, type WebviewStatus } from '../components/Webview';
 
 export function Browser({
@@ -13,6 +13,7 @@ export function Browser({
   setActiveTabId,
   initialTab = false,
   isElectron,
+  mark = 'kx',
   onAddBookmark,
   onRemoveBookmark,
   onToast,
@@ -24,6 +25,7 @@ export function Browser({
   setActiveTabId: Dispatch<SetStateAction<string | null>>;
   initialTab?: boolean;
   isElectron: boolean;
+  mark?: ThemeMarkKind;
   onAddBookmark: (bookmark: Bookmark) => void;
   onRemoveBookmark: (id: string) => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
@@ -73,7 +75,7 @@ export function Browser({
           </div>
         </header>
         <div className="browser-start">
-          <KxMark size={72} variant="tile" />
+          <ThemeMark mark={mark} size={72} variant="tile" />
           <h2>No tabs open</h2>
           <p>Open a tab to start browsing, or jump into a service.</p>
           <button
@@ -275,7 +277,7 @@ export function Browser({
 
         {active && active.url === '' ? (
           <div className="browser-start">
-            <KxMark size={64} variant="tile" />
+            <ThemeMark mark={mark} size={64} variant="tile" />
             <h2>Where to?</h2>
             <p>Search the web or open one of your modules without leaving the workspace.</p>
             <form
@@ -302,7 +304,7 @@ export function Browser({
             <div className="start-links">
               {state.services.slice(0, 6).map(service => (
                 <button key={service.id} className="start-link" onClick={() => go(service.url)}>
-                  <ServiceGlyph letter={service.letter} color={service.color} size={22} />
+                  <ServiceIcon service={service} size={22} />
                   <span>{service.name}</span>
                   <span className="mono">{hostOf(service.url)}</span>
                 </button>
