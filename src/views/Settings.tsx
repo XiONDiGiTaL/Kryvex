@@ -1,6 +1,7 @@
 import type { AppInfo, PersistedState, Settings as SettingsModel, ViewId } from '../types';
 import { THEMES } from '../lib/themes';
 import { Icon, KxMark } from '../components/ui';
+import { logoUrl } from '../assets';
 
 export function Settings({
   state,
@@ -231,7 +232,7 @@ export function Settings({
 
         <section className="settings-block panel about-panel">
           <div className="about-head">
-            <img src="logo.svg" width={72} height={72} alt="Kryvex element tile" />
+            <img src={logoUrl} width={72} height={72} alt="Kryvex element tile" />
             <div>
               <h2>Kryvex</h2>
               <p className="mono">ELEMENT 027 · Kx · v{info?.version ?? '0.1.0'}</p>

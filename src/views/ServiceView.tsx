@@ -4,6 +4,7 @@ import { CATEGORIES, partitionFor } from '../lib/services';
 import { hostOf } from '../lib/url';
 import { Icon, ServiceGlyph } from '../components/ui';
 import { Webview, type WebviewElement, type WebviewStatus } from '../components/Webview';
+import { logoUrl } from '../assets';
 
 export function ServiceView({
   service,
@@ -87,7 +88,7 @@ export function ServiceView({
 
         {!isElectron ? (
           <div className="webview-fallback">
-            <img src="logo.svg" width={128} height={128} alt="" />
+            <img src={logoUrl} width={128} height={128} alt="" />
             <h2>{service.name}</h2>
             <p>
               Service webviews render inside the Electron shell, where Kryvex can give this module

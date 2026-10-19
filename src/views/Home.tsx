@@ -3,6 +3,7 @@ import { getTheme } from '../lib/themes';
 import { CATEGORIES } from '../lib/services';
 import { hostOf } from '../lib/url';
 import { Icon, KxMark, ServiceGlyph } from '../components/ui';
+import { logoUrl } from '../assets';
 
 function categoryLabel(id: Service['category']): string {
   return CATEGORIES.find(item => item.id === id)?.label ?? 'Other';
@@ -84,7 +85,7 @@ export function Home({
               </div>
             </div>
           </div>
-          <img className="hero-tile" src="logo.svg" width={176} height={176} alt="Kryvex element tile" />
+          <img className="hero-tile" src={logoUrl} width={176} height={176} alt="Kryvex element tile" />
         </div>
 
         <aside className="panel runtime-panel">

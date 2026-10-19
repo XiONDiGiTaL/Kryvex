@@ -91,6 +91,10 @@ function hardenWebContents(): void {
 }
 
 function createWindow(): BrowserWindow {
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'icons', 'kryvex-256.png')
+    : path.join(__dirname, '..', 'brand', 'icons', 'kryvex-256.png');
+
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -99,7 +103,7 @@ function createWindow(): BrowserWindow {
     show: false,
     backgroundColor: '#0B0E12',
     title: 'Kryvex',
-    icon: path.join(__dirname, '..', 'brand', 'icons', 'kryvex-256.png'),
+    icon: iconPath,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: '#0B0E12',
