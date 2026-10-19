@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-labelledby="kryvex-title kryvex-desc">
+  <title id="kryvex-title">Kryvex</title>
+  <desc id="kryvex-desc">Fictional periodic-table element tile: number 027, symbol Kx, wordmark KRYVEX, label MODULAR TECHNOLOGY.</desc>
+
+  <!-- Plate: near-black graphite with a fine metallic border -->
+  <rect x="3" y="3" width="506" height="506" rx="86" fill="#0B0E12" stroke="#394451" stroke-width="6"/>
+  <rect x="17" y="17" width="478" height="478" rx="74" fill="none" stroke="#394451" stroke-width="1" opacity="0.35"/>
+
+  <!-- Atomic number (fictional) -->
+  <text x="46" y="80" fill="#38BDF8" font-family="'Cascadia Mono','JetBrains Mono',Consolas,ui-monospace,monospace"
+        font-size="26" font-weight="500" letter-spacing="3">027</text>
+
+  <!-- Connected-systems signal, top right -->
+  <g fill="#2DD4BF">
+    <rect x="430" y="60" width="10" height="10" rx="2" opacity="0.35"/>
+    <rect x="446" y="60" width="10" height="10" rx="2" opacity="0.6"/>
+    <rect x="462" y="60" width="10" height="10" rx="2"/>
+  </g>
+
+  <!-- Symbol: geometric Kx built from strokes, no font dependency -->
+  <g fill="none" stroke="#F0F3F7" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M148 164V328"/>
+    <path d="M240 164L168 246"/>
+    <path d="M174 246L242 328"/>
+    <path d="M286 204L362 328"/>
+    <path d="M362 204L286 328"/>
+  </g>
+
+  <!-- Divider + wordmark + micro-label -->
+  <rect x="224" y="352" width="64" height="4" rx="2" fill="#38BDF8"/>
+  <text x="256" y="406" text-anchor="middle" fill="#38BDF8"
+        font-family="Inter,'Segoe UI',system-ui,-apple-system,sans-serif"
+        font-size="30" font-weight="600" letter-spacing="9">KRYVEX</text>
+  <text x="256" y="438" text-anchor="middle" fill="#9AA6B5"
+        font-family="'Cascadia Mono','JetBrains Mono',Consolas,ui-monospace,monospace"
+        font-size="11" letter-spacing="5">MODULAR TECHNOLOGY</text>
+</svg>

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kryvex — brand preview</title>
+<style>
+  :root{
+    --bg:#0B0E12; --surface:#12171E; --raised:#191F28; --line:#394451;
+    --ink:#F0F3F7; --muted:#9AA6B5; --accent:#38BDF8; --accent2:#2DD4BF;
+    --mono:'Cascadia Mono','JetBrains Mono',Consolas,ui-monospace,monospace;
+    --sans:Inter,'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+       padding:32px 40px 56px;font-size:13px}
+  h1{font-size:22px;font-weight:600;letter-spacing:.01em;margin:0}
+  .tag{color:var(--accent);letter-spacing:.04em}
+  .mono{font-family:var(--mono)}
+  h2{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--accent2);
+     font-weight:500;margin:36px 0 14px;text-transform:uppercase}
+  .rule{height:1px;background:var(--line);margin:28px 0}
+  .row{display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap}
+  .cell{text-align:center;color:var(--muted);font-family:var(--mono);font-size:10px;
+        letter-spacing:.08em}
+  .cell img{display:block;margin:0 auto 8px}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+  .sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+  .sw div{border:1px solid var(--line);border-radius:8px;padding:10px 10px 8px;height:70px;
+          display:flex;flex-direction:column;justify-content:flex-end;gap:2px}
+  .sw b{font-weight:500;font-size:11px}
+  .sw small{font-family:var(--mono);font-size:10px;opacity:.72;letter-spacing:.05em}
+  .themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .theme{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .theme .bar{height:116px;padding:12px;display:flex;gap:8px}
+  .theme .rail{width:30px;border-radius:6px;display:flex;flex-direction:column;gap:6px;
+               align-items:center;padding-top:8px}
+  .theme .dot{width:14px;height:14px;border-radius:4px}
+  .theme .body{flex:1;border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:7px}
+  .theme .chip{height:7px;border-radius:3px}
+  .theme .meta{padding:9px 12px;font-family:var(--mono);font-size:10px;display:flex;
+               justify-content:space-between;letter-spacing:.04em;border-top:1px solid var(--line)}
+  .type{display:grid;grid-template-columns:200px 1fr;gap:12px 24px;align-items:baseline}
+  .type .lbl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em}
+  .type .s18{font-size:18px}
+  .type .s15{font-size:15px}
+  .type .s13{font-size:13px}
+  .type .s11{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .tile-hero{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+  .hero-copy{max-width:520px;line-height:1.55}
+  .hero-copy h3{margin:0 0 6px;font-size:26px;letter-spacing:.22em;color:var(--accent);font-weight:600}
+  .hero-copy p{margin:0 0 8px;color:var(--muted)}
+  .badge{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+         color:var(--accent2);border:1px solid var(--line);border-radius:4px;padding:4px 8px}
+</style>
+</head>
+<body>
+
+<div class="tile-hero">
+  <img src="logo.svg" width="220" height="220" alt="Kryvex tile logo">
+  <div class="hero-copy">
+    <h3 class="mono">KRYVEX</h3>
+    <p class="tag">Precision in Every Connection.</p>
+    <p>Fictional engineered element · number 027 · symbol Kx · modular desktop platform.</p>
+    <span class="badge">ELEMENT 027 — MODULAR TECHNOLOGY</span>
+  </div>
+</div>
+
+<h2>Tile at icon sizes — full mark, then icon ladder</h2>
+<div class="row">
+  <div class="cell"><img src="logo.svg" width="256" height="256">full 256</div>
+  <div class="cell"><img src="logo.svg" width="128" height="128">full 128</div>
+  <div class="cell"><img src="logo.svg" width="96" height="96">full 96</div>
+  <div class="cell"><img src="icon-small.svg" width="64" height="64">small 64</div>
+  <div class="cell"><img src="icon-small.svg" width="48" height="48">small 48</div>
+  <div class="cell"><img src="icon-small.svg" width="32" height="32">small 32</div>
+  <div class="cell"><img src="icon-small.svg" width="16" height="16">small 16</div>
+</div>
+
+<h2>Tray + monochrome</h2>
+<div class="row" style="margin-top:22px">
+  <div class="cell" style="background:#151A21;padding:14px;border-radius:10px">
+    <img src="tray.svg" width="64" height="64">tray 64
+  </div>
+  <div class="cell" style="background:#151A21;padding:14px;border-radius:10px">
+    <img src="tray.svg" width="32" height="32">tray 32
+  </div>
+  <div class="cell" style="background:#151A21;padding:14px;border-radius:10px">
+    <img src="tray.svg" width="16" height="16">tray 16
+  </div>
+  <div class="cell" style="background:#F0F3F7;padding:14px;border-radius:10px;color:#4C5968">
+    <img src="logo-mono.svg" width="96" height="96">mono on light
+  </div>
+</div>
+
+<h2>Raster exports — native and 8× zoom</h2>
+<div class="row" style="align-items:flex-start;gap:18px">
+  <div class="cell"><img src="icons/kryvex-128.png" width="128" height="128">128 full</div>
+  <div class="cell"><img src="icons/kryvex-small-64.png" width="64" height="64">64 small</div>
+  <div class="cell"><img src="icons/kryvex-small-48.png" width="48" height="48">48 small</div>
+  <div class="cell"><img src="icons/kryvex-small-32.png" width="32" height="32">32 small</div>
+  <div class="cell"><img src="icons/kryvex-small-16.png" width="16" height="16">16 small</div>
+  <div class="cell"><img src="icons/kryvex-tray-16.png" width="16" height="16" style="background:#3A4250;padding:4px;border-radius:4px">tray 16</div>
+</div>
+<div class="row" style="margin-top:18px;align-items:flex-start;gap:14px;background:#e9edf2;padding:14px;border-radius:10px">
+  <div class="cell" style="color:#4C5968"><img src="icons/kryvex-small-16.png" width="128" height="128" style="image-rendering:pixelated">16 → 8×</div>
+  <div class="cell" style="color:#4C5968"><img src="icons/kryvex-small-32.png" width="128" height="128" style="image-rendering:pixelated">32 → 4×</div>
+  <div class="cell" style="color:#4C5968"><img src="icons/kryvex-512.png" width="128" height="128">512 → ¼</div>
+</div>
+
+<h2>Color system</h2>
+<div class="sw">
+  <div style="background:#0B0E12"><b>bg</b><small>#0B0E12</small></div>
+  <div style="background:#12171E"><b>surface</b><small>#12171E</small></div>
+  <div style="background:#191F28"><b>raised</b><small>#191F28</small></div>
+  <div style="background:#394451"><b>border</b><small>#394451</small></div>
+  <div style="background:#F0F3F7;color:#0B0E12"><b>ink</b><small>#F0F3F7</small></div>
+  <div style="background:#9AA6B5;color:#0B0E12"><b>inkMuted</b><small>#9AA6B5</small></div>
+  <div style="background:#38BDF8;color:#0B0E12"><b>accent</b><small>#38BDF8</small></div>
+  <div style="background:#2DD4BF;color:#0B0E12"><b>accentSoft</b><small>#2DD4BF</small></div>
+  <div style="background:#4ADE80;color:#0B0E12"><b>success</b><small>#4ADE80</small></div>
+  <div style="background:#FBBF24;color:#0B0E12"><b>warning</b><small>#FBBF24</small></div>
+  <div style="background:#F87171;color:#0B0E12"><b>danger</b><small>#F87171</small></div>
+</div>
+
+<h2>Typography</h2>
+<div class="panel type">
+  <div class="lbl">SANS / 18 · TITLE</div><div class="s18">Workspace · Modules · Connected systems</div>
+  <div class="lbl">SANS / 15 · SECTION</div><div class="s15">Precision in every connection</div>
+  <div class="lbl">SANS / 13 · BODY</div><div class="s13">Independent tools, one engineered surface. Active module, focus ring, and status stay legible in every theme.</div>
+  <div class="lbl">MONO / 11 · METADATA</div><div class="s11">ELEMENT 027 · Kx · v0.1.0 · CTRL K · SYNCED 2s AGO</div>
+</div>
+
+<h2>Six themes</h2>
+<div class="themes" id="themes"></div>
+
+<script>
+const themes = [
+  {id:'kryvex-dark',name:'Kryvex Dark',mode:'dark',bg:'#0B0E12',surface:'#12171E',raised:'#191F28',line:'#394451',ink:'#F0F3F7',muted:'#9AA6B5',accent:'#38BDF8',accentSoft:'#2DD4BF'},
+  {id:'kryvex-light',name:'Kryvex Light',mode:'light',bg:'#F0F3F7',surface:'#FFFFFF',raised:'#E5EAF1',line:'#C3CEDB',ink:'#0B0E12',muted:'#4C5968',accent:'#0369A1',accentSoft:'#0F766E'},
+  {id:'midnight',name:'Midnight',mode:'dark',bg:'#070B16',surface:'#0D1424',raised:'#141E33',line:'#26344F',ink:'#E6EDF9',muted:'#8A99B2',accent:'#5AA9FF',accentSoft:'#7DD3FC'},
+  {id:'graphite',name:'Graphite',mode:'dark',bg:'#14161A',surface:'#1B1E24',raised:'#23272F',line:'#363C47',ink:'#EDEFF3',muted:'#A2AAB6',accent:'#38BDF8',accentSoft:'#2DD4BF'},
+  {id:'oled-black',name:'OLED Black',mode:'dark',bg:'#000000',surface:'#0A0C0F',raised:'#13171D',line:'#242A33',ink:'#F0F3F7',muted:'#9AA6B5',accent:'#38BDF8',accentSoft:'#2DD4BF'},
+  {id:'high-contrast',name:'High Contrast',mode:'dark',bg:'#000000',surface:'#000000',raised:'#141414',line:'#FFFFFF',ink:'#FFFFFF',muted:'#E6E6E6',accent:'#38BDF8',accentSoft:'#2DD4BF'}
+];
+
+const root = document.getElementById('themes');
+themes.forEach(t => {
+  const el = document.createElement('div');
+  el.className = 'theme';
+  el.style.borderColor = t.line;
+  el.innerHTML = `
+    <div class="bar" style="background:${t.bg}">
+      <div class="rail" style="background:${t.surface};border:1px solid ${t.line}">
+        <div class="dot" style="background:${t.accent}"></div>
+        <div class="dot" style="background:${t.raised}"></div>
+        <div class="dot" style="background:${t.raised}"></div>
+        <div class="dot" style="background:${t.raised}"></div>
+      </div>
+      <div class="body" style="background:${t.surface};border:1px solid ${t.line}">
+        <div class="chip" style="width:54%;background:${t.ink};opacity:.9"></div>
+        <div class="chip" style="width:80%;background:${t.muted};opacity:.55"></div>
+        <div class="chip" style="width:66%;background:${t.muted};opacity:.4"></div>
+        <div class="chip" style="width:42%;background:${t.accent}"></div>
+        <div class="chip" style="width:28%;background:${t.accentSoft};opacity:.8"></div>
+      </div>
+    </div>
+    <div class="meta" style="background:${t.surface};color:${t.muted};border-color:${t.line}">
+      <span style="color:${t.ink}">${t.name}</span><span>${t.mode}</span>
+    </div>`;
+  root.appendChild(el);
+});
+</script>
+</body>
+</html>

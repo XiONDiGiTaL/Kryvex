@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# build + packaging output
+dist/
+dist-electron/
+release/
+coverage/
+
+# local tooling / caches kept on this machine
+.tools/
+.pnpm-store/
+.npm-cache/
+.npmrc
+
+# reference clone (read-only evidence, never shipped)
+upstream/
+
+# logs and editor noise
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# local secrets
+.env
+.env.*

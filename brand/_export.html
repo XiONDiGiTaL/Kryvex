@@ -1,0 +1,53 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Kryvex icon renderer</title></head>
+<body>
+<script>
+  // Renders an SVG at an exact integer size on a transparent canvas and POSTs
+  // the PNG to the local export writer. Used only for build-time asset export.
+  async function exportPng(asset, size, outName) {
+    const text = await (await fetch(asset, { cache: 'no-store' })).text();
+    const blob = new Blob([text], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = new Image();
+      img.decoding = 'sync';
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+      const data = canvas.toDataURL('image/png').split(',')[1];
+      const r = await fetch('/__save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: outName, data })
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error('save failed: ' + outName);
+      return outName + ':' + size;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  async function exportAll() {
+    const jobs = [
+      ['logo.svg', 512, 'kryvex-512.png'],
+      ['logo.svg', 256, 'kryvex-256.png'],
+      ['logo.svg', 128, 'kryvex-128.png'],
+      ['icon-small.svg', 64, 'kryvex-small-64.png'],
+      ['icon-small.svg', 48, 'kryvex-small-48.png'],
+      ['icon-small.svg', 32, 'kryvex-small-32.png'],
+      ['icon-small.svg', 24, 'kryvex-small-24.png'],
+      ['icon-small.svg', 16, 'kryvex-small-16.png'],
+      ['tray.svg', 32, 'kryvex-tray-32.png'],
+      ['tray.svg', 16, 'kryvex-tray-16.png']
+    ];
+    const out = [];
+    for (const [asset, size, name] of jobs) out.push(await exportPng(asset, size, name));
+    return out;
+  }
+  window.exportAll = exportAll;
+</script>
+</body></html>

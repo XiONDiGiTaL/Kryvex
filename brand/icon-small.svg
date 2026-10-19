@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="Kryvex">
+  <!-- Small-size icon: plate + symbol only, heavier strokes so 16px stays legible -->
+  <rect x="4" y="4" width="504" height="504" rx="88" fill="#0B0E12" stroke="#394451" stroke-width="8"/>
+  <g fill="none" stroke="#F0F3F7" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 156V356"/>
+    <path d="M252 156L172 246"/>
+    <path d="M178 246L254 356"/>
+    <path d="M300 196L366 356"/>
+    <path d="M366 196L300 356"/>
+  </g>
+</svg>

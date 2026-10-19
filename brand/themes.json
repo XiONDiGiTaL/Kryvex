@@ -1,0 +1,113 @@
+{
+  "version": 2,
+  "themes": [
+    {
+      "id": "kryvex-dark",
+      "name": "Kryvex Dark",
+      "mode": "dark",
+      "tokens": {
+        "bg": "#0B0E12",
+        "surface": "#12171E",
+        "raised": "#191F28",
+        "line": "#394451",
+        "ink": "#F0F3F7",
+        "muted": "#9AA6B5",
+        "accent": "#38BDF8",
+        "accentSoft": "#2DD4BF",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "kryvex-light",
+      "name": "Kryvex Light",
+      "mode": "light",
+      "tokens": {
+        "bg": "#F0F3F7",
+        "surface": "#FFFFFF",
+        "raised": "#E5EAF1",
+        "line": "#C3CEDB",
+        "ink": "#0B0E12",
+        "muted": "#4C5968",
+        "accent": "#0369A1",
+        "accentSoft": "#0F766E",
+        "success": "#15803D",
+        "warning": "#B45309",
+        "danger": "#B91C1C"
+      }
+    },
+    {
+      "id": "midnight",
+      "name": "Midnight",
+      "mode": "dark",
+      "tokens": {
+        "bg": "#070B16",
+        "surface": "#0D1424",
+        "raised": "#141E33",
+        "line": "#26344F",
+        "ink": "#E6EDF9",
+        "muted": "#8A99B2",
+        "accent": "#5AA9FF",
+        "accentSoft": "#7DD3FC",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "graphite",
+      "name": "Graphite",
+      "mode": "dark",
+      "tokens": {
+        "bg": "#14161A",
+        "surface": "#1B1E24",
+        "raised": "#23272F",
+        "line": "#363C47",
+        "ink": "#EDEFF3",
+        "muted": "#A2AAB6",
+        "accent": "#38BDF8",
+        "accentSoft": "#2DD4BF",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "oled-black",
+      "name": "OLED Black",
+      "mode": "dark",
+      "tokens": {
+        "bg": "#000000",
+        "surface": "#0A0C0F",
+        "raised": "#13171D",
+        "line": "#242A33",
+        "ink": "#F0F3F7",
+        "muted": "#9AA6B5",
+        "accent": "#38BDF8",
+        "accentSoft": "#2DD4BF",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "high-contrast",
+      "name": "High Contrast",
+      "mode": "dark",
+      "tokens": {
+        "bg": "#000000",
+        "surface": "#000000",
+        "raised": "#141414",
+        "line": "#FFFFFF",
+        "ink": "#FFFFFF",
+        "muted": "#E6E6E6",
+        "accent": "#38BDF8",
+        "accentSoft": "#2DD4BF",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    }
+  ]
+}

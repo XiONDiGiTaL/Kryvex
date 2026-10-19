@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     color="#0B0E12" role="img" aria-label="Kryvex">
+  <title>Kryvex — monochrome</title>
+  <!-- Inherits currentColor; set `color` on the SVG or a parent to recolor. -->
+  <g fill="none" stroke="currentColor">
+    <rect x="3" y="3" width="506" height="506" rx="86" stroke-width="6"/>
+    <rect x="17" y="17" width="478" height="478" rx="74" stroke-width="1" opacity="0.35"/>
+    <g stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M148 164V328"/>
+      <path d="M240 164L168 246"/>
+      <path d="M174 246L242 328"/>
+      <path d="M286 204L362 328"/>
+      <path d="M362 204L286 328"/>
+    </g>
+    <rect x="224" y="352" width="64" height="4" rx="2" fill="currentColor" stroke="none"/>
+  </g>
+  <g fill="currentColor" font-family="'Cascadia Mono','JetBrains Mono',Consolas,ui-monospace,monospace"
+     font-size="26" font-weight="500" letter-spacing="3">
+    <text x="46" y="80">027</text>
+  </g>
+  <text x="256" y="406" text-anchor="middle" fill="currentColor"
+        font-family="Inter,'Segoe UI',system-ui,-apple-system,sans-serif"
+        font-size="30" font-weight="600" letter-spacing="9">KRYVEX</text>
+  <text x="256" y="438" text-anchor="middle" fill="currentColor" opacity="0.7"
+        font-family="'Cascadia Mono','JetBrains Mono',Consolas,ui-monospace,monospace"
+        font-size="11" letter-spacing="5">MODULAR TECHNOLOGY</text>
+</svg>
