@@ -12,12 +12,17 @@ coverage/
 .pnpm-store/
 .npm-cache/
 .npmrc
+.claude/
+
+# reel working files; the published cut lives in docs/media/
+brag-output/
 
 
 # logs and editor noise
 *.log
 *.tsbuildinfo
 .tmp-*
+tmp-*
 .DS_Store
 Thumbs.db
 .idea/
