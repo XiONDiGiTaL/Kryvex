@@ -188,7 +188,10 @@ The legal text is a starting point for the distributor, not legal advice.
 
 1. ~~Service engine, notifications, popups, presets~~ (this build).
 2. Compound manifest, signing key, permission sheet and installer.
-3. Vexium assistant shell + Nexion planner as first-party compounds.
-4. Local-runtime settings (Ollama/LM Studio loopback) inside Vexium.
+3. ~~Vexium assistant shell~~ shipped: `#/assistant`, loopback runtime
+   settings, streamed chat. The Nexion planner is still a design.
+4. ~~Local-runtime settings (Ollama/LM Studio loopback) inside Vexium~~
+   shipped in the same pass, with the address rule enforced in the main
+   process (see [ASSISTANT.md](ASSISTANT.md)).
 5. In-app legal viewer and a one-click "delete all local data" flow.
 6. Optional emulator compound behind the disclaimer.

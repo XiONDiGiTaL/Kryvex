@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type {
   AppInfo,
   Bookmark,
@@ -12,6 +12,7 @@ import type {
   ToastTone,
   UpdateStatus,
   ViewId,
+  WallpaperImage,
 } from './types';
 import { applyBaseTokens, applyTheme, getTheme, isThemeId } from './lib/themes';
 import {
@@ -29,6 +30,7 @@ import {
   updateSettings,
 } from './lib/store';
 import { loadState, saveState, saveStateNow } from './lib/storage';
+import { clearWallpaper, importWallpaper, loadWallpaper } from './lib/wallpaper';
 import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
 import { makeId, partitionFor } from './lib/services';
 import { totalUnread, unreadFromTitle, windowTitle } from './lib/unread';
@@ -38,9 +40,12 @@ import { ServiceDialog } from './components/ServiceDialog';
 import { HelpDialog } from './components/HelpDialog';
 import { CommandPalette } from './components/CommandPalette';
 import { EmptyState, Icon, Modal, ToastHost } from './components/ui';
+import { ThemeGallery } from './components/ThemeGallery';
 import { Home } from './views/Home';
 import { Services } from './views/Services';
 import { ServiceStage } from './views/ServiceStage';
+import { Assistant } from './views/Assistant';
+import { Rooms } from './views/Rooms';
 import { Browser, type BrowserPanel } from './views/Browser';
 import { Settings } from './views/Settings';
 
@@ -61,7 +66,13 @@ function parseHash(hash: string): Route {
     return { view: 'services', serviceId: segments[1], query, key: raw };
   }
   const view: ViewId =
-    head === 'services' || head === 'browser' || head === 'settings' ? head : 'home';
+    head === 'services' ||
+    head === 'browser' ||
+    head === 'assistant' ||
+    head === 'rooms' ||
+    head === 'settings'
+      ? head
+      : 'home';
   return { view, query, key: raw };
 }
 
@@ -93,7 +104,11 @@ export default function App() {
   const [openIds, setOpenIds] = useState<string[]>([]);
   const [unread, setUnread] = useState<Record<string, number>>({});
   const [update, setUpdate] = useState<UpdateStatus | null>(null);
+  const [wallpaper, setWallpaper] = useState<WallpaperImage | null>(null);
   const [reloadTokens, setReloadTokens] = useState<Record<string, number>>({});
+  // Bumped after an engine change: a <webview> keeps the preferences it
+  // attached with, so every guest is remounted to pick up the new ones.
+  const [engineRevision, setEngineRevision] = useState(0);
   const unreadRef = useRef<Record<string, number>>({});
   const persisted = useRef(false);
   const autoChecked = useRef(false);
@@ -246,6 +261,9 @@ export default function App() {
   const themeId =
     themeOverride && isThemeId(themeOverride) ? themeOverride : state.settings.themeId;
   const themeMark = getTheme(themeId, state.settings.customTheme).mark ?? 'kx';
+  // A shareable/capture link (or a reload after picking) must never be covered
+  // by the first-run sheet.
+  const firstLook = ready && !state.settings.themeGallerySeen && !themeOverride;
 
   useEffect(() => {
     applyTheme(themeId, state.settings.customTheme);
@@ -258,6 +276,16 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.density = state.settings.density;
   }, [state.settings.density]);
+
+  useEffect(() => {
+    let alive = true;
+    void loadWallpaper().then(next => {
+      if (alive && next) setWallpaper(next);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
@@ -318,8 +346,15 @@ export default function App() {
       if (event.key === 'Escape') {
         setConfirmRequest(null);
       }
-      if (mod && ['1', '2', '3', '4'].includes(event.key)) {
-        const views: ViewId[] = ['home', 'services', 'browser', 'settings'];
+      if (mod && ['1', '2', '3', '4', '5', '6'].includes(event.key)) {
+        const views: ViewId[] = [
+          'home',
+          'services',
+          'browser',
+          'assistant',
+          'settings',
+          'rooms',
+        ];
         const target = views[Number(event.key) - 1];
         if (target) {
           event.preventDefault();
@@ -443,6 +478,55 @@ export default function App() {
     setState(current => updateSettings(current, patch));
   }, []);
 
+  const updateParty = useCallback(
+    (patch: Partial<SettingsModel['party']>) => {
+      setState(current =>
+        updateSettings(current, { party: { ...current.settings.party, ...patch } }),
+      );
+    },
+    [],
+  );
+
+  const rebuildEmbeddedPages = useCallback(() => {
+    const runningTabs =
+      route.view === 'browser' ? tabs.filter(tab => tab.url !== '').length : 0;
+    setEngineRevision(current => current + 1);
+    return openIds.length + runningTabs;
+  }, [openIds.length, route.view, tabs]);
+
+  const pickWallpaper = useCallback(
+    async (file: File) => {
+      const result = await importWallpaper(file);
+      if (!result.ok || !result.image) {
+        pushToast(t(result.message), 'danger');
+        return;
+      }
+      setWallpaper(result.image);
+      // Choosing a file is intent: show it, even if the switch was off.
+      setState(current =>
+        updateSettings(current, {
+          wallpaper: { ...current.settings.wallpaper, enabled: true, source: 'image' },
+        }),
+      );
+      pushToast(t(result.message), 'success');
+    },
+    [pushToast, t],
+  );
+
+  const removeWallpaper = useCallback(async () => {
+    const ok = await clearWallpaper();
+    if (ok) {
+      setWallpaper(null);
+      // Without an image the only honest backdrop left is the theme wash.
+      setState(current =>
+        updateSettings(current, {
+          wallpaper: { ...current.settings.wallpaper, source: 'gradient' },
+        }),
+      );
+    }
+    pushToast(t(ok ? 'Wallpaper removed.' : 'The wallpaper could not be removed.'), ok ? 'info' : 'danger');
+  }, [pushToast, t]);
+
   const checkForUpdates = useCallback(async () => {
     if (!window.kryvex) return;
     try {
@@ -494,7 +578,11 @@ export default function App() {
       ),
       label: t('Reset everything'),
       onConfirm: () => {
-        setState(newState());
+        const starters = newState();
+        setState(starters);
+        // The engine reads its launch profile from the state file, so the
+        // running process has to be told about the reset too.
+        void window.kryvex?.chromiumSet(starters.settings.chromium).catch(() => undefined);
         setTabs([]);
         setActiveTabId(null);
         setOpenIds([]);
@@ -626,6 +714,10 @@ export default function App() {
         return t('Services');
       case 'browser':
         return t('Browser');
+      case 'assistant':
+        return 'Vexium';
+      case 'rooms':
+        return t('Rooms');
       case 'settings':
         return t('Settings');
       default:
@@ -633,9 +725,32 @@ export default function App() {
     }
   }, [activeService?.name, route.serviceId, route.view, t]);
 
+  // The backdrop is opt-in: with the switch off the theme alone paints the
+  // window. The gradient source is derived from theme tokens, never a fixed
+  // rainbow, so it always matches the active colour scheme.
+  const wallpaperPrefs = state.settings.wallpaper;
+  const usingImage =
+    wallpaperPrefs.enabled && wallpaperPrefs.source === 'image' && wallpaper !== null;
+  const usingWash = wallpaperPrefs.enabled && !usingImage;
+  const wallpaperStyle =
+    usingImage || usingWash
+      ? ({
+          '--wallpaper-image': usingImage
+            ? `url("${wallpaper?.dataUrl}")`
+            : 'var(--wallpaper-wash)',
+          '--wallpaper-veil': `color-mix(in srgb, var(--bg) ${wallpaperPrefs.veil}%, transparent)`,
+        } as CSSProperties)
+      : undefined;
+
   return (
     <I18nProvider value={i18n}>
-    <div className={`app ${isElectron ? 'is-electron' : 'is-web'} ${state.settings.showStatusBar ? '' : 'no-status'}`}>
+    <div
+      className={`app ${isElectron ? 'is-electron' : 'is-web'} ${
+        state.settings.showStatusBar ? '' : 'no-status'
+      } ${usingImage || usingWash ? 'has-wallpaper' : ''}`}
+      data-wallpaper={usingImage ? wallpaperPrefs.fit : undefined}
+      style={wallpaperStyle}
+    >
       <Header
         title={title}
         view={route.view}
@@ -680,6 +795,7 @@ export default function App() {
           openIds={openIds}
           activeId={activeService?.id ?? null}
           reloadTokens={reloadTokens}
+          engineRevision={engineRevision}
           isElectron={isElectron}
           unread={unread}
           notifications={state.settings.serviceNotifications}
@@ -737,6 +853,20 @@ export default function App() {
             }}
             onDelete={deleteService}
           />
+        ) : route.view === 'assistant' ? (
+          <Assistant
+            state={state}
+            isElectron={isElectron}
+            onOpenSettings={() => navigate('settings?section=assistant')}
+          />
+        ) : route.view === 'rooms' ? (
+          <Rooms
+            settings={state.settings.party}
+            isElectron={isElectron}
+            initialRoom={route.query.get('room')}
+            onUpdateParty={updateParty}
+            onToast={pushToast}
+          />
         ) : route.view === 'browser' ? (
           <Browser
             key={route.key}
@@ -749,6 +879,7 @@ export default function App() {
             initialUrl={route.query.get('url')}
             initialPanel={initialBrowserPanel}
             isElectron={isElectron}
+            engineRevision={engineRevision}
             mark={themeMark}
             onAddBookmark={addBookmark}
             onRemoveBookmark={removeBookmark}
@@ -763,11 +894,16 @@ export default function App() {
             info={info}
             isElectron={isElectron}
             mark={themeMark}
+            wallpaper={wallpaper}
+            onPickWallpaper={file => void pickWallpaper(file)}
+            onClearWallpaper={() => void removeWallpaper()}
             onUpdate={updateSettingsPatch}
             onReset={resetWorkspace}
             onToast={pushToast}
+            onRebuildPages={rebuildEmbeddedPages}
             update={update}
             focusUpdates={route.query.get('section') === 'updates'}
+            focusAssistant={route.query.get('section') === 'assistant'}
             onCheckUpdate={() => void checkForUpdates()}
             onDownloadUpdate={() => void downloadUpdate()}
             onInstallUpdate={() => void installUpdate()}
@@ -872,6 +1008,18 @@ export default function App() {
         >
           <p className="confirm-body">{confirmRequest.body}</p>
         </Modal>
+      ) : null}
+
+      {firstLook ? (
+        <ThemeGallery
+          variant="overlay"
+          themeId={themeId}
+          onPick={(id, name) => {
+            updateSettingsPatch({ themeId: id, themeGallerySeen: true });
+            pushToast(t('{name} theme applied.', { name }), 'success');
+          }}
+          onClose={() => updateSettingsPatch({ themeGallerySeen: true })}
+        />
       ) : null}
 
       <ToastHost toasts={toasts} />

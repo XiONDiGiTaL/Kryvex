@@ -9,6 +9,8 @@ export type ThemeFamily =
   | 'spectrum'
   | 'element'
   | 'metal'
+  | 'gem'
+  | 'planet'
   | 'light'
   | 'terminal'
   | 'custom';
@@ -32,8 +34,21 @@ export interface Theme {
   /** Theme shipped as a plugin rather than in the core theme file. */
   plugin?: boolean;
   /** Which brand mark the shell should show while this theme is active. */
-  mark?: 'kx' | 'donkey';
+  mark?: 'kx' | 'donkey' | 'xion';
 }
+
+/** Short labels used by the periodic table and the preview gallery. */
+export const FAMILY_LABELS: Record<ThemeFamily, string> = {
+  core: 'CORE',
+  spectrum: 'SPECTRUM',
+  element: 'ELEMENTS',
+  metal: 'METALS',
+  gem: 'GEMS',
+  planet: 'PLANETS',
+  light: 'LIGHT',
+  terminal: 'TERMINAL',
+  custom: 'CUSTOM',
+};
 
 export const CUSTOM_THEME_ID = 'custom';
 export const CUSTOM_FAMILY_LABEL = 'custom';
@@ -53,6 +68,8 @@ export const THEME_FAMILIES: ThemeFamily[] = [
   'spectrum',
   'element',
   'metal',
+  'gem',
+  'planet',
   'light',
   'terminal',
 ];

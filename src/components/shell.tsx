@@ -3,10 +3,16 @@ import { getTheme } from '../lib/themes';
 import { useT } from '../lib/i18n';
 import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from './ui';
 
-const NAV: Array<{ id: ViewId; label: string; icon: 'home' | 'layers' | 'globe' | 'sliders' }> = [
+const NAV: Array<{
+  id: ViewId;
+  label: string;
+  icon: 'home' | 'layers' | 'globe' | 'spark' | 'users' | 'sliders';
+}> = [
   { id: 'home', label: 'Home', icon: 'home' },
   { id: 'services', label: 'Services', icon: 'layers' },
   { id: 'browser', label: 'Browser', icon: 'globe' },
+  { id: 'assistant', label: 'Vexium', icon: 'spark' },
+  { id: 'rooms', label: 'Rooms', icon: 'users' },
   { id: 'settings', label: 'Settings', icon: 'sliders' },
 ];
 
@@ -83,7 +89,7 @@ export function Header({
           <button
             className={`header-tool ${view === 'settings' ? 'is-active' : ''}`}
             onClick={onSettings}
-            title={t('Open settings (Ctrl 4)')}
+            title={t('Open settings (Ctrl 5)')}
             aria-current={view === 'settings' ? 'page' : undefined}
           >
             <Icon name="sliders" size={14} />
@@ -227,7 +233,11 @@ export function StatusBar({
       </span>
       <span className="mono status-brand">
         <ThemeMark mark={mark} size={12} />
-        {mark === 'donkey' ? t('DONKEY EDITION') : t('ELEMENT x529 / Kx')}
+        {mark === 'donkey'
+          ? t('DONKEY EDITION')
+          : mark === 'xion'
+            ? t('XIØN EDITION / FULL POWER')
+            : t('ELEMENT x529 / Kx')}
       </span>
       <span className="status-grow" />
       <span className="mono">{t('{count} SERVICES', { count: state.services.length })}</span>
@@ -242,7 +252,7 @@ export function StatusBar({
       <span className="status-sep" aria-hidden="true">
         ·
       </span>
-      <span className="mono">v{appInfo?.version ?? '0.6.0'}</span>
+      <span className="mono">v{appInfo?.version ?? '0.7.0'}</span>
     </footer>
   );
 }

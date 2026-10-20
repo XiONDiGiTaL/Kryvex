@@ -1,6 +1,15 @@
 import type { BrandIconKey } from './lib/brand-icons';
+// The engine profile is a contract with the main process: one type, one
+// sanitizer, defined next to the Electron wiring and shared with the UI.
+import type { ChromiumSettings, EngineInfo } from '../electron/chromium-rules';
+export type {
+  ChromiumColorScheme,
+  ChromiumSettings,
+  EngineGuest,
+  EngineInfo,
+} from '../electron/chromium-rules';
 
-export type ViewId = 'home' | 'services' | 'browser' | 'settings';
+export type ViewId = 'home' | 'services' | 'browser' | 'assistant' | 'rooms' | 'settings';
 
 export type ServiceCategory =
   | 'communication'
@@ -138,6 +147,71 @@ export const LANGUAGE_SETTINGS = ['system', 'en', 'es', 'de', 'fr'] as const;
 export type LanguageSetting = (typeof LANGUAGE_SETTINGS)[number];
 export type ResolvedLanguage = Exclude<LanguageSetting, 'system'>;
 
+export type WallpaperFit = 'cover' | 'contain' | 'tile';
+
+export type WallpaperSource = 'gradient' | 'image';
+
+/** Small, JSON-safe wallpaper preferences; the image bytes live elsewhere. */
+export interface WallpaperSettings {
+  /** Off by default: the theme alone paints the window. */
+  enabled: boolean;
+  /** Theme-derived colour wash, or the user's own image once one is chosen. */
+  source: WallpaperSource;
+  fit: WallpaperFit;
+  /** Theme-coloured veil strength over the backdrop, 0–90. */
+  veil: number;
+}
+
+/** The stored background image, resolved at launch. */
+export type AssistantProvider = 'ollama' | 'lmstudio';
+
+/** Vexium points at a runtime the user already runs; no key is ever stored. */
+export interface AssistantSettings {
+  provider: AssistantProvider;
+  baseUrl: string;
+  model: string;
+}
+
+export type AssistantRole = 'system' | 'user' | 'assistant';
+
+export interface AssistantMessage {
+  role: AssistantRole;
+  content: string;
+}
+
+export interface AssistantProbe {
+  ok: boolean;
+  models: string[];
+  error?: string;
+  status?: number;
+}
+
+export interface AssistantChatResult {
+  ok: boolean;
+  error?: string;
+  status?: number;
+}
+
+export interface AssistantDelta {
+  requestId: string;
+  delta?: string;
+  done?: boolean;
+  error?: string;
+}
+
+export interface AssistantChatRequest {
+  requestId: string;
+  baseUrl: string;
+  model: string;
+  messages: AssistantMessage[];
+}
+
+export interface WallpaperImage {
+  dataUrl: string;
+  bytes: number;
+  addedAt: number;
+}
+
 export interface CustomTheme {
   name: string;
   bg: string;
@@ -147,8 +221,31 @@ export interface CustomTheme {
   ink: string;
 }
 
+/** Rooms: link-only hangouts with no account and no Kryvex server. */
+export interface PartySettings {
+  /** Empty means "Guest" plus a short session suffix. */
+  displayName: string;
+  color: string;
+  /** WebSocket relays that carry WebRTC signaling only. */
+  trackers: string[];
+  /** STUN/TURN entries handed to the browser's ICE configuration. */
+  iceServers: string[];
+  recentRooms: string[];
+}
+
+/** One shareable capture target offered by the main process. */
+export interface PartySource {
+  id: string;
+  kind: 'screen' | 'window' | 'app';
+  name: string;
+  detail?: string;
+  thumbnail?: string;
+}
+
 export interface Settings {
   themeId: string;
+  /** False only on a fresh install, until the first-run theme gallery is closed. */
+  themeGallerySeen: boolean;
   /** User-authored palette used by the built-in Custom theme tile. */
   customTheme: CustomTheme;
   density: Density;
@@ -162,6 +259,14 @@ export interface Settings {
   serviceNotifications: boolean;
   /** Ask GitHub for a newer release shortly after launch. */
   autoCheckUpdates: boolean;
+  /** Background image laid behind the workspace. */
+  wallpaper: WallpaperSettings;
+  /** Local model runtime used by Vexium. */
+  assistant: AssistantSettings;
+  /** Chromium engine preferences for every embedded page. */
+  chromium: ChromiumSettings;
+  /** Rooms identity and signaling configuration. */
+  party: PartySettings;
 }
 
 export interface BrowserTab {
@@ -317,6 +422,17 @@ export interface KryvexBridge {
   browserClearTab: (partition: string) => Promise<boolean>;
   serviceClearSession: (partition: string) => Promise<boolean>;
   serviceSetNotifications: (enabled: boolean) => Promise<boolean>;
+  assistantProbe: (baseUrl: string) => Promise<AssistantProbe>;
+  assistantChat: (request: AssistantChatRequest) => Promise<AssistantChatResult>;
+  assistantCancel: (requestId: string) => Promise<boolean>;
+  onAssistantDelta: (listener: (event: AssistantDelta) => void) => () => void;
+  wallpaperLoad: () => Promise<WallpaperImage | null>;
+  wallpaperSave: (dataUrl: string) => Promise<WallpaperImage | null>;
+  wallpaperClear: () => Promise<boolean>;
+  chromiumInfo: () => Promise<EngineInfo | null>;
+  chromiumSet: (settings: ChromiumSettings) => Promise<EngineInfo | null>;
+  partySources: () => Promise<PartySource[]>;
+  partySelectSource: (id: string, audio: boolean) => Promise<boolean>;
   attention: (active: boolean) => void;
   onOpenUrl: (listener: (url: string) => void) => () => void;
   updateStatus: () => Promise<UpdateStatus | null>;

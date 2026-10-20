@@ -38,6 +38,8 @@ export const DONKEY_PLUGIN = {
   description:
     'An all-black, gold-outlined theme with a hand-drawn donkey mark in place of the element tile.',
   themeId: SPECIAL_DONKEY_THEME.id,
+  markColor: '#F2C94C',
+  activatedMessage: 'Special Donkey Edition activated. Hee-haw.',
 } as const;
 
 /**

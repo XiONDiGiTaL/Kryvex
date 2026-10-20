@@ -106,8 +106,9 @@ when a count rises while the window is unfocused; focusing clears it.
 `src/lib/catalog.ts` lists web endpoints only: messaging (Discord, Messenger,
 WhatsApp, Telegram, Instagram, Gmail, X), work tools (GitHub, Linear, Notion,
 Figma, Trello), AI assistants (ChatGPT, Claude, Gemini, Copilot, Perplexity,
-Hugging Face, Freebuff), resources (FMHY, LM Studio, Ollama, Awesome Electron,
-Internet Archive) and media (Spotify, YouTube, Reddit).
+Hugging Face, Freebuff), resources (FMHY, Ollama, Internet Archive) and media
+(Spotify, YouTube, Reddit). Links that exist only as research material for the
+app's own build — the Awesome Electron list, for instance — never appear here.
 
 A preset fills the form; it does not bundle a client, an API key or a bridge.
 Kryvex is not affiliated with these services, and their terms still apply. Some

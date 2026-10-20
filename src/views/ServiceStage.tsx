@@ -11,6 +11,8 @@ interface StageProps {
   openIds: string[];
   activeId: string | null;
   reloadTokens: Record<string, number>;
+  /** Changes when engine preferences change, so guests are rebuilt. */
+  engineRevision: number;
   isElectron: boolean;
   unread: Record<string, number>;
   notifications: boolean;
@@ -39,6 +41,7 @@ export function ServiceStage({
   openIds,
   activeId,
   reloadTokens,
+  engineRevision,
   isElectron,
   unread,
   notifications,
@@ -61,7 +64,7 @@ export function ServiceStage({
     <section className={`service-stage ${active ? 'has-active' : 'is-idle'}`} aria-hidden={!active}>
       {open.map(service => (
         <ServiceFrame
-          key={`${service.id}-${reloadTokens[service.id] ?? 0}`}
+          key={`${service.id}-${reloadTokens[service.id] ?? 0}-${engineRevision}`}
           service={service}
           active={service.id === activeId}
           isElectron={isElectron}

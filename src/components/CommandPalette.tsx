@@ -39,6 +39,8 @@ export function CommandPalette({
       { id: 'nav-home', label: t('Go to Home'), hint: t('Workspace'), group: 'Navigate', icon: <Icon name="home" size={15} />, run: () => onNavigate('home') },
       { id: 'nav-services', label: t('Go to Services'), hint: t('Module registry'), group: 'Navigate', icon: <Icon name="layers" size={15} />, run: () => onNavigate('services') },
       { id: 'nav-browser', label: t('Go to Browser'), hint: t('Tabs and bookmarks'), group: 'Navigate', icon: <Icon name="globe" size={15} />, run: () => onNavigate('browser') },
+      { id: 'nav-assistant', label: t('Go to Vexium'), hint: t('Local assistant'), group: 'Navigate', icon: <Icon name="spark" size={15} />, run: () => onNavigate('assistant') },
+      { id: 'nav-rooms', label: t('Go to Rooms'), hint: t('Share a screen and chat'), group: 'Navigate', icon: <Icon name="users" size={15} />, run: () => onNavigate('rooms') },
       { id: 'nav-settings', label: t('Go to Settings'), hint: t('Appearance and data'), group: 'Navigate', icon: <Icon name="sliders" size={15} />, run: () => onNavigate('settings') },
     ];
     const actions: Command[] = [

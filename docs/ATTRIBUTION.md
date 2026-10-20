@@ -94,3 +94,10 @@ included in the packaged application under `node_modules`.
 
 The theme tokens, donkey line art, and plugin wiring in `src/plugins/` are
 original Kryvex work and are covered by the repository's MIT license.
+
+## Special XiØN Edition
+
+The XiØN logotype is the project creator's own mark, supplied for this theme and
+redrawn as five flat SVG polygons in `src/plugins/xion.tsx`. The theme tokens,
+glow and liquid-progress styling are original Kryvex work under the same MIT
+license. No third-party logo, font or artwork is bundled for it.

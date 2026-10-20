@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type {
   AppInfo,
+  ChromiumSettings,
   CustomTheme,
   DefaultBrowserStatus,
   DownloadLocation,
+  EngineInfo,
   ExtensionRecord,
   LanguageSetting,
   PersistedState,
@@ -11,10 +13,23 @@ import type {
   ShieldStatus,
   UpdateStatus,
   ViewId,
+  WallpaperFit,
+  WallpaperImage,
+  WallpaperSource,
 } from '../types';
+import { CHROMIUM_ZOOM_STEPS, DEFAULT_CHROMIUM, zoomLabel } from '../lib/chromium';
+import {
+  DEFAULT_ICE_SERVERS,
+  DEFAULT_TRACKERS,
+  PEER_COLORS,
+  sanitizeDisplayName,
+  sanitizeIceServers,
+  sanitizeTrackers,
+} from '../lib/party-rules';
 import {
   CUSTOM_THEME_ID,
   DEFAULT_CUSTOM_THEME,
+  FAMILY_LABELS,
   THEMES,
   THEME_FAMILIES,
   buildCustomTheme,
@@ -22,13 +37,26 @@ import {
   type ThemeFamily,
 } from '../lib/themes';
 import { extensionMessage, LANGUAGES, languageLabel, useI18n } from '../lib/i18n';
-import { THEME_PLUGINS } from '../plugins';
-import { DonkeyMark } from '../plugins/donkey';
+import { ASSISTANT_PROVIDER_URL, normalizeBaseUrl, useAssistantRuntime } from '../lib/assistant';
+import { WALLPAPER_ACCEPT } from '../lib/wallpaper';
 import { ColorPicker } from '../components/ColorPicker';
+import { ThemeGallery } from '../components/ThemeGallery';
 import { Icon, ThemeMark, type ThemeMarkKind } from '../components/ui';
 import { logoUrl } from '../assets';
 
 type PrivacyOption = 'httpsUpgrade' | 'stripTracking' | 'fingerprint';
+
+/** Engine switches the panel renders as toggles. */
+type EngineSwitchKey =
+  | 'hardwareAcceleration'
+  | 'smoothScrolling'
+  | 'javascript'
+  | 'images'
+  | 'webgl'
+  | 'pdfViewer'
+  | 'autoplay'
+  | 'backgroundThrottling'
+  | 'spellcheck';
 
 function formatBytes(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return '0 MB';
@@ -37,14 +65,10 @@ function formatBytes(value: number): string {
   return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
 }
 
-const FAMILY_LABELS: Record<ThemeFamily, string> = {
-  core: 'CORE',
-  spectrum: 'SPECTRUM',
-  element: 'ELEMENTS',
-  metal: 'METALS',
-  light: 'LIGHT',
-  terminal: 'TERMINAL',
-  custom: 'CUSTOM',
+const FIT_LABELS: Record<WallpaperFit, string> = {
+  cover: 'FILL',
+  contain: 'FIT',
+  tile: 'TILE',
 };
 
 function timeLabel(timestamp: number | null, locale: string, never: string): string {
@@ -63,11 +87,16 @@ export function Settings({
   info,
   isElectron,
   mark = 'kx',
+  wallpaper = null,
+  onPickWallpaper,
+  onClearWallpaper,
   onUpdate,
   onReset,
   onToast,
+  onRebuildPages,
   update = null,
   focusUpdates = false,
+  focusAssistant = false,
   onCheckUpdate,
   onDownloadUpdate,
   onInstallUpdate,
@@ -78,11 +107,17 @@ export function Settings({
   info: AppInfo | null;
   isElectron: boolean;
   mark?: ThemeMarkKind;
+  wallpaper?: WallpaperImage | null;
+  onPickWallpaper: (file: File) => void;
+  onClearWallpaper: () => void;
   onUpdate: (patch: Partial<SettingsModel>) => void;
   onReset: () => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  /** Remounts every embedded guest so new engine preferences attach. */
+  onRebuildPages: () => number;
   update?: UpdateStatus | null;
   focusUpdates?: boolean;
+  focusAssistant?: boolean;
   onCheckUpdate: () => void;
   onDownloadUpdate: () => void;
   onInstallUpdate: () => void;
@@ -95,14 +130,22 @@ export function Settings({
   const [extensions, setExtensions] = useState<ExtensionRecord[]>([]);
   const [defaultBrowser, setDefaultBrowser] = useState<DefaultBrowserStatus | null>(null);
   const [downloadLocation, setDownloadLocation] = useState<DownloadLocation | null>(null);
+  const [engine, setEngine] = useState<EngineInfo | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [customOpen, setCustomOpen] = useState(settings.themeId === CUSTOM_THEME_ID);
   const updatesRef = useRef<HTMLElement | null>(null);
+  const assistantRef = useRef<HTMLElement | null>(null);
+  const runtime = useAssistantRuntime(settings.assistant);
 
   useEffect(() => {
     if (!focusUpdates) return;
     updatesRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }, [focusUpdates]);
+
+  useEffect(() => {
+    if (!focusAssistant) return;
+    assistantRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [focusAssistant]);
 
   useEffect(() => {
     if (settings.themeId === CUSTOM_THEME_ID) setCustomOpen(true);
@@ -162,6 +205,78 @@ export function Settings({
       alive = false;
     };
   }, [isElectron]);
+
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    let alive = true;
+    void window.kryvex
+      .chromiumInfo()
+      .then(next => {
+        if (alive && next) setEngine(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [isElectron]);
+
+  // Saving the patch twice (state + main process) is deliberate: the panel
+  // must keep rendering after a reload, and the engine must be told at once.
+  function applyChromium(patch: Partial<ChromiumSettings>) {
+    const next: ChromiumSettings = { ...settings.chromium, ...patch };
+    onUpdate({ chromium: next });
+    if (!window.kryvex) return;
+    void window.kryvex
+      .chromiumSet(next)
+      .then(info => {
+        if (info) setEngine(info);
+      })
+      .catch(() => onToast(t('The engine setting could not be applied.'), 'danger'));
+  }
+
+  function rebuildPages() {
+    // A guest keeps the web preferences it attached with, so a reload is not
+    // enough: the renderer remounts the <webview> to build a new one.
+    const count = onRebuildPages();
+    onToast(
+      count > 0
+        ? t('{count} embedded pages rebuilt.', { count })
+        : t('No embedded pages are open.'),
+      count > 0 ? 'success' : 'info',
+    );
+    void window.kryvex
+      ?.chromiumInfo()
+      .then(next => {
+        if (next) setEngine(next);
+      })
+      .catch(() => undefined);
+  }
+
+  function renderEngineSwitch(
+    key: EngineSwitchKey,
+    title: string,
+    description: string,
+  ) {
+    const value = settings.chromium[key];
+    return (
+      <div className="setting-row" key={key} data-engine={key}>
+        <div>
+          <strong>{t(title)}</strong>
+          <p>{t(description)}</p>
+        </div>
+        <button
+          className={`switch ${value ? 'is-on' : ''}`}
+          role="switch"
+          aria-checked={value}
+          aria-label={t(title)}
+          disabled={!isElectron}
+          onClick={() => applyChromium({ [key]: !value } as Partial<ChromiumSettings>)}
+        >
+          <span />
+        </button>
+      </div>
+    );
+  }
 
   async function makeDefaultBrowser() {
     if (!window.kryvex) return;
@@ -393,6 +508,9 @@ export function Settings({
   }
   const shieldReady = shield?.phase === 'ready';
   const customPreview = buildCustomTheme(settings.customTheme);
+  const engineChanged = (Object.keys(DEFAULT_CHROMIUM) as Array<keyof ChromiumSettings>).filter(
+    key => settings.chromium[key] !== DEFAULT_CHROMIUM[key],
+  ).length;
 
   function updateCustomTheme(patch: Partial<CustomTheme>) {
     onUpdate({ customTheme: { ...settings.customTheme, ...patch } });
@@ -416,6 +534,8 @@ export function Settings({
     return (
       <button
         key={theme.id}
+        data-theme={theme.id}
+        data-mode={theme.mode}
         className={`theme-card element-card ${active ? 'is-active' : ''} ${
           theme.gradient ? 'is-gradient' : ''
         } ${theme.glass ? 'is-glass' : ''} ${theme.mono ? 'is-mono' : ''} ${
@@ -449,6 +569,15 @@ export function Settings({
     );
   }
 
+  const wallpaperOn = settings.wallpaper.enabled;
+  const wallpaperStatus = !wallpaperOn
+    ? t('OFF')
+    : settings.wallpaper.source === 'gradient'
+      ? t('THEME WASH')
+      : wallpaper
+        ? `${Math.max(1, Math.round(wallpaper.bytes / 1024))} KB · ${t(FIT_LABELS[settings.wallpaper.fit])}`
+        : t('NO IMAGE');
+
   return (
     <section className="view settings-view">
       <header className="view-head">
@@ -467,7 +596,7 @@ export function Settings({
         <div className="section-head">
           <h2>{t('Appearance')}</h2>
           <span className="mono muted-label">
-            {THEMES.length + 1} {t('THEMES')} · {THEME_PLUGINS.length} {t('PLUGIN')}
+            {THEMES.length + 1} {t('THEMES')}
           </span>
         </div>
 
@@ -491,10 +620,11 @@ export function Settings({
 
         <div className="theme-families">
           {([...THEME_FAMILIES, 'custom'] as ThemeFamily[]).map(family => {
+            // Plugin themes sit in the same table as the catalogue: one chooser.
             const entries = THEMES.filter(theme => (theme.family ?? 'core') === family);
             if (entries.length === 0 && family !== 'custom') return null;
             return (
-              <section className="theme-family" key={family}>
+              <section className="theme-family" key={family} data-family={family}>
                 <div className="theme-family-head">
                   <span className="mono">{t(FAMILY_LABELS[family])}</span>
                   <span className="theme-family-line" aria-hidden="true" />
@@ -503,6 +633,8 @@ export function Settings({
                   {entries.map(renderThemeTile)}
                   {family === 'custom' ? (
                     <button
+                      data-theme={CUSTOM_THEME_ID}
+                      data-mode={customPreview.mode}
                       className={`theme-card element-card is-custom ${
                         settings.themeId === CUSTOM_THEME_ID ? 'is-active' : ''
                       }`}
@@ -547,6 +679,22 @@ export function Settings({
               </section>
             );
           })}
+        </div>
+
+        <div className="theme-gallery-section" id="theme-gallery">
+          <div className="section-head">
+            <h3>{t('Theme gallery')}</h3>
+            <span className="mono muted-label">{t('PREVIEW BY FAMILY')}</span>
+          </div>
+          <p className="theme-gallery-intro">
+            {t(
+              'The periodic table above is the full catalogue. This gallery shows each family on a mock workspace first, so you can compare looks before committing.',
+            )}
+          </p>
+          <ThemeGallery
+            themeId={settings.themeId}
+            onPick={(id, name) => applyTheme(id, name)}
+          />
         </div>
 
         {customOpen ? (
@@ -621,29 +769,254 @@ export function Settings({
           </section>
         ) : null}
 
-        {THEME_PLUGINS.map(plugin => (
-          <div key={plugin.id} className="plugin-card">
-            <span className="plugin-mark">
-              <DonkeyMark size={54} variant="tile" />
-            </span>
-            <div className="plugin-copy">
-              <span className="mono plugin-kicker">
-                {t('THEME PLUGIN / {author}', { author: plugin.author.toUpperCase() })}
-              </span>
-              <strong>{t(plugin.name)}</strong>
-              <p>{t(plugin.description)}</p>
+        <section className="wallpaper-panel" id="wallpaper">
+          <div className="section-head">
+            <h3>{t('Wallpaper')}</h3>
+            <span className="mono muted-label">{wallpaperStatus}</span>
+          </div>
+          <p className="wallpaper-copy">
+            {wallpaperOn
+              ? t(
+                  'A wash built from the active theme, or your own photo. The theme still paints the chrome, borders and accents over it.',
+                )
+              : t(
+                  'Off by default, so the active theme paints the whole window. Turn it on for a theme-tinted wash or your own photo.',
+                )}
+          </p>
+          <div className="setting-row wallpaper-toggle">
+            <div>
+              <strong>{t('Show a backdrop')}</strong>
+              <p>{t('Sits behind the workspace. Nothing is downloaded; the image stays on this machine.')}</p>
             </div>
             <button
-              className={`btn ${settings.themeId === plugin.themeId ? 'ghost' : 'secondary'}`}
-              onClick={() => {
-                onUpdate({ themeId: plugin.themeId });
-                onToast(t('Special Donkey Edition activated. Hee-haw.'), 'success');
-              }}
+              className={`switch ${wallpaperOn ? 'is-on' : ''}`}
+              role="switch"
+              aria-checked={wallpaperOn}
+              aria-label={t('Wallpaper')}
+              onClick={() =>
+                onUpdate({ wallpaper: { ...settings.wallpaper, enabled: !wallpaperOn } })
+              }
             >
-              {settings.themeId === plugin.themeId ? t('Active') : t('Activate')}
+              <span />
             </button>
           </div>
-        ))}
+          {wallpaperOn ? (
+            <>
+              <div className="wallpaper-sources" role="group" aria-label={t('Backdrop source')}>
+                {(['gradient', 'image'] as WallpaperSource[]).map(source => (
+                  <button
+                    key={source}
+                    className={`wallpaper-source ${settings.wallpaper.source === source ? 'is-active' : ''}`}
+                    aria-pressed={settings.wallpaper.source === source}
+                    onClick={() => onUpdate({ wallpaper: { ...settings.wallpaper, source } })}
+                  >
+                    {source === 'gradient' ? t('Theme wash') : t('My image')}
+                  </button>
+                ))}
+              </div>
+              <div className="wallpaper-row">
+                <div
+                  className={`wallpaper-preview ${settings.wallpaper.source === 'gradient' ? 'is-wash' : ''}`}
+                  role={settings.wallpaper.source === 'gradient' ? 'img' : undefined}
+                  aria-label={
+                    settings.wallpaper.source === 'gradient' ? t('Theme wash') : undefined
+                  }
+                >
+                  {settings.wallpaper.source === 'gradient' ? null : wallpaper ? (
+                    <img
+                      src={wallpaper.dataUrl}
+                      alt={t('Wallpaper preview')}
+                      style={{ objectFit: settings.wallpaper.fit === 'contain' ? 'contain' : 'cover' }}
+                    />
+                  ) : (
+                    <span className="mono">{t('No image')}</span>
+                  )}
+                </div>
+                <div className="wallpaper-controls">
+                  {settings.wallpaper.source === 'image' ? (
+                    <div className="wallpaper-actions">
+                      <label className="btn secondary small wallpaper-pick">
+                        <input
+                          type="file"
+                          accept={WALLPAPER_ACCEPT}
+                          onChange={event => {
+                            const file = event.target.files?.[0];
+                            event.target.value = '';
+                            if (file) onPickWallpaper(file);
+                          }}
+                        />
+                        <Icon name="image" size={14} />
+                        {wallpaper ? t('Replace image') : t('Choose image')}
+                      </label>
+                      {wallpaper ? (
+                        <button className="btn ghost small" onClick={onClearWallpaper}>
+                          {t('Remove')}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="wallpaper-note">
+                      {t('Follows the active theme, so it changes with every theme you pick.')}
+                    </p>
+                  )}
+                  <label className="wallpaper-slider">
+                    <span>{t('Veil')}</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={90}
+                      step={1}
+                      value={settings.wallpaper.veil}
+                      onChange={event =>
+                        onUpdate({
+                          wallpaper: { ...settings.wallpaper, veil: Number(event.target.value) },
+                        })
+                      }
+                    />
+                    <span className="mono">{settings.wallpaper.veil}%</span>
+                  </label>
+                  {settings.wallpaper.source === 'image' ? (
+                    <div className="wallpaper-fits" role="group" aria-label={t('Fill')}>
+                      {(['cover', 'contain', 'tile'] as WallpaperFit[]).map(fit => (
+                        <button
+                          key={fit}
+                          className={`wallpaper-fit ${settings.wallpaper.fit === fit ? 'is-active' : ''}`}
+                          aria-pressed={settings.wallpaper.fit === fit}
+                          onClick={() => onUpdate({ wallpaper: { ...settings.wallpaper, fit } })}
+                        >
+                          {t(FIT_LABELS[fit])}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </>
+          ) : null}
+        </section>
+      </section>
+
+      <section className="settings-block assistant-settings" id="assistant" ref={assistantRef}>
+        <div className="section-head">
+          <h2>
+            <Icon name="spark" size={16} /> Vexium
+          </h2>
+          <span className={`mono shield-state ${runtime.status === 'online' ? 'is-ready' : ''}`}>
+            {runtime.status === 'online'
+              ? t('ONLINE')
+              : runtime.status === 'checking'
+                ? t('CHECKING')
+                : runtime.status === 'unavailable'
+                  ? t('DESKTOP ONLY')
+                  : t('OFFLINE')}
+          </span>
+        </div>
+        <p className="setting-copy">
+          {t(
+            'Connect a model server running on this machine. Kryvex sends prompts only to that loopback address, stores no key and ships no weights.',
+          )}
+        </p>
+
+        <div className="setting-row">
+          <div>
+            <strong>{t('Runtime')}</strong>
+            <p>{t('Ollama serves on port 11434, LM Studio on 1234. Only loopback http addresses are accepted.')}</p>
+          </div>
+          <div className="assistant-providers" role="group" aria-label={t('Runtime')}>
+            {(['ollama', 'lmstudio'] as const).map(provider => (
+              <button
+                key={provider}
+                className={`assistant-provider-btn ${settings.assistant.provider === provider ? 'is-active' : ''}`}
+                aria-pressed={settings.assistant.provider === provider}
+                onClick={() =>
+                  onUpdate({
+                    assistant: {
+                      provider,
+                      baseUrl: ASSISTANT_PROVIDER_URL[provider],
+                      model: '',
+                    },
+                  })
+                }
+              >
+                {provider === 'ollama' ? 'OLLAMA' : 'LM STUDIO'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <strong>{t('Address')}</strong>
+            <p>{t('Loopback only. A hostname, https address or path is rejected.')}</p>
+          </div>
+          <div className="assistant-address">
+            <input
+              value={settings.assistant.baseUrl}
+              spellCheck={false}
+              aria-label={t('Runtime address')}
+              onChange={event =>
+                onUpdate({ assistant: { ...settings.assistant, baseUrl: event.target.value } })
+              }
+              onBlur={() => {
+                const next = normalizeBaseUrl(settings.assistant.baseUrl);
+                if (next) {
+                  onUpdate({ assistant: { ...settings.assistant, baseUrl: next } });
+                  return;
+                }
+                onUpdate({
+                  assistant: {
+                    ...settings.assistant,
+                    baseUrl: ASSISTANT_PROVIDER_URL[settings.assistant.provider],
+                  },
+                });
+                onToast(t('Use a loopback http address on 127.0.0.1 or localhost.'), 'warning');
+              }}
+            />
+            <button
+              className="btn ghost small"
+              onClick={() =>
+                onUpdate({
+                  assistant: {
+                    ...settings.assistant,
+                    baseUrl: ASSISTANT_PROVIDER_URL[settings.assistant.provider],
+                  },
+                })
+              }
+            >
+              {t('Reset address')}
+            </button>
+          </div>
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <strong>{t('Model')}</strong>
+            <p>
+              {runtime.status === 'unavailable'
+                ? t('Vexium needs the desktop app; the web preview has no loopback access.')
+                : t('{count} models reported by the runtime.', { count: runtime.models.length })}
+            </p>
+          </div>
+          <div className="assistant-address">
+            <select
+              value={settings.assistant.model}
+              aria-label={t('Model')}
+              onChange={event =>
+                onUpdate({ assistant: { ...settings.assistant, model: event.target.value } })
+              }
+            >
+              <option value="">{runtime.models[0] ?? t('No model selected')}</option>
+              {runtime.models.map(name => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <button className="btn ghost small" onClick={runtime.refresh}>
+              <Icon name="reload" size={12} /> {t('Refresh')}
+            </button>
+          </div>
+        </div>
       </section>
 
       <div className="settings-columns">
@@ -1083,6 +1456,99 @@ export function Settings({
         </section>
       </div>
 
+      <section className="settings-block panel panel-wide rooms-settings" id="rooms">
+        <div className="section-head">
+          <h2>
+            <Icon name="users" size={16} /> {t('Rooms')}
+          </h2>
+          <span className="mono muted-label">{t('PEER TO PEER')}</span>
+        </div>
+        <p className="settings-copy">
+          {t(
+            'Rooms have no account and no Kryvex server. Chat, presence and shared screens travel directly between peers; only the WebRTC handshake uses the relays below.',
+          )}
+        </p>
+
+        <div className="room-settings-grid">
+          <div>
+            <label className="room-field">
+              <span>{t('Display name')}</span>
+              <input
+                value={settings.party.displayName}
+                maxLength={24}
+                placeholder={t('Guest')}
+                aria-label={t('Display name')}
+                onChange={event =>
+                  onUpdate({
+                    party: { ...settings.party, displayName: sanitizeDisplayName(event.target.value) },
+                  })
+                }
+              />
+            </label>
+            <div className="room-colors" role="group" aria-label={t('Your colour')}>
+              {PEER_COLORS.map(swatch => (
+                <button
+                  key={swatch}
+                  className={`room-swatch ${
+                    (settings.party.color || PEER_COLORS[0]) === swatch ? 'is-active' : ''
+                  }`}
+                  style={{ background: swatch }}
+                  aria-label={t('Use {color}', { color: swatch })}
+                  aria-pressed={(settings.party.color || PEER_COLORS[0]) === swatch}
+                  onClick={() => onUpdate({ party: { ...settings.party, color: swatch } })}
+                />
+              ))}
+            </div>
+          </div>
+
+          <label className="room-field">
+            <span>{t('Signaling relays')}</span>
+            <textarea
+              key={settings.party.trackers.join('|')}
+              rows={3}
+              spellCheck={false}
+              defaultValue={settings.party.trackers.join('\n')}
+              aria-label={t('Signaling relays')}
+              onBlur={event => {
+                const trackers = sanitizeTrackers(event.target.value);
+                onUpdate({
+                  party: {
+                    ...settings.party,
+                    trackers: trackers.length > 0 ? trackers : [...DEFAULT_TRACKERS],
+                  },
+                });
+              }}
+            />
+            <em className="mono room-field-note">
+              {t('wss:// only · public WebTorrent trackers by default')}
+            </em>
+          </label>
+
+          <label className="room-field">
+            <span>{t('STUN / TURN')}</span>
+            <textarea
+              key={settings.party.iceServers.join('|')}
+              rows={3}
+              spellCheck={false}
+              defaultValue={settings.party.iceServers.join('\n')}
+              aria-label={t('STUN / TURN')}
+              onBlur={event => {
+                const servers = sanitizeIceServers(event.target.value);
+                onUpdate({
+                  party: {
+                    ...settings.party,
+                    iceServers: servers.length > 0 ? servers : [...DEFAULT_ICE_SERVERS],
+                  },
+                });
+              }}
+            />
+            <em className="mono room-field-note">
+              {t('One per line · add a TURN relay if a peer cannot connect')}
+            </em>
+          </label>
+        </div>
+      </section>
+
       <div className="settings-columns">
         <section className="settings-block panel">
           <h2>{t('Workspace')}</h2>
@@ -1100,6 +1566,8 @@ export function Settings({
               <option value="home">{t('Home')}</option>
               <option value="services">{t('Services')}</option>
               <option value="browser">{t('Browser')}</option>
+              <option value="assistant">Vexium</option>
+              <option value="rooms">{t('Rooms')}</option>
               <option value="settings">{t('Settings')}</option>
             </select>
           </div>
@@ -1230,6 +1698,28 @@ export function Settings({
             </button>
           </div>
 
+          <div className="setting-row">
+            <div>
+              <strong>{t('Chromium engine')}</strong>
+              <p>
+                {engineChanged > 0
+                  ? t('{count} preferences differ from the Chromium defaults.', {
+                      count: engineChanged,
+                    })
+                  : t('Scripts, images, GPU, zoom and theming for every embedded page.')}
+              </p>
+            </div>
+            <button
+              className="btn secondary small"
+              onClick={() =>
+                document.getElementById('chromium')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+              }
+            >
+              <Icon name="sliders" size={13} />
+              {t('Configure')}
+            </button>
+          </div>
+
           <div className="setting-row column">
             <div>
               <strong>{t('Session isolation')}</strong>
@@ -1240,6 +1730,168 @@ export function Settings({
               </p>
             </div>
             <code className="mono code-line">persist:svc-* · browser-* (in-memory)</code>
+          </div>
+        </section>
+
+        <section className="settings-block panel panel-wide engine-panel" id="chromium">
+          <div className="section-head">
+            <h2>
+              <Icon name="globe" size={16} /> {t('Chromium engine')}
+            </h2>
+            <span className="mono muted-label">
+              {engine ? `CHROMIUM ${engine.chrome.split('.')[0]}` : t('DESKTOP ONLY')}
+            </span>
+          </div>
+          <p className="settings-copy">
+            {t(
+              'These are the switches and page preferences of the embedded Chromium itself, applied to service apps and browser tabs alike.',
+            )}
+          </p>
+
+          <div className="engine-groups">
+            <section className="engine-group">
+              <span className="mono engine-group-label">
+                {t('AT LAUNCH')} · {t('RESTART REQUIRED')}
+              </span>
+              {renderEngineSwitch(
+                'hardwareAcceleration',
+                'Hardware acceleration',
+                'Draw pages on the GPU. Off falls back to software rendering and takes effect at the next launch.',
+              )}
+              {renderEngineSwitch(
+                'smoothScrolling',
+                'Smooth scrolling',
+                'Animated scrolling in the shell and every page. Off applies at the next launch.',
+              )}
+            </section>
+
+            <section className="engine-group">
+              <span className="mono engine-group-label">
+                {t('PAGE CONTENT')} · {t('REBUILD TO APPLY')}
+              </span>
+              {renderEngineSwitch(
+                'javascript',
+                'JavaScript',
+                'Scripts in embedded pages. Off leaves pages static, including sign-in forms and chat.',
+              )}
+              {renderEngineSwitch(
+                'images',
+                'Images',
+                'Load images automatically. Off saves data and shows alt text instead.',
+              )}
+              {renderEngineSwitch(
+                'webgl',
+                'WebGL',
+                '3D canvas and WebGL contexts. Off blocks 3D content and some map views.',
+              )}
+              {renderEngineSwitch(
+                'pdfViewer',
+                'Built-in PDF viewer',
+                'Open PDFs in Chromium instead of downloading the file.',
+              )}
+              {renderEngineSwitch(
+                'autoplay',
+                'Autoplay with sound',
+                'Let pages start media without a click. Off waits for an interaction.',
+              )}
+              {renderEngineSwitch(
+                'backgroundThrottling',
+                'Throttle hidden pages',
+                'Slow timers in pages you are not looking at. Off keeps background calls and feeds live at a higher battery cost.',
+              )}
+              {renderEngineSwitch(
+                'spellcheck',
+                'Spellcheck',
+                'Chromium spellcheck in the text fields of embedded pages.',
+              )}
+            </section>
+
+            <section className="engine-group">
+              <span className="mono engine-group-label">{t('RENDERING')}</span>
+              <div className="setting-row" data-engine="colorScheme">
+                <div>
+                  <strong>{t('Preferred colour scheme')}</strong>
+                  <p>
+                    {t(
+                      'Which theme pages are told you prefer through prefers-color-scheme. Applied immediately, without a reload.',
+                    )}
+                  </p>
+                </div>
+                <select
+                  value={settings.chromium.colorScheme}
+                  aria-label={t('Preferred colour scheme')}
+                  disabled={!isElectron}
+                  onChange={event =>
+                    applyChromium({
+                      colorScheme: event.target.value as ChromiumSettings['colorScheme'],
+                    })
+                  }
+                >
+                  <option value="system">{t('Follow the system')}</option>
+                  <option value="light">{t('Light')}</option>
+                  <option value="dark">{t('Dark')}</option>
+                </select>
+              </div>
+              <div className="setting-row" data-engine="defaultZoom">
+                <div>
+                  <strong>{t('Default page zoom')}</strong>
+                  <p>
+                    {t(
+                      'Starting zoom for sites you have not opened before. A site keeps the zoom you last used, and the toolbar changes the current tab only.',
+                    )}
+                  </p>
+                </div>
+                <select
+                  value={String(settings.chromium.defaultZoom)}
+                  aria-label={t('Default page zoom')}
+                  disabled={!isElectron}
+                  onChange={event => applyChromium({ defaultZoom: Number(event.target.value) })}
+                >
+                  {CHROMIUM_ZOOM_STEPS.map(step => (
+                    <option key={step} value={String(step)}>
+                      {zoomLabel(step)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </section>
+          </div>
+
+          <div className="engine-report" aria-live="polite">
+            <div>
+              <span className="mono">{t('GRAPHICS')}</span>
+              <strong>
+                {engine ? (engine.accelerated ? t('Hardware') : t('Software')) : '—'}
+              </strong>
+            </div>
+            <div>
+              <span className="mono">{t('COMPOSITING')}</span>
+              <strong className="mono">{engine?.gpu.compositing || '—'}</strong>
+            </div>
+            <div>
+              <span className="mono">{t('LIVE PAGES')}</span>
+              <strong>{engine?.guests.length ?? 0}</strong>
+            </div>
+            <div>
+              <span className="mono">{t('CHROMIUM')}</span>
+              <strong className="mono">{engine?.chrome ?? info?.chrome ?? '—'}</strong>
+            </div>
+          </div>
+
+          <p className="shield-note mono engine-switches">
+            {engine && engine.switches.length > 0
+              ? engine.switches.join(' · ')
+              : t('No launch switches — every Chromium default is in effect.')}
+          </p>
+
+          <div className="engine-actions">
+            <button className="btn secondary small" disabled={!isElectron} onClick={rebuildPages}>
+              <Icon name="reload" size={13} />
+              {t('Rebuild open pages')}
+            </button>
+            <span className="mono engine-hint">
+              {t('Launch changes apply after a restart.')}
+            </span>
           </div>
         </section>
 
@@ -1295,6 +1947,7 @@ export function Settings({
           </p>
         </section>
       </div>
+
 
       <div className="settings-columns">
         <section className="settings-block panel">
@@ -1352,27 +2005,29 @@ export function Settings({
             </div>
             <button className="btn danger-outline" onClick={onReset}>
               <Icon name="trash" size={14} />
-              {t('Reset')}
+              {t('Reset address')}
             </button>
           </div>
         </section>
 
         <section className="settings-block panel about-panel">
           <div className="about-head">
-            {mark === 'donkey' ? (
-              <span className="about-mark">
-                <DonkeyMark size={72} variant="tile" />
-              </span>
-            ) : (
+            {mark === 'kx' ? (
               <img src={logoUrl} width={72} height={72} alt={t('Kryvex element tile')} />
+            ) : (
+              <span className="about-mark">
+                <ThemeMark mark={mark} size={72} variant="tile" />
+              </span>
             )}
             <div>
               <h2>Kryvex</h2>
               <p className="mono">
                 {mark === 'donkey'
                   ? `${t('Special Donkey Edition')} · `
-                  : `${t('ELEMENT x529 · Kx')} · `}
-                v{info?.version ?? '0.6.0'}
+                  : mark === 'xion'
+                    ? `${t('Special XiØN Edition')} · `
+                    : `${t('ELEMENT x529 · Kx')} · `}
+                v{info?.version ?? '0.7.0'}
               </p>
             </div>
           </div>

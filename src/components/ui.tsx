@@ -3,6 +3,7 @@ import type { Service, Toast } from '../types';
 import { BRAND_ICONS } from '../lib/brand-icons';
 import { useT } from '../lib/i18n';
 import { DonkeyMark } from '../plugins/donkey';
+import { XionMark } from '../plugins/xion';
 
 type IconName =
   | 'home'
@@ -29,7 +30,11 @@ type IconName =
   | 'download'
   | 'folder'
   | 'lock'
-  | 'history';
+  | 'history'
+  | 'image'
+  | 'spark'
+  | 'users'
+  | 'warning';
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -175,6 +180,34 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 13.8v2.6" />
     </>
   ),
+  image: (
+    <>
+      <rect x="3.6" y="4.6" width="16.8" height="14.8" rx="2" />
+      <circle cx="9" cy="9.6" r="1.6" />
+      <path d="m4.4 17.2 4.6-4.4 3.6 3.4 2.6-2.4 4.4 4" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8.4" r="3.2" />
+      <path d="M3.2 19.4c.5-3.2 2.9-5 5.8-5s5.3 1.8 5.8 5" />
+      <path d="M15.6 5.6a3 3 0 0 1 0 5.7" />
+      <path d="M17.6 14.7c1.7.6 2.9 2.1 3.2 4.2" />
+    </>
+  ),
+  spark: (
+    <>
+      <path d="M11.2 3.6c.7 4.2 2 5.5 6.2 6.2-4.2.7-5.5 2-6.2 6.2-.7-4.2-2-5.5-6.2-6.2 4.2-.7 5.5-2 6.2-6.2Z" />
+      <path d="M17.6 14.4c.4 2.1 1 2.7 3.1 3.1-2.1.4-2.7 1-3.1 3.1-.4-2.1-1-2.7-3.1-3.1 2.1-.4 2.7-1 3.1-3.1Z" />
+    </>
+  ),
+  warning: (
+    <>
+      <path d="M12 4.4 21 19.6H3z" />
+      <path d="M12 9.6v4.6" />
+      <circle cx="12" cy="17" r="0.9" />
+    </>
+  ),
 };
 
 export function Icon({
@@ -233,7 +266,7 @@ export function KxMark({ size = 22, variant = 'solid' }: { size?: number; varian
   );
 }
 
-export type ThemeMarkKind = 'kx' | 'donkey';
+export type ThemeMarkKind = 'kx' | 'donkey' | 'xion';
 
 /** The shell's brand mark follows the active theme (donkey for the plugin). */
 export function ThemeMark({
@@ -245,11 +278,9 @@ export function ThemeMark({
   size?: number;
   variant?: 'solid' | 'tile';
 }) {
-  return mark === 'donkey' ? (
-    <DonkeyMark size={size} variant={variant} />
-  ) : (
-    <KxMark size={size} variant={variant} />
-  );
+  if (mark === 'donkey') return <DonkeyMark size={size} variant={variant} />;
+  if (mark === 'xion') return <XionMark size={size} variant={variant} />;
+  return <KxMark size={size} variant={variant} />;
 }
 
 /**

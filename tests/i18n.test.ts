@@ -63,6 +63,25 @@ describe('makeI18n', () => {
     );
   });
 
+  it('localizes the Chromium engine panel without translating engine names', () => {
+    expect(makeI18n('es').t('Chromium engine')).toBe('Motor Chromium');
+    expect(makeI18n('de').t('Chromium engine')).toBe('Chromium-Engine');
+    expect(makeI18n('fr').t('Rebuild open pages')).toBe('Reconstruire les pages ouvertes');
+    expect(makeI18n('de').t('{count} embedded pages rebuilt.', { count: 2 })).toBe(
+      '2 eingebettete Seiten neu aufgebaut.',
+    );
+    // Engine and API names stay as written in every language.
+    expect(makeI18n('es').t('JavaScript')).toBe('JavaScript');
+    expect(makeI18n('fr').t('WebGL')).toBe('WebGL');
+  });
+
+  it('localizes the opt-in wallpaper panel', () => {
+    expect(makeI18n('es').t('Theme wash')).toBe('Degradado del tema');
+    expect(makeI18n('de').t('My image')).toBe('Eigenes Bild');
+    expect(makeI18n('fr').t('Show a backdrop')).toBe('Afficher un fond');
+    expect(makeI18n('en').t('THEME WASH')).toBe('THEME WASH');
+  });
+
   it('localizes the system-language option label', () => {
     const { t } = makeI18n('de');
     expect(languageLabel('system', t)).toMatch(/^Systemsprache \([A-Z]{2}\)$/);

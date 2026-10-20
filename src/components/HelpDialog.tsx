@@ -1,13 +1,13 @@
 import { useT } from '../lib/i18n';
 import { Icon, Modal } from './ui';
 
-type HelpView = 'home' | 'services' | 'browser' | 'settings';
+type HelpView = 'home' | 'services' | 'browser' | 'assistant' | 'settings';
 
 const ACTIONS: Array<{
   id: string;
   title: string;
   body: string;
-  icon: 'plus' | 'layers' | 'globe' | 'sliders';
+  icon: 'plus' | 'layers' | 'globe' | 'spark' | 'sliders';
   view?: HelpView;
 }> = [
   {
@@ -29,6 +29,13 @@ const ACTIONS: Array<{
     body: 'Use a separate tabbed browsing space.',
     icon: 'globe',
     view: 'browser',
+  },
+  {
+    id: 'assistant',
+    title: 'Ask Vexium',
+    body: 'Chat with a model runtime on this machine.',
+    icon: 'spark',
+    view: 'assistant',
   },
   {
     id: 'settings',
@@ -102,9 +109,9 @@ export function HelpDialog({
             </dd>
           </div>
           <div>
-            <dt>{t('Jump to Home / Services / Browser / Settings')}</dt>
+            <dt>{t('Jump to Home / Services / Browser / Vexium / Settings / Rooms')}</dt>
             <dd>
-              <kbd>Ctrl 1–4</kbd>
+              <kbd>Ctrl 1–6</kbd>
             </dd>
           </div>
           <div>

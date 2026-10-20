@@ -113,6 +113,15 @@ export interface PermissionPrompt {
   devices: MediaPermission[];
 }
 
+/** A capture target listed for the Rooms picker. */
+export interface PartySource {
+  id: string;
+  kind: 'screen' | 'window' | 'app';
+  name: string;
+  detail?: string;
+  thumbnail?: string;
+}
+
 export interface DefaultBrowserStatus {
   supported: boolean;
   isDefault: boolean;

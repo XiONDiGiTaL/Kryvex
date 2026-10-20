@@ -235,6 +235,21 @@ const api = {
     ipcRenderer.invoke('kryvex:services:clear-session', partition),
   serviceSetNotifications: (enabled: boolean): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:services:notifications', enabled),
+  assistantProbe: (baseUrl: string): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:assistant:probe', baseUrl),
+  assistantChat: (request: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:assistant:chat', request),
+  assistantCancel: (requestId: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:assistant:cancel', requestId),
+  onAssistantDelta: (listener: (event: unknown) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, payload: unknown) => listener(payload);
+    ipcRenderer.on('kryvex:assistant:delta', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:assistant:delta', wrapped);
+  },
+  wallpaperLoad: (): Promise<unknown> => ipcRenderer.invoke('kryvex:wallpaper:load'),
+  wallpaperSave: (dataUrl: string): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:wallpaper:save', dataUrl),
+  wallpaperClear: (): Promise<boolean> => ipcRenderer.invoke('kryvex:wallpaper:clear'),
   attention: (active: boolean): void => ipcRenderer.send('kryvex:attention', active),
   onOpenUrl: (listener: (url: string) => void): (() => void) => {
     const wrapped = (_event: IpcRendererEvent, url: string) => listener(url);
@@ -252,6 +267,12 @@ const api = {
     ipcRenderer.on('kryvex:update:changed', wrapped);
     return () => ipcRenderer.removeListener('kryvex:update:changed', wrapped);
   },
+  partySources: (): Promise<unknown> => ipcRenderer.invoke('kryvex:party:sources'),
+  partySelectSource: (id: string, audio: boolean): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:party:select', id, audio),
+  chromiumInfo: (): Promise<unknown> => ipcRenderer.invoke('kryvex:chromium:info'),
+  chromiumSet: (settings: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:chromium:set', settings),
   appInfo: (): Promise<{
     version: string;
     platform: string;

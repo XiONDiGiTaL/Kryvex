@@ -1,4 +1,4 @@
-# Testing record — Kryvex 0.5.0
+# Testing record — Kryvex (0.3.0–0.7.0)
 
 All results below were produced on 2026-10-19 on Windows with Node 24.19.0,
 pnpm 12.3.4 and Electron 44.2.0. Commands were run from `X:\Veyra`; no test was
@@ -11,7 +11,7 @@ skipped, weakened or excluded to make the suite pass.
 | `pnpm typecheck` | exit 0 | `tsc --noEmit` for renderer and `electron/` (strict) |
 | `pnpm test` | exit 0, 137/137 | Vitest: URL normalisation/search resolution, service validation and helpers, starter state, state sanitisation (including saved browser tabs) and registry operations, history, download-history and storage-location validation, page-zoom stepping, catalogue, theme catalogue, Windows browser registration, i18n catalogues, Chrome Web Store URLs, privacy partitions/referrers/headers, Brave-style URL rewrites and farbling rules, media permission helpers, torrent magnet/name/peer/protocol rules and paused queue restore |
 | `pnpm build` | exit 0 | Vite renderer (`dist/`) + `tsc` main/preload (`dist-electron/`); 468.11 kB JS, 54.02 kB CSS |
-| `pnpm capture` | exit 0 | Launches the built Electron window in a disposable profile and writes nineteen 1440×900 PNGs |
+| `pnpm capture` | exit 0 | Launches the built Electron window in a disposable profile and writes twenty-four 1440×900 PNGs |
 | `pnpm verify:restart` | exit 0 | Real app launched repeatedly: theme, start view and a browser tab survive; a setting changed just before close also survives; a URL passed on the command line joins the restored tab |
 | `pnpm verify:downloads` | exit 0 | A completed download was written to a chosen folder, the location moved again, then the record was reloaded by a fresh manager and deleted from disk and the library; reset returned to Downloads |
 | `pnpm verify:location-ui` | exit 0 | The built app showed a seeded custom folder in **Settings → Data**, offered Change folder/reset, and reset the live path and bridge value to the real Downloads folder |
@@ -50,8 +50,10 @@ What the unit suite covers:
   of an off-step factor.
 - Themes: every catalogue theme has a complete token set, valid hex values,
   unique ids, symbols and numbers, the six declared families are all
-  represented, the `kryvex-dark` default, plugin registration and the
-  custom-theme derivation (light/dark detection, readable accent ink).
+  represented, the `kryvex-dark` default, both creator plugins (Donkey gold,
+  XiØN blue with gradient/glass flags), the 12 planet gradient themes and the
+  custom-theme derivation
+  (light/dark detection, readable accent ink).
 - Windows browser registration: the URL ProgID, `http`/`https` associations,
   StartMenuInternet client, Default Apps capabilities and
   RegisteredApplications pointer.
@@ -75,6 +77,11 @@ What the unit suite covers:
 
 ## Runtime checks
 
+- **Vexium capture is manual.** `screenshots/assistant.png` and
+  `screenshots/settings-assistant.png` show a runtime answering, so they are
+  taken against a live local server (Ollama, LM Studio, or a stand-in that
+  speaks the same OpenAI-compatible stream) rather than `pnpm capture`, which
+  runs without a runtime and would only photograph the offline state.
 - **Production shell + seventeen captures.** `pnpm capture` uses the built
   renderer (`dist/index.html`), deep-links each view, waits for render, and
   saves a screenshot. Capture aborts on renderer console errors. Each run uses
@@ -82,7 +89,7 @@ What the unit suite covers:
   or overwrite the profile of a real installation. All seventeen
   captures produced a non-blank image: `home`, `help`, `services`, `add-service`,
   `service`, `browser`, `browser-downloads`, `browser-history`, `settings`,
-  `settings-data`, `settings-shield`, `settings-browser`, `settings-plugins`,
+  `settings-data`, `settings-shield`, `settings-browser`, `settings-wallpaper`,
   `settings-about`, `donkey-theme`, `command-palette`, `light-theme`.
 - **Live embedded module.** The Sohbet module (`https://sohbet.xiondigital.net/`)
   was loaded in its `persist:svc-*` webview and probed until
@@ -248,7 +255,9 @@ pnpm verify:location-ui  # download-location row and reset in the real app
 pnpm verify:torrents     # torrent queue restores paused across a location change
 pnpm verify:torrent-restore-ui  # restored paused row in the real Downloads hub
 pnpm verify:browser      # find-in-page and page zoom
+pnpm verify:chromium     # engine switches reach real guest webviews
 pnpm verify:updater      # local release feed, checksums and source-mode guard
+pnpm verify:wallpaper    # backdrop is opt-in, theme-derived and image-capable
 ```
 
 Each harness sets `KRYVEX_USER_DATA` (or opts into the capture flag) so it uses
@@ -325,3 +334,200 @@ the downloaded installer, and a real update against
 `github.com/XiONDiGiTaL/Kryvex`. Those require publishing a newer tag and
 installing the previous build; the manual procedure is in
 [UPDATES.md](UPDATES.md).
+
+## Chromium engine settings — 0.7.0 (2026-10-20)
+
+This pass added the Chromium engine panel: launch switches, page preferences,
+rendering options and a live engine report. Run on Windows with Node 24.19.0,
+Electron 44.2.0 (Chromium 152.0.7977.76) from `X:\Veyra`.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `pnpm typecheck` | exit 0 | Renderer and `electron/` in strict mode, including the shared `electron/chromium-rules.ts` contract |
+| `pnpm test` | exit 0, **187/187** in 21 files | Adds `tests/chromium.test.ts`: defaults, unknown-field and wrong-type rejection, zoom snapping to real steps, state-file reading, the web-preference mapping, launch switches, the renderer/main contract (both zoom lists and defaults must match), and save-time repair of a tampered profile |
+| `pnpm build` | exit 0 | Vite renderer + `tsc` main/preload; `dist-electron/chromium.js` and `chromium-rules.js` emitted |
+| `pnpm verify:chromium` | **PASS** | See below |
+| `pnpm capture` | exit 0 | Twenty-five 1440×900 PNGs, including the new `settings-chromium.png` |
+
+**`verify:chromium` output.** A disposable profile was seeded with every field
+set away from its default (`hardwareAcceleration: false`, `smoothScrolling:
+false`, `javascript: false`, `images: false`, `webgl: false`, `pdfViewer:
+false`, `autoplay: false`, `backgroundThrottling: true`, `spellcheck: false`,
+`colorScheme: 'dark'`, `defaultZoom: 1.25`) and a service module pointing at a
+local fixture page.
+
+- At launch the engine reported Chromium `152.0.7977.76`, `accelerated: false`,
+  `gpu_compositing: disabled_software`, and the switches
+  `--disable-smooth-scrolling` + `hardware acceleration disabled`.
+- The live guest's recorded preferences matched the seed field for field, its
+  zoom factor was `1.25`, and the fixture's inline script never ran — the
+  page stayed at `Engine fixture` and `executeJavaScript` was refused entirely.
+- In the panel, JavaScript, images and autoplay were switched on, the colour
+  scheme set to light and the default zoom to 100%. `chromiumInfo()` reflected
+  each change.
+- **Rebuild open pages** replaced the guest: the new one attached
+  `javascript: true`, `images: true`, `autoplayPolicy:
+  no-user-gesture-required`, `zoomFactor: 1`. The rebuilt page ran its script,
+  reported a loaded image, saw `prefers-color-scheme: light` and started the
+  silent `<audio>` element (`played`).
+- A brand-new browser tab on a second origin (its own in-memory partition) got
+  the default zoom `1` and the same profile.
+
+**Limits.** Smooth scrolling and hardware acceleration cannot be re-verified
+without a restart; the harness proves the switch list and `accelerated: false`
+for the launch it made. A rebuilt service guest kept zoom `1.25` for its
+already-visited origin, which is Chromium's per-origin zoom map, so default
+zoom was proven on a fresh tab instead. PDF rendering, spellcheck suggestions
+and background throttling were verified as attached preferences, not by
+inspecting rendered PDFs or CPU use.
+
+## Rooms — 2026-10-20
+
+Rooms shipped with the capture broker, the shell permission gate and the
+two-instance harness. Verified on Windows with Node 24.19.0, Electron 44.2.0
+from `X:\Veyra`.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `pnpm typecheck` | exit 0 | Renderer and `electron/` in strict mode |
+| `pnpm test` | exit 0, **206/206** in 22 files | Existing suites plus `tests/party-rules.test.ts` (ids, invites, name and message limits, presence reduction) |
+| `pnpm build` | exit 0 | 701 kB JS, 79 kB CSS |
+| `node scripts/verify-rooms.cjs` | exit 0 | Two real app instances, one real room; see below |
+
+`verify-rooms.cjs` seeds two isolated profiles, mounts a loopback fixture
+service in A, creates a room through the button, and joins it in B through
+`#/rooms?room=<code>` — the same hash the invite produces.
+
+- **Sources:** `partySources()` listed the fixture as an `app` source plus
+  `screen` and every window; the picker rendered them in three groups.
+- **Room code:** 26 Crockford base32 characters, generated by the UI.
+- **Presence:** both instances reached two entries in `.room-person` (self plus
+  the peer) without a reload.
+- **Chat:** a line typed into A's composer arrived in B's `.room-msg` verbatim.
+- **Screen share:** A picked *Entire screen* in the real picker, clicked
+  **Start sharing**, and B's tile decoded remote frames at 2560×1440. A also
+  rendered its own muted preview.
+- **Signaling:** the default three public WebTorrent trackers, i.e. the
+  configuration a user gets, not a test relay.
+
+**A bug this found:** the first build never reached the capture handler. The
+hardened permission policy denied `media` for the shell (it only allowed
+webviews), and Chromium asks for `media`, not `display-capture`, when the shell
+calls `getDisplayMedia`. `permissions.ts` now grants the shell `media` only
+while `partyHasPendingPick()` is true, which is cleared as soon as the display
+handler consumes the pick. Unarmed requests are still refused, and the harness
+proves both halves.
+
+**Limits.** Two instances on one machine, one screen, both peers on the same
+network. Not executed: two machines across the internet, a forced-TURN peer, a
+room with three or more viewers, and system-audio capture. Do not treat those
+as passing.
+
+## Theme gallery — 2026-10-20
+
+The first-run gallery, the Settings section and the upgrade path. Verified on
+Windows with Electron 44.2.0 from `X:\Veyra`.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `pnpm typecheck` | exit 0 | Renderer and `electron/` in strict mode |
+| `pnpm test` | exit 0, **214/214** in 23 files | Adds `tests/theme-gallery.test.ts`: family grouping and order, hero selection and fallback, active-family resolution, the missing-flag migration, and the fresh-install default |
+| `pnpm build` | exit 0 | Renderer and main; the gallery styles compile through lightningcss |
+| `node scripts/verify-theme-gallery.cjs` | exit 0 | Real app, disposable profile |
+
+The harness launches the built app with a fresh user-data profile and asserts:
+
+- the first-run sheet renders eight family cards with the expected counts
+  (CORE 6, SPECTRUM 16, ELEMENTS 21, METALS 7, GEMS 12, PLANETS 12, LIGHT 3,
+  TERMINAL 1) and nine or more mock workspaces;
+- clicking **GEMS** previews *Sapphire* while `documentElement.dataset.theme`
+  stays `kryvex-dark` — a preview must not apply;
+- clicking the **Ruby** chip applies `data-theme="ruby"` and closes the sheet;
+- after `location.reload()` the sheet is gone and the theme is still `ruby`, so
+  both the pick and the dismissal are persisted;
+- **Settings** still renders the periodic table (81 tiles including plugins and
+  Custom) with `#theme-gallery` positioned after it, showing all eight family
+  cards.
+
+Screenshots from that run: `screenshots/first-look.png` and
+`screenshots/theme-gallery.png`.
+
+**Not executed:** the web-only preview (no Electron bridge), a downgrade from a
+newer state file, and the capture routine's automatic dismissal — the capture
+path compiles but the full twenty-five-shot pass was not re-run for this
+change.
+
+
+## Layout clipping — 2026-10-20
+
+The UI report was "aspects are getting chopped graphically". Chopping is a
+class of bug: a container with `overflow: hidden` whose content no longer fits
+its box. This pass added a harness that fails on that class instead of trusting
+one screenshot, then fixed what it found. Verified on Windows with Electron
+44.2.0 from `X:\Veyra`.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `pnpm typecheck` | exit 0 | Renderer and `electron/` in strict mode |
+| `pnpm test` | exit 0, **219/219** in 24 files | Adds `tests/window-rules.test.ts` |
+| `pnpm build` | exit 0 | Renderer and main |
+| `node scripts/verify-layout.cjs` | exit 0 | 10 window sizes × 6 views, plus the first-run sheet at 4 sizes |
+| `node scripts/verify-theme-gallery.cjs` | exit 0 | Adds an assertion that no preview clips its own content |
+
+`verify-layout.cjs` sweeps Home, Services, Browser, Vexium, Rooms and Settings at
+2560×1400, 1920×1080, 1440×900, 1366×768, 1280×720, 1104×720, 1040×680,
+960×640, 900×600 and 900×520. For every element it compares `scrollWidth` and
+`scrollHeight` against the client box when `overflow` is hidden or clip, and it
+rejects any horizontal overflow of the document or `.app-main`. A single-line
+label with a real ellipsis is the only allowed exception.
+
+**Three defects it found, all fixed:**
+
+1. **Theme previews were clipped by 46 px.** The small gallery mocks stacked two
+   cards inside a fixed 86 px frame, so the bottom of every mini workspace — the
+   action row and status strip — was cut. They now lay the two cards side by side
+   and the frame height follows its content instead of a fixed pixel value.
+2. **The large preview had a 12 px clip at 860 px wide.** A narrow-window media
+   query forced the large mock to 168 px while its content needed 180. The media
+   override was removed.
+3. **The first-run sheet hid its own footer at 900×600.** The sheet scrolled as a
+   whole, pushing **Keep the current theme** out of reach. The header and footer
+   are now fixed and only the gallery scrolls.
+
+**Window fit.** The default 1440×900 window could be larger than a laptop's work
+area, which puts the right column and bottom row off-screen — chopping that no
+CSS can fix. `electron/window-rules.ts` now fits the initial size to the primary
+display's work area with a 32 px margin, keeps a verified floor of 900×520, and
+the minimum window is that floor instead of 1040×680. `tests/window-rules.test.ts`
+covers a 1440p display, a 1366×768 laptop, a 150%-scaled 1366×768 screen and the
+floor.
+
+**Not executed:** a physical 1440p monitor pass, hardware DPI scaling (the
+harness emulates smaller CSS viewports, not the OS scale factor), and the
+web-only preview.
+
+## Wallpaper backdrop — 0.7.0 (2026-10-20)
+
+The backdrop became opt-in, gained a theme-derived wash next to the user image,
+and the panel grew a pill switch that gates its whole body. Run on Windows with
+Electron 44.2.0 from `X:\Veyra`.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `pnpm typecheck` | exit 0 | Renderer and `electron/` in strict mode |
+| `pnpm test` | exit 0, **222/222** in 24 files | Adds `enabled`/`source` sanitisation, the opt-in default for new and older profiles, and the new panel copy in all four languages |
+| `pnpm build` | exit 0 | Renderer and main |
+| `node scripts/verify-wallpaper-ui.cjs` | PASS | Real app, disposable profile: off by default, wash on toggle, wash follows a changed accent token, image import through the real file input, tile fit, and off staying off across a reload |
+
+`verify-wallpaper-ui.cjs` reads `.app` instead of trusting the label: with the
+switch off the element has no `has-wallpaper` class and
+`getComputedStyle(...).backgroundImage` is `none`; switching on paints a
+gradient with no `url(...)` layer; the wash's computed colours change when the
+theme accent changes; choosing **My image** with no file falls back to the wash;
+and `DOM.setFileInputFiles` on the panel's file input produces a decoded,
+re-encoded image that paints the shell and is persisted as `source: 'image'`.
+Turning the switch off, then reloading, leaves `backgroundImage: none`.
+
+**Not executed:** the wash was checked against computed styles and screenshots,
+not a colorimetric comparison across all 90 catalogue themes; and the web-only
+preview's localStorage path for images was not exercised.

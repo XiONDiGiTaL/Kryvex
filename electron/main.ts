@@ -1,14 +1,29 @@
-import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, session, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { assistant } from './assistant';
+import {
+  applyChromiumPreferences,
+  engineInfo,
+  initChromium,
+  setChromium,
+  trackChromiumGuest,
+} from './chromium';
 import { defaultBrowser } from './default-browser';
 import { downloads } from './downloads';
 import { extensions } from './extensions';
 import { configurePrivacySwitches, hardenSession } from './hardening';
+import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
 import { permissions } from './permissions';
 import { isSafePartition } from './privacy';
 import { serviceSessions } from './service-sessions';
 import { stableUserAgent } from './user-agent';
+import {
+  MIN_WINDOW_SIZE,
+  PREFERRED_WINDOW_SIZE,
+  fitWindowToWorkArea,
+  type WindowSize,
+} from './window-rules';
 import { shield } from './shield';
 import {
   chooseDownloadLocation,
@@ -17,6 +32,7 @@ import {
   resetDownloadLocation,
 } from './storage';
 import { isMagnetLink } from './torrent-rules';
+import { clearWallpaper, readWallpaper, writeWallpaper } from './wallpaper';
 import { torrents } from './torrents';
 import { updater } from './updater';
 import { webPrivacy } from './web-privacy';
@@ -59,6 +75,9 @@ if (CAPTURE) {
   app.setPath('userData', captureProfile);
 }
 configurePrivacySwitches();
+// Launch switches and GPU acceleration read the same state file the renderer
+// uses, because some of them must exist before Chromium starts.
+initChromium(readState());
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -215,17 +234,28 @@ function hardenWebContents(): void {
   });
 }
 
+/** Screen-aware initial size; see window-rules.ts for the rule itself. */
+function initialWindowSize(): WindowSize {
+  try {
+    const area = screen.getPrimaryDisplay().workAreaSize;
+    return fitWindowToWorkArea(area);
+  } catch {
+    return PREFERRED_WINDOW_SIZE;
+  }
+}
+
 function createWindow(): BrowserWindow {
+  const size = initialWindowSize();
   const iconFile = process.platform === 'win32' ? 'kryvex.ico' : 'kryvex-512.png';
   const iconPath = app.isPackaged
     ? path.join(process.resourcesPath, 'icons', iconFile)
     : path.join(__dirname, '..', 'brand', 'icons', iconFile);
 
   const win = new BrowserWindow({
-    width: 1440,
-    height: 900,
-    minWidth: 1040,
-    minHeight: 680,
+    width: size.width,
+    height: size.height,
+    minWidth: MIN_WINDOW_SIZE.width,
+    minHeight: MIN_WINDOW_SIZE.height,
     show: false,
     backgroundColor: '#0B0E12',
     title: 'Kryvex',
@@ -273,6 +303,10 @@ function createWindow(): BrowserWindow {
     }
   });
 
+  win.webContents.on('did-attach-webview', (_event, contents) => {
+    trackChromiumGuest(contents);
+  });
+
   win.webContents.on('will-attach-webview', (event, webPreferences, params) => {
     // Remember which sessions belong to service modules before the guest can
     // ask for notifications or open an auth popup.
@@ -283,6 +317,9 @@ function createWindow(): BrowserWindow {
     webPreferences.sandbox = true;
     webPreferences.webSecurity = true;
     webPreferences.allowRunningInsecureContent = false;
+    // Engine preferences last: they only touch content behaviour, never the
+    // sandbox, preload or node settings assigned above.
+    applyChromiumPreferences(webPreferences as Record<string, unknown>);
     if (!isSafeUrl(params.src) || !isSafePartition(params.partition ?? '')) {
       event.preventDefault();
     }
@@ -300,6 +337,7 @@ function createWindow(): BrowserWindow {
   win.on('closed', () => {
     mainWindow = null;
     updater.dispose();
+    assistant.dispose();
   });
 
   return win;
@@ -317,6 +355,24 @@ function registerIpc(): void {
   ipcMain.handle('kryvex:state:load', (event) => (isShellSender(event) ? readState() : null));
   ipcMain.handle('kryvex:state:save', (event, state: unknown) =>
     isShellSender(event) ? writeState(state) : false,
+  );
+  ipcMain.handle('kryvex:assistant:probe', (event, baseUrl: unknown) =>
+    isShellSender(event) ? assistant.probe(baseUrl) : { ok: false, models: [], error: 'invalid-url' },
+  );
+  ipcMain.handle('kryvex:assistant:chat', (event, request: unknown) =>
+    isShellSender(event) ? assistant.chat(request) : { ok: false, error: 'invalid-request' },
+  );
+  ipcMain.handle('kryvex:assistant:cancel', (event, requestId: unknown) =>
+    isShellSender(event) ? assistant.cancel(requestId) : false,
+  );
+  ipcMain.handle('kryvex:wallpaper:load', (event) =>
+    isShellSender(event) ? readWallpaper(app.getPath('userData')) : null,
+  );
+  ipcMain.handle('kryvex:wallpaper:save', (event, dataUrl: unknown) =>
+    isShellSender(event) ? writeWallpaper(app.getPath('userData'), dataUrl) : null,
+  );
+  ipcMain.handle('kryvex:wallpaper:clear', (event) =>
+    isShellSender(event) ? clearWallpaper(app.getPath('userData')) : false,
   );
   ipcMain.handle('kryvex:shield:status', (event) =>
     isShellSender(event) ? shield.status() : { ...shield.status(), enabled: false },
@@ -482,6 +538,14 @@ function registerIpc(): void {
       return false;
     }
   });
+  registerPartyIpc();
+
+  ipcMain.handle('kryvex:chromium:info', (event) => (isShellSender(event) ? engineInfo() : null));
+  ipcMain.handle('kryvex:chromium:set', (event, raw: unknown) => {
+    if (!isShellSender(event)) return null;
+    setChromium(raw);
+    return engineInfo();
+  });
   ipcMain.handle('kryvex:app:info', (event) =>
     isShellSender(event)
       ? {
@@ -542,6 +606,7 @@ async function runCapture(win: BrowserWindow): Promise<void> {
   }> = [
     { name: 'home', hash: '#/home' },
     { name: 'help', hash: '#/home?help=1' },
+    { name: 'rooms', hash: '#/rooms', click: '[data-shot="create-room"]', wait: 2400 },
     { name: 'services', hash: '#/services' },
     { name: 'add-service', hash: '#/services?dialog=new' },
     { name: 'service', hash: '#/service/s-starter-1', wait: 5000 },
@@ -554,11 +619,30 @@ async function runCapture(win: BrowserWindow): Promise<void> {
     },
     { name: 'settings', hash: '#/settings' },
     {
+      name: 'settings-reds',
+      hash: '#/settings',
+      scroll: 'button[title="Crimson"]',
+      block: 'center',
+    },
+    {
+      name: 'settings-gems',
+      hash: '#/settings',
+      scroll: '[data-family="gem"]',
+      block: 'start',
+    },
+    {
+      name: 'settings-planets',
+      hash: '#/settings',
+      scroll: '[data-family="planet"]',
+      block: 'start',
+    },
+    {
       name: 'settings-custom',
       hash: '#/settings',
       click: '.theme-card.is-custom',
       scroll: '.custom-theme-panel',
     },
+    { name: 'theme-gallery', hash: '#/settings', scroll: '#theme-gallery', block: 'start' },
     { name: 'settings-updates', hash: '#/settings?section=updates', scroll: '#updates' },
     { name: 'settings-data', hash: '#/settings', scroll: '.download-location-copy' },
     { name: 'settings-shield', hash: '#/settings', scroll: '.shield-panel' },
@@ -568,14 +652,29 @@ async function runCapture(win: BrowserWindow): Promise<void> {
       scroll: '.browser-settings-panel',
       block: 'center',
     },
-    { name: 'settings-plugins', hash: '#/settings', scroll: '.plugin-card' },
+    { name: 'settings-chromium', hash: '#/settings', scroll: '#chromium', block: 'start' },
+    { name: 'settings-wallpaper', hash: '#/settings', scroll: '.wallpaper-panel' },
+    {
+      name: 'settings-xion',
+      hash: '#/settings',
+      click: '[data-theme="special-xion"]',
+      wait: 1200,
+      scroll: '[data-theme="special-xion"]',
+    },
     { name: 'settings-about', hash: '#/settings', scroll: 'bottom' },
     { name: 'donkey-theme', hash: '#/home?theme=special-donkey' },
+    { name: 'xion-theme', hash: '#/home?theme=special-xion', wait: 1200 },
     { name: 'command-palette', hash: '#/home?palette=1' },
     { name: 'light-theme', hash: '#/home?theme=kryvex-light' },
   ];
 
   await wait(1200);
+  // A fresh profile opens the first-run theme sheet; dismiss it so the
+  // captures show the route instead of the onboarding.
+  await win.webContents
+    .executeJavaScript(`document.querySelector('[data-shot="gallery-skip"]')?.click(); true;`)
+    .catch(() => undefined);
+  await wait(300);
   for (const shot of shots) {
     await win.webContents.executeJavaScript(
       `window.location.hash = ${JSON.stringify(shot.hash)}; true;`,
@@ -656,12 +755,15 @@ if (!gotLock) {
     shield.trackSession(session.defaultSession);
     downloads.trackSession(session.defaultSession);
     hardenWebContents();
+    partyInit();
     registerIpc();
     updater.init();
 
     mainWindow = createWindow();
+    partyAttachWindow(mainWindow);
     extensions.attachWindow(mainWindow);
     updater.attachWindow(mainWindow);
+    assistant.attachWindow(mainWindow);
     downloads.attachWindow(mainWindow);
     defaultBrowser.attachWindow(mainWindow);
     permissions.attachWindow(mainWindow);
@@ -682,7 +784,9 @@ if (!gotLock) {
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         mainWindow = createWindow();
+        partyAttachWindow(mainWindow);
         updater.attachWindow(mainWindow);
+    assistant.attachWindow(mainWindow);
       }
     });
   });

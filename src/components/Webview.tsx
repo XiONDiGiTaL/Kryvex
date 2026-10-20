@@ -151,7 +151,9 @@ export function Webview({
     },
     partition,
     className: 'webview',
-    webpreferences: 'contextIsolation=yes, nodeIntegration=no, sandbox=yes, backgroundThrottling=no',
+    // Content preferences (throttling, scripts, images) are owned by the main
+    // process, which applies the engine profile on `will-attach-webview`.
+    webpreferences: 'contextIsolation=yes, nodeIntegration=no, sandbox=yes',
     style: { width: '100%', height: '100%' },
   });
 }

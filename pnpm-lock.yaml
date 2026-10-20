@@ -11,6 +11,9 @@ importers:
       '@ghostery/adblocker-electron':
         specifier: ^2.20.1
         version: 2.20.1(electron@44.2.0(supports-color@7.2.0))
+      '@trystero-p2p/torrent':
+        specifier: 0.26.0
+        version: 0.26.0
       extract-zip:
         specifier: ^2.0.1
         version: 2.0.1(supports-color@7.2.0)
@@ -309,6 +312,12 @@ packages:
   '@thaunknown/thirty-two@1.0.6':
     resolution: {integrity: sha512-Uz2kFb0cNeHg7hds8BtI/umcwzaSMUdbkeQgZrIZQbp3gWRFjrvrvBHNEB6SQYChVxC3rWHovKx1Ya/vSRRMYA==}
     engines: {node: '>=0.2.6'}
+
+  '@trystero-p2p/core@0.26.0':
+    resolution: {integrity: sha512-CZpeXPgfbDdFKrGxfD98F9tn/fTjya4mQ2o/Ax6H0qpBaJXCBz5+jyPtjsYEPAAcKRK/btOatCetFiQ5qIMCOA==}
+
+  '@trystero-p2p/torrent@0.26.0':
+    resolution: {integrity: sha512-pb3tYMGpxo+C7EacxXTfXK9tmSBzSPMubieMjAioNc+jCmwfdYc7xiMGJ/uIz4mD9Ts83ZG25qIqsoErVh6+VA==}
 
   '@types/cacheable-request@6.0.3':
     resolution: {integrity: sha512-IQ3EbTzGxIigb1I3qPZc1rWJnH0BmSKv5QYTalEwweFvyBDLSAe24zP0le/hyi7ecGfZVlIVAg4BZqb8WBwKqw==}
@@ -2550,6 +2559,12 @@ snapshots:
   '@thaunknown/thirty-two@1.0.6':
     dependencies:
       uint8-util: 2.3.2
+
+  '@trystero-p2p/core@0.26.0': {}
+
+  '@trystero-p2p/torrent@0.26.0':
+    dependencies:
+      '@trystero-p2p/core': 0.26.0
 
   '@types/cacheable-request@6.0.3':
     dependencies:

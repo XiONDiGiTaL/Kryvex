@@ -1,6 +1,8 @@
 import type { PersistedState, Service, ServiceCategory } from '../types';
 import { BRAND_ICONS } from './brand-icons';
 import { DEFAULT_CUSTOM_THEME } from './themes';
+import { DEFAULT_CHROMIUM } from './chromium';
+import { DEFAULT_ICE_SERVERS, DEFAULT_TRACKERS } from './party-rules';
 import { normalizeUrl } from './url';
 
 export const CATEGORIES: ReadonlyArray<{ id: ServiceCategory; label: string }> = [
@@ -164,6 +166,7 @@ export function starterState(): PersistedState {
     history: [],
     settings: {
       themeId: 'kryvex-dark',
+      themeGallerySeen: false,
       customTheme: { ...DEFAULT_CUSTOM_THEME },
       density: 'comfortable',
       startView: 'home',
@@ -174,6 +177,16 @@ export function starterState(): PersistedState {
       confirmBeforeDelete: true,
       serviceNotifications: true,
       autoCheckUpdates: true,
+      wallpaper: { enabled: false, source: 'gradient', fit: 'cover', veil: 55 },
+      assistant: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: '' },
+      chromium: { ...DEFAULT_CHROMIUM },
+      party: {
+        displayName: '',
+        color: '#38BDF8',
+        trackers: [...DEFAULT_TRACKERS],
+        iceServers: [...DEFAULT_ICE_SERVERS],
+        recentRooms: [],
+      },
     },
     recent: [],
     browser: { tabs: [], activeTabId: null },

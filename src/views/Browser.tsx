@@ -123,6 +123,7 @@ export function Browser({
   initialUrl = null,
   initialPanel = null,
   isElectron,
+  engineRevision = 0,
   mark = 'kx',
   onAddBookmark,
   onRemoveBookmark,
@@ -140,6 +141,8 @@ export function Browser({
   initialUrl?: string | null;
   initialPanel?: BrowserPanel | null;
   isElectron: boolean;
+  /** Remounts every page so changed engine preferences are attached. */
+  engineRevision?: number;
   mark?: ThemeMarkKind;
   onAddBookmark: (bookmark: Bookmark) => void;
   onRemoveBookmark: (id: string) => void;
@@ -1050,6 +1053,7 @@ export function Browser({
                     aria-hidden={tab.id !== activeTabId}
                   >
                     <Webview
+                      key={`${tab.id}-${engineRevision}`}
                       src={tab.url}
                       partition={`browser-${tab.id}`}
                       controller={{
@@ -1061,7 +1065,16 @@ export function Browser({
                         },
                       }}
                       onStatus={value => {
-                        if (tab.id === activeTabId) setStatus(value);
+                        if (tab.id !== activeTabId) return;
+                        setStatus(value);
+                        // The engine's default zoom applies at attach time, so
+                        // the toolbar reads the real factor once a page settles.
+                        if (value.loading || value.error) return;
+                        try {
+                          setZoom(controllers.current.get(tab.id)?.getZoomFactor() ?? DEFAULT_ZOOM);
+                        } catch {
+                          /* the guest may already be gone */
+                        }
                       }}
                       onNavigate={url => {
                         setTabs(current =>

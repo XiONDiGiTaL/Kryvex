@@ -8,6 +8,7 @@ import {
   normalizeHttpOrigin,
   type MediaDevice,
 } from './privacy';
+import { partyHasPendingPick } from './party';
 import { serviceSessions } from './service-sessions';
 import type { PermissionPrompt } from './types';
 
@@ -41,12 +42,21 @@ class PermissionManager {
     });
   }
 
+  /** Display capture belongs to the shell; a webview asking is refused. */
+  private isShellCapture(contents?: WebContents | null): boolean {
+    return Boolean(contents && this.window && contents === this.window.webContents);
+  }
+
   check(
     permission: string,
     requestingOrigin: string,
     mediaType?: string,
     contents?: WebContents | null,
   ): boolean {
+    if (permission === 'display-capture') return this.isShellCapture(contents);
+    if (permission === 'media' && this.isShellCapture(contents) && partyHasPendingPick()) {
+      return true;
+    }
     if (isPrivacyPermission(permission)) return true;
     if (isNotificationPermission(permission)) return serviceSessions.allowsNotifications(contents);
     const origin = normalizeHttpOrigin(requestingOrigin);
@@ -67,6 +77,18 @@ class PermissionManager {
     details: MediaAccessPermissionRequest,
     originFallback: string,
   ): void {
+    // Rooms capture: the shell may request a display stream, but only the
+    // capture broker decides what it gets, one armed source at a time.
+    if (permission === 'display-capture') {
+      callback(this.isShellCapture(contents));
+      return;
+    }
+    if (permission === 'media' && this.isShellCapture(contents) && partyHasPendingPick()) {
+      // Rooms: the shell armed one source in the capture broker, so the
+      // display request that follows is the only media access this opens.
+      callback(true);
+      return;
+    }
     if (isPrivacyPermission(permission)) {
       callback(true);
       return;

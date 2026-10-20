@@ -222,15 +222,6 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     note: 'Community-maintained index of free resources. External links only; Kryvex does not host or endorse their content.',
   },
   {
-    id: 'lmstudio',
-    name: 'LM Studio',
-    url: 'https://lmstudio.ai',
-    category: 'resources',
-    color: '#A78BFA',
-    icon: 'lmstudio',
-    note: 'Documentation and downloads for local models you run yourself.',
-  },
-  {
     id: 'ollama',
     name: 'Ollama',
     url: 'https://ollama.com',
@@ -238,15 +229,6 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     color: '#94A3B8',
     icon: 'ollama',
     note: 'Local model runtime and model library.',
-  },
-  {
-    id: 'awesome-electron',
-    name: 'Awesome Electron',
-    url: 'https://github.com/sindresorhus/awesome-electron',
-    category: 'resources',
-    color: '#94A3B8',
-    icon: 'github',
-    note: 'Curated list of Electron apps and tools.',
   },
   {
     id: 'archive',

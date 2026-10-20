@@ -93,11 +93,7 @@ export function Home({
               </div>
             </div>
           </div>
-          {mark === 'donkey' ? (
-            <span className="hero-tile donkey-hero">
-              <ThemeMark mark="donkey" size={176} variant="tile" />
-            </span>
-          ) : (
+          {mark === 'kx' ? (
             <img
               className="hero-tile"
               src={logoUrl}
@@ -105,6 +101,10 @@ export function Home({
               height={176}
               alt={t('Kryvex element tile')}
             />
+          ) : (
+            <span className="hero-tile themed-hero">
+              <ThemeMark mark={mark} size={176} variant="tile" />
+            </span>
           )}
         </div>
 

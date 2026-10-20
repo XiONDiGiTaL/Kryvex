@@ -14,9 +14,10 @@ import { relativeLuminance } from '../src/lib/color';
 const REQUIRED = ['bg', 'surface', 'raised', 'line', 'ink', 'muted', 'accent', 'accentSoft'];
 
 describe('theme catalogue', () => {
-  it('ships a broad periodic catalogue plus the donkey plugin', () => {
-    expect(THEMES).toHaveLength(38);
-    expect(THEMES.filter(theme => !theme.plugin)).toHaveLength(37);
+  it('ships a broad periodic catalogue plus the two creator plugins', () => {
+    expect(THEMES).toHaveLength(80);
+    expect(THEMES.filter(theme => !theme.plugin)).toHaveLength(78);
+    expect(THEMES.filter(theme => theme.plugin)).toHaveLength(2);
     expect(THEMES.map(theme => theme.id)).toEqual(
       expect.arrayContaining([
         'kryvex-dark',
@@ -32,6 +33,25 @@ describe('theme catalogue', () => {
         'mercury',
         'oxygen',
         'special-donkey',
+        'special-xion',
+        'crimson',
+        'vermillion',
+        'coral',
+        'blush',
+        'magenta',
+        'fuchsia',
+        'strontium',
+        'cesium',
+        'ruby',
+        'sapphire',
+        'opal',
+        'tourmaline',
+        'mercury-planet',
+        'jupiter',
+        'uranus',
+        'neptune',
+        'pluto',
+        'nibiru',
       ]),
     );
     const donkey = getTheme('special-donkey');
@@ -40,6 +60,17 @@ describe('theme catalogue', () => {
     expect(donkey.symbol).toBe('Dk');
     expect(donkey.tokens.accent).toBe('#F2C94C');
     expect(donkey.tokens.bg).toBe('#070605');
+
+    const xion = getTheme('special-xion');
+    expect(xion.plugin).toBe(true);
+    expect(xion.mark).toBe('xion');
+    expect(xion.symbol).toBe('Xi');
+    expect(xion.tokens.accent).toBe('#33B5E5');
+    expect(xion.tokens.accentSoft).toBe('#7FE3FF');
+    expect(xion.tokens.bg).toBe('#04060A');
+    expect(xion.gradient).toBe(true);
+    expect(xion.glass).toBe(true);
+    expect(relativeLuminance(xion.tokens.bg ?? '')).toBeLessThan(0.02);
   });
 
   it('gives every theme a complete token set and a picker identity', () => {
@@ -58,6 +89,8 @@ describe('theme catalogue', () => {
         'spectrum',
         'element',
         'metal',
+        'gem',
+        'planet',
         'light',
         'terminal',
         'custom',
@@ -65,11 +98,70 @@ describe('theme catalogue', () => {
     }
   });
 
+  it('covers the gem and red families with their own tokens', () => {
+    const gems = THEMES.filter(theme => theme.family === 'gem');
+    expect(gems).toHaveLength(12);
+    expect(gems.map(theme => theme.name)).toEqual(
+      expect.arrayContaining(['Garnet', 'Diamond', 'Pearl', 'Ruby', 'Sapphire', 'Opal', 'Moonstone']),
+    );
+    expect(THEMES.find(theme => theme.id === 'ruby')?.tokens.accent).toBe('#E0115F');
+    expect(THEMES.find(theme => theme.id === 'crimson')?.tokens.accent).toBe('#DC143C');
+    expect(THEMES.find(theme => theme.id === 'vermillion')?.tokens.accent).toBe('#E6411B');
+    expect(THEMES.find(theme => theme.id === 'fuchsia')?.tokens.accent).toBe('#FF2FB3');
+    expect(THEMES.find(theme => theme.id === 'diamond')?.mode).toBe('light');
+  });
+
+  it('ships a full planet band with mixed gradient palettes', () => {
+    const planets = THEMES.filter(theme => theme.family === 'planet');
+    expect(planets).toHaveLength(12);
+    expect(planets.every(theme => theme.gradient)).toBe(true);
+
+    const jupiter = THEMES.find(theme => theme.id === 'jupiter');
+    expect(jupiter?.tokens.accent).toBe('#E8C08A');
+    expect(jupiter?.tokens.accentSoft).toBe('#C2452F');
+
+    const uranus = THEMES.find(theme => theme.id === 'uranus');
+    expect(uranus?.tokens.accent).toBe('#3F8E92');
+    expect(uranus?.tokens.bg).toBe('#8DDDE2');
+    expect(uranus?.mode).toBe('light');
+
+    const neptune = THEMES.find(theme => theme.id === 'neptune');
+    expect(neptune?.tokens.accent).toBe('#477EFD');
+    expect(neptune?.tokens.accentSoft).toBe('#74D6FD');
+    expect(neptune?.mode).toBe('dark');
+
+    const pluto = THEMES.find(theme => theme.id === 'pluto');
+    expect(pluto?.mode).toBe('light');
+    expect(pluto?.tokens.accent).toBe('#8C4A32');
+
+    const nibiru = THEMES.find(theme => theme.id === 'nibiru');
+    expect(nibiru?.mode).toBe('dark');
+    expect(relativeLuminance(nibiru?.tokens.bg ?? '')).toBeLessThan(0.01);
+    expect(nibiru?.tokens.accent).toBe('#A8363A');
+
+    expect(THEMES.find(theme => theme.id === 'mercury')).toMatchObject({ name: 'Quicksilver' });
+  });
+
+  it('keeps the pale turquoise theme readable on its own ground', () => {
+    const turquoise = THEMES.find(theme => theme.id === 'turquoise');
+    expect(turquoise?.mode).toBe('light');
+    expect(turquoise?.tokens.bg).toBe('#B3ECEC');
+    expect(turquoise?.tokens.accent).toBe('#0F7A72');
+    // Body copy has to stay legible on the pale background it now sits on.
+    expect(relativeLuminance(turquoise?.tokens.ink ?? '')).toBeLessThan(
+      relativeLuminance(turquoise?.tokens.bg ?? ''),
+    );
+    expect(relativeLuminance(turquoise?.tokens.accent ?? '')).toBeLessThan(
+      relativeLuminance(turquoise?.tokens.bg ?? ''),
+    );
+  });
+
   it('marks gradient, glass and terminal options', () => {
     expect(THEMES.filter(theme => theme.gradient).length).toBeGreaterThan(5);
     expect(THEMES.filter(theme => theme.glass).map(theme => theme.id)).toEqual([
       'platinum',
       'mercury',
+      'special-xion',
     ]);
     expect(THEMES.find(theme => theme.id === 'terminal')?.mono).toBe(true);
     expect(THEMES.find(theme => theme.id === 'sunburst')?.gradient).toBe(true);

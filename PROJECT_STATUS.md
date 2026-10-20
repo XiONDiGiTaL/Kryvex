@@ -1,11 +1,14 @@
 # Kryvex — Project Status
 
-**Product:** Kryvex Desktop 0.6.0 — a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.7.0 — a modular Electron workspace where web apps
 become isolated, themed service apps: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
-sessions and per-service session clearing. It also has a restorable browser
+sessions and per-service session clearing. It also has rooms with presence,
+chat and screen share, Vexium talking to a local model over loopback, a
+first-run theme gallery, an opt-in wallpaper backdrop and a restorable browser
 session, a persistent download history, find-in-page and page zoom,
-history/bookmarks, a persisted torrent queue that restores paused,
+history/bookmarks, a persisted torrent queue that restores paused, a Chromium
+engine panel that exposes real launch switches and page preferences,
 microphone/camera prompts for web calls, Brave-style HTTPS upgrades,
 tracking-parameter stripping, per-site fingerprint farbling and a shared
 download location. Fictional element `x529`, symbol `Kx`, tagline
@@ -31,11 +34,16 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   blocked by EPERM), install/typecheck/test run in the reference clone.
 - [x] **M3 — Identity & shell.** Periodic-table tile logo, small/tray/mono
   variants, `brand/BRAND.md`, `brand/tokens.json`, `brand/themes.json` (schema
-  v3, 37 catalogue themes in six families), PNG 16–512, 7-resolution
+  v3, 78 catalogue themes in eight families), PNG 16–512, 7-resolution
   `kryvex.ico`. App id `net.xiondigital.kryvex`.
-- [x] **M4 — Theming (core).** 38 themes applied at runtime from
-  `brand/themes.json` (37 catalogue + the Donkey plugin) and arranged as a
-  periodic table with symbols, families and palette strips; a **Custom** theme
+- [x] **M4 — Theming (core).** 80 themes applied at runtime from
+  `brand/themes.json` and `src/plugins/` (78 catalogue + Donkey + XiØN), with
+  reds and pinks in the spectrum band, flame-test elements, a 12-entry
+  birthstone **gems** family and a 12-entry gradient **planets** family (the
+  metal Mercury is now **Quicksilver** so the planet keeps the plain name), all
+  arranged as a periodic table with symbols, families and palette strips; the
+  **Special XiØN Edition** adds the blade mark, a near-black glass base and
+  opt-in glow/liquid motion; a **Custom** theme
   is generated from five HSV/RGB pickers with derived line, raised and muted
   tones and automatic light/dark detection. Gradient, glass and mono theme
   flags drive chrome, sheen and type. Density, sidebar mode, status bar and
@@ -53,9 +61,12 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   reload, address bar with host-or-search resolution, bookmarks bar and toggle,
   in-memory per-tab partitions, system-browser handoff, a persistent
   downloads/history/bookmarks library, find-in-page, page zoom, a persisted
-  WebTorrent queue inside Downloads that returns paused after a restart, and a
-  download-location picker shared by downloads and new torrents. Per-site zoom
-  memory remains.
+  WebTorrent queue inside Downloads that returns paused after a restart, a
+  download-location picker shared by downloads and new torrents, and an engine
+  panel for hardware acceleration, smooth scrolling, JavaScript, images,
+  WebGL, the PDF viewer, autoplay, hidden-page throttling, spellcheck, the
+  preferred colour scheme and default zoom. Per-site zoom memory is Chromium's
+  own map; it is reported read-only.
 - [ ] **M7 — Security (baseline shipped).** Sandboxed renderer, context
   isolation, a narrowed typed IPC bridge, hardened webviews, partition
   allowlist, http(s)-only navigation, an explicit per-origin mic/camera prompt
@@ -67,8 +78,10 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   farbling and EasyList Cookie. Remaining: per-site privacy exceptions,
   persisted per-module scopes, Safe Browsing equivalent, `pnpm audit`,
   packaged-app integrity checks, renderer CSP, macOS/Linux validation.
-- [ ] **M8 — Testing (partial).** 149/149 unit tests, strict typecheck, build and
-  nineteen-capture pass; live Sohbet probe passed. The new service-engine
+- [ ] **M8 — Testing (partial).** 219/219 unit tests, strict typecheck, build and
+  twenty-four-capture pass; live Sohbet probe passed. Two-instance Rooms
+  (`pnpm verify:rooms`) proves presence, chat and a 2560×1440 screen share
+  between separate profiles. The new service-engine
   harness proves keep-alive, exact layout, restart persistence, notification
   scoping, an auth popup on the same cookie, unread badges, session clear and
   the browser user agent. Download-manager,
@@ -79,38 +92,151 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   row in the built UI, and find/zoom are automated through
   `pnpm verify:restart`, `pnpm verify:downloads`, `pnpm verify:location-ui`,
   `pnpm verify:torrents`, `pnpm verify:torrent-restore-ui` and
-  `pnpm verify:browser` and `pnpm verify:updater`. Remaining: broader e2e UI
+  `pnpm verify:browser`, `pnpm verify:chromium`, `pnpm verify:updater` and
+  `pnpm verify:rooms`.
+  Remaining: broader e2e UI
   coverage, backup/restore,  measured performance comparison (`docs/PERFORMANCE.md` still holds no
   numbers).
-- [x] **M9 — Packaging & CI.** The **0.6.0** Setup and Portable EXEs were
-  built locally and then by GitHub Actions on the `v0.6.0` tag; the workflow
-  ran typecheck, tests, `package:win`, wrote `SHA256SUMS.txt` and published the
-  release. The unpacked build completed all nineteen capture routes, including
-  the theme picker and the custom colour studio. Remaining: code signing and an
-  interactive-wizard pass.
+- [x] **M9 — Packaging & CI.** The **0.6.0** and **0.7.0** Setup and Portable
+  EXEs are built by GitHub Actions on their `v*` tags; the workflow checks the
+  tag against `package.json`, runs typecheck and tests, runs `package:win`,
+  writes `SHA256SUMS.txt` and publishes the release. The 0.7.0 unpacked build
+  completes all twenty-seven capture routes, including Rooms, the theme gallery,
+  the Chromium engine panel and the wallpaper panel. Remaining: code signing
+  and an interactive-wizard pass.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0, 0.4.0, 0.5.0 and
-  0.6.0 releases published. The 0.6.0 release carries the Setup and Portable
-  EXEs plus `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so
-  the in-app updater accepts it.
-- [ ] **M11 — Final review.** README with nineteen real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0–0.6.0
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.7.0
+  releases published. Each release carries the Setup and Portable EXEs plus
+  `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
+  in-app updater accepts it.
+- [ ] **M11 — Final review.** README with real screenshots, banner,
+  feature/security/limitation sections, honest testing docs and 0.3.0–0.7.0
   release records are in place. Outstanding: engineering report and a signed
   public release.
+
+## Verified evidence (2026-10-20, layout clipping)
+
+- `pnpm typecheck` → exit 0 for renderer and main.
+- `pnpm test` → exit 0, **219/219** in 24 files, including
+  `tests/window-rules.test.ts`: 1440p, 1366×768, a 150%-scaled 1366×768 work
+  area, the 900×520 floor and a custom margin.
+- `pnpm build` → exit 0.
+- **`node scripts/verify-layout.cjs` → PASS.** No element clips its own content
+  and neither the document nor `.app-main` overflows horizontally across ten
+  window sizes (2560×1400 down to 900×520) and six views, and the first-run
+  sheet fits with a reachable footer at four sizes.
+- **`node scripts/verify-theme-gallery.cjs` → PASS**, now asserting that every
+  theme preview shows its full mock content.
+- **Fixed:** the gallery mocks were clipped by 46 px (fixed frame, stacked
+  cards); the large preview clipped by 12 px at 860 px wide (media override);
+  the first-run sheet pushed its footer out of reach at 900×600. The initial
+  window now fits the display work area instead of assuming 1440×900, and the
+  minimum window dropped from 1040×680 to the verified 900×520.
+
+## Verified evidence (2026-10-20, theme gallery)
+
+- `pnpm typecheck` → exit 0 for renderer and main.
+- `pnpm test` → exit 0, **214/214** in 23 files. `tests/theme-gallery.test.ts`
+  covers family grouping and order, hero selection with fallback, active-family
+  resolution, and the upgrade rule that a state file without
+  `themeGallerySeen` counts as already seen.
+- `pnpm build` → exit 0.
+- **`node scripts/verify-theme-gallery.cjs` → PASS.** Fresh profile opened the
+  first-run sheet with eight family cards; previewing GEMS showed Sapphire
+  without changing the active theme; the Ruby chip applied it and closed the
+  sheet; a reload kept both the theme and the dismissal; Settings still
+  rendered all 81 periodic tiles with the gallery below them.
+- **Bug found and fixed during the build:** the first CSS insertion truncated
+  `.theme-gallery-sheet` mid-declaration, which made lightningcss reject the
+  following `@keyframes` block. The block was completed and the sheet, head,
+  lede, footer and narrow-window rules now compile.
+
+## Verified evidence (2026-10-20, Rooms)
+
+- `pnpm typecheck` → exit 0 for renderer and main.
+- `pnpm test` → exit 0, **206/206** in 22 files, including
+  `tests/party-rules.test.ts`: id generation and validation, invite parsing,
+  display-name and chat limits, and presence reduction.
+- `pnpm build` → exit 0.
+- **`node scripts/verify-rooms.cjs` → PASS** on Windows, Electron 44.2.0, with
+  two isolated profiles and the default three public WebTorrent trackers.
+  Instance A created a room through the button (26-char code), listed the
+  fixture service as a shareable Kryvex app, and B joined through the invite
+  hash; both presence lists reached two entries, a chat line typed in A arrived
+  in B, and A's screen pick produced a video tile in B decoding 2560×1440.
+- **Bug found and fixed:** the hardened permission policy refused `media` for
+  the shell, so `getDisplayMedia` never reached the capture broker. The shell
+  now receives `media` only while `partyHasPendingPick()` holds an armed,
+  unexpired source choice; unarmed requests are still denied and a webview can
+  never arm one.
+
+## Verified evidence (2026-10-20, Chromium engine settings)
+
+- `pnpm typecheck` → exit 0 for renderer and main.
+- `pnpm test` → exit 0, **187/187** in 21 files. `tests/chromium.test.ts` covers
+  the shared profile contract: defaults, unknown/wrong-typed field rejection,
+  zoom snapping to the browser's steps, state-file reading, the
+  web-preference mapping, launch switches, renderer/main parity for defaults
+  and zoom steps, and save-time repair of a tampered profile.
+- `pnpm build` → exit 0; `dist-electron/chromium.js` and `chromium-rules.js`
+  emitted alongside the existing main-process modules.
+- **`pnpm verify:chromium` → PASS.** A disposable profile seeded with every
+  field at a non-default value launched Chromium 152.0.7977.76 with
+  `accelerated: false`, `gpu_compositing: disabled_software`,
+  `--disable-smooth-scrolling`, and a service guest whose recorded preferences
+  matched the seed exactly (JavaScript, images, WebGL, PDF, spellcheck and
+  autoplay off, zoom 1.25). Its inline script never ran. Switching JavaScript,
+  images and autoplay on, the colour scheme to light and zoom to 100% in the
+  panel, then using **Rebuild open pages**, produced a guest with the new
+  preferences: scripts ran, the image loaded, `prefers-color-scheme: light` was
+  true, the silent `<audio>` element reported `played`, and a fresh-origin
+  browser tab attached the default zoom `1`.
+- **Limits:** launch switches were proven by the switch list for one launch, not
+  by restarting twice; PDF rendering, spellcheck suggestions and hidden-page
+  throttling were verified as attached preferences rather than by inspecting
+  output or CPU; per-origin zoom memory means a rebuilt page on an already
+  zoomed site keeps its level, which the panel copy states.
+- `pnpm capture` → exit 0; twenty-five 1440×900 PNGs from the running app,
+  including the new `screenshots/settings-chromium.png`.
+
+## Verified evidence (2026-10-20, Vexium assistant)
+
+- `pnpm test` → exit 0, 172/172 passed, including `tests/assistant.test.ts`:
+  the loopback address rule (and parity between the renderer copy and the
+  main-process gate), message sanitizing limits, SSE delta parsing, model-list
+  parsing and assistant settings defaults.
+- `pnpm typecheck` → exit 0 for renderer and main.
+- **Stand-in runtime harness.** A local HTTP server speaking the same
+  OpenAI-compatible API as Ollama/LM Studio (`/v1/models`,
+  `/v1/chat/completions` with `stream: true`) was started on
+  `127.0.0.1:11434`; the built app probed it, listed `llama3.2` and `qwen3`,
+  streamed a 22-delta reply into the view and sent
+  `{ model: 'llama3.2', messages, stream: true }`. `assistantProbe` refused
+  `http://192.168.1.9:11434` and `https://127.0.0.1:11434` with
+  `invalid-url`.
+- **Limit:** no real Ollama or LM Studio install was present on this machine,
+  so model quality, latency and long-context behaviour were not measured. The
+  screenshots in `screenshots/assistant.png` and
+  `screenshots/settings-assistant.png` were taken against that stand-in.
 
 ## Verified evidence (2026-10-20, service engine)
 
 - `pnpm typecheck` → exit 0.
-- `pnpm test` → exit 0, **149/149** in 18 files.
+- `pnpm test` → exit 0, **151/151** in 18 files.
 - `pnpm build` → exit 0; 533.68 kB JS (159.67 kB gzip), 61.77 kB CSS.
-- `pnpm capture` → exit 0; all nineteen routes from the running app, including
+- `pnpm capture` → exit 0; all twenty-four routes from the running app, including
   `settings-custom` (the Custom colour studio, opened by clicking the tile).
 - `pnpm verify:updater` → **PASS**; an available update was detected from a
   loopback feed, a wrong SHA-256 was rejected as `checksum-failed`, the corrected
   download reached `ready` with the Install action, and a source-mode build
   reported the release without offering an install.
 - Packaged capture → exit 0; `release/win-unpacked/Kryvex.exe` (version 0.6.0,
-  `NotSigned`) completed all nineteen routes in a disposable profile.
+  `NotSigned`) completed all twenty-four routes in a disposable profile.
+- XiØN theme probe → pass; the built app applied `data-theme="special-xion"`,
+  the progress fill reported the `xion-liquid` gradient animation (2.8s, accent
+  blue → soft blue → ink), the blade mark reported `xion-glow`, and the plugin
+  card kept its own `#33B5E5` mark colour while the rest of the UI inherited the
+  theme accent.
 - `node scripts/verify-service-engine.cjs` → **PASS**. One fixture service in an
   isolated profile stayed mounted with the same `window.__marker` and cookie
   across a switch to Services; its timer advanced from 1 to 16 ticks while
@@ -133,7 +259,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   running Electron window in a disposable profile (`home`, `help`, `services`,
   `add-service`, `service`, `browser`, `browser-downloads`, `browser-history`,
   `settings`, `settings-data`, `settings-shield`, `settings-browser`,
-  `settings-plugins`, `settings-about`, `donkey-theme`, `command-palette`,
+  `settings-wallpaper`, `settings-about`, `donkey-theme`, `command-palette`,
   `light-theme`).
 - `pnpm verify:restart` → pass; theme, start view and an open tab survived a
   real close/relaunch, including a change made immediately before close. A URL
@@ -206,8 +332,9 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 - No code-signed installer. Updates verify SHA-256 against the release's own
   checksum list; that does not prove publisher identity. Portable and git
   builds never self-replace, and there is no delta, beta or rollback channel.
-- No module hibernation; page zoom is remembered per tab for the current
-  session only.
+- No module hibernation. The browser keeps per-tab zoom for the current
+  session; the engine panel's default zoom only seeds origins without a stored
+  zoom level, and there is no UI to clear a single site's zoom yet.
 - Torrent rows restore paused, but there is no bandwidth scheduler, ratio
   limit, per-file selection or router port mapping.
 - Microphone/camera grants are per origin for the current app session only.
@@ -230,8 +357,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
 ## Next concrete action
 
-0.6.0 source is complete and verified but not packaged or published. Package it
-when the release is authorized; the updater will only offer it after a newer
-tagged release publishes `SHA256SUMS.txt`. Then build the compound manifest and
+0.7.0 is tagged and published by the release workflow. Next: code signing, an
+interactive-wizard pass on the installer, and the compound manifest and
 permission sheet described in `docs/PLATFORM_PLAN.md` before adding any branded
 add-on.

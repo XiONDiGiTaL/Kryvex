@@ -1,7 +1,7 @@
 {
   "name": "kryvex",
   "productName": "Kryvex",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A modular desktop workspace that brings independent web services, a browser and shared tools into one engineered surface.",
   "license": "MIT",
   "author": {
@@ -32,7 +32,12 @@
     "verify:torrent-restore-ui": "pnpm build && node scripts/verify-torrent-restore-ui.cjs",
     "verify:browser": "pnpm build && node scripts/verify-browser-tools.cjs",
     "verify:services": "pnpm build && node scripts/verify-service-engine.cjs",
-    "verify:updater": "pnpm build && node scripts/verify-updater.cjs"
+    "verify:chromium": "pnpm build && node scripts/verify-chromium-settings.cjs",
+    "verify:updater": "pnpm build && node scripts/verify-updater.cjs",
+    "verify:rooms": "pnpm build && node scripts/verify-rooms.cjs",
+    "verify:gallery": "pnpm build && node scripts/verify-theme-gallery.cjs",
+    "verify:layout": "pnpm build && node scripts/verify-layout.cjs",
+    "verify:wallpaper": "pnpm build && node scripts/verify-wallpaper-ui.cjs"
   },
   "build": {
     "appId": "net.xiondigital.kryvex",
@@ -83,6 +88,7 @@
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.20.1",
+    "@trystero-p2p/torrent": "0.26.0",
     "extract-zip": "^2.0.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

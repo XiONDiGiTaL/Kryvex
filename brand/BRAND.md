@@ -143,7 +143,7 @@ brand/
   icon-small.svg    16–48px tile
   tray.svg          white tray icon, transparent
   tokens.json       design tokens (source of truth)
-  themes.json       37 themes in six families, schema v3
+  themes.json       78 themes in eight families, schema v3
   preview.html      visual QA sheet (also the raster QA sheet)
   preview.png       QA capture of the sheet (1280×1000)
   _export.html      Chromium canvas renderer used for raster export

@@ -64,6 +64,27 @@
 | State: structural validation in the renderer, 1 MB cap, atomic rename, sanitisation on load | `src/lib/store.ts`, `storage.ts`, `main.ts` |
 | State is data only; services cannot execute code in the shell | module registry |
 
+## Chromium engine preferences
+
+The engine panel in **Settings → Browser** can switch page features off —
+JavaScript, images, WebGL, the PDF viewer, autoplay, spellcheck, hardware
+acceleration and smooth scrolling — and can raise the default zoom. This is a
+capability-reduction surface, not an extension surface:
+
+- `applyChromiumPreferences` runs *after* `preload` removal, `nodeIntegration =
+  false`, `contextIsolation = true`, `sandbox = true`, `webSecurity = true` and
+  the insecure-content ban in `will-attach-webview`, and the profile object it
+  merges contains only content preferences. No setting can re-add a preload,
+  Node, or a new partition.
+- Launch switches are limited to `--disable-smooth-scrolling` and
+  `app.disableHardwareAcceleration()`; arbitrary user-supplied command-line
+  flags are deliberately not exposed.
+- The profile is sanitised in the main process on every write
+  (`sanitizeChromium`): unknown fields are dropped, booleans must be booleans,
+  zoom snaps to the browser's own steps, and the colour scheme is an enum.
+- A change never clears a session. **Rebuild open pages** remounts `<webview>`
+  elements on the same partition, so cookies, storage and sign-in survive.
+
 ## LibreWolf-inspired hardening
 
 LibreWolf is a Firefox derivative, not Chromium, so its `user.js` and patches
@@ -125,7 +146,7 @@ private-session isolation, download handling, error recovery, shutdown.
 Record what was executed; never report unrun tests as passing.
 
 Executed so far: `pnpm typecheck` (0), `pnpm test` (137/137), `pnpm build` (0),
-`pnpm capture` (0, nineteen captures), restart-persistence, download-history and
+`pnpm capture` (0, twenty-four captures), restart-persistence, download-history and
 download-location UI, torrent-restore and find/zoom harnesses, download-manager
 integration test (completed file, collision-safe path, delete-file), Web Store
 extension install and removal harness, default-browser URL filtering/status

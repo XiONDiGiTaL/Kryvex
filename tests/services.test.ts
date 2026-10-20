@@ -111,11 +111,17 @@ describe('service catalogue', () => {
     }
   });
 
-  it('lists AI assistants and resource links as links, not bundled clients', () => {
+  it('lists AI assistants as links, not bundled clients', () => {
     const ids = SERVICE_PRESETS.map(preset => preset.id);
-    for (const id of ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'fmhy', 'lmstudio']) {
+    for (const id of ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'fmhy']) {
       expect(ids).toContain(id);
     }
+  });
+
+  it('never ships research links as service presets', () => {
+    const ids = SERVICE_PRESETS.map(preset => preset.id);
+    expect(ids).not.toContain('awesome-electron');
+    expect(ids).not.toContain('lmstudio');
   });
 });
 

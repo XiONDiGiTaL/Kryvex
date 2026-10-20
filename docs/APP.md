@@ -1,4 +1,4 @@
-# Kryvex application architecture (v0.6.0)
+# Kryvex application architecture (v0.7.0)
 
 This document describes the app that lives in `electron/` and `src/`. It is a
 purpose-built Electron application; no third-party desktop workspace is
@@ -12,12 +12,13 @@ vendored or rebranded.
 | Renderer | React 19 + TypeScript 7, bundled by Vite 8 |
 | State | Pure reducer-style helpers in `src/lib/store.ts`, persisted as JSON |
 | Styling | One stylesheet driven by CSS custom properties from `brand/tokens.json` |
-| Tests | Vitest, 149 unit tests over URL, services, catalogue, store, history, downloads and storage location, page zoom, themes, Windows browser registration, torrent rules and queue restore, media permissions, Brave-style URL rules, release-version comparison, asset/checksum validation and update-state rules |
+| Tests | Vitest, 219 unit tests over URL, services, catalogue, store, history, downloads and storage location, page zoom, themes, Windows browser registration, torrent rules and queue restore, media permissions, Rooms ids/invites/limits/presence, window-fit rules, Brave-style URL rules, release-version comparison, asset/checksum validation and update-state rules |
 | Shield | `@ghostery/adblocker` over downloaded uBO/EasyList lists, with a combined privacy rewrite pipeline |
 | Extensions | Electron `session.extensions` with a guarded ZIP/CRX/folder installer |
 | Downloads | Chromium `will-download` events, main-process records, user-selected root, safe file lifecycle |
 | Torrents | WebTorrent 3 in the main process, magnet/.torrent input, selected download root, live peer stats, persisted paused queue |
 | Voice/video | Per-session permission broker; explicit microphone/camera prompt for webviews |
+| Rooms | Trystero (WebTorrent trackers) for signaling, direct WebRTC for chat and video, main-process capture broker with a one-shot shell-only display grant |
 | Browser registration | Per-user Default Apps capabilities + `app.setAsDefaultProtocolClient` handoff |
 | Packaging | electron-builder (NSIS + portable, Windows), unsigned |
 | Updates | GitHub Releases feed in the main process, checksum-verified Setup download, interactive installer after quit |
@@ -100,8 +101,10 @@ supervisor yet.
   bookmarks: Bookmark[],
   history: HistoryEntry[],   // max 500, newest first
   settings: {
-    themeId, density, startView, sidebarCollapsed,
-    showStatusBar, searchEngine, confirmBeforeDelete
+    themeId, customTheme, density, startView, sidebarCollapsed,
+    showStatusBar, searchEngine, confirmBeforeDelete,
+    wallpaper: { enabled: false, source: 'gradient', fit: 'cover', veil: 55 },
+    assistant: { provider, baseUrl, model } // loopback runtime for Vexium
   },
   recent: string[],  // service ids, most recent first, max 8
   browser: {
@@ -120,6 +123,11 @@ Persistence rules:
   services/history/bookmarks/tabs and orphaned recents, and repairs an active
   tab id that does not match a saved tab. An empty service list stays empty.
 - Web preview falls back to `localStorage`.
+- The wallpaper image is stored apart from the state: one WebP under
+  `userData/wallpaper/` on desktop, `kryvex.wallpaper.v1` in localStorage in
+  the web preview. `settings.wallpaper` keeps only `enabled`, `source`, `fit`
+  and `veil`; the backdrop stays off until `enabled` is explicitly true, so
+  older profiles and new installs paint the theme alone.
 
 ## Theme pipeline
 
@@ -185,6 +193,39 @@ CRX3 headers to the ZIP payload, extracts to a temporary directory, validates
 Installed records persist in `kryvex-extensions.json`; enabled extensions attach
 to new sessions as they appear. Remove-only paths are checked against the
 managed directory. `.xpi` is rejected because Electron is Chromium, not Gecko.
+
+## Chromium engine preferences
+
+`electron/chromium-rules.ts` is the single definition of the engine profile:
+defaults, the sanitizer, the launch switches and the mapping onto Chromium web
+preferences. It has no Electron imports, so the renderer store
+(`src/lib/chromium.ts`), the main process and the unit tests share one contract;
+`tests/chromium.test.ts` fails if the two copies of the zoom steps or the
+defaults ever drift apart.
+
+The state file is the source of truth at launch. `initChromium(readState())`
+runs before `app.whenReady()` and applies `app.disableHardwareAcceleration()`
+and `--disable-smooth-scrolling` there, because Chromium cannot change them
+later. `nativeTheme.themeSource` follows the preferred colour scheme, which is
+the one setting that is live: it changes `prefers-color-scheme` in every page
+without a reload.
+
+Page preferences are applied in `will-attach-webview`, after the sandbox,
+preload and node assignments, by `applyChromiumPreferences`. They can only
+remove capability — the call never touches `sandbox`, `contextIsolation`,
+`nodeIntegration` or `preload`. `did-attach-webview` records what each live
+guest was built with, and `engineInfo()` reports that snapshot next to the live
+URL and zoom factor.
+
+A guest keeps the web preferences it attached with, so a reload changes nothing.
+**Rebuild open pages** increments one revision number in `src/App.tsx`; the
+service stage and browser tabs key their `<webview>` elements on it, which
+remounts each guest and makes Chromium attach the current profile. Sessions are
+partitions, so a rebuild keeps cookies, storage and sign-in.
+
+Default zoom is attached as `zoomFactor`, which Chromium stores with the
+session's per-origin zoom map: a site that was already zoomed keeps its level
+until its session is cleared. A `colorScheme` change needs no rebuild.
 
 ## Browser library and downloads
 
@@ -278,6 +319,14 @@ renderer mounted. Kryvex never changes the system default silently.
 | --- | --- | --- |
 | `kryvex:state:load` | renderer → main | returns `unknown`, renderer sanitises |
 | `kryvex:state:save` | renderer → main | object, ≤1 MB, atomic write |
+| `kryvex:wallpaper:load` | renderer → main | shell sender, returns one image |
+| `kryvex:wallpaper:save` | renderer → main | shell sender, raster base64 data URL ≤8 MB, magic-byte check, atomic write |
+| `kryvex:wallpaper:clear` | renderer → main | shell sender, deletes only `wallpaper.*` |
+| `kryvex:assistant:probe` | renderer → main | shell sender, loopback http origin only |
+| `kryvex:assistant:chat` | renderer → main | shell sender, validated request ≤40 messages, streamed back as deltas |
+| `kryvex:assistant:cancel` | renderer → main | shell sender, tracked request id |
+| `kryvex:chromium:info` | renderer → main | shell sender; read-only engine report (version, GPU status, switches, live guests) |
+| `kryvex:chromium:set` | renderer → main | shell sender; the whole profile is sanitised by `sanitizeChromium`, unknown fields dropped |
 | `kryvex:app:info` | renderer → main | none needed |
 | `kryvex:open-external` | renderer → main | http(s) only |
 | `kryvex:shield:status` | renderer → main | read-only status |
@@ -367,20 +416,23 @@ pnpm verify:updater  # local release feed, checksum rejection, source-mode guard
 The capture routine drives real routes (`#/home`, `#/home?help=1`,
 `#/services`, `#/services?dialog=new`, `#/service/<id>`, `#/browser?newtab=1`,
 `#/browser?panel=downloads`, `#/browser?url=…&panel=history`, `#/settings`,
-`#/settings?section=updates`, the Custom theme panel (opened by clicking
-`.theme-card.is-custom`), data/shield/browser/plugin scroll positions,
-`#/home?palette=1`, `#/home?theme=…`), waits for each view, and captures the
-window with
-`webContents.capturePage()`. It writes nineteen 1440×900 images. `pnpm capture`
-therefore doubles as a smoke test: the app must boot and render every route
-before screenshots exist.
+`#/settings?section=updates`, the Custom theme panel opened by clicking
+`.theme-card.is-custom`, the XiØN tile clicked straight in the table
+(`[data-theme="special-xion"]`), data/shield/browser/wallpaper scroll
+positions, `#/home?palette=1`, the Crimson tile, the gems band and the planets
+band, and `#/home?theme=…` for `special-donkey` and `special-xion`), waits for
+each view,
+and captures the window with `webContents.capturePage()`. It writes twenty-four
+1440×900 images. `pnpm capture` therefore doubles as a smoke test: the app must
+boot and render every route before screenshots exist.
 
 ## Known gaps
 
 - No module hibernation.
 - Torrent rows restore paused, but no bandwidth scheduler, ratio limit,
   per-file selection or sequential-download toggle exists.
-- No custom-theme import/export; themes are seven built-ins plus one plugin.
+- No custom-theme import/export; themes are 78 catalogue entries plus two
+  creator plugins and the generated Custom theme.
 - Shield is list-based; there is no per-site exception UI, custom filter editor,
   or request inspector. uBO's MV2 extension network layer is inert in Electron.
 - Fingerprint farbling is a preload wrapper, not a Chromium patch. It covers
