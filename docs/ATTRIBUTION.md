@@ -88,14 +88,16 @@ Electron sessions; it does not audit, modify, or redistribute them. Firefox
 
 - **Skill:** `/brag` — https://github.com/latent-spaces/brag
   - **Author:** Shunit Haviv Hakimi
-  - **License:** MIT (included at `.claude/skills/brag/LICENSE`)
+  - **License:** MIT. The skill is a local agent workflow and is not
+    redistributed with this repository.
   - **How Kryvex uses it:** the skill is installed for agent-driven launch-video
-    work and produced `brag-output/brag.mp4`. It is not loaded by the app at
-    runtime.
+    work and produced the reel published at `docs/media/kryvex-demo.mp4`. It is
+    not loaded by the app at runtime.
 - **Video framework:** HyperFrames — https://github.com/heygen-com/hyperframes
   - **License:** Apache-2.0
-  - **How Kryvex uses it:** local rendering of the HTML composition in
-    `brag-output/composition/`. Not a runtime dependency of the app.
+  - **How Kryvex uses it:** local rendering of the HTML composition. The
+    composition is a working project kept outside the repository; only the
+    rendered reel is published. Not a runtime dependency of the app.
 - **Music:** [ende.app](https://ende.app/en), "Happy Beats / Business Moves"
   series, bundled by the `/brag` skill and used as the reel's bed.
 - **Sound effects:** [Kenney](https://kenney.nl/), CC0, bundled by `/brag`.

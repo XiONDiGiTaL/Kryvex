@@ -24,12 +24,15 @@ calls, without asking you to trust a browser policy.
 
 ## Demo reel
 
-[![Kryvex demo reel — precision in every connection](brag-output/brag.jpg)](brag-output/brag.mp4)
+[![Kryvex demo reel — modules instead of tabs](docs/media/kryvex-demo.gif)](docs/media/kryvex-demo.mp4)
 
 Twenty seconds, cut from the real app: modules instead of tabs, a persistent
 session behind every service, 78 themes, and no account in sight.
 
-**[Watch or download the MP4](brag-output/brag.mp4)** · [How it was made](docs/BRAG.md)
+**[Open the full reel](docs/media/kryvex-demo.mp4)** — 1920×1080, 30 fps, with
+sound, 6.2 MB. The preview above is the same cut at 800×450 and 10 fps so it can
+play inline like any image; the poster frame is
+[here](docs/media/kryvex-demo-poster.jpg).
 
 ---
 
