@@ -530,7 +530,7 @@ export function Browser({
   async function showDownload(record: DownloadRecord) {
     if (!window.kryvex) return;
     const ok = await window.kryvex.downloadsShow(record.id);
-    if (!ok) onToast(t('The downloaded file is no longer in Downloads.'), 'warning');
+    if (!ok) onToast(t('The downloaded file is no longer in its folder.'), 'warning');
   }
 
   async function openDownload(record: DownloadRecord) {

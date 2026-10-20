@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type {
   AppInfo,
   DefaultBrowserStatus,
+  DownloadLocation,
   ExtensionRecord,
   LanguageSetting,
   PersistedState,
@@ -51,6 +52,7 @@ export function Settings({
   const [shield, setShield] = useState<ShieldStatus | null>(null);
   const [extensions, setExtensions] = useState<ExtensionRecord[]>([]);
   const [defaultBrowser, setDefaultBrowser] = useState<DefaultBrowserStatus | null>(null);
+  const [downloadLocation, setDownloadLocation] = useState<DownloadLocation | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,6 +96,20 @@ export function Settings({
     };
   }, [isElectron]);
 
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    let alive = true;
+    void window.kryvex
+      .downloadsLocation()
+      .then(next => {
+        if (alive) setDownloadLocation(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [isElectron]);
+
   async function makeDefaultBrowser() {
     if (!window.kryvex) return;
     setBusy('browser-default');
@@ -117,6 +133,37 @@ export function Settings({
     if (!window.kryvex) return;
     const opened = await window.kryvex.openDefaultApps();
     if (!opened) onToast(t('Windows Default Apps could not be opened.'), 'danger');
+  }
+
+  async function changeDownloadLocation() {
+    if (!window.kryvex || busy) return;
+    setBusy('download-location');
+    try {
+      const result = await window.kryvex.downloadsChooseLocation();
+      if (result.location) setDownloadLocation(result.location);
+      if (result.ok) onToast(t('Download location updated.'), 'success');
+      else if (result.message !== 'Selection cancelled.') {
+        onToast(t(result.message), 'warning');
+      }
+    } catch {
+      onToast(t('The download folder could not be changed.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function useDefaultDownloadLocation() {
+    if (!window.kryvex || busy) return;
+    setBusy('download-location');
+    try {
+      const result = await window.kryvex.downloadsResetLocation();
+      if (result.location) setDownloadLocation(result.location);
+      onToast(t(result.message), result.ok ? 'success' : 'danger');
+    } catch {
+      onToast(t('The download folder could not be reset.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function toggleShield(next: boolean) {
@@ -803,6 +850,45 @@ export function Settings({
         <section className="settings-block panel">
           <h2>{t('Data')}</h2>
           <div className="setting-row">
+            <div className="download-location-copy">
+              <strong>{t('Download location')}</strong>
+              <p>
+                {t(
+                  'Regular downloads and new torrents are saved here. Torrents use a Kryvex Torrents subfolder; existing items keep the folder they were saved in.',
+                )}
+              </p>
+              {isElectron ? (
+                <code
+                  className="mono code-line download-location-path"
+                  title={downloadLocation?.path ?? ''}
+                >
+                  {downloadLocation?.path ?? t('Reading location…')}
+                </code>
+              ) : (
+                <span className="mono muted-label">{t('Available in the Windows app.')}</span>
+              )}
+            </div>
+            <div className="setting-action-stack">
+              <button
+                className="btn secondary small"
+                disabled={!isElectron || !downloadLocation || busy === 'download-location'}
+                onClick={() => void changeDownloadLocation()}
+              >
+                <Icon name="folder" size={13} />
+                {busy === 'download-location' ? t('Choosing…') : t('Change folder')}
+              </button>
+              {downloadLocation && !downloadLocation.isDefault ? (
+                <button
+                  className="link"
+                  disabled={busy === 'download-location'}
+                  onClick={() => void useDefaultDownloadLocation()}
+                >
+                  {t('Use the Downloads folder')}
+                </button>
+              ) : null}
+            </div>
+          </div>
+          <div className="setting-row">
             <div>
               <strong>{t('State file')}</strong>
               <p>{t("Plain JSON in the app's user-data directory.")}</p>
@@ -836,7 +922,7 @@ export function Settings({
                 {mark === 'donkey'
                   ? `${t('Special Donkey Edition')} · `
                   : `${t('ELEMENT x529 · Kx')} · `}
-                v{info?.version ?? '0.4.0'}
+                v{info?.version ?? '0.5.0'}
               </p>
             </div>
           </div>

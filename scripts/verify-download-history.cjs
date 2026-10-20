@@ -7,6 +7,8 @@ const path = require('node:path');
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kryvex-download-check-'));
 const downloadDir = path.join(tempRoot, 'Downloads');
+const customDownloadDir = path.join(tempRoot, 'Custom Downloads');
+const movedDownloadDir = path.join(tempRoot, 'Moved Downloads');
 const userData = path.join(tempRoot, 'userData');
 fs.mkdirSync(downloadDir, { recursive: true });
 app.setPath('downloads', downloadDir);
@@ -43,6 +45,20 @@ app.whenReady().then(async () => {
     const address = server.address();
     if (!address || typeof address === 'string') throw new Error('Download server did not start.');
 
+    const storage = require('../dist-electron/storage.js');
+    storage.initStorage();
+    if (storage.downloadLocation().path !== downloadDir) {
+      throw new Error(`Unexpected default download location: ${storage.downloadLocation().path}`);
+    }
+    storage.setDownloadLocation(customDownloadDir);
+    const location = storage.downloadLocation();
+    if (location.path !== customDownloadDir) {
+      throw new Error(`Custom download location was not applied: ${location.path}`);
+    }
+    if (location.torrentPath !== path.join(customDownloadDir, 'Kryvex Torrents')) {
+      throw new Error(`Torrent root did not follow the download location: ${location.torrentPath}`);
+    }
+
     const { downloads } = require('../dist-electron/downloads.js');
     downloads.init();
     downloads.trackSession(session.defaultSession);
@@ -53,6 +69,9 @@ app.whenReady().then(async () => {
       'completed download',
     );
     if (!fs.existsSync(record.savePath)) throw new Error('Downloaded file is missing.');
+    if (!path.resolve(record.savePath).startsWith(`${path.resolve(customDownloadDir)}${path.sep}`)) {
+      throw new Error(`Download did not use the chosen folder: ${record.savePath}`);
+    }
     if (fs.statSync(record.savePath).size !== payload.length) {
       throw new Error('Downloaded file size does not match the source.');
     }
@@ -62,6 +81,14 @@ app.whenReady().then(async () => {
     const stored = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
     if (!Array.isArray(stored) || stored[0]?.id !== record.id) {
       throw new Error('Completed download was not persisted.');
+    }
+
+    // Move the configured location again before the next launch. The old
+    // download must still restore and remain safe to delete from its retained
+    // managed root.
+    storage.setDownloadLocation(movedDownloadDir);
+    if (storage.downloadLocation().path !== movedDownloadDir) {
+      throw new Error('Second download location was not applied.');
     }
 
     // Reload the manager the same way a fresh Electron process would.
@@ -85,6 +112,14 @@ app.whenReady().then(async () => {
     empty.init();
     if (empty.list().length !== 0) throw new Error('Removed download returned after reload.');
 
+    const reset = storage.resetDownloadLocation();
+    if (!reset.ok || storage.downloadLocation().path !== downloadDir) {
+      throw new Error(`Download location did not reset: ${reset.message}`);
+    }
+    if (storage.torrentRoot() !== path.join(downloadDir, 'Kryvex Torrents')) {
+      throw new Error('Torrent root did not reset with the download location.');
+    }
+
     console.log('download history harness: PASS');
     console.log(
       JSON.stringify({
@@ -92,6 +127,9 @@ app.whenReady().then(async () => {
         bytes: payload.length,
         restored: true,
         deleted: true,
+        location: customDownloadDir,
+        movedLocation: movedDownloadDir,
+        resetToDownloads: true,
         stateFile: path.basename(stateFile),
       }),
     );

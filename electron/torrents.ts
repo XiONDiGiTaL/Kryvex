@@ -17,6 +17,7 @@ import {
   torrentFolderName,
   torrentProtocols,
 } from './torrent-rules';
+import { initStorage, isManagedTorrentPath, torrentRoot } from './storage';
 
 interface TorrentEntry {
   record: TorrentRecord;
@@ -25,7 +26,6 @@ interface TorrentEntry {
 }
 
 const TORRENT_ID = /^tr-[a-f0-9-]{16,64}$/i;
-const DOWNLOAD_FOLDER = 'Kryvex Torrents';
 const QUEUE_FILE = 'kryvex-torrents.json';
 const METADATA_DIR = 'kryvex-torrent-metadata';
 const MAX_QUEUE_FILE_BYTES = 4 * 1024 * 1024;
@@ -65,12 +65,6 @@ async function removeTree(target: string): Promise<boolean> {
   return !fs.existsSync(target);
 }
 
-function insideRoot(root: string, target: string): boolean {
-  const base = path.resolve(root);
-  const value = path.resolve(target);
-  return value === base || value.startsWith(`${base}${path.sep}`);
-}
-
 function clampProgress(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(1, value));
@@ -98,16 +92,18 @@ class TorrentManager {
   /** Load the saved rows as paused placeholders; no WebTorrent client is created. */
   init(): void {
     if (this.initialized) return;
+    initStorage();
     this.initialized = true;
     try {
       const file = queuePath();
       if (!fs.existsSync(file) || fs.statSync(file).size > MAX_QUEUE_FILE_BYTES) return;
-      const root = path.resolve(this.root());
       for (const record of restoreTorrentQueue(JSON.parse(fs.readFileSync(file, 'utf8')))) {
         const savePath = path.resolve(record.savePath);
-        // A queue file is user-editable. Never restore a path outside the
-        // torrent root or a row that would point at the root itself.
-        if (savePath === root || !insideRoot(root, savePath)) continue;
+        // A queue file is user-editable. Never restore a path outside one of
+        // the managed torrent roots, or a row that points at a root itself.
+        // Older roots stay allowed so changing the location does not strand
+        // torrents that were added before the change.
+        if (!isManagedTorrentPath(savePath)) continue;
         this.entries.set(record.id, {
           record: { ...record, savePath },
           torrent: null,
@@ -123,7 +119,7 @@ class TorrentManager {
   }
 
   root(): string {
-    return path.join(app.getPath('downloads'), DOWNLOAD_FOLDER);
+    return torrentRoot();
   }
 
   list(): TorrentRecord[] {
@@ -271,8 +267,8 @@ class TorrentManager {
   async remove(id: string, deleteData: boolean): Promise<TorrentResult> {
     const entry = this.find(id);
     if (!entry) return this.result(false, 'That torrent is no longer in the queue.');
-    if (deleteData && !insideRoot(this.root(), entry.record.savePath)) {
-      return this.result(false, 'Kryvex will only delete files inside its torrent folder.');
+    if (deleteData && !isManagedTorrentPath(entry.record.savePath)) {
+      return this.result(false, 'Kryvex will only delete files inside a managed torrent folder.');
     }
 
     try {
@@ -357,10 +353,9 @@ class TorrentManager {
   /** Turn a restored placeholder into a live WebTorrent entry on Resume. */
   private async hydrate(entry: TorrentEntry): Promise<void> {
     const { record } = entry;
-    const root = path.resolve(this.root());
     const folder = path.resolve(record.savePath);
-    if (folder === root || !insideRoot(root, folder)) {
-      throw new Error('Kryvex will only open files inside its torrent folder.');
+    if (!isManagedTorrentPath(folder)) {
+      throw new Error('Kryvex will only open files inside a managed torrent folder.');
     }
 
     const magnet = parseMagnet(record.magnetURI);

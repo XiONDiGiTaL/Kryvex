@@ -17,7 +17,7 @@
    on HTTP, and remote pages must not receive an unchanging, globally shared
    canvas/WebGL/audio fingerprint.
 
-## Design requirements (all implemented in v0.4.0; see the table below)
+## Design requirements (all implemented in v0.5.0; see the table below)
 
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox` where
   compatible; narrow `contextBridge` preloads per surface (app shell,
@@ -38,7 +38,7 @@
   default; redaction of credentials/cookies/auth headers/sensitive URLs in
   log export; no secrets in git, logs, or artifacts (pre-push scan).
 
-## Implemented in v0.4.0 (source-verified)
+## Implemented in v0.5.0 (source-verified)
 
 | Control | Where |
 | --- | --- |
@@ -58,8 +58,8 @@
 | Service partitions persist; browser tabs use in-memory `browser-*` partitions and are cleared on tab close | `electron/privacy.ts`, `electron/main.ts`, `src/views/Browser.tsx` |
 | Every IPC read and mutation validates the shell sender before returning or changing state | `electron/main.ts` `registerIpc` |
 | Narrow typed IPC; URL validated before `shell.openExternal`; download and browser mutations require the shell sender | `electron/preload.ts`, `registerIpc` |
-| Downloads saved by main under the Downloads folder; delete-file limited to tracked paths | `electron/downloads.ts` |
-| Torrents accept only validated magnets or `.torrent` files; folders live under `Downloads/Kryvex Torrents`; queue and action IDs are main-owned; deletion is path-checked; restored queue rows are validated, forced paused, and never create a client until Resume | `electron/torrents.ts`, `electron/torrent-rules.ts` |
+| Downloads saved by main under a user-selected, validated root; delete-file limited to tracked paths inside retained managed roots; the renderer never supplies a path | `electron/downloads.ts`, `electron/storage.ts`, `electron/storage-rules.ts` |
+| Torrents accept only validated magnets or `.torrent` files; new folders live under `<download root>/Kryvex Torrents`; queue and action IDs are main-owned; deletion is path-checked against retained roots; restored queue rows are validated, forced paused, and never create a client until Resume | `electron/torrents.ts`, `electron/torrent-rules.ts` |
 | Default-browser registration is opt-in, Windows-only, writes only per-user capability keys and is followed by the OS Default Apps choice | `electron/default-browser.ts`, `electron/windows-browser.ts` |
 | State: structural validation in the renderer, 1 MB cap, atomic rename, sanitisation on load | `src/lib/store.ts`, `storage.ts`, `main.ts` |
 | State is data only; services cannot execute code in the shell | module registry |
@@ -100,8 +100,7 @@ switches in Settings. Brave source code is not copied; see
 
 - Per-module permission scopes and persisted site grants (media grants are
   per origin for the current app session only).
-- Certificate error handling UI, a download location picker, and
-  history/download privacy controls.
+- Certificate error handling UI and history/download privacy controls.
 - Torrent bandwidth scheduling, ratio limits and per-file selection. Queue
   rows restore, but they do so paused and are not hydrated until Resume.
 - Per-site exceptions for HTTPS upgrades, tracking-parameter stripping or
@@ -120,11 +119,12 @@ switches in Settings. Brave source code is not copied; see
 private-session isolation, download handling, error recovery, shutdown.
 Record what was executed; never report unrun tests as passing.
 
-Executed so far: `pnpm typecheck` (0), `pnpm test` (103/103), `pnpm build` (0),
-`pnpm capture` (0, sixteen captures), restart-persistence, download-history,
-torrent-restore and find/zoom harnesses, download-manager integration test
-(completed file, collision-safe path, delete-file), Web Store extension install
-and removal harness, default-browser URL filtering/status check, the live
+Executed so far: `pnpm typecheck` (0), `pnpm test` (110/110), `pnpm build` (0),
+`pnpm capture` (0, seventeen captures), restart-persistence, download-history and
+download-location UI, torrent-restore and find/zoom harnesses, download-manager
+integration test (completed file, collision-safe path, delete-file), Web Store
+extension install and removal harness, default-browser URL filtering/status
+check, the live
 Sohbet module probe (`https://sohbet.xiondigital.net/`, `loading: false`), a
 loopback torrent harness (torrent file + magnet, real peer transfer, live
 seeder count, paused restore with no client, on-demand hydration and folder

@@ -60,7 +60,7 @@ No Rust/Go/Tauri rewrite. Architectural changes only from profiling or a
 concrete platform incompatibility.
 **Reason:** Rewrites carry unmeasured cost. The current stack already supports
 isolated sessions, hardened webviews, native downloads and Windows packaging.
-**Status:** Enforced for v0.4.0.
+**Status:** Enforced through v0.5.0.
 
 ## ED-005 — Security hardening is mandatory
 **Decision:** Kryvex must enable context isolation, disable Node integration in
@@ -84,15 +84,19 @@ disable web security globally; no Node in remote content; narrow IPC only.
 
 ## ED-008 — Browser downloads and history are first-class
 **Decision:** Downloads are observed in the trusted main process for every
-session, saved to the user's Downloads folder with collision-safe names, and
-exposed to the renderer as display records plus explicit pause/cancel/remove
-operations. History is persisted with the rest of the workspace state, capped
-at 500 entries and sanitised on load. The renderer never receives an arbitrary
-filesystem path or the ability to choose a deletion target.
+session, saved to a user-selected download root (Downloads by default) with
+collision-safe names, and exposed to the renderer as display records plus
+explicit pause/cancel/remove operations. The location is chosen through a
+main-process folder picker, persisted in `kryvex-storage.json`, and shared by
+regular downloads and the torrent root. Previously used roots are retained so
+old rows stay manageable. History is persisted with the rest of the workspace
+state, capped at 500 entries and sanitised on load. The renderer never receives
+an arbitrary filesystem path or the ability to choose a deletion target.
 **Reason:** A download UI must not become a filesystem bridge. The main process
 owns the download item, its path and its lifecycle; the renderer only sees a
 tracked record ID.
-**Status:** Implemented in v0.4.0.
+**Status:** Implemented in v0.4.0; the download-location picker ships in
+v0.5.0.
 
 ## ED-009 — Default browser is opt-in and Windows-owned
 **Decision:** Kryvex registers `http` and `https` and writes per-user Default
@@ -102,7 +106,7 @@ confirmation. Kryvex also accepts http(s) URLs passed on the command line and
 opens them in a browser tab. It never changes the system default silently.
 **Reason:** Windows 10/11 intentionally protect the default-browser choice.
 Pretending an app can override it would be inaccurate.
-**Status:** Implemented in v0.4.0; unsigned installer remains.
+**Status:** Implemented; unsigned installer remains.
 
 ## ED-010 — Browser hardening borrows goals, not Firefox code
 **Decision:** Kryvex adopts LibreWolf-inspired privacy goals only where

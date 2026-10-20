@@ -6,6 +6,7 @@ const path = require('node:path');
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kryvex-torrent-check-'));
 const downloads = path.join(tempRoot, 'Downloads');
+const movedDownloads = path.join(tempRoot, 'Moved Downloads');
 const userData = path.join(tempRoot, 'UserData');
 const queueFile = path.join(userData, 'kryvex-torrents.json');
 const metadataDir = path.join(userData, 'kryvex-torrent-metadata');
@@ -47,6 +48,7 @@ async function waitFor(predicate, label, timeout = 15000) {
 
 async function main() {
   const { torrents } = require('../dist-electron/torrents.js');
+  const storage = require('../dist-electron/storage.js');
   torrents.init();
   const WebTorrent = (await import('webtorrent')).default;
   const seeder = new WebTorrent({ dht: false, tracker: false, lsd: false, natUpnp: false, natPmp: false });
@@ -87,6 +89,17 @@ async function main() {
       throw new Error(`Unexpected file list: ${JSON.stringify(ready.files)}`);
     }
     if (!fs.existsSync(ready.savePath)) throw new Error('Torrent folder was not created');
+    if (!path.resolve(ready.savePath).startsWith(`${path.resolve(torrents.root())}${path.sep}`)) {
+      throw new Error(`Torrent did not start in the managed root: ${ready.savePath}`);
+    }
+
+    // New torrents must follow a changed download location while the file
+    // added above keeps its original path.
+    storage.setDownloadLocation(movedDownloads);
+    const movedRoot = path.join(movedDownloads, 'Kryvex Torrents');
+    if (torrents.root() !== movedRoot) {
+      throw new Error(`Torrent root did not follow the location: ${torrents.root()}`);
+    }
 
     const paused = torrents.pause(ready.id);
     if (!paused.ok || paused.records[0]?.state !== 'paused') throw new Error('Pause failed');
@@ -97,6 +110,9 @@ async function main() {
     if (!magnetic.ok) throw new Error(`addMagnet failed: ${magnetic.message}`);
     if (!magnetic.record?.infoHash) throw new Error('Magnet record has no info hash');
     if (!magnetic.record.magnetURI.startsWith('magnet:?')) throw new Error('Magnet URI was not retained');
+    if (!path.resolve(magnetic.record.savePath).startsWith(`${path.resolve(movedRoot)}${path.sep}`)) {
+      throw new Error(`Magnet did not use the changed root: ${magnetic.record.savePath}`);
+    }
     const magnetId = magnetic.record.id;
 
     // Two real WebTorrent peers on loopback: the harness seeder and the app's
@@ -125,6 +141,7 @@ async function main() {
     fresh.init();
     restored = fresh;
     if (fresh.client !== null) throw new Error('Restore started a WebTorrent client');
+    if (fresh.root() !== movedRoot) throw new Error('Fresh manager lost the changed root');
     const rows = fresh.list();
     if (rows.length !== 2) throw new Error(`Expected 2 restored rows, got ${rows.length}`);
     for (const row of rows) {
@@ -180,6 +197,11 @@ async function main() {
     if (!removedMagnet.ok) throw new Error(`magnet remove failed: ${removedMagnet.message}`);
     if (fresh.list().length !== 0) throw new Error('Removed magnet still listed');
 
+    const reset = storage.resetDownloadLocation();
+    if (!reset.ok || storage.downloadLocation().path !== downloads) {
+      throw new Error(`Torrent location did not reset: ${reset.message}`);
+    }
+
     console.log('torrent harness: PASS');
     console.log(
       JSON.stringify({
@@ -194,6 +216,7 @@ async function main() {
         restoredPaused: true,
         hydratedFile: hydratedFile.state,
         hydratedMagnet: hydratedMagnet.state,
+        movedRoot,
         folderDeleted: !fs.existsSync(downloaded.savePath),
       }),
     );

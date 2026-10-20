@@ -4,12 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { DownloadRecord, DownloadResult, DownloadState } from './types';
 import { MAX_DOWNLOAD_RECORDS, sanitizeDownloadRecords } from './download-rules';
+import { downloadLocation, initStorage, isManagedDownloadPath } from './storage';
 
 const RECORDS_FILE = 'kryvex-downloads.json';
 const MAX_RECORDS_FILE_BYTES = 1024 * 1024;
 
 function downloadsDir(): string {
-  return app.getPath('downloads');
+  return downloadLocation().path;
 }
 
 function recordsFile(): string {
@@ -38,9 +39,7 @@ function uniquePath(dir: string, filename: string): string {
 
 function insideDownloads(file: string): boolean {
   if (!file) return false;
-  const root = path.resolve(downloadsDir());
-  const target = path.resolve(file);
-  return target.startsWith(`${root}${path.sep}`);
+  return isManagedDownloadPath(file);
 }
 
 function terminal(state: DownloadState): boolean {
@@ -64,6 +63,7 @@ class DownloadManager {
   /** Load completed history once the ready event has made userData available. */
   init(): void {
     if (this.initialized) return;
+    initStorage();
     this.initialized = true;
     try {
       const file = recordsFile();
@@ -164,7 +164,7 @@ class DownloadManager {
 
     if (deleteFile) {
       if (!record.savePath || !insideDownloads(record.savePath)) {
-        return this.result(false, 'Kryvex will only delete files it saved in your Downloads folder.');
+        return this.result(false, 'Kryvex will only delete files it saved in a managed download folder.');
       }
       try {
         fs.rmSync(record.savePath, { force: true });

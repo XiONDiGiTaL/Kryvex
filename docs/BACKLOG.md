@@ -22,7 +22,12 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
 - [x] Browser session restore, persistent download history, find-in-page and
   page zoom (covered by `pnpm verify:restart`, `pnpm verify:downloads` and
   `pnpm verify:browser`).
-- [ ] Download-location picker and per-site zoom memory.
+- [x] Download-location picker for regular downloads and the torrent root,
+  persisted with retained old roots (`pnpm verify:downloads`,
+  `pnpm verify:location-ui`).
+- [x] Kryvex 0.5.0 Setup/Portable release published with the download-location
+  picker, checksum-verified artifacts and packaged smoke tests.
+- [ ] Per-site zoom memory.
 - [x] Torrent queue restore after restart: rows reload paused with no client or
   transfer, and resume only when the user asks (`pnpm verify:torrents`).
 - [ ] Per-site exceptions for HTTPS upgrades, tracking prevention and

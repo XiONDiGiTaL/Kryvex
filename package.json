@@ -1,7 +1,7 @@
 {
   "name": "kryvex",
   "productName": "Kryvex",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A modular desktop workspace that brings independent web services, a browser and shared tools into one engineered surface.",
   "license": "MIT",
   "author": {
@@ -26,6 +26,7 @@
     "package:win": "pnpm build && electron-builder",
     "verify:restart": "pnpm build && node scripts/verify-restart.cjs",
     "verify:downloads": "pnpm build && electron scripts/verify-download-history.cjs",
+    "verify:location-ui": "pnpm build && node scripts/verify-download-location-ui.cjs",
     "verify:torrents": "pnpm build && node scripts/verify-torrents.cjs",
     "verify:torrent-restore-ui": "pnpm build && node scripts/verify-torrent-restore-ui.cjs",
     "verify:browser": "pnpm build && node scripts/verify-browser-tools.cjs"

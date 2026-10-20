@@ -27,6 +27,7 @@ type IconName =
   | 'help'
   | 'command'
   | 'download'
+  | 'folder'
   | 'history';
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -151,6 +152,12 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 4v11" />
       <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
       <path d="M4.5 20h15" />
+    </>
+  ),
+  folder: (
+    <>
+      <path d="M3.5 6.5h6l2 2h9v11h-17z" />
+      <path d="M3.5 10.5h17" />
     </>
   ),
   history: (

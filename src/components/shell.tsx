@@ -216,7 +216,7 @@ export function StatusBar({
       <span className="status-sep" aria-hidden="true">
         ·
       </span>
-      <span className="mono">v{appInfo?.version ?? '0.4.0'}</span>
+      <span className="mono">v{appInfo?.version ?? '0.5.0'}</span>
     </footer>
   );
 }

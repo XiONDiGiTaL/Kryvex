@@ -1958,6 +1958,19 @@ select:hover {
   color: var(--muted);
 }
 
+.download-location-copy {
+  flex: 1;
+}
+
+.download-location-path {
+  display: block;
+  max-width: 100%;
+  margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .segmented {
   display: inline-flex;
   padding: 2px;

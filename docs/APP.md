@@ -1,4 +1,4 @@
-# Kryvex application architecture (v0.4.0)
+# Kryvex application architecture (v0.5.0)
 
 This document describes the app that lives in `electron/` and `src/`. It is a
 purpose-built Electron application; no third-party desktop workspace is
@@ -12,11 +12,11 @@ vendored or rebranded.
 | Renderer | React 19 + TypeScript 7, bundled by Vite 8 |
 | State | Pure reducer-style helpers in `src/lib/store.ts`, persisted as JSON |
 | Styling | One stylesheet driven by CSS custom properties from `brand/tokens.json` |
-| Tests | Vitest, 103 unit tests over URL, services, catalogue, store, history, downloads, page zoom, themes, Windows browser registration, torrent rules and queue restore, media permissions and Brave-style URL rules |
+| Tests | Vitest, 110 unit tests over URL, services, catalogue, store, history, downloads and storage location, page zoom, themes, Windows browser registration, torrent rules and queue restore, media permissions and Brave-style URL rules |
 | Shield | `@ghostery/adblocker` over downloaded uBO/EasyList lists, with a combined privacy rewrite pipeline |
 | Extensions | Electron `session.extensions` with a guarded ZIP/CRX/folder installer |
-| Downloads | Chromium `will-download` events, main-process records, safe file lifecycle |
-| Torrents | WebTorrent 3 in the main process, magnet/.torrent input, fixed download root, live peer stats, persisted paused queue |
+| Downloads | Chromium `will-download` events, main-process records, user-selected root, safe file lifecycle |
+| Torrents | WebTorrent 3 in the main process, magnet/.torrent input, selected download root, live peer stats, persisted paused queue |
 | Voice/video | Per-session permission broker; explicit microphone/camera prompt for webviews |
 | Browser registration | Per-user Default Apps capabilities + `app.setAsDefaultProtocolClient` handoff |
 | Packaging | electron-builder (NSIS + portable, Windows), unsigned |
@@ -178,12 +178,12 @@ managed directory. `.xpi` is rejected because Electron is Chromium, not Gecko.
 ## Browser library and downloads
 
 `electron/downloads.ts` listens to `will-download` on every tracked session. It
-ows the `DownloadItem`, chooses a collision-safe path under the Windows
-Downloads folder, and publishes a `DownloadRecord` (filename, source, progress,
+ows the `DownloadItem`, chooses a collision-safe path under the configured
+download root, and publishes a `DownloadRecord` (filename, source, progress,
 state, timestamps). The renderer receives records through
 `kryvex:downloads:changed` and can call pause, cancel, open-file, show-in-folder,
 remove or delete-file by tracked ID. Delete-file is limited to paths the manager chose
-inside Downloads; the renderer never supplies a path. A completed `.torrent`
+inside a retained managed root; the renderer never supplies a path. A completed `.torrent`
 download is handed to the torrent queue once, without changing the normal
 download record. Completed and interrupted records are written atomically to
 `userData/kryvex-downloads.json` by `electron/download-rules.ts`-validated data,
@@ -191,11 +191,20 @@ so the Downloads tab is a real library rather than a per-session list. A
 download that was live when the app stopped is shown as interrupted, not
 running.
 
+`electron/storage.ts` owns the user-selected root. It persists
+`userData/kryvex-storage.json` atomically, validates absolute paths against a
+writable directory, and keeps a bounded list of previously used roots. The
+default is Electron's Downloads folder. The Settings row uses a native folder
+picker; the main process, not the renderer, receives and normalises the
+selected path. New regular downloads use the current root; rows saved before a
+change remain openable and deletable because their old root is retained.
+
 `electron/torrents.ts` owns a persisted WebTorrent queue behind the same
 Downloads tab. Magnet links are validated (`urn:btih`, 40-hex or 32-base32,
-maximum 16 KiB) and `.torrent` files are limited to 10 MB. Every torrent gets a
-managed folder under `Downloads/Kryvex Torrents`; the renderer never supplies a
-path. The queue exposes progress, downloaded/uploaded bytes, down/up speed,
+maximum 16 KiB) and `.torrent` files are limited to 10 MB. Every new torrent
+gets a managed folder under `<download root>/Kryvex Torrents`; the renderer
+never supplies a path. The queue exposes progress, downloaded/uploaded bytes,
+down/up speed,
 ratio, remaining time, connected peers, seeders, leechers, active protocol
 badges, trackers and a capped file list. Pause stops new wires and closes the
 current ones; resume re-announces to trackers. Remove can keep data or delete
@@ -205,9 +214,10 @@ Queue records are written atomically to `userData/kryvex-torrents.json` (4 MB
 cap). Original `.torrent` metadata is copied to
 `userData/kryvex-torrent-metadata/<id>.torrent`, so the source file can be moved
 or deleted. On launch, `torrents.init()` validates those records, checks every
-restored path is inside the managed root, forces each row to `paused`, clears
-live speeds and peer counters, and does **not** construct a WebTorrent client.
-Resume is the only path that hydrates a row: it loads the saved `.torrent` (or
+restored path is inside one of the retained managed torrent roots, forces each
+row to `paused`, clears live speeds and peer counters, and does **not**
+construct a WebTorrent client. Changing the download location therefore does
+not strand a queue row that was added earlier. Resume is the only path that hydrates a row: it loads the saved `.torrent` (or
 magnet), verifies the existing pieces, and only then starts discovery. The
 queue is capped at 25.
 
@@ -325,15 +335,15 @@ pnpm capture   # build, launch with KRYVEX_CAPTURE=1, write screenshots/
 The capture routine drives real routes (`#/home`, `#/home?help=1`,
 `#/services`, `#/services?dialog=new`, `#/service/<id>`, `#/browser?newtab=1`,
 `#/browser?panel=downloads`, `#/browser?url=…&panel=history`, `#/settings`,
-shield/browser/plugin scroll positions, `#/home?palette=1`,
+data/shield/browser/plugin scroll positions, `#/home?palette=1`,
 `#/home?theme=…`), waits for each view, and captures the window with
-`webContents.capturePage()`. It writes sixteen 1440×900 images. `pnpm capture`
+`webContents.capturePage()`. It writes seventeen 1440×900 images. `pnpm capture`
 therefore doubles as a smoke test: the app must boot and render every route
 before screenshots exist.
 
 ## Known gaps
 
-- No hibernation or download-location picker.
+- No module hibernation.
 - Torrent rows restore paused, but no bandwidth scheduler, ratio limit,
   per-file selection or sequential-download toggle exists.
 - No custom-theme import/export; themes are seven built-ins plus one plugin.

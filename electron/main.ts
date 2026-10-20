@@ -8,6 +8,12 @@ import { configurePrivacySwitches, hardenSession } from './hardening';
 import { permissions } from './permissions';
 import { isSafePartition } from './privacy';
 import { shield } from './shield';
+import {
+  chooseDownloadLocation,
+  downloadLocation,
+  initStorage,
+  resetDownloadLocation,
+} from './storage';
 import { isMagnetLink } from './torrent-rules';
 import { torrents } from './torrents';
 import { webPrivacy } from './web-privacy';
@@ -294,6 +300,20 @@ function registerIpc(): void {
     return extensions.remove(key);
   });
   ipcMain.handle('kryvex:downloads:list', (event) => (isShellSender(event) ? downloads.list() : []));
+  ipcMain.handle('kryvex:downloads:location', (event) =>
+    isShellSender(event) ? downloadLocation() : null,
+  );
+  ipcMain.handle('kryvex:downloads:choose-location', (event) => {
+    if (!isShellSender(event) || !mainWindow) {
+      return { ok: false, message: 'The main window is not ready.', location: null };
+    }
+    return chooseDownloadLocation(mainWindow);
+  });
+  ipcMain.handle('kryvex:downloads:reset-location', (event) =>
+    isShellSender(event)
+      ? resetDownloadLocation()
+      : { ok: false, message: 'Untrusted sender.', location: null },
+  );
   ipcMain.handle('kryvex:downloads:pause', (event, id: unknown) => {
     if (!isShellSender(event) || typeof id !== 'string') return false;
     return downloads.pause(id);
@@ -431,6 +451,7 @@ async function runCapture(win: BrowserWindow): Promise<void> {
       wait: 2500,
     },
     { name: 'settings', hash: '#/settings' },
+    { name: 'settings-data', hash: '#/settings', scroll: '.download-location-copy' },
     { name: 'settings-shield', hash: '#/settings', scroll: '.shield-panel' },
     {
       name: 'settings-browser',
@@ -509,6 +530,9 @@ if (!gotLock) {
   app.whenReady().then(async () => {
     for (const url of defaultBrowser.acceptArgv(process.argv)) defaultBrowser.queueUrl(url);
     shield.init();
+    // The location config must be loaded before downloads or torrents read
+    // their roots for the first time.
+    initStorage();
     downloads.init();
     // Restore only the display rows here; WebTorrent is created on Resume.
     torrents.init();

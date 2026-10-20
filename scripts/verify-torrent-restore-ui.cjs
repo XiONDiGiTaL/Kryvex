@@ -75,7 +75,8 @@ fs.writeFileSync(
   ]),
 );
 
-const child = spawn(electron, ['.', `--remote-debugging-port=${port}`], {
+const packagedApp = process.env.KRYVEX_APP ? path.resolve(process.env.KRYVEX_APP) : null;
+const child = spawn(packagedApp ?? electron, packagedApp ? [`--remote-debugging-port=${port}`] : ['.', `--remote-debugging-port=${port}`], {
   cwd: path.resolve(__dirname, '..'),
   env: {
     ...process.env,

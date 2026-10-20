@@ -1,12 +1,13 @@
 # Kryvex — Project Status
 
-**Product:** Kryvex Desktop 0.4.0 — a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.5.0 — a modular Electron workspace where web apps
 become isolated, themed modules, with a restorable browser session, a persistent
-download history, find-in-page and page zoom, history/bookmarks and a persisted
-torrent queue that restores paused, microphone/camera prompts for web calls, and
+download history, find-in-page and page zoom, history/bookmarks, a persisted
+torrent queue that restores paused, microphone/camera prompts for web calls,
 Brave-style HTTPS upgrades, tracking-parameter stripping and per-site
-fingerprint farbling. Fictional element `x529`, symbol `Kx`, tagline “Precision
-in Every Connection.”
+fingerprint farbling, and a download-location picker shared by regular
+downloads and the torrent root. Fictional element `x529`, symbol `Kx`, tagline
+“Precision in Every Connection.”
 
 **Repository:** https://github.com/XiONDiGiTaL/Kryvex (public, `main`, no
 force-push). Working directory remains `X:\Veyra`.
@@ -40,9 +41,10 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 - [x] **M6 — Browser (core).** Tabs that reopen after a restart, back/forward/
   reload, address bar with host-or-search resolution, bookmarks bar and toggle,
   in-memory per-tab partitions, system-browser handoff, a persistent
-  downloads/history/bookmarks library, find-in-page, page zoom, and a persisted
-  WebTorrent queue inside Downloads that returns paused after a restart.
-  Per-site zoom memory and a download-location picker remain.
+  downloads/history/bookmarks library, find-in-page, page zoom, a persisted
+  WebTorrent queue inside Downloads that returns paused after a restart, and a
+  download-location picker shared by downloads and new torrents. Per-site zoom
+  memory remains.
 - [ ] **M7 — Security (baseline shipped).** Sandboxed renderer, context
   isolation, a narrowed typed IPC bridge, hardened webviews, partition
   allowlist, http(s)-only navigation, an explicit per-origin mic/camera prompt
@@ -53,65 +55,76 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   farbling and EasyList Cookie. Remaining: per-site privacy exceptions,
   persisted per-module scopes, Safe Browsing equivalent, `pnpm audit`,
   packaged-app integrity checks, renderer CSP, macOS/Linux validation.
-- [ ] **M8 — Testing (partial).** 103/103 unit tests, strict typecheck, build and
-  sixteen-capture pass; live Sohbet probe passed. Download-manager,
+- [ ] **M8 — Testing (partial).** 110/110 unit tests, strict typecheck, build and
+  seventeen-capture pass; live Sohbet probe passed. Download-manager,
   default-browser, Web Store extension, loopback torrent (real peer transfer),
   torrent IPC/UI, real webview media-permission and privacy harnesses passed.
-  Restart persistence, download history, torrent queue restore, the restored
-  torrent row in the built UI, and find/zoom are now automated through
-  `pnpm verify:restart`, `pnpm verify:downloads`, `pnpm verify:torrents`,
-  `pnpm verify:torrent-restore-ui` and `pnpm verify:browser`. Remaining: broader
-  e2e UI coverage, backup/restore, measured performance comparison
-  (`docs/PERFORMANCE.md` still holds no numbers).
-- [ ] **M9 — Packaging & CI.** The 0.4.0 Setup and Portable EXEs published from
-  the complete source tree (WebTorrent, persistence/find/zoom and paused
-  torrent restore included) build with a selectable install folder,
-  Desktop/Start Menu shortcuts and an uninstaller. Custom-dir install,
-  installed and portable capture, packaged paused-row smoke tests, checksums
-  and clean uninstall were verified. Remaining: code signing, interactive
-  wizard pass and CI.
+  Restart persistence, download history, the download-location row/reset
+  action, torrent queue restore across a location change, the restored torrent
+  row in the built UI, and find/zoom are automated through
+  `pnpm verify:restart`, `pnpm verify:downloads`, `pnpm verify:location-ui`,
+  `pnpm verify:torrents`, `pnpm verify:torrent-restore-ui` and
+  `pnpm verify:browser`. Remaining: broader e2e UI coverage, backup/restore,
+  measured performance comparison (`docs/PERFORMANCE.md` still holds no
+  numbers).
+- [ ] **M9 — Packaging & CI.** The 0.5.0 Setup and Portable EXEs are published
+  from the complete source tree (download-location picker, WebTorrent,
+  persistence/find/zoom and paused torrent restore included). They build with
+  a selectable install folder, Desktop/Start Menu shortcuts and an uninstaller;
+  custom-dir install, installed/portable/unpacked capture, packaged
+  paused-row and download-location smoke tests, checksums and clean uninstall
+  were verified. Remaining: code signing, interactive wizard pass and CI.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 and 0.4.0 releases
-  published with checksum-verified artifacts.
-- [ ] **M11 — Final review.** README with eighteen real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0/0.4.0
-  release records are in place. Outstanding: engineering report and a signed
-  public release.
+  secret-scanned, main pushed and verified remotely; 0.3.0, 0.4.0 and 0.5.0
+  releases published with checksum-verified artifacts.
+- [ ] **M11 — Final review.** README with nineteen real screenshots, banner,
+  feature/security/limitation sections, honest testing docs and 0.3.0/0.4.0/
+  0.5.0 release records are in place. Outstanding: engineering report and a
+  signed public release.
 
 ## Verified evidence (2026-10-19)
 
 - `pnpm typecheck` → exit 0 (renderer and main, strict TypeScript).
-- `pnpm test` → exit 0, 103/103 passed.
-- `pnpm build` → exit 0; `dist/assets/index-*.js` 461.03 kB,
-  `index-*.css` 53.87 kB; `dist-electron/` main + preload emitted.
-- `pnpm capture` → exit 0; sixteen 1440×900 PNGs regenerated from the running
-  Electron window in a disposable profile (`home`, `help`, `services`,
+- `pnpm test` → exit 0, 110/110 passed.
+- `pnpm build` → exit 0; `dist/assets/index-*.js` 468.11 kB,
+  `index-*.css` 54.02 kB; `dist-electron/` main + preload emitted.
+- `pnpm capture` → exit 0; seventeen 1440×900 PNGs regenerated from the
+  running Electron window in a disposable profile (`home`, `help`, `services`,
   `add-service`, `service`, `browser`, `browser-downloads`, `browser-history`,
-  `settings`, `settings-shield`, `settings-browser`, `settings-plugins`,
-  `settings-about`, `donkey-theme`, `command-palette`, `light-theme`).
+  `settings`, `settings-data`, `settings-shield`, `settings-browser`,
+  `settings-plugins`, `settings-about`, `donkey-theme`, `command-palette`,
+  `light-theme`).
 - `pnpm verify:restart` → pass; theme, start view and an open tab survived a
   real close/relaunch, including a change made immediately before close. A URL
   passed on the command line opened beside the restored tab.
-- `pnpm verify:downloads` → pass; a completed download was persisted, reloaded
-  by a fresh manager, deleted with its file, and stayed gone after another
-  reload.
-- `pnpm verify:torrents` → pass; a real `.torrent` and magnet were persisted,
-  restored as two paused rows in a fresh manager with no WebTorrent client,
-  hydrated on Resume, downloaded again, and removed with their folders and
-  saved metadata.
+- `pnpm verify:downloads` → pass; a completed download was written under a
+  chosen folder, the location was changed again, the record reloaded in a
+  fresh manager, deleted with its file, and stayed gone after another reload.
+  The location reset back to Downloads and the torrent root followed it.
+- `pnpm verify:torrents` → pass; a real `.torrent` and magnet were persisted
+  across a download-location change, restored as two paused rows in a fresh
+  manager with no WebTorrent client, hydrated on Resume, downloaded again, and
+  removed with their folders and saved metadata. The old row remained valid
+  after the root moved.
+- `pnpm verify:location-ui` → pass; the built app showed the seeded custom
+  folder in **Settings → Data**, offered Change folder and reset, and reset the
+  live path and bridge value to the real Downloads folder. The same harness
+  passed against `release/win-unpacked/Kryvex.exe` after
+  `electron-builder --dir` rebuilt the unpacked app.
 - `pnpm verify:torrent-restore-ui` → pass; the built app opened with a seeded
   queue and the Downloads hub rendered the restored row as `Paused` with a
   `Resume` action, no active speed and zero peers.
 - `pnpm verify:browser` → pass; find-in-page reported `1 of 3`, zoom reached
   110% on the live webview and reset to 100%.
-- Setup build → exit 0; rebuilt `release/Kryvex-Setup-0.4.0-x64.exe`
-  (`e2df87d0…0735`, 114.6 MiB) and `release/Kryvex-Portable-0.4.0-x64.exe`
-  (`6534a06f…5165`, 114.3 MiB). The setup installed silently to a custom
-  temporary folder, the installed and portable EXEs each completed all sixteen
-  capture routes, and a seeded queue rendered the restored torrent as paused
-  with a Resume action in the unpacked, portable and installed builds. Silent
-  uninstall removed the folder, both shortcuts and the uninstall entry. Both
-  EXEs report `NotSigned`.
+- Setup build → exit 0; produced `release/Kryvex-Setup-0.5.0-x64.exe`
+  (`991be75a…3206`, 114.5 MiB) and `release/Kryvex-Portable-0.5.0-x64.exe`
+  (`42cc1530…89c8`, 114.3 MiB). Both report version 0.5.0 and `NotSigned`.
+  The setup installed silently to a custom temporary folder, and the installed,
+  portable and unpacked builds each completed all seventeen capture routes;
+  the packaged app also passed the download-location UI harness. A seeded
+  queue rendered the restored torrent as paused with a Resume action in the
+  unpacked, portable and installed builds. Silent uninstall removed the
+  folder, both shortcuts and the uninstall entry.
 - Download-manager harness → exit 0; completed file path, exact bytes,
   collision-safe second filename, remove-record and delete-file all verified.
 - Torrent harness → exit 0; loaded the built main-process manager and
@@ -150,8 +163,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
 - Windows only; no macOS/Linux run or platform icon sets.
 - No code-signed installer, auto-update, or CI.
-- No download-location picker or module hibernation; page zoom is remembered
-  per tab for the current session only.
+- No module hibernation; page zoom is remembered per tab for the current
+  session only.
 - Torrent rows restore paused, but there is no bandwidth scheduler, ratio
   limit, per-file selection or router port mapping.
 - Microphone/camera grants are per origin for the current app session only.
@@ -168,5 +181,5 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
 ## Next concrete action
 
-Choose between a download-location picker or Theme Studio as the next product
-milestone, while pursuing code signing for a future signed release.
+0.5.0 is published; no packaging action is pending. Take up Theme Studio or
+module hibernation next, while pursuing code signing for a signed release.

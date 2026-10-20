@@ -65,13 +65,14 @@ away.
   modes, brand tokens, visible focus rings, reduced-motion support, and a
   periodic-table identity built from one vector tile.
 
-> Status: **working desktop prototype (0.4.0)**. The app boots, modules load,
+> Status: **working desktop prototype (0.5.0)**. The app boots, modules load,
 > sessions persist, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
 > fallback, tracking parameters are stripped, canvas/WebGL/audio readbacks are
 > farbled per site, the browser keeps downloads/history/bookmarks, calls can
-> request the microphone and camera, torrents live in the downloads hub, and
-> the Windows installer and portable build run. Builds are unsigned; no
+> request the microphone and camera, torrents live in the downloads hub,
+> downloads and new torrents can use any writable folder you choose, and the
+> Windows installer and portable build run. Builds are unsigned; no
 > auto-update yet.
 
 ## Install on Windows
@@ -81,12 +82,12 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.4.0-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.4.0-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.5.0-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.5.0-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.4.0** artifacts were rebuilt from the complete source tree and are
+The **0.5.0** artifacts were built from the complete source tree and are
 published on the [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
-The checksum list covers the two 0.4.0 artifacts in this release.
+The checksum list covers the two 0.5.0 artifacts in this release.
 
 The setup is not click-through: it opens a normal Windows wizard, lets you
 pick the install location, and can launch Kryvex when it finishes. The default
@@ -94,16 +95,39 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The 0.4.0 Setup was installed to a custom directory, launched from that
-install, and uninstalled cleanly. The Portable EXE was launched directly. Both
-completed all sixteen capture routes. Artifact checksums, verification steps
-and limitations are recorded in [docs/RELEASE_0.4.0.md](docs/RELEASE_0.4.0.md).
+The 0.5.0 Setup was installed to a custom directory, launched from that
+install, and uninstalled cleanly. The Portable EXE was launched directly. The
+installed, portable and unpacked builds each completed all seventeen capture
+routes, and the packaged app passed the download-location UI harness. Artifact
+checksums, verification steps and limitations are recorded in
+[docs/RELEASE_0.5.0.md](docs/RELEASE_0.5.0.md).
 
 **Unsigned build notice.** Code signing is not configured yet, so Windows
 SmartScreen may show **Unknown publisher**. Only continue if you built the
 artifact yourself or downloaded it from a release you trust.
 
-## What's new in 0.4.0
+## What's new in 0.5.0
+
+- **Choose where files go:** **Settings → Data** now shows the active download
+  folder and opens the native Windows folder picker. Regular downloads save
+  directly into it; new torrents use its `Kryvex Torrents` subfolder.
+- **One click back to normal:** **Use the Downloads folder** restores the
+  system Downloads folder. The choice is stored in
+  `userData/kryvex-storage.json` and survives restarts.
+- **Validated, not guessed:** the location must be an absolute, writable
+  directory. A damaged or hand-edited config falls back safely, and the app
+  never writes outside a folder it has checked.
+- **Old files stay yours:** previously used folders are retained, so existing
+  downloads and torrent rows can still be opened, resumed or deleted after a
+  change.
+- **Localized:** the new controls and errors follow the system language or an
+  explicit choice of English, Spanish, German or French.
+
+The 0.4.0 features below — the browser library, session restore, find/zoom,
+privacy protections, calls, torrents and extensions — are all included in
+0.5.0.
+
+## What was new in 0.4.0
 
 - **Brave-style privacy protections:** top-level HTTP navigations try HTTPS
   first and retry once over HTTP when the secure connection is unavailable;
@@ -184,8 +208,8 @@ faster; the same actions remain available on screen.
 | **Service workspace** | Live webview with reload, open externally, edit, remove, loading bar, and an error state with retry when a page refuses to load. |
 | **Browser** | Tabs that reopen after a restart, back / forward / reload, address bar with host-or-search resolution, per-tab in-memory session, find-in-page (`Ctrl F`), page zoom (`Ctrl +` / `Ctrl -` / `Ctrl 0`), bookmarks bar, system-browser handoff, direct URL deep links. |
 | **Browser library** | Downloads, history and bookmarks in a side panel. Live download progress, pause/resume, cancel, show in folder, remove and delete-file actions; searchable history with clear/remove; full bookmark list. |
-| **Downloads** | Chromium downloads are observed in the main process across services and browser tabs, saved to the Windows Downloads folder with collision-safe names, and exposed only as tracked display records. Finished history is written to `userData/kryvex-downloads.json`, so the library survives a restart; a download interrupted by quitting is shown as interrupted. |
-| **Torrents** | Magnet links and `.torrent` files open into the Downloads hub. Live progress, seeders/leechers, download/upload speed, ratio, time remaining, protocols, trackers and file list; pause/resume, reveal folder, remove, and optional data deletion. The queue is written to `userData/kryvex-torrents.json` and restored paused after a restart; no transfer resumes until the user presses Resume. Kryvex does not host, index or recommend torrents. |
+| **Downloads** | Chromium downloads are observed in the main process across services and browser tabs, saved to the folder chosen in **Settings → Data** (Downloads by default) with collision-safe names, and exposed only as tracked display records. Finished history is written to `userData/kryvex-downloads.json`, so the library survives a restart; a download interrupted by quitting is shown as interrupted. |
+| **Torrents** | Magnet links and `.torrent` files open into the Downloads hub. New torrents use a `Kryvex Torrents` subfolder inside the chosen download location. Live progress, seeders/leechers, download/upload speed, ratio, time remaining, protocols, trackers and file list; pause/resume, reveal folder, remove, and optional data deletion. The queue is written to `userData/kryvex-torrents.json` and restored paused after a restart; no transfer resumes until the user presses Resume. Kryvex does not host, index or recommend torrents. |
 | **Calls** | A visible prompt grants microphone and camera access per site. Works in service modules and browser tabs, so Discord, WhatsApp, Messenger, Instagram and Telegram web calls can use the local devices. Other permissions remain denied. |
 | **Default browser** | Opt-in per-user Default Apps capabilities for `http` and `https`, Windows handoff, status readout, and command-line link handling. |
 | **Kryvex Shield** | Native network filtering from uBlock Origin filters, uBO Privacy/Badware, EasyList, EasyPrivacy and EasyList Cookie. Live blocked counter, filter count, update-now, cached engine, per-session attachment. No MV3. |
@@ -199,7 +223,7 @@ faster; the same actions remain available on screen.
 | **Command palette** | Fuzzy-ish filter over navigation, actions, services and themes; arrow keys, `Enter`, `Esc`. Optional — every action also has a visible button. |
 | **Persistence** | Debounced writes with an atomic temp-file rename, 1 MB cap, defensive sanitisation on every load. Reset restores starters. |
 | **Security** | Sandboxed renderer, context isolation, fixed IPC bridge, sender checks on every IPC call, hardened webviews, partition allowlist, http(s)-only navigation, prompt-only microphone/camera access, denied device permissions, externalised popups, GPC, referrer trimming, no-pings, no DNS prefetch, WebRTC public-interface policy, HTTPS upgrades with a one-time fallback, tracking-parameter stripping and per-site fingerprint farbling. |
-| **Quality** | 103 unit tests, strict TypeScript across renderer and main, production build, packaged-app run, real screenshots from the running window, and harnesses for restart persistence, download history, torrent restore, find-in-page and zoom. |
+| **Quality** | 110 unit tests, strict TypeScript across renderer and main, production build, packaged-app run, real screenshots from the running window, and harnesses for restart persistence, download history and location, torrent restore, find-in-page and zoom. |
 
 ## Screenshots
 
@@ -307,6 +331,15 @@ and EasyList explicitly.
 A self-contained plugin: true-black surfaces, gold line work, and a donkey mark
 in place of the element tile. It is still a normal token theme, so every
 surface, focus ring and chart follows it.
+
+### Download location
+
+![Settings Data section with the download folder, Change folder and reset actions](screenshots/settings-data.png)
+
+**Settings → Data** shows the folder regular downloads and new torrents use.
+**Change folder** opens the native folder picker; **Use the Downloads folder**
+returns to the system default. Existing downloads and torrent rows keep the
+folder they were saved in.
 
 ### Settings and themes
 
@@ -588,7 +621,7 @@ pnpm dev
 
 # 3. verify
 pnpm typecheck     # renderer + main, strict
-pnpm test          # 103 unit tests
+pnpm test          # 110 unit tests
 
 # 4. production build
 pnpm build         # dist/ (renderer) + dist-electron/ (main + preload)
@@ -607,8 +640,9 @@ pnpm start         # run the built app
 | `pnpm test` | Vitest unit suite. |
 | `pnpm capture` | Rebuild and regenerate `screenshots/` from the running app in a disposable profile. |
 | `pnpm verify:restart` | Close/relaunch the built app and check theme, start view and saved tabs. |
-| `pnpm verify:downloads` | Persist a real download, reload the manager and delete the restored file. |
-| `pnpm verify:torrents` | Persist a .torrent and magnet, restore them paused in a fresh manager, then resume and delete both. |
+| `pnpm verify:downloads` | Persist a real download in a chosen folder, reload the manager and delete the restored file. |
+| `pnpm verify:location-ui` | Launch the built app, check the download-location row and reset it to the real Downloads folder. |
+| `pnpm verify:torrents` | Persist a .torrent and magnet across a location change, restore them paused in a fresh manager, then resume and delete both. |
 | `pnpm verify:torrent-restore-ui` | Launch the built app with a seeded queue and check the restored paused row and Resume action in Downloads. |
 | `pnpm verify:browser` | Drive find-in-page and page zoom through the real toolbar. |
 | `pnpm run package:dir` | electron-builder unpacked Windows directory (`release/win-unpacked`). |
@@ -643,11 +677,14 @@ a Portable EXE for no-install use. The unpacked build remains at
   `kryvex-extensions.json`.
 - Browser tabs do not write cookies or storage to disk; their in-memory
   partitions are cleared when the tab closes.
-- Torrents download to `Downloads/Kryvex Torrents/<name>-<hash>`. Queue rows
-  are stored in `userData/kryvex-torrents.json`; `.torrent` metadata is copied
-  to `userData/kryvex-torrent-metadata/`. A restart restores the rows as
-  paused, with no client or transfer running. Kryvex does not open router
-  ports (UPnP/PMP are off).
+- The download folder is stored in `userData/kryvex-storage.json`; the default
+  is the Windows Downloads folder. Regular downloads use it directly and new
+  torrents use its `Kryvex Torrents` subfolder. Previously used roots are
+  retained so existing files can still be opened or deleted after a change.
+- Torrent queue rows are stored in `userData/kryvex-torrents.json`; `.torrent`
+  metadata is copied to `userData/kryvex-torrent-metadata/`. A restart restores
+  the rows as paused, with no client or transfer running. Kryvex does not open
+  router ports (UPnP/PMP are off).
 - Microphone and camera grants are per origin and in memory; closing Kryvex
   forgets them. No grant is persisted to `kryvex-state.json`.
 - Kryvex has no backend, account system, telemetry or remote config. Network
@@ -747,9 +784,9 @@ The full license and modification notes are in
   reject the Electron user agent may not work inside a module. Kryvex offers
   "Open externally" instead of weakening security.
 - **Browser is intentionally lean.** Downloads, torrents, history navigation,
-  a browser library, bookmarks, find-in-page and page zoom are implemented;
-  there is no download-location picker or dedicated extension-manager store
-  page yet. Store detail pages expose the Kryvex install bar.
+  a browser library, bookmarks, find-in-page, page zoom and a download-location
+  picker are implemented; there is no dedicated extension-manager store page
+  yet. Store detail pages expose the Kryvex install bar.
 - **Torrents restore, but only transfer on Resume.** The queue is restored
   paused, so nothing continues in the background after a restart. There is no
   bandwidth scheduler, ratio limit, per-file selection or sequential download
@@ -780,8 +817,7 @@ The full license and modification notes are in
 - Theme Studio: custom accent, radius, density and import/export with schema
   validation.
 - Hibernation: suspend idle modules to reclaim memory, with explicit states.
-- Browser depth: download location picker, per-site zoom memory and history
-  privacy controls.
+- Browser depth: per-site zoom memory and history privacy controls.
 - Torrent depth: restore the queue after restart, bandwidth scheduling, ratio
   limits, per-file selection and a sequential-download switch.
 - Packaging: signed Windows builds and a CI matrix.

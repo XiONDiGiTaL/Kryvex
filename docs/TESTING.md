@@ -1,4 +1,4 @@
-# Testing record — Kryvex 0.4.0
+# Testing record — Kryvex 0.5.0
 
 All results below were produced on 2026-10-19 on Windows with Node 24.19.0,
 pnpm 12.3.4 and Electron 44.2.0. Commands were run from `X:\Veyra`; no test was
@@ -9,21 +9,24 @@ skipped, weakened or excluded to make the suite pass.
 | Command | Result | Scope |
 | --- | --- | --- |
 | `pnpm typecheck` | exit 0 | `tsc --noEmit` for renderer and `electron/` (strict) |
-| `pnpm test` | exit 0, 103/103 | Vitest: URL normalisation/search resolution, service validation and helpers, starter state, state sanitisation (including saved browser tabs) and registry operations, history, download-history validation, page-zoom stepping, catalogue, theme catalogue, Windows browser registration, i18n catalogues, Chrome Web Store URLs, privacy partitions/referrers/headers, Brave-style URL rewrites and farbling rules, media permission helpers, torrent magnet/name/peer/protocol rules and paused queue restore |
-| `pnpm build` | exit 0 | Vite renderer (`dist/`) + `tsc` main/preload (`dist-electron/`); 461.03 kB JS, 53.87 kB CSS |
-| `pnpm capture` | exit 0 | Launches the built Electron window in a disposable profile and writes sixteen 1440×900 PNGs |
+| `pnpm test` | exit 0, 110/110 | Vitest: URL normalisation/search resolution, service validation and helpers, starter state, state sanitisation (including saved browser tabs) and registry operations, history, download-history and storage-location validation, page-zoom stepping, catalogue, theme catalogue, Windows browser registration, i18n catalogues, Chrome Web Store URLs, privacy partitions/referrers/headers, Brave-style URL rewrites and farbling rules, media permission helpers, torrent magnet/name/peer/protocol rules and paused queue restore |
+| `pnpm build` | exit 0 | Vite renderer (`dist/`) + `tsc` main/preload (`dist-electron/`); 468.11 kB JS, 54.02 kB CSS |
+| `pnpm capture` | exit 0 | Launches the built Electron window in a disposable profile and writes seventeen 1440×900 PNGs |
 | `pnpm verify:restart` | exit 0 | Real app launched repeatedly: theme, start view and a browser tab survive; a setting changed just before close also survives; a URL passed on the command line joins the restored tab |
-| `pnpm verify:downloads` | exit 0 | Completed download persisted to `kryvex-downloads.json`, reloaded by a fresh manager, then deleted from disk and from the library |
-| `pnpm verify:torrents` | exit 0 | A real `.torrent` and magnet are persisted, restored paused in a fresh manager with no WebTorrent client, then hydrated on Resume; both download, report a seed, and delete their data |
+| `pnpm verify:downloads` | exit 0 | A completed download was written to a chosen folder, the location moved again, then the record was reloaded by a fresh manager and deleted from disk and the library; reset returned to Downloads |
+| `pnpm verify:location-ui` | exit 0 | The built app showed a seeded custom folder in **Settings → Data**, offered Change folder/reset, and reset the live path and bridge value to the real Downloads folder |
+| `pnpm verify:torrents` | exit 0 | A real `.torrent` and magnet were persisted across a location change, restored paused in a fresh manager with no WebTorrent client, then hydrated on Resume; both downloaded, reported a seed, and deleted their data |
 | `pnpm verify:torrent-restore-ui` | exit 0 | The built app opens a seeded profile with a saved torrent row and renders it as paused in the Downloads hub with a Resume action |
 | `pnpm verify:browser` | exit 0 | Find-in-page reports `1 of 3` for a local page; zoom reaches 110% on the live webview and resets to 100% |
-| `pnpm run package:win` | exit 0 | Rebuilt Setup and Portable EXEs from the complete 0.4.0 tree; both report `NotSigned` |
+| `pnpm exec electron-builder --dir` | exit 0 | Unpacked Windows app rebuilt from this tree; the packaged `Kryvex.exe` passed `verify:location-ui` with `KRYVEX_APP` |
+| `pnpm run package:win` | exit 0 | Setup and Portable EXEs from the 0.5.0 tree; both report version `0.5.0` and `NotSigned` |
 
 Test files: `tests/url.test.ts`, `tests/services.test.ts`, `tests/store.test.ts`,
 `tests/themes.test.ts`, `tests/windows-browser.test.ts`, `tests/i18n.test.ts`,
 `tests/chrome-store.test.ts`, `tests/privacy.test.ts`,
 `tests/brave-rules.test.ts`, `tests/torrent-rules.test.ts`,
-`tests/download-rules.test.ts`, `tests/zoom.test.ts`.
+`tests/download-rules.test.ts`, `tests/storage-rules.test.ts`,
+`tests/zoom.test.ts`.
 
 What the unit suite covers:
 
@@ -39,6 +42,9 @@ What the unit suite covers:
 - Downloads: persisted record validation, in-flight entries demoted to
   interrupted on load, duplicate/unsafe/nameless rows dropped, bad byte counts
   and timestamps normalised, history capped.
+- Storage location: absolute-path validation, null-byte and length rejection,
+  default config shape, malformed-file fallback, retained old roots, rejected
+  relative roots and the retained-root cap.
 - Zoom: fixed step scale, one-step movement, clamping at both ends and snapping
   of an off-step factor.
 - Themes: six themes, token completeness, the `kryvex-dark` default.
@@ -65,15 +71,15 @@ What the unit suite covers:
 
 ## Runtime checks
 
-- **Production shell + sixteen captures.** `pnpm capture` uses the built
+- **Production shell + seventeen captures.** `pnpm capture` uses the built
   renderer (`dist/index.html`), deep-links each view, waits for render, and
   saves a screenshot. Capture aborts on renderer console errors. Each run uses
   a disposable profile under the temp directory, so a capture can never pick up
-  or overwrite the profile of a real installation. All sixteen
+  or overwrite the profile of a real installation. All seventeen
   captures produced a non-blank image: `home`, `help`, `services`, `add-service`,
   `service`, `browser`, `browser-downloads`, `browser-history`, `settings`,
-  `settings-shield`, `settings-browser`, `settings-plugins`, `settings-about`,
-  `donkey-theme`, `command-palette`, `light-theme`.
+  `settings-data`, `settings-shield`, `settings-browser`, `settings-plugins`,
+  `settings-about`, `donkey-theme`, `command-palette`, `light-theme`.
 - **Live embedded module.** The Sohbet module (`https://sohbet.xiondigital.net/`)
   was loaded in its `persist:svc-*` webview and probed until
   `loading: false`; the captured frame shows the real site.
@@ -158,6 +164,21 @@ What the unit suite covers:
   operations returned the expected records. The current manager is additionally
   covered by `pnpm verify:downloads` above, which reloads the persisted library
   and re-deletes the restored file.
+- **Download location.** A real Electron harness selected a custom folder,
+  confirmed a downloaded file landed inside it, changed the location again,
+  restored and deleted the old file through its retained root, and reset to the
+  real Downloads folder. A DevTools harness against the built app then opened
+  **Settings → Data**, found the seeded custom path, the Change folder and
+  reset actions, pressed reset, and confirmed both the row and
+  `window.kryvex.downloadsLocation()` reported the real Downloads folder. The
+  native picker itself was not automated; its selected path is normalised by
+  the same validated `setDownloadLocation` function exercised by the Electron
+  harness.
+  The same harness was run with `KRYVEX_APP=release/win-unpacked/Kryvex.exe`
+  after an unpacked package build and passed against the packaged app. The
+  torrent harness additionally added a magnet after a location change and
+  confirmed it landed under the new `Kryvex Torrents` root while the earlier
+  row stayed resumable and removable.
 - **Default-browser module.** Status reports `supported: true` on Windows and
   `canRegister: false` in an unpacked dev run; argv filtering accepted http(s)
   URLs, rejected `file:`/`javascript:` values, and queued/drained URLs correctly.
@@ -166,24 +187,26 @@ What the unit suite covers:
   `Application` metadata, `Clients\StartMenuInternet\Kryvex` capabilities,
   http/https `URLAssociations` and the `RegisteredApplications` value. The test
   key was deleted afterwards. The system default was not changed.
-- **Installer.** The final build produced `release/Kryvex-Setup-0.4.0-x64.exe`
-  (120,110,859 bytes, 114.6 MiB) and `release/Kryvex-Portable-0.4.0-x64.exe`
-  (119,873,710 bytes, 114.3 MiB). The setup was installed silently to
-  `X:\Veyra\.tmp-release-install`; installation exited 0, both shortcuts and
-  the `Kryvex 0.4.0` uninstall entry were present, and the installed
-  `Kryvex.exe` completed all sixteen capture routes into a separate folder.
-  The portable EXE also launched directly and completed all sixteen routes.
-  Silent uninstall exited 0 and removed the install folder, both shortcuts, the
-  uninstall entry, and left no Kryvex process. The optional `KryvexURL` test
-  keys were covered by the previous uninstall pass and by `build/installer.nsh`.
+- **Installer.** The final build produced `release/Kryvex-Setup-0.5.0-x64.exe`
+  (120,113,514 bytes, 114.5 MiB) and `release/Kryvex-Portable-0.5.0-x64.exe`
+  (119,876,363 bytes, 114.3 MiB). The setup was installed silently to
+  `X:\Veyra\.tmp-release-install-050b`; both shortcuts and the
+  `Kryvex 0.5.0` uninstall entry were present, and the installed `Kryvex.exe`
+  reported version `0.5.0.0` and completed all seventeen capture routes into a
+  separate folder. The portable EXE also launched directly and completed all
+  seventeen routes. Silent uninstall removed the install folder, both
+  shortcuts and the uninstall entry, and left no Kryvex process. The optional
+  `KryvexURL` test keys were covered by the previous uninstall pass and by
+  `build/installer.nsh`.
 - **Packaged paused restore.** A seeded isolated profile was opened by the
-  unpacked, portable and installed builds. Each reported version `0.4.0` and
-  rendered the saved torrent as **Paused** with **Resume**, no active speed and
-  no transfer. The source manager harness separately proved that Resume is the
-  only path that creates a WebTorrent client.
+  unpacked and portable 0.5.0 builds. Each rendered the saved torrent as
+  **Paused** with **Resume**, no active speed and no transfer. The source
+  manager harness separately proved that Resume is the only path that creates
+  a WebTorrent client. `verify-torrent-restore-ui.cjs` now accepts `KRYVEX_APP`
+  so these packaged checks can be repeated for future releases.
 - **Checksums.** `sha256sum -c release/SHA256SUMS.txt` (run from `release/`)
-  reports OK for the 0.4.0 Setup/Portable artifacts. The published values are
-  `e2df87d0…0735` for Setup and `6534a06f…5165` for Portable.
+  reports OK for the 0.5.0 Setup/Portable artifacts. The published values are
+  `991be75a…3206` for Setup and `42cc1530…89c8` for Portable.
 - **Signing state.** PowerShell `Get-AuthenticodeSignature` reports
   `NotSigned` for both EXEs.
 - **Dev mode.** `pnpm dev:electron` was started after fixing a Vite
@@ -216,8 +239,9 @@ pnpm test
 pnpm build
 pnpm capture             # rewrites screenshots/ from the built app
 pnpm verify:restart      # real relaunch: theme, start view and tabs persist
-pnpm verify:downloads    # download history survives a manager reload
-pnpm verify:torrents     # torrent queue restores paused, then resumes on demand
+pnpm verify:downloads    # download history and a changed location survive a reload
+pnpm verify:location-ui  # download-location row and reset in the real app
+pnpm verify:torrents     # torrent queue restores paused across a location change
 pnpm verify:torrent-restore-ui  # restored paused row in the real Downloads hub
 pnpm verify:browser      # find-in-page and page zoom
 ```

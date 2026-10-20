@@ -57,6 +57,18 @@ export interface DownloadResult {
   records: DownloadRecord[];
 }
 
+export interface DownloadLocation {
+  path: string;
+  torrentPath: string;
+  isDefault: boolean;
+}
+
+export interface DownloadLocationResult {
+  ok: boolean;
+  message: string;
+  location: DownloadLocation | null;
+}
+
 export type TorrentState = 'metadata' | 'downloading' | 'paused' | 'seeding' | 'error';
 export type TorrentSource = 'magnet' | 'file';
 
@@ -215,6 +227,9 @@ export interface KryvexBridge {
   ) => Promise<{ ok: boolean; message: string; records: ExtensionRecord[] }>;
   extensionsRemove: (key: string) => Promise<{ ok: boolean; message: string; records: ExtensionRecord[] }>;
   downloadsList: () => Promise<DownloadRecord[]>;
+  downloadsLocation: () => Promise<DownloadLocation | null>;
+  downloadsChooseLocation: () => Promise<DownloadLocationResult>;
+  downloadsResetLocation: () => Promise<DownloadLocationResult>;
   downloadsPause: (id: string) => Promise<boolean>;
   downloadsCancel: (id: string) => Promise<boolean>;
   downloadsShow: (id: string) => Promise<boolean>;

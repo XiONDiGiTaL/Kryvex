@@ -20,6 +20,18 @@ interface DownloadResult {
   records: DownloadRecord[];
 }
 
+interface DownloadLocation {
+  path: string;
+  torrentPath: string;
+  isDefault: boolean;
+}
+
+interface DownloadLocationResult {
+  ok: boolean;
+  message: string;
+  location: DownloadLocation | null;
+}
+
 interface DefaultBrowserStatus {
   supported: boolean;
   isDefault: boolean;
@@ -108,6 +120,12 @@ const api = {
   extensionsRemove: (key: string): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:extensions:remove', key),
   downloadsList: (): Promise<DownloadRecord[]> => ipcRenderer.invoke('kryvex:downloads:list'),
+  downloadsLocation: (): Promise<DownloadLocation | null> =>
+    ipcRenderer.invoke('kryvex:downloads:location'),
+  downloadsChooseLocation: (): Promise<DownloadLocationResult> =>
+    ipcRenderer.invoke('kryvex:downloads:choose-location'),
+  downloadsResetLocation: (): Promise<DownloadLocationResult> =>
+    ipcRenderer.invoke('kryvex:downloads:reset-location'),
   downloadsPause: (id: string): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:downloads:pause', id),
   downloadsCancel: (id: string): Promise<boolean> =>
