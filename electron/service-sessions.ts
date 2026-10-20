@@ -14,6 +14,7 @@ import { isServicePartition } from './service-rules';
  */
 class ServiceSessionManager {
   private services = new WeakSet<Session>();
+  private partitions = new Set<string>();
   private notifications = true;
 
   /** Called from will-attach-webview with the guest's declared partition. */
@@ -21,9 +22,31 @@ class ServiceSessionManager {
     if (!isServicePartition(partition)) return;
     try {
       this.services.add(session.fromPartition(partition));
+      this.partitions.add(partition);
     } catch {
       /* a partition that cannot be resolved simply gets no service grants */
     }
+  }
+
+  /**
+   * Chromium only writes partition cookie stores on its own schedule, and an
+   * Electron app that quits does not always get the final flush. Without this,
+   * every module the user signed into during the last minute of a session asks
+   * for a fresh sign-in on the next launch. Called once from before-quit, with
+   * a timeout so a wedged store can never hold the app open.
+   */
+  async flush(): Promise<void> {
+    const targets: Session[] = [session.defaultSession];
+    for (const partition of this.partitions) {
+      try {
+        targets.push(session.fromPartition(partition));
+      } catch {
+        /* a partition that vanished has nothing left to write */
+      }
+    }
+    await Promise.all(
+      targets.map(target => target.cookies.flushStore().catch(() => undefined)),
+    );
   }
 
   isServiceSession(ses: Session | null | undefined): boolean {

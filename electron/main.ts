@@ -892,8 +892,21 @@ if (!gotLock) {
     });
   });
 
-  app.on('before-quit', () => {
+  // Sign-ins must survive a restart. Chromium writes cookie stores on its own
+  // schedule, so a quit right after a module signs in would otherwise lose the
+  // session; hold the first quit just long enough to flush, with a hard cap so
+  // a wedged store can never trap the app.
+  let flushed = false;
+  app.on('before-quit', event => {
     void torrents.shutdown();
+    void localModel.dispose();
+    if (flushed) return;
+    event.preventDefault();
+    flushed = true;
+    void Promise.race([
+      serviceSessions.flush(),
+      new Promise(resolve => setTimeout(resolve, 1500)),
+    ]).then(() => app.quit());
   });
 
   app.on('window-all-closed', () => {
