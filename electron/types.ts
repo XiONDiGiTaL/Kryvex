@@ -10,8 +10,42 @@ export interface ShieldStatus {
   httpsUpgrade: boolean;
   stripTracking: boolean;
   fingerprint: boolean;
+  /** The user's own uBO-syntax rules exactly as stored. */
+  customFilters: string;
+  customEnabled: boolean;
+  customScriptlets: boolean;
+  /** Rules that would compile now, after the privilege filter. */
+  customRules: number;
+  /** Privileged rules dropped because scriptlets are switched off. */
+  customSkipped: number;
+  customLines: number;
+  customLimit: number;
+  /** Curated YouTube ad/feed bundle. */
+  youtube: boolean;
   httpsUpgrades: number;
   paramsStripped: number;
+  error?: string;
+}
+
+export type LocalModelPhase = 'idle' | 'starting' | 'running' | 'stopped' | 'error';
+
+/** A GGUF file the user chose, plus the llama.cpp server serving it. */
+export interface LocalModelStatus {
+  phase: LocalModelPhase;
+  path: string;
+  /** Display name: the file name without `.gguf`. */
+  name: string;
+  /** Loopback origin while the server runs; empty otherwise. */
+  baseUrl: string;
+  port: number | null;
+  binary: string;
+  binaryFound: boolean;
+  pid: number | null;
+  startedAt: number | null;
+  ctxSize: number;
+  gpuLayers: number;
+  /** Tail of the runtime's output, for the error panel. */
+  log: string;
   error?: string;
 }
 

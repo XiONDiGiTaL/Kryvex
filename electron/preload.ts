@@ -153,6 +153,10 @@ const api = {
   shieldUpdate: (): Promise<unknown> => ipcRenderer.invoke('kryvex:shield:update'),
   shieldSetOption: (option: string, enabled: boolean): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:shield:option', option, enabled),
+  shieldSetCustom: (patch: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:shield:custom', patch),
+  shieldImportFilters: (): Promise<unknown> => ipcRenderer.invoke('kryvex:shield:import-filters'),
+  shieldExportFilters: (): Promise<unknown> => ipcRenderer.invoke('kryvex:shield:export-filters'),
   extensionsList: (): Promise<unknown> => ipcRenderer.invoke('kryvex:extensions:list'),
   extensionsInstall: (): Promise<unknown> => ipcRenderer.invoke('kryvex:extensions:install'),
   extensionsInstallFolder: (): Promise<unknown> =>
@@ -246,6 +250,13 @@ const api = {
     ipcRenderer.on('kryvex:assistant:delta', wrapped);
     return () => ipcRenderer.removeListener('kryvex:assistant:delta', wrapped);
   },
+  modelStatus: (): Promise<unknown> => ipcRenderer.invoke('kryvex:model:status'),
+  modelChoose: (): Promise<unknown> => ipcRenderer.invoke('kryvex:model:choose'),
+  modelChooseBinary: (): Promise<unknown> => ipcRenderer.invoke('kryvex:model:choose-binary'),
+  modelStart: (): Promise<unknown> => ipcRenderer.invoke('kryvex:model:start'),
+  modelStop: (): Promise<unknown> => ipcRenderer.invoke('kryvex:model:stop'),
+  modelConfigure: (patch: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:model:configure', patch),
   wallpaperLoad: (): Promise<unknown> => ipcRenderer.invoke('kryvex:wallpaper:load'),
   wallpaperSave: (dataUrl: string): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:wallpaper:save', dataUrl),

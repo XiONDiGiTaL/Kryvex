@@ -16,9 +16,20 @@ calls, without asking you to trust a browser policy.
 [![Platform](https://img.shields.io/badge/platform-Windows-9AA6B5?style=flat-square)](#known-limitations)
 [![Shield](https://img.shields.io/badge/shield-uBO%20lists-F2C94C?style=flat-square)](#kryvex-shield)
 
-**[Install on Windows](#install-on-windows) · [Pointer first](#pointer-first) · [Features](#features) · [Screenshots](#screenshots) · [Adding services](#adding-services) · [Shield](#kryvex-shield) · [Extensions](#extensions) · [Themes](#themes) · [Credits](#credits) · [Limitations](#known-limitations)**
+**[Demo reel](#demo-reel) · [Install on Windows](#install-on-windows) · [Pointer first](#pointer-first) · [Features](#features) · [Screenshots](#screenshots) · [Adding services](#adding-services) · [Shield](#kryvex-shield) · [Extensions](#extensions) · [Themes](#themes) · [Credits](#credits) · [Limitations](#known-limitations)**
 
 </div>
+
+---
+
+## Demo reel
+
+[![Kryvex demo reel — precision in every connection](brag-output/brag.jpg)](brag-output/brag.mp4)
+
+Twenty seconds, cut from the real app: modules instead of tabs, a persistent
+session behind every service, 78 themes, and no account in sight.
+
+**[Watch or download the MP4](brag-output/brag.mp4)** · [How it was made](docs/BRAG.md)
 
 ---
 
@@ -528,6 +539,18 @@ shows the address it will use and the models the runtime reports. Anything that
 is not plain http on `127.0.0.1`, `localhost` or `[::1]` is refused, and the
 check happens again in the main process. See [ASSISTANT.md](docs/ASSISTANT.md).
 
+#### Run a model file
+
+No runtime installed? **Settings → Vexium → Run a model file** takes a `.gguf`
+file you already downloaded, starts llama.cpp's `llama-server` against it on a
+free loopback port, waits until `/v1/models` answers, and points Vexium at it.
+**Get models** links to Hugging Face's GGUF catalogue, Ollama's library and LM
+Studio's models; Kryvex hosts and redistributes nothing. If `llama-server` is
+not on your PATH, **Find runtime…** stores the path to the executable once, and
+a `.js` wrapper runs on Electron's own Node. Context size and GPU layers are
+adjustable, the runtime's output is kept for errors, and the process is killed
+when you press **Stop server** or quit Kryvex.
+
 ### Settings and themes
 
 ![Settings with the periodic-table theme picker](screenshots/settings.png)
@@ -625,6 +648,30 @@ user-data directory, and refreshes after seven days.
   blocked counter in Settings.
 - **No MV3:** no extension service worker, no `declarativeNetRequest`, no
   Chrome Web Store dependency for the shield itself, no manifest permissions.
+
+### My filters
+
+**Settings → Shield → My filters** accepts the syntax users already paste into
+uBlock Origin's dashboard: `||ads.example.com^`, `site##.selector`,
+`site##+js(…)`. Rules live in the shield's own config, compile on top of the
+downloaded lists, and rebuild from a cached copy of those lists — editing a
+rule never waits on six downloads, and it works offline.
+
+Three switches decide what runs:
+
+- **Enable my custom filters** — off keeps the text but compiles nothing.
+- **Allow scriptlet rules (+js)** — scriptlets run code inside the page, so
+  they are held back until this is on; the editor counts what is on hold.
+- **YouTube: block ads and feed noise** — a curated bundle that hides ad slots,
+  sponsored feed cards and recommendation shelves, switches off YouTube's
+  ad-block popup config, and blocks `youtube.com/pagead/`, `doubleclick.net`
+  and `googlesyndication.com` on youtube.com only.
+
+**Import and append…** adds a `.txt` list to the editor; **Export…** writes the
+current one out. `@ghostery/adblocker` parses scriptlets but ships no scriptlet
+library, so Kryvex implements uBO's `set`/`set-constant` itself and injects it
+into the page's main world on `dom-ready`. Other scriptlet names are ignored
+rather than silently faked.
 
 ### Privacy protections inside the shield
 
@@ -1019,9 +1066,11 @@ The full license and modification notes are in
   installer from the latest stable release; rollback is a manual reinstall.
   Portable and git builds never self-replace.
 - **Shield is list-based network filtering.** It is not the full uBlock Origin
-  extension: no uBO dashboard, no per-site dynamic rules, and cosmetic
-  filtering depends on the upstream engine. uBO classic's MV2 network layer
-  does not work in Electron 44, which is why this is native.
+  extension: no per-site dynamic rules, no uBO element picker, and cosmetic
+  filtering plus the **My filters** box depend on the upstream engine. Only
+  uBO's `set`/`set-constant` scriptlet is implemented; other scriptlet names in
+  a pasted list are ignored. uBO classic's MV2 network layer does not work in
+  Electron 44, which is why this is native.
 - **Fingerprinting protection is JavaScript-level.** Canvas, WebGL and audio
   farbling run as a preload wrapper, not a Chromium patch. It raises the cost of
   naive fingerprinting and is deliberately stable per site, but a determined
@@ -1037,9 +1086,22 @@ The full license and modification notes are in
   Web Store's own install button cannot run inside Electron; Kryvex shows its
   own install bar on detail pages instead. Extensions are third-party code and
   are not audited.
-- **Some services resist embedding.** Popups, strict SSO flows, or sites that
-  reject the Electron user agent may not work inside a module. Kryvex offers
-  "Open externally" instead of weakening security.
+- **Google sign-in inside a module is best-effort, not guaranteed.** Google
+  refuses its sign-in page in app-embedded browsers by policy, and no app can
+  promise otherwise. Kryvex now presents one consistent Chrome identity: a
+  Chrome user agent, `Sec-CH-UA` / `Sec-CH-UA-Mobile` / `Sec-CH-UA-Platform`
+  headers (Electron sends none) and a matching `navigator.userAgentData`,
+  which Electron omits entirely. On 2026-10-20 that identity reached Google's
+  sign-in form from inside a Kryvex guest instead of the refusal card. A stale
+  stored Google session is a separate failure — the refusal banner offers
+  **Reset session & retry**. If Google still refuses after that, the limit is
+  Google's, and **Open in my browser** is the route. Brave is a Chromium fork
+  rather than an embedded view, which is why it behaves differently.
+- **Parked service pages stay live, but Chromium still decides.** Every opened
+  module stays mounted and hidden, and guest throttling is off by default so a
+  chat client keeps its heartbeat. The Settings → Chromium switch still wins: if
+  you turn background throttling back on for battery, a parked Discord may show
+  "connecting" when you return. Press reload in the module toolbar to recover.
 - **Browser is intentionally lean.** Downloads, torrents, history navigation,
   a browser library, bookmarks, find-in-page, page zoom and a download-location
   picker are implemented; there is no dedicated extension-manager store page

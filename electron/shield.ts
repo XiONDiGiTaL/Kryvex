@@ -1,8 +1,19 @@
-import { app, ipcMain, net, type Session } from 'electron';
+import { app, ipcMain, net, type Session, type WebContents } from 'electron';
 import { ElectronBlocker } from '@ghostery/adblocker-electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { ShieldStatus } from './types';
+import {
+  activeCustomLines,
+  composeFilterSource,
+  customLineCount,
+  MAX_CUSTOM_BYTES,
+  sanitizeCustomFilters,
+  scriptletCode as buildScriptletCode,
+  scriptletSource,
+  scriptletsFor,
+  YOUTUBE_FILTERS,
+} from './shield-rules';
 import { webPrivacy, type PrivacyOptions } from './web-privacy';
 
 /**
@@ -62,6 +73,13 @@ interface ShieldConfig {
   httpsUpgrade: boolean;
   stripTracking: boolean;
   fingerprint: boolean;
+  /** The user's own uBO-syntax rules, stored verbatim. */
+  customFilters: string;
+  customEnabled: boolean;
+  /** Scriptlet rules (`##+js(...)`) run page code, so they are opt-out. */
+  customScriptlets: boolean;
+  /** Curated YouTube bundle: ads, sponsored cards, recommendation shelves. */
+  youtube: boolean;
 }
 
 const DEFAULT_CONFIG: ShieldConfig = {
@@ -73,6 +91,10 @@ const DEFAULT_CONFIG: ShieldConfig = {
   httpsUpgrade: true,
   stripTracking: true,
   fingerprint: true,
+  customFilters: '',
+  customEnabled: true,
+  customScriptlets: true,
+  youtube: true,
 };
 
 function configPath(): string {
@@ -81,6 +103,15 @@ function configPath(): string {
 
 function enginePath(): string {
   return path.join(app.getPath('userData'), 'kryvex-shield-engine.bin');
+}
+
+/**
+ * The downloaded lists are kept as source, not only as a compiled engine, so
+ * editing a custom rule rebuilds in milliseconds instead of re-downloading
+ * six lists. Without this file a rebuild would need the network.
+ */
+function sourcePath(): string {
+  return path.join(app.getPath('userData'), 'kryvex-shield-source.txt');
 }
 
 function readConfig(): ShieldConfig {
@@ -95,6 +126,10 @@ function readConfig(): ShieldConfig {
       httpsUpgrade: raw.httpsUpgrade !== false,
       stripTracking: raw.stripTracking !== false,
       fingerprint: raw.fingerprint !== false,
+      customFilters: sanitizeCustomFilters(raw.customFilters),
+      customEnabled: raw.customEnabled !== false,
+      customScriptlets: raw.customScriptlets !== false,
+      youtube: raw.youtube !== false,
     };
   } catch {
     return { ...DEFAULT_CONFIG };
@@ -136,6 +171,7 @@ class Shield {
   private error: string | undefined;
   private blocked = 0;
   private sessions = new Set<Session>();
+  private scriptletGuests = new WeakSet<WebContents>();
   private refreshPromise: Promise<ShieldStatus> | null = null;
 
   status(): ShieldStatus {
@@ -151,9 +187,100 @@ class Shield {
       httpsUpgrade: this.config.httpsUpgrade,
       stripTracking: this.config.stripTracking,
       fingerprint: this.config.fingerprint,
+      customFilters: this.config.customFilters,
+      customEnabled: this.config.customEnabled,
+      customScriptlets: this.config.customScriptlets,
+      customRules: this.customReport().rules,
+      customSkipped: this.customReport().skipped,
+      customLines: customLineCount(this.config.customFilters),
+      customLimit: MAX_CUSTOM_BYTES,
+      youtube: this.config.youtube,
       ...webPrivacy.stats(),
       ...(this.error ? { error: this.error } : {}),
     };
+  }
+
+  /** What the custom box would compile right now, without touching the engine. */
+  private customReport() {
+    const text = this.config.customEnabled ? this.config.customFilters : '';
+    return activeCustomLines(text, { scriptlets: this.config.customScriptlets });
+  }
+
+  /** Everything the engine parses: downloaded lists, bundle, custom rules. */
+  private composeSource(base: string): string {
+    return composeFilterSource({
+      base,
+      custom: this.config.customEnabled ? this.config.customFilters : '',
+      youtube: this.config.youtube,
+      options: { scriptlets: this.config.customScriptlets },
+    });
+  }
+
+  /**
+   * Saves the custom rules and recompiles from the cached download. A user
+   * editing a rule should never wait on six network requests, and an offline
+   * machine should keep its own exceptions.
+   */
+  setCustom(raw: unknown): ShieldStatus {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return this.status();
+    const input = raw as Record<string, unknown>;
+    if (typeof input.text === 'string') {
+      this.config.customFilters = sanitizeCustomFilters(input.text);
+    }
+    if (typeof input.enabled === 'boolean') this.config.customEnabled = input.enabled;
+    if (typeof input.scriptlets === 'boolean') this.config.customScriptlets = input.scriptlets;
+    if (typeof input.youtube === 'boolean') this.config.youtube = input.youtube;
+    writeConfig(this.config);
+    this.error = undefined;
+    if (!this.blocker) {
+      if (this.config.enabled) void this.refresh().catch(() => undefined);
+      return this.status();
+    }
+    return this.rebuild();
+  }
+
+  /** The curated bundle, exposed so the editor can show exactly what it adds. */
+  bundleText(): string {
+    return YOUTUBE_FILTERS;
+  }
+
+  /**
+   * Installs the scriptlet hook on a guest page. Cosmetic filters are injected
+   * by the ad blocker; scriptlets are Kryvex's own, because the engine has no
+   * scriptlet library. Running them here puts them in the page's main world,
+   * where site configuration such as `yt.config_` actually lives.
+   */
+  attachScriptlets(contents: WebContents): void {
+    if (this.scriptletGuests.has(contents)) return;
+    this.scriptletGuests.add(contents);
+    contents.on('dom-ready', () => {
+      let url = '';
+      try {
+        url = contents.getURL();
+      } catch {
+        return;
+      }
+      const code = this.scriptletCode(url);
+      if (!code) return;
+      contents.executeJavaScript(code).catch(() => undefined);
+    });
+  }
+
+  /**
+   * Page code for the scriptlet rules that apply to one URL.
+   *
+   * @ghostery/adblocker parses `##+js(...)` but ships no scriptlet library, so
+   * without this the YouTube popup rules would silently do nothing. The gate
+   * matches the editor's trust switch: no scriptlets while it is off.
+   */
+  scriptletCode(rawUrl: unknown): string {
+    if (!this.config.enabled || !this.config.customScriptlets) return '';
+    if (typeof rawUrl !== 'string') return '';
+    const source = scriptletSource(
+      this.config.customEnabled ? this.config.customFilters : '',
+      this.config.youtube,
+    );
+    return buildScriptletCode(scriptletsFor(source, rawUrl));
   }
 
   init(): void {
@@ -262,45 +389,78 @@ class Shield {
           }
         }),
       );
-      const filters = texts.join('\n\n');
-      const next = ElectronBlocker.parse(filters);
-      // Detach the previous engine before swapping listeners.
-      for (const ses of this.sessions) {
-        try {
-          this.blocker?.disableBlockingInSession(ses);
-        } catch {
-          /* ignore */
-        }
-        webPrivacy.setBlocker(ses, null);
+      const base = texts.join('\n\n');
+      try {
+        fs.mkdirSync(path.dirname(sourcePath()), { recursive: true });
+        fs.writeFileSync(sourcePath(), base, 'utf8');
+      } catch {
+        /* a cache that cannot be written only costs a re-download later */
       }
-      registeredCosmeticChannels.clear();
-      const serialized = next.serialize();
-      const target = enginePath();
-      const tmp = `${target}.tmp`;
-      fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.writeFileSync(tmp, Buffer.from(serialized));
-      fs.renameSync(tmp, target);
-
-      this.blocker = next;
-      this.blocked = 0;
-      next.on('request-blocked', () => {
-        this.blocked += 1;
-      });
+      this.install(base);
       this.config.updatedAt = Date.now();
       this.config.lists = LIST_SOURCES.map(source => source.label);
-      this.config.filterCount = this.countFilters();
       writeConfig(this.config);
       this.phase = 'ready';
-      if (this.config.enabled) {
-        for (const ses of this.sessions) this.attach(ses);
-      } else {
-        for (const ses of this.sessions) webPrivacy.setBlocker(ses, null);
-      }
       return this.status();
     } catch (error) {
       this.phase = this.blocker ? 'ready' : 'error';
       this.error = error instanceof Error ? error.message : String(error);
       return this.status();
+    }
+  }
+
+  /** Recompiles from the cached download; used after any custom-rule change. */
+  private rebuild(): ShieldStatus {
+    let base = '';
+    try {
+      base = fs.readFileSync(sourcePath(), 'utf8');
+    } catch {
+      this.error = 'Run “Update lists” once before using custom filters.';
+      return this.status();
+    }
+    try {
+      this.install(base);
+      this.phase = 'ready';
+      return this.status();
+    } catch (error) {
+      this.error = `Custom filters could not be compiled: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      return this.status();
+    }
+  }
+
+  /** Parses one document into a live engine and swaps it in everywhere. */
+  private install(base: string): void {
+    const source = this.composeSource(base);
+    const next = ElectronBlocker.parse(source, { loadExtendedSelectors: true });
+    // Detach the previous engine before swapping listeners.
+    for (const ses of this.sessions) {
+      try {
+        this.blocker?.disableBlockingInSession(ses);
+      } catch {
+        /* ignore */
+      }
+      webPrivacy.setBlocker(ses, null);
+    }
+    registeredCosmeticChannels.clear();
+    const serialized = next.serialize();
+    const target = enginePath();
+    const tmp = `${target}.tmp`;
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(tmp, Buffer.from(serialized));
+    fs.renameSync(tmp, target);
+
+    this.blocker = next;
+    this.blocked = 0;
+    next.on('request-blocked', () => {
+      this.blocked += 1;
+    });
+    this.config.filterCount = this.countFilters();
+    if (this.config.enabled) {
+      for (const ses of this.sessions) this.attach(ses);
+    } else {
+      for (const ses of this.sessions) webPrivacy.setBlocker(ses, null);
     }
   }
 

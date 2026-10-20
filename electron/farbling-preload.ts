@@ -60,6 +60,32 @@ function installFarbling(farblingSeed: number): void {
 
   const seedValue = farblingSeed >>> 0;
 
+  // Every wrapper below is recorded here so `Function.prototype.toString` can
+  // keep reporting native code. Without this, `toString` on a wrapped method
+  // prints its JavaScript source, which is the cheapest way for a page to spot
+  // a patched browser.
+  const maskedFunctions = new WeakSet<object>();
+  const nativeToString = Function.prototype.toString;
+  try {
+    Object.defineProperty(Function.prototype, 'toString', {
+      configurable: true,
+      writable: true,
+      value: function toString(this: unknown) {
+        try {
+          if (this && typeof this === 'function' && maskedFunctions.has(this)) {
+            const name = (this as unknown as { name?: string }).name || 'anonymous';
+            return `function ${name}() { [native code] }`;
+          }
+        } catch {
+          /* fall through to the native formatter */
+        }
+        return nativeToString.apply(this as never, arguments as never);
+      },
+    });
+  } catch {
+    /* a frozen Function.prototype keeps the wrappers visible */
+  }
+
   function mix(hash: number, value: number): number {
     return Math.imul(hash ^ value, 16777619) >>> 0;
   }
@@ -122,6 +148,7 @@ function installFarbling(farblingSeed: number): void {
       wrapper.toString = function toString() {
         return native.toString();
       };
+      maskedFunctions.add(wrapper);
     } catch {
       /* some hosts freeze function properties */
     }

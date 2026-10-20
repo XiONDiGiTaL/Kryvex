@@ -1,6 +1,6 @@
 import { app, type MediaAccessPermissionRequest, type Session } from 'electron';
 import { permissions } from './permissions';
-import { withPrivacyHeaders } from './privacy';
+import { clientHintPlatform, withChromeClientHints, withPrivacyHeaders } from './privacy';
 
 /**
  * Chromium hardening inspired by LibreWolf's privacy goals.
@@ -63,6 +63,15 @@ export function hardenSession(ses: Session): void {
   }
 
   ses.webRequest.onBeforeSendHeaders((details, callback) => {
-    callback({ requestHeaders: withPrivacyHeaders(details.requestHeaders, details.url) });
+    const privateHeaders = withPrivacyHeaders(details.requestHeaders, details.url);
+    // The user agent claims Chrome; the client hints must agree with it or
+    // sites see two different browsers in one request.
+    callback({
+      requestHeaders: withChromeClientHints(
+        privateHeaders,
+        process.versions.chrome,
+        clientHintPlatform(process.platform),
+      ),
+    });
   });
 }

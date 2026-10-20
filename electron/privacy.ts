@@ -109,3 +109,55 @@ export function withPrivacyHeaders(
 
   return next;
 }
+
+/**
+ * Chromium's user-agent client hints name the *product*, and Electron's product
+ * is "Chromium" rather than "Google Chrome". Kryvex already presents a plain
+ * Chrome user agent, so leaving the hints alone makes one browser announce two
+ * identities — a stronger fingerprint than either, and one Google's sign-in
+ * flow treats as unsupported. Both hint headers are rewritten to the desktop
+ * Chrome brand set that matches the user agent Kryvex sends.
+ */
+/** The `Sec-CH-UA-Platform` vocabulary, from Node's platform name. */
+export function clientHintPlatform(platform: string): string {
+  if (platform === 'darwin') return 'macOS';
+  if (platform === 'win32') return 'Windows';
+  return 'Linux';
+}
+
+export function withChromeClientHints(
+  headers: Record<string, string>,
+  chromeVersion: string,
+  platform: string = 'Windows',
+): Record<string, string> {
+  const next = { ...headers };
+  const major = (String(chromeVersion).split('.')[0] ?? '').replace(/\D/g, '');
+  if (!major) return next;
+
+  const brands = `"Google Chrome";v="${major}", "Chromium";v="${major}", "Not(A:Brand";v="24"`;
+  const fullList = `"Google Chrome";v="${major}.0.0.0", "Chromium";v="${major}.0.0.0", "Not(A:Brand";v="24.0.0.0"`;
+  const platformValue = `"${platform}"`;
+
+  // Chrome sends the three low-entropy hints on every request. Electron sends
+  // none, so they are added rather than only rewritten: a Chrome user agent
+  // with no client hints is a combination real Chrome never produces.
+  const ua = findHeader(next, 'sec-ch-ua');
+  if (ua) next[ua] = brands;
+  else next['Sec-CH-UA'] = brands;
+
+  const mobile = findHeader(next, 'sec-ch-ua-mobile');
+  if (mobile) next[mobile] = '?0';
+  else next['Sec-CH-UA-Mobile'] = '?0';
+
+  const platformHeader = findHeader(next, 'sec-ch-ua-platform');
+  if (platformHeader) next[platformHeader] = platformValue;
+  else next['Sec-CH-UA-Platform'] = platformValue;
+
+  // Full-version hints are request-only, so they are filled in when a site
+  // asked for them and never invented.
+  const fullVersion = findHeader(next, 'sec-ch-ua-full-version');
+  if (fullVersion) next[fullVersion] = `"${major}.0.0.0"`;
+  const fullVersionList = findHeader(next, 'sec-ch-ua-full-version-list');
+  if (fullVersionList) next[fullVersionList] = fullList;
+  return next;
+}

@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { LanguageSetting, ResolvedLanguage } from '../types';
+import { featureCopy } from './i18n-extras';
 
 export const LANGUAGES: ReadonlyArray<{ id: LanguageSetting; label: string }> = [
   { id: 'system', label: 'System language' },
@@ -319,6 +320,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     License: 'Licencia',
     'Opening the repository.': 'Abriendo el repositorio.',
     DEVELOPERS: 'DESARROLLADORES',
+    '{name} on GitHub': '{name} en GitHub',
     'FICTIONAL ELEMENT — NOT A CHEMICAL CLAIM': 'ELEMENTO FICTICIO — NO ES UNA AFIRMACIÓN QUÍMICA',
     Language: 'Idioma',
     'Use your system language or choose one for the whole interface.':
@@ -701,6 +703,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     License: 'Lizenz',
     'Opening the repository.': 'Repository wird geöffnet.',
     DEVELOPERS: 'ENTWICKLER',
+    '{name} on GitHub': '{name} auf GitHub',
     'FICTIONAL ELEMENT — NOT A CHEMICAL CLAIM': 'FIKTIVES ELEMENT — KEINE CHEMISCHE AUSSAGE',
     Language: 'Sprache',
     'Use your system language or choose one for the whole interface.':
@@ -1082,6 +1085,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     License: 'Licence',
     'Opening the repository.': 'Ouverture du dépôt.',
     DEVELOPERS: 'DÉVELOPPEURS',
+    '{name} on GitHub': '{name} sur GitHub',
     'FICTIONAL ELEMENT — NOT A CHEMICAL CLAIM': 'ÉLÉMENT FICTIF — AUCUNE AFFIRMATION CHIMIQUE',
     Language: 'Langue',
     'Use your system language or choose one for the whole interface.':
@@ -2725,6 +2729,9 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           ...engineCopy[language],
           ...roomsCopy[language],
           ...galleryCopy[language],
+          // Newest feature copy wins: a key added here is defined once, not in
+          // every language block above.
+          ...featureCopy[language],
         };
   return {
     language,

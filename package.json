@@ -22,6 +22,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json",
     "test": "vitest run",
     "capture": "node scripts/capture.mjs",
+    "audit:i18n": "node scripts/audit-i18n.cjs",
     "package:dir": "pnpm build && electron-builder --dir",
     "package:win": "pnpm build && electron-builder --publish never",
     "release:checksums": "node scripts/release-checksums.cjs",
@@ -37,7 +38,10 @@
     "verify:rooms": "pnpm build && node scripts/verify-rooms.cjs",
     "verify:gallery": "pnpm build && node scripts/verify-theme-gallery.cjs",
     "verify:layout": "pnpm build && node scripts/verify-layout.cjs",
-    "verify:wallpaper": "pnpm build && node scripts/verify-wallpaper-ui.cjs"
+    "verify:wallpaper": "pnpm build && node scripts/verify-wallpaper-ui.cjs",
+    "verify:identity": "pnpm build && electron scripts/verify-browser-identity.cjs",
+    "verify:shield-filters": "pnpm build && electron scripts/verify-shield-filters.cjs",
+    "verify:model": "pnpm build && electron scripts/verify-local-model.cjs"
   },
   "build": {
     "appId": "net.xiondigital.kryvex",

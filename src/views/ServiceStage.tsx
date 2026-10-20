@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Service } from '../types';
 import { CATEGORIES, partitionFor } from '../lib/services';
 import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
+import { isGoogleHost, isGoogleSignInBlock } from '../lib/signin';
 import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from '../components/ui';
 import { Webview, type WebviewElement, type WebviewStatus } from '../components/Webview';
 
@@ -119,6 +120,41 @@ function ServiceFrame({
     error: null,
   });
   const [reloadKey, setReloadKey] = useState(0);
+  /**
+   * Google refuses its own sign-in page inside any app-controlled browser, and
+   * says so on a page that looks like an ordinary error. Detecting it here lets
+   * Kryvex explain the refusal instead of leaving the user to guess whether the
+   * shield or their password is at fault.
+   */
+  const [googleBlocked, setGoogleBlocked] = useState(false);
+
+  useEffect(() => {
+    if (!isElectron || status.loading) return;
+    const element = controller.current;
+    if (!element) return;
+    let alive = true;
+    let url = '';
+    try {
+      url = element.getURL();
+    } catch {
+      return;
+    }
+    if (!isGoogleHost(url)) {
+      setGoogleBlocked(false);
+      return;
+    }
+    void element
+      .executeJavaScript(
+        `document.body ? document.body.innerText.slice(0, 8000) : ''`,
+      )
+      .then(text => {
+        if (alive) setGoogleBlocked(isGoogleSignInBlock(String(text)));
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [isElectron, status.loading, status.error]);
 
   const category = t(CATEGORIES.find(item => item.id === service.category)?.label ?? 'Other');
   const badge = unread > 99 ? '99+' : String(unread);
@@ -240,6 +276,41 @@ function ServiceFrame({
             }}
           />
         )}
+
+        {googleBlocked ? (
+          <div className="signin-blocked" role="status">
+            <Icon name="shield" size={17} />
+            <div>
+              <strong>{t('Google will not sign in inside an embedded browser.')}</strong>
+              <p>
+                {t(
+                  'Google blocks sign-in in app-embedded browsers. Kryvex already reports one consistent Chrome identity, so if this card still appears the refusal is Google\u2019s policy, not a missing setting. A stale Google session makes it worse: clearing it and signing in fresh often gets further.',
+                )}
+              </p>
+            </div>
+            <div className="signin-blocked-actions">
+              <button
+                className="btn primary small"
+                onClick={() => {
+                  onClearSession(service);
+                  setGoogleBlocked(false);
+                  setReloadKey(value => value + 1);
+                }}
+              >
+                {t('Reset session & retry')}
+              </button>
+              <button
+                className="btn secondary small"
+                onClick={() => void window.kryvex?.openExternal(service.url)}
+              >
+                <Icon name="external" size={12} /> {t('Open in my browser')}
+              </button>
+              <button className="btn ghost small" onClick={() => setGoogleBlocked(false)}>
+                {t('Dismiss')}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {active && status.error ? (
           <div className="webview-error" role="alert">

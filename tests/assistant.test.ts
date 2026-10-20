@@ -139,6 +139,14 @@ describe('assistant settings', () => {
     });
   });
 
+  it('keeps the local model-file provider across a reload', () => {
+    // A running GGUF is served on a port picked at launch, so the address must
+    // survive with the provider instead of falling back to Ollama's 11434.
+    expect(
+      sanitizeAssistant({ provider: 'local', baseUrl: 'http://127.0.0.1:51234', model: '' }),
+    ).toEqual({ provider: 'local', baseUrl: 'http://127.0.0.1:51234', model: '' });
+  });
+
   it('strips control characters from a saved model id', () => {
     expect(sanitizeAssistant({ provider: 'ollama', model: 'bad\u0007id' }).model).toBe('');
   });

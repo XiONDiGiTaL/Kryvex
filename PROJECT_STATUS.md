@@ -219,6 +219,72 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   screenshots in `screenshots/assistant.png` and
   `screenshots/settings-assistant.png` were taken against that stand-in.
 
+## Verified evidence (2026-10-20, browser identity and translations)
+
+- `pnpm typecheck` → exit 0; `pnpm test` → exit 0, **258/258** in 27 files.
+- `pnpm verify:identity` → **PASS**: a real guest reported
+  `Google Chrome / Chromium / Not(A:Brand`, platform `Windows`, a full version
+  list through `getHighEntropyValues`, and `Sec-CH-UA` headers on the wire with
+  no Electron token. Fingerprint farbling was provably active (2 of 256 pixels
+  perturbed) while `Function.prototype.toString` still reported native code for
+  every wrapper — a closure that previously leaked its JavaScript source.
+- **Google sign-in probe (not a pass/fail).** With that identity, a guest
+  navigated to `accounts.google.com/ServiceLogin` and Google served the sign-in
+  form (`input[type=email]` present, no refusal card). A full sign-in was not
+  attempted: that needs real credentials, and the refusal some users hit appears
+  at a later step or on a stale stored session.
+- Translations: the shield filter editor, model-file runner and sign-in notice
+  are localized in es/de/fr through `src/lib/i18n-extras.ts`; `tests/i18n.test.ts`
+  covers one key per feature per language and the English fallback.
+- **Limits:** no Google account was signed in, so a completed sign-in inside a
+  module is still unverified; Google can change this gate at any time.
+
+## Fixed (2026-10-20, service sessions across restarts)
+
+- `verify-service-engine` failed at HEAD, not at the new code: the window closed,
+  the app quit with code 0, and the service partition still came back signed out
+  on relaunch. Inspecting `.tmp-service-engine-profile/Kryvex/Partitions/
+  svc-s-verify/Network/Cookies` after that quit showed no cookie row at all, so
+  Chromium was never writing the store — a session cookie set minutes before a
+  quit is exactly the case a real sign-in hits.
+- Fix: `serviceSessions.flush()` flushes the default session and every tracked
+  `persist:svc-*` partition's cookie store; `before-quit` defers the quit until
+  that finishes, capped at 1.5 s so a wedged store cannot trap the app.
+- Evidence: `node scripts/verify-service-engine.cjs` → **PASS**, including
+  `cookie after restart: "kx=session-ok"` and the per-service clear; `npm run
+  typecheck` exit 0; `npx vitest run` 260/260 in 27 files.
+- Renderer copy audit: `scripts/audit-i18n.cjs` (`npm run audit:i18n`) scans JSX
+  text and human-facing attributes for strings that bypass `t()`. It found one
+  pair of untranslated `aria-label`s on the developer credit links (now
+  `{name} on GitHub` in es/de/fr); the edition marks are brand names and stay as
+  written. `tests/i18n.test.ts` runs the audit so a hardcoded sentence fails CI.
+
+## Verified evidence (2026-10-20, shield filters and local model)
+
+- `pnpm test` → exit 0, **255/255** in 27 files, including
+  `tests/shield-rules.test.ts`, `tests/local-model-rules.test.ts` and
+  `tests/signin.test.ts`.
+- `pnpm typecheck` → exit 0; `pnpm build` → exit 0.
+- `pnpm verify:shield-filters` → **PASS** against the real engine: 122,097
+  network filters downloaded, a custom list compiled from the cached copy
+  without the network, the scriptlet gate held back exactly one rule while
+  trust was off, a custom cosmetic rule hid an element inside a live
+  `<webview>`, a custom scriptlet ran in the page's main world, a custom
+  network rule blocked the request before the test server saw it, the YouTube
+  bundle produced scriptlets for youtube.com only, and clearing the editor
+  rebuilt the engine.
+- `pnpm verify:model` → **PASS**: a placeholder `.gguf` plus
+  `scripts/fake-llama-server.mjs`; a non-GGUF path was refused, the runtime
+  started on loopback, `/v1/models` reported the file name, a streamed chat
+  reply arrived, and `stop()` ended the process.
+- Capture of the two new panels (`settings-my-filters`, `settings-local-model`)
+  from the running app confirmed the layout and live shield state.
+- **Limits:** no real GGUF or GPU was available, so inference speed was not
+  measured; no Discord session was signed in, so the parked-heartbeat change
+  is verified only as configuration (guest throttling off) rather than by
+  watching a gateway stay connected; Google's sign-in refusal was not waived —
+  Kryvex detects and explains it.
+
 ## Verified evidence (2026-10-20, service engine)
 
 - `pnpm typecheck` → exit 0.

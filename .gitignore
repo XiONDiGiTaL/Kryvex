@@ -27,3 +27,6 @@ Thumbs.db
 # local secrets
 .env
 .env.*
+
+# hyperframes render state
+.hyperframes/

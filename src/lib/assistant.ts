@@ -7,7 +7,17 @@ const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
 export const ASSISTANT_PROVIDER_URL: Record<AssistantSettings['provider'], string> = {
   ollama: 'http://127.0.0.1:11434',
   lmstudio: 'http://127.0.0.1:1234',
+  // A model file is served by llama.cpp on a port picked at launch; this is
+  // only the address used until that server reports its real one.
+  local: 'http://127.0.0.1:8080',
 };
+
+export const MODEL_SOURCES = {
+  huggingface: 'https://huggingface.co/models?library=gguf&sort=trending',
+  ollama: 'https://ollama.com/library',
+  lmstudio: 'https://lmstudio.ai/models',
+  runtime: 'https://github.com/ggml-org/llama.cpp/releases',
+} as const;
 
 /**
  * Accepts a plain http origin on loopback, with or without a trailing slash or

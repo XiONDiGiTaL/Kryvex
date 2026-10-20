@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AssistantDelta, AssistantMessage, PersistedState } from '../types';
 import { useI18n } from '../lib/i18n';
-import { ASSISTANT_SUGGESTIONS, newRequestId, useAssistantRuntime } from '../lib/assistant';
+import {
+  ASSISTANT_SUGGESTIONS,
+  MODEL_SOURCES,
+  newRequestId,
+  useAssistantRuntime,
+} from '../lib/assistant';
 import { Icon } from '../components/ui';
 
 const ERROR_COPY: Record<string, string> = {
@@ -149,7 +154,12 @@ export function Assistant({
                   : t('RUNTIME OFFLINE')}
           </span>
           <span className="mono assistant-model">
-            {model || t('NO MODEL')} · {settings.provider === 'lmstudio' ? 'LM STUDIO' : 'OLLAMA'}
+            {model || t('NO MODEL')} ·{' '}
+            {settings.provider === 'lmstudio'
+              ? 'LM STUDIO'
+              : settings.provider === 'local'
+                ? t('MODEL FILE')
+                : 'OLLAMA'}
           </span>
           <button className="btn ghost small" onClick={onOpenSettings}>
             {t('Runtime settings')}
@@ -183,6 +193,12 @@ export function Assistant({
             </button>
             <button className="btn ghost small" onClick={onOpenSettings}>
               {t('Open runtime settings')}
+            </button>
+            <button
+              className="btn ghost small"
+              onClick={() => void window.kryvex?.openExternal(MODEL_SOURCES.huggingface)}
+            >
+              <Icon name="external" size={13} /> {t('Get a model')}
             </button>
           </div>
         </div>

@@ -1559,6 +1559,35 @@ kbd {
   margin-top: 4px;
 }
 
+.signin-blocked {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 12px 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--warning, #f2c94c) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warning, #f2c94c) 10%, var(--bg));
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.signin-blocked > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.signin-blocked p {
+  margin: 3px 0 0;
+  color: var(--muted);
+}
+
+.signin-blocked-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .webview-error {
   position: absolute;
   inset: 0;
@@ -3638,6 +3667,97 @@ select:hover {
 .shield-note.is-error {
   border-left-color: var(--danger);
   color: var(--danger);
+}
+
+/* ------------------------------------------------------- my filters --- */
+
+.custom-filters {
+  margin: 10px 0 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.custom-filters-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.custom-filter-count {
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.custom-filter-editor {
+  display: block;
+  width: 100%;
+  min-height: 150px;
+  max-height: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  color: var(--ink);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10.5px;
+  line-height: 1.7;
+  resize: vertical;
+  tab-size: 2;
+}
+
+.custom-filter-editor:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 1px;
+}
+
+.custom-filter-editor:disabled {
+  opacity: 0.55;
+}
+
+.custom-filter-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+/* ------------------------------------------------ vexium model file --- */
+
+.local-model-block {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.local-model-path {
+  font-size: 9.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+
+.local-model-hint {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.local-model-log {
+  max-height: 140px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  font-size: 9.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--muted);
 }
 
 .credit-box {

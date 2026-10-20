@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { extensionMessage, languageLabel, makeI18n, normalizeLanguage } from '../src/lib/i18n';
 
@@ -11,6 +12,37 @@ describe('normalizeLanguage', () => {
   it('falls back to English for unsupported locales', () => {
     expect(normalizeLanguage('ja-JP')).toBe('en');
     expect(normalizeLanguage(undefined)).toBe('en');
+  });
+});
+
+describe('feature copy', () => {
+  it('translates the shield filter editor, model runner and sign-in notice', () => {
+    expect(makeI18n('es').t('MY FILTERS')).toBe('MIS FILTROS');
+    expect(makeI18n('de').t('MY FILTERS')).toBe('MEINE FILTER');
+    expect(makeI18n('fr').t('MY FILTERS')).toBe('MES FILTRES');
+
+    expect(makeI18n('es').t('YouTube: block ads and feed noise')).toContain('anuncios');
+    expect(makeI18n('de').t('YouTube: block ads and feed noise')).toContain('Werbung');
+    expect(makeI18n('fr').t('YouTube: block ads and feed noise')).toContain('pubs');
+
+    expect(makeI18n('es').t('RUN A MODEL FILE')).toBe('EJECUTAR UN ARCHIVO DE MODELO');
+    expect(makeI18n('de').t('Start server')).toBe('Server starten');
+    expect(makeI18n('fr').t('Choose model…')).toBe('Choisir un modèle…');
+
+    expect(makeI18n('fr').t('{count} rule(s) are on hold until scriptlet rules are allowed.', { count: 3 }))
+      .toBe('3 règle(s) en attente jusqu’à autoriser les scriptlets.');
+    expect(makeI18n('de').t('GPU layers: {count}', { count: 999 })).toBe('GPU-Schichten: 999');
+  });
+
+  it('localizes the developer credit links', () => {
+    expect(makeI18n('es').t('{name} on GitHub', { name: 'player529' })).toBe('player529 en GitHub');
+    expect(makeI18n('de').t('{name} on GitHub', { name: 'XiONDiGiTaL' })).toBe('XiONDiGiTaL auf GitHub');
+    expect(makeI18n('fr').t('{name} on GitHub', { name: 'player529' })).toBe('player529 sur GitHub');
+  });
+
+  it('keeps English as the source and does not invent keys', () => {
+    expect(makeI18n('en').t('MY FILTERS')).toBe('MY FILTERS');
+    expect(makeI18n('es').t('A string nobody translated')).toBe('A string nobody translated');
   });
 });
 
@@ -85,6 +117,13 @@ describe('makeI18n', () => {
   it('localizes the system-language option label', () => {
     const { t } = makeI18n('de');
     expect(languageLabel('system', t)).toMatch(/^Systemsprache \([A-Z]{2}\)$/);
+  });
+});
+
+describe('renderer copy audit', () => {
+  it('finds no hardcoded UI strings outside the translation table', () => {
+    const report = execFileSync(process.execPath, ['scripts/audit-i18n.cjs'], { encoding: 'utf8' });
+    expect(report).toContain('No hardcoded UI strings');
   });
 });
 

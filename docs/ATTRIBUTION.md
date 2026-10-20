@@ -84,6 +84,24 @@ authors and are governed by their own licenses. Kryvex only loads them into
 Electron sessions; it does not audit, modify, or redistribute them. Firefox
 `.xpi` add-ons target Gecko and are not installed by Kryvex.
 
+## Demo reel tooling and assets
+
+- **Skill:** `/brag` — https://github.com/latent-spaces/brag
+  - **Author:** Shunit Haviv Hakimi
+  - **License:** MIT (included at `.claude/skills/brag/LICENSE`)
+  - **How Kryvex uses it:** the skill is installed for agent-driven launch-video
+    work and produced `brag-output/brag.mp4`. It is not loaded by the app at
+    runtime.
+- **Video framework:** HyperFrames — https://github.com/heygen-com/hyperframes
+  - **License:** Apache-2.0
+  - **How Kryvex uses it:** local rendering of the HTML composition in
+    `brag-output/composition/`. Not a runtime dependency of the app.
+- **Music:** [ende.app](https://ende.app/en), "Happy Beats / Business Moves"
+  series, bundled by the `/brag` skill and used as the reel's bed.
+- **Sound effects:** [Kenney](https://kenney.nl/), CC0, bundled by `/brag`.
+- **Inter typeface:** https://rsms.me/inter/, SIL Open Font License 1.1,
+  bundled as a variable WOFF2 for the reel.
+
 ## Runtime stack
 
 Electron, Chromium, Node.js, React, Vite, TypeScript, `extract-zip` and the

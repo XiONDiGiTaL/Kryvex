@@ -163,13 +163,39 @@ export interface WallpaperSettings {
 }
 
 /** The stored background image, resolved at launch. */
-export type AssistantProvider = 'ollama' | 'lmstudio';
+export type AssistantProvider = 'ollama' | 'lmstudio' | 'local';
 
 /** Vexium points at a runtime the user already runs; no key is ever stored. */
 export interface AssistantSettings {
   provider: AssistantProvider;
   baseUrl: string;
   model: string;
+}
+
+export type LocalModelPhase = 'idle' | 'starting' | 'running' | 'stopped' | 'error';
+
+/** A GGUF file the user chose, plus the llama.cpp server serving it. */
+export interface LocalModelStatus {
+  phase: LocalModelPhase;
+  path: string;
+  name: string;
+  baseUrl: string;
+  port: number | null;
+  binary: string;
+  binaryFound: boolean;
+  pid: number | null;
+  startedAt: number | null;
+  ctxSize: number;
+  gpuLayers: number;
+  log: string;
+  error?: string;
+}
+
+export interface LocalModelPatch {
+  path?: string;
+  binary?: string;
+  ctxSize?: number;
+  gpuLayers?: number;
 }
 
 export type AssistantRole = 'system' | 'user' | 'assistant';
@@ -311,9 +337,31 @@ export interface ShieldStatus {
   httpsUpgrade: boolean;
   stripTracking: boolean;
   fingerprint: boolean;
+  /** The user's own uBO-syntax rules exactly as stored. */
+  customFilters: string;
+  customEnabled: boolean;
+  customScriptlets: boolean;
+  customRules: number;
+  customSkipped: number;
+  customLines: number;
+  customLimit: number;
+  youtube: boolean;
   httpsUpgrades: number;
   paramsStripped: number;
   error?: string;
+}
+
+export interface ShieldCustomPatch {
+  text?: string;
+  enabled?: boolean;
+  scriptlets?: boolean;
+  youtube?: boolean;
+}
+
+export interface ShieldCustomFileResult {
+  ok: boolean;
+  message: string;
+  status: ShieldStatus;
 }
 
 export interface ExtensionRecord {
@@ -381,6 +429,9 @@ export interface KryvexBridge {
   shieldSetEnabled: (enabled: boolean) => Promise<ShieldStatus>;
   shieldUpdate: () => Promise<ShieldStatus>;
   shieldSetOption: (option: string, enabled: boolean) => Promise<ShieldStatus>;
+  shieldSetCustom: (patch: ShieldCustomPatch) => Promise<ShieldStatus>;
+  shieldImportFilters: () => Promise<ShieldCustomFileResult>;
+  shieldExportFilters: () => Promise<ShieldCustomFileResult>;
   extensionsList: () => Promise<ExtensionRecord[]>;
   extensionsInstall: () => Promise<{ ok: boolean; message: string; records: ExtensionRecord[] }>;
   extensionsInstallFolder: () => Promise<{ ok: boolean; message: string; records: ExtensionRecord[] }>;
@@ -426,6 +477,12 @@ export interface KryvexBridge {
   assistantChat: (request: AssistantChatRequest) => Promise<AssistantChatResult>;
   assistantCancel: (requestId: string) => Promise<boolean>;
   onAssistantDelta: (listener: (event: AssistantDelta) => void) => () => void;
+  modelStatus: () => Promise<LocalModelStatus>;
+  modelChoose: () => Promise<LocalModelStatus>;
+  modelChooseBinary: () => Promise<LocalModelStatus>;
+  modelStart: () => Promise<LocalModelStatus>;
+  modelStop: () => Promise<LocalModelStatus>;
+  modelConfigure: (patch: LocalModelPatch) => Promise<LocalModelStatus>;
   wallpaperLoad: () => Promise<WallpaperImage | null>;
   wallpaperSave: (dataUrl: string) => Promise<WallpaperImage | null>;
   wallpaperClear: () => Promise<boolean>;

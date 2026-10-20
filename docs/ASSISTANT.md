@@ -14,6 +14,8 @@ no bundled weights and no prompt history on disk.
 | Transport | `electron/assistant.ts` (main process, streaming) |
 | Validation | `electron/assistant-rules.ts` (pure, unit-tested) |
 | Bridge | `assistantProbe`, `assistantChat`, `assistantCancel`, `onAssistantDelta` |
+| Model file | `electron/local-model.ts` + `electron/local-model-rules.ts` |
+| Model bridge | `modelStatus`, `modelChoose`, `modelChooseBinary`, `modelStart`, `modelStop`, `modelConfigure` |
 
 The renderer never calls the model server. The main process does, for three
 reasons: no CORS negotiation, no chance for a service webview to reach a
@@ -47,6 +49,31 @@ Limits are enforced before anything leaves the app: at most 40 messages, 8,000
 characters per message, 24,000 total, the last message must be `user`, and a
 model id must be a non-empty string without control characters.
 
+## Run a model file
+
+A runtime is not the only route. **Run a model file** takes a `.gguf` the user
+already downloaded and starts llama.cpp's `llama-server` against it:
+
+- `local-model-rules.ts` is pure: `isGgufPath`, `buildServerArgs`,
+  `clampContext`, `clampGpuLayers`, `binaryCandidates`, `tailLog`. Arguments
+  always bind `--host 127.0.0.1`, so the server is never exposed to the LAN.
+- `local-model.ts` owns the process: it asks the OS for a free port, spawns the
+  runtime with piped output, polls `/v1/models` every 700 ms for up to three
+  minutes (a large GGUF loads slowly), and reports `starting → running` or an
+  error with the last lines of output.
+- The runtime is the user's choice, then `<userData>/bin`, then `resources/bin`,
+  then PATH. A `.js`/`.mjs`/`.cjs` path runs on Electron's own Node with
+  `ELECTRON_RUN_AS_NODE=1`, which covers launcher wrappers.
+- `Stop server`, quitting the app and switching files all kill the child; the
+  config (path, runtime, context, GPU layers) is stored in
+  `kryvex-local-model.json` beside the other state, never in the renderer.
+- When a start succeeds the renderer points `settings.assistant` at the new
+  loopback origin and switches the provider to `local`, so the existing probe,
+  model list and streaming path are reused unchanged.
+
+Model weights are never downloaded, bundled or uploaded. **Get models** only
+opens Hugging Face's GGUF catalogue, Ollama's library and LM Studio's models.
+
 ## What stays private
 
 Conversations live in React state for the current window only. Closing the app
@@ -73,3 +100,9 @@ model.
   and the reply streamed into the view. Remote and `https` addresses were
   refused by the main process. No real model runtime was installed on the test
   machine, so model quality and speed were not measured.
+- Model file: `pnpm run verify:model` drives the real `LocalModel` manager
+  against `scripts/fake-llama-server.mjs` and a placeholder `.gguf`. It checks
+  the path and runtime are stored, a non-GGUF path is refused, the server
+  starts on loopback, `/v1/models` reports the file's name, a streamed chat
+  reply arrives, and `stop()` ends the process. Inference speed still depends
+  on the user's llama.cpp build and hardware and was not measured here.

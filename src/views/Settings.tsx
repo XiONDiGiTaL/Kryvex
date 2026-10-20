@@ -8,8 +8,10 @@ import type {
   EngineInfo,
   ExtensionRecord,
   LanguageSetting,
+  LocalModelStatus,
   PersistedState,
   Settings as SettingsModel,
+  ShieldCustomPatch,
   ShieldStatus,
   UpdateStatus,
   ViewId,
@@ -37,7 +39,12 @@ import {
   type ThemeFamily,
 } from '../lib/themes';
 import { extensionMessage, LANGUAGES, languageLabel, useI18n } from '../lib/i18n';
-import { ASSISTANT_PROVIDER_URL, normalizeBaseUrl, useAssistantRuntime } from '../lib/assistant';
+import {
+  ASSISTANT_PROVIDER_URL,
+  MODEL_SOURCES,
+  normalizeBaseUrl,
+  useAssistantRuntime,
+} from '../lib/assistant';
 import { WALLPAPER_ACCEPT } from '../lib/wallpaper';
 import { ColorPicker } from '../components/ColorPicker';
 import { ThemeGallery } from '../components/ThemeGallery';
@@ -127,10 +134,15 @@ export function Settings({
   const { t, locale } = useI18n();
   const settings = state.settings;
   const [shield, setShield] = useState<ShieldStatus | null>(null);
+  /** Local text of the filter editor; only synced while the user has no edits. */
+  const [filtersDraft, setFiltersDraft] = useState('');
+  const [filtersDirty, setFiltersDirty] = useState(false);
   const [extensions, setExtensions] = useState<ExtensionRecord[]>([]);
   const [defaultBrowser, setDefaultBrowser] = useState<DefaultBrowserStatus | null>(null);
   const [downloadLocation, setDownloadLocation] = useState<DownloadLocation | null>(null);
   const [engine, setEngine] = useState<EngineInfo | null>(null);
+  const [model, setModel] = useState<LocalModelStatus | null>(null);
+  const [modelBusy, setModelBusy] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [customOpen, setCustomOpen] = useState(settings.themeId === CUSTOM_THEME_ID);
   const updatesRef = useRef<HTMLElement | null>(null);
@@ -150,6 +162,12 @@ export function Settings({
   useEffect(() => {
     if (settings.themeId === CUSTOM_THEME_ID) setCustomOpen(true);
   }, [settings.themeId]);
+
+  // The shield polls every few seconds; never overwrite text being typed.
+  useEffect(() => {
+    if (!shield || filtersDirty) return;
+    setFiltersDraft(shield.customFilters);
+  }, [shield, filtersDirty]);
 
   useEffect(() => {
     if (!isElectron || !window.kryvex) return;
@@ -177,6 +195,31 @@ export function Settings({
       window.clearInterval(timer);
     };
   }, [isElectron]);
+
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    let alive = true;
+    void window.kryvex
+      .modelStatus()
+      .then(next => {
+        if (alive) setModel(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [isElectron]);
+
+  // A server loading a large GGUF is silent for a while; poll while it starts.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex || model?.phase !== 'starting') return;
+    const timer = window.setInterval(() => {
+      void window.kryvex!.modelStatus()
+        .then(setModel)
+        .catch(() => undefined);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [isElectron, model?.phase]);
 
   useEffect(() => {
     if (!isElectron || !window.kryvex) return;
@@ -380,6 +423,129 @@ export function Settings({
       onToast(t('Filter update failed.'), 'danger');
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function saveFilters(patch: ShieldCustomPatch) {
+    if (!window.kryvex) return;
+    setBusy('filters');
+    try {
+      const next = await window.kryvex.shieldSetCustom(patch);
+      setShield(next);
+      setFiltersDirty(false);
+      onToast(
+        next.error ? next.error : t('Filter rules applied.'),
+        next.error ? 'danger' : 'success',
+      );
+    } catch {
+      onToast(t('The filter rules could not be applied.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function importFilters() {
+    if (!window.kryvex) return;
+    setBusy('filters');
+    try {
+      const result = await window.kryvex.shieldImportFilters();
+      setShield(result.status);
+      setFiltersDirty(false);
+      onToast(result.message, result.ok ? 'success' : 'warning');
+    } catch {
+      onToast(t('The file could not be imported.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function exportFilters() {
+    if (!window.kryvex) return;
+    setBusy('filters');
+    try {
+      const result = await window.kryvex.shieldExportFilters();
+      setShield(result.status);
+      if (result.ok) onToast(result.message, 'success');
+    } catch {
+      onToast(t('The rules could not be exported.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function chooseModel() {
+    if (!window.kryvex) return;
+    setModelBusy(true);
+    try {
+      const next = await window.kryvex.modelChoose();
+      setModel(next);
+      if (next.error) onToast(next.error, 'warning');
+    } catch {
+      onToast(t('The model file could not be opened.'), 'danger');
+    } finally {
+      setModelBusy(false);
+    }
+  }
+
+  async function chooseModelBinary() {
+    if (!window.kryvex) return;
+    setModelBusy(true);
+    try {
+      setModel(await window.kryvex.modelChooseBinary());
+    } catch {
+      onToast(t('The runtime could not be set.'), 'danger');
+    } finally {
+      setModelBusy(false);
+    }
+  }
+
+  async function startModel() {
+    if (!window.kryvex) return;
+    setModelBusy(true);
+    onToast(t('Loading the model. Large files can take a minute.'), 'info');
+    try {
+      const next = await window.kryvex.modelStart();
+      setModel(next);
+      if (next.phase === 'running' && next.baseUrl) {
+        onUpdate({
+          assistant: {
+            ...settings.assistant,
+            provider: 'local',
+            baseUrl: next.baseUrl,
+            model: '',
+          },
+        });
+        runtime.refresh();
+        onToast(t('{name} is serving on {url}.', { name: next.name, url: next.baseUrl }), 'success');
+      } else if (next.error) {
+        onToast(next.error, 'danger');
+      }
+    } catch {
+      onToast(t('The model could not be started.'), 'danger');
+    } finally {
+      setModelBusy(false);
+    }
+  }
+
+  async function stopModel() {
+    if (!window.kryvex) return;
+    setModelBusy(true);
+    try {
+      setModel(await window.kryvex.modelStop());
+      onToast(t('The local model stopped.'), 'info');
+    } catch {
+      onToast(t('The model could not be stopped.'), 'danger');
+    } finally {
+      setModelBusy(false);
+    }
+  }
+
+  async function configureModel(patch: { ctxSize?: number; gpuLayers?: number }) {
+    if (!window.kryvex) return;
+    try {
+      setModel(await window.kryvex.modelConfigure(patch));
+    } catch {
+      /* a stale panel is better than a broken one */
     }
   }
 
@@ -923,7 +1089,7 @@ export function Settings({
             <p>{t('Ollama serves on port 11434, LM Studio on 1234. Only loopback http addresses are accepted.')}</p>
           </div>
           <div className="assistant-providers" role="group" aria-label={t('Runtime')}>
-            {(['ollama', 'lmstudio'] as const).map(provider => (
+            {(['ollama', 'lmstudio', 'local'] as const).map(provider => (
               <button
                 key={provider}
                 className={`assistant-provider-btn ${settings.assistant.provider === provider ? 'is-active' : ''}`}
@@ -932,13 +1098,22 @@ export function Settings({
                   onUpdate({
                     assistant: {
                       provider,
-                      baseUrl: ASSISTANT_PROVIDER_URL[provider],
+                      // A model file lives on a port picked at launch; use the
+                      // running server's address when there is one.
+                      baseUrl:
+                        provider === 'local' && model?.phase === 'running' && model.baseUrl
+                          ? model.baseUrl
+                          : ASSISTANT_PROVIDER_URL[provider],
                       model: '',
                     },
                   })
                 }
               >
-                {provider === 'ollama' ? 'OLLAMA' : 'LM STUDIO'}
+                {provider === 'ollama'
+                  ? 'OLLAMA'
+                  : provider === 'lmstudio'
+                    ? 'LM STUDIO'
+                    : t('MODEL FILE')}
               </button>
             ))}
           </div>
@@ -1016,6 +1191,143 @@ export function Settings({
               <Icon name="reload" size={12} /> {t('Refresh')}
             </button>
           </div>
+        </div>
+
+        <div className="local-model-block">
+          <div className="custom-filters-head">
+            <span className="mono privacy-kicker">{t('RUN A MODEL FILE')}</span>
+            <span className={`mono shield-state ${model?.phase === 'running' ? 'is-ready' : ''}`}>
+              {model
+                ? t(model.phase.toUpperCase())
+                : isElectron
+                  ? t('IDLE')
+                  : t('DESKTOP ONLY')}
+            </span>
+          </div>
+          <p className="setting-copy">
+            {t(
+              'Pick a .gguf model you already downloaded. Kryvex starts llama.cpp on loopback and Vexium uses it like any other runtime. No weights are downloaded or hosted by us.',
+            )}
+          </p>
+
+          <div className="setting-row">
+            <div>
+              <strong>{t('Model file')}</strong>
+              <p className="mono local-model-path">
+                {model?.path
+                  ? model.path
+                  : t('No model file chosen. A 4B–8B quantised model runs well on most machines.')}
+              </p>
+            </div>
+            <div className="assistant-address">
+              <button
+                className="btn secondary small"
+                disabled={!isElectron || modelBusy}
+                onClick={() => void chooseModel()}
+              >
+                {t('Choose model…')}
+              </button>
+              <button
+                className="btn ghost small"
+                onClick={() => void window.kryvex?.openExternal(MODEL_SOURCES.huggingface)}
+              >
+                <Icon name="external" size={12} /> {t('Get models')}
+              </button>
+            </div>
+          </div>
+
+          <div className="setting-row">
+            <div>
+              <strong>{t('Runtime')}</strong>
+              <p className="mono local-model-path">
+                {model?.binary || 'llama-server'}
+                {model && !model.binaryFound ? ` · ${t('not found')}` : ''}
+              </p>
+              <p>
+                {t(
+                  'Kryvex uses llama.cpp’s llama-server. If it is not on your PATH, point Kryvex at the executable once.',
+                )}{' '}
+                <button
+                  className="link"
+                  onClick={() => void window.kryvex?.openExternal(MODEL_SOURCES.runtime)}
+                >
+                  {t('Download llama.cpp')} <Icon name="external" size={11} />
+                </button>
+              </p>
+            </div>
+            <div className="assistant-address">
+              <button
+                className="btn ghost small"
+                disabled={!isElectron || modelBusy}
+                onClick={() => void chooseModelBinary()}
+              >
+                {t('Find runtime…')}
+              </button>
+              {model?.phase === 'running' ? (
+                <button
+                  className="btn secondary small"
+                  disabled={modelBusy}
+                  onClick={() => void stopModel()}
+                >
+                  {t('Stop server')}
+                </button>
+              ) : (
+                <button
+                  className="btn primary small"
+                  disabled={!isElectron || modelBusy || !model?.path}
+                  onClick={() => void startModel()}
+                >
+                  {modelBusy || model?.phase === 'starting' ? t('Starting…') : t('Start server')}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="setting-row">
+            <div>
+              <strong>{t('Context window')}</strong>
+              <p>
+                {t(
+                  'Tokens the model can hold. Larger needs more memory. A change applies the next time the server starts.',
+                )}
+              </p>
+            </div>
+            <div className="assistant-address">
+              <input
+                type="number"
+                min={512}
+                max={131072}
+                step={512}
+                value={model?.ctxSize ?? 4096}
+                aria-label={t('Context window')}
+                disabled={!isElectron || modelBusy}
+                onChange={event => void configureModel({ ctxSize: Number(event.target.value) })}
+              />
+              <span className="mono local-model-hint">
+                {t('GPU layers: {count}', { count: model?.gpuLayers ?? 999 })}
+              </span>
+            </div>
+          </div>
+
+          {model?.error ? (
+            <p className="shield-note is-error">{model.error}</p>
+          ) : null}
+          {model?.phase === 'running' && model.baseUrl ? (
+            <p className="shield-note mono">
+              {t('Serving {name} at {url} — Vexium is pointed at it.', {
+                name: model.name,
+                url: model.baseUrl,
+              })}
+            </p>
+          ) : null}
+          {model?.log && model.phase === 'error' ? (
+            <pre className="local-model-log mono">{model.log}</pre>
+          ) : null}
+          <p className="shield-note">
+            {t(
+              'Models are yours to source: Hugging Face GGUF builds, Ollama’s library, or LM Studio’s catalogue. Kryvex never uploads or redistributes them.',
+            )}
+          </p>
         </div>
       </section>
 
@@ -1159,6 +1471,137 @@ export function Settings({
               <p className="shield-note">
                 {t('EasyList Cookie hides many consent banners without clicking them.')}
               </p>
+
+              <div className="custom-filters">
+                <div className="custom-filters-head">
+                  <span className="mono privacy-kicker">{t('MY FILTERS')}</span>
+                  <span className="mono custom-filter-count">
+                    {t('{rules} active rules · {lines} lines', {
+                      rules: shield.customRules.toLocaleString(locale),
+                      lines: shield.customLines.toLocaleString(locale),
+                    })}
+                  </span>
+                </div>
+                <p className="shield-note">
+                  {t(
+                    'uBlock Origin syntax, one rule per line: ||ads.example.com^ blocks a request, example.com##.ad hides a selector, example.com##+js(…) runs a scriptlet. Applying recompiles from the cached lists, so no download is needed.',
+                  )}
+                </p>
+                <textarea
+                  className="custom-filter-editor"
+                  value={filtersDraft}
+                  spellCheck={false}
+                  aria-label={t('Custom filter rules')}
+                  placeholder={t('! Your rules go here\n||ads.example.com^\nwww.youtube.com##ytd-ad-slot-renderer')}
+                  disabled={!isElectron}
+                  onChange={event => {
+                    setFiltersDraft(event.target.value);
+                    setFiltersDirty(true);
+                  }}
+                />
+                <div className="custom-filter-tools">
+                  <button
+                    className="btn primary small"
+                    disabled={!isElectron || !filtersDirty || busy === 'filters'}
+                    onClick={() => void saveFilters({ text: filtersDraft })}
+                  >
+                    {busy === 'filters' ? t('Applying…') : t('Apply changes')}
+                  </button>
+                  <button
+                    className="btn ghost small"
+                    disabled={!filtersDirty}
+                    onClick={() => {
+                      setFiltersDraft(shield.customFilters);
+                      setFiltersDirty(false);
+                    }}
+                  >
+                    {t('Revert')}
+                  </button>
+                  <button
+                    className="btn secondary small"
+                    disabled={!isElectron || busy === 'filters'}
+                    onClick={() => void importFilters()}
+                  >
+                    {t('Import and append…')}
+                  </button>
+                  <button
+                    className="btn secondary small"
+                    disabled={!isElectron || !shield.customFilters || busy === 'filters'}
+                    onClick={() => void exportFilters()}
+                  >
+                    {t('Export…')}
+                  </button>
+                </div>
+
+                <div className="privacy-settings">
+                  <div className="setting-row">
+                    <div>
+                      <strong>{t('Enable my custom filters')}</strong>
+                      <p>{t('When off, the rules are kept but not compiled into the shield.')}</p>
+                    </div>
+                    <button
+                      className={`switch ${shield.customEnabled ? 'is-on' : ''}`}
+                      role="switch"
+                      aria-checked={shield.customEnabled}
+                      disabled={!isElectron || busy === 'filters'}
+                      onClick={() => void saveFilters({ enabled: !shield.customEnabled })}
+                    >
+                      <span />
+                    </button>
+                  </div>
+                  <div className="setting-row">
+                    <div>
+                      <strong>{t('Allow scriptlet rules (+js)')}</strong>
+                      <p>
+                        {t(
+                          'Scriptlets run small scripts in the page to switch off ad-block popups. Kryvex implements uBO’s set and set-constant; other scriptlet names are ignored. Rules using them are skipped while this is off.',
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      className={`switch ${shield.customScriptlets ? 'is-on' : ''}`}
+                      role="switch"
+                      aria-checked={shield.customScriptlets}
+                      disabled={!isElectron || busy === 'filters'}
+                      onClick={() => void saveFilters({ scriptlets: !shield.customScriptlets })}
+                    >
+                      <span />
+                    </button>
+                  </div>
+                  <div className="setting-row">
+                    <div>
+                      <strong>{t('YouTube: block ads and feed noise')}</strong>
+                      <p>
+                        {t(
+                          'Hides ad slots, sponsored feed cards and recommendation shelves on youtube.com, switches off the ad-block popup, and blocks three ad hosts on that site only.',
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      className={`switch ${shield.youtube ? 'is-on' : ''}`}
+                      role="switch"
+                      aria-checked={shield.youtube}
+                      disabled={!isElectron || busy === 'filters'}
+                      onClick={() => void saveFilters({ youtube: !shield.youtube })}
+                    >
+                      <span />
+                    </button>
+                  </div>
+                </div>
+
+                {shield.customSkipped > 0 ? (
+                  <p className="shield-note is-error">
+                    {t('{count} rule(s) are on hold until scriptlet rules are allowed.', {
+                      count: shield.customSkipped,
+                    })}
+                  </p>
+                ) : null}
+                {filtersDirty ? (
+                  <p className="shield-note">
+                    {t('Unapplied edits. Nothing is compiled until you apply.')}
+                  </p>
+                ) : null}
+              </div>
 
               {shield.phase === 'loading' ? (
                 <p className="shield-note">
@@ -2069,7 +2512,7 @@ export function Settings({
                 href="https://github.com/XiONDiGiTaL"
                 target="_blank"
                 rel="noreferrer noopener"
-                aria-label="XiONDiGiTaL on GitHub"
+                aria-label={t('{name} on GitHub', { name: 'XiONDiGiTaL' })}
               >
                 XiONDiGiTaL <Icon name="external" size={11} />
               </a>
@@ -2080,7 +2523,7 @@ export function Settings({
                 href="https://github.com/player529"
                 target="_blank"
                 rel="noreferrer noopener"
-                aria-label="player529 on GitHub"
+                aria-label={t('{name} on GitHub', { name: 'player529' })}
               >
                 player529 <Icon name="external" size={11} />
               </a>

@@ -1,9 +1,10 @@
-import { app, BrowserWindow, ipcMain, screen, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, screen, session, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { assistant } from './assistant';
 import {
   applyChromiumPreferences,
+  chromiumProfile,
   engineInfo,
   initChromium,
   setChromium,
@@ -13,6 +14,8 @@ import { defaultBrowser } from './default-browser';
 import { downloads } from './downloads';
 import { extensions } from './extensions';
 import { configurePrivacySwitches, hardenSession } from './hardening';
+import { ensureBrowserIdentity } from './identity';
+import { localModel } from './local-model';
 import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
 import { permissions } from './permissions';
 import { isSafePartition } from './privacy';
@@ -154,9 +157,11 @@ function hardenWebContents(): void {
     downloads.trackSession(contents.session);
     webPrivacy.attachContents(contents);
     if (contents.getType() === 'webview') {
-      // Only remote content gets the farbling preload; the trusted shell is
-      // never patched.
+      // Only remote content gets the farbling and identity preloads; the
+      // trusted shell is never patched.
+      ensureBrowserIdentity(contents.session);
       webPrivacy.ensureSession(contents.session, true);
+      shield.attachScriptlets(contents);
     }
 
     contents.setWindowOpenHandler(({ url, disposition }) => {
@@ -305,6 +310,18 @@ function createWindow(): BrowserWindow {
 
   win.webContents.on('did-attach-webview', (_event, contents) => {
     trackChromiumGuest(contents);
+    // A parked service frame stays mounted but hidden, and Chromium throttles
+    // timers in a hidden page. A chat client that misses one heartbeat shows
+    // "connecting" minutes later, which reads as a disconnect. Turning guest
+    // throttling off is Electron's supported fix; the Settings switch still
+    // wins, so a user who keeps throttling on for battery keeps it.
+    if (!chromiumProfile().backgroundThrottling) {
+      try {
+        contents.setBackgroundThrottling(false);
+      } catch {
+        /* a guest that is already gone needs nothing */
+      }
+    }
   });
 
   win.webContents.on('will-attach-webview', (event, webPreferences, params) => {
@@ -365,6 +382,23 @@ function registerIpc(): void {
   ipcMain.handle('kryvex:assistant:cancel', (event, requestId: unknown) =>
     isShellSender(event) ? assistant.cancel(requestId) : false,
   );
+  // Read-only status is harmless to any sender; every mutation needs the shell.
+  ipcMain.handle('kryvex:model:status', () => localModel.status());
+  ipcMain.handle('kryvex:model:choose', (event) =>
+    isShellSender(event) ? localModel.chooseModel(mainWindow) : localModel.status(),
+  );
+  ipcMain.handle('kryvex:model:choose-binary', (event) =>
+    isShellSender(event) ? localModel.chooseBinary(mainWindow) : localModel.status(),
+  );
+  ipcMain.handle('kryvex:model:start', (event) =>
+    isShellSender(event) ? localModel.start() : localModel.status(),
+  );
+  ipcMain.handle('kryvex:model:stop', (event) =>
+    isShellSender(event) ? localModel.stop() : localModel.status(),
+  );
+  ipcMain.handle('kryvex:model:configure', (event, patch: unknown) =>
+    isShellSender(event) ? localModel.configure(patch) : localModel.status(),
+  );
   ipcMain.handle('kryvex:wallpaper:load', (event) =>
     isShellSender(event) ? readWallpaper(app.getPath('userData')) : null,
   );
@@ -390,6 +424,62 @@ function registerIpc(): void {
       return shield.status();
     }
     return shield.setOption(option, enabled);
+  });
+  ipcMain.handle('kryvex:shield:custom', (event, patch: unknown) => {
+    if (!isShellSender(event)) return shield.status();
+    return shield.setCustom(patch);
+  });
+  ipcMain.handle('kryvex:shield:import-filters', async (event) => {
+    const failed = { ok: false, message: 'Untrusted sender.', status: shield.status() };
+    if (!isShellSender(event) || !mainWindow) return failed;
+    const picked = await dialog.showOpenDialog(mainWindow, {
+      title: 'Append filter rules',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Filter lists', extensions: ['txt', 'list', 'filters'] },
+        { name: 'All files', extensions: ['*'] },
+      ],
+    });
+    const file = picked.canceled ? undefined : picked.filePaths[0];
+    if (!file) return { ok: false, message: 'No file was chosen.', status: shield.status() };
+    try {
+      const raw = fs.readFileSync(file, 'utf8');
+      const current = shield.status().customFilters;
+      const joined = current.trim()
+        ? `${current.trim()}\n\n! ==== imported from ${path.basename(file)} ====\n${raw}`
+        : raw;
+      const status = shield.setCustom({ text: joined, enabled: true });
+      return { ok: !status.error, message: status.error ?? 'Filter rules appended.', status };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : 'The file could not be read.',
+        status: shield.status(),
+      };
+    }
+  });
+  ipcMain.handle('kryvex:shield:export-filters', async (event) => {
+    const failed = { ok: false, message: 'Untrusted sender.', status: shield.status() };
+    if (!isShellSender(event) || !mainWindow) return failed;
+    const status = shield.status();
+    const target = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export my filters',
+      defaultPath: 'kryvex-my-filters.txt',
+      filters: [{ name: 'Filter list', extensions: ['txt'] }],
+    });
+    if (target.canceled || !target.filePath) {
+      return { ok: false, message: 'Export cancelled.', status };
+    }
+    try {
+      fs.writeFileSync(target.filePath, `${status.customFilters.trim()}\n`, 'utf8');
+      return { ok: true, message: 'Filter rules exported.', status };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : 'The file could not be written.',
+        status,
+      };
+    }
   });
   ipcMain.on('kryvex:farbling:seed', (event, site: unknown) => {
     event.returnValue = webPrivacy.fingerprintSeed(event.sender, site);
@@ -646,6 +736,8 @@ async function runCapture(win: BrowserWindow): Promise<void> {
     { name: 'settings-updates', hash: '#/settings?section=updates', scroll: '#updates' },
     { name: 'settings-data', hash: '#/settings', scroll: '.download-location-copy' },
     { name: 'settings-shield', hash: '#/settings', scroll: '.shield-panel' },
+    { name: 'settings-my-filters', hash: '#/settings', scroll: '.custom-filters', block: 'start' },
+    { name: 'settings-local-model', hash: '#/settings', scroll: '.local-model-block', block: 'start' },
     {
       name: 'settings-browser',
       hash: '#/settings',
@@ -668,6 +760,14 @@ async function runCapture(win: BrowserWindow): Promise<void> {
     { name: 'light-theme', hash: '#/home?theme=kryvex-light' },
   ];
 
+  // `KRYVEX_CAPTURE_ONLY` re-shoots one or two panels without rewriting the
+  // rest of the gallery.
+  const only = (process.env.KRYVEX_CAPTURE_ONLY ?? '')
+    .split(',')
+    .map(name => name.trim())
+    .filter(Boolean);
+  const selected = only.length > 0 ? shots.filter(shot => only.includes(shot.name)) : shots;
+
   await wait(1200);
   // A fresh profile opens the first-run theme sheet; dismiss it so the
   // captures show the route instead of the onboarding.
@@ -675,7 +775,7 @@ async function runCapture(win: BrowserWindow): Promise<void> {
     .executeJavaScript(`document.querySelector('[data-shot="gallery-skip"]')?.click(); true;`)
     .catch(() => undefined);
   await wait(300);
-  for (const shot of shots) {
+  for (const shot of selected) {
     await win.webContents.executeJavaScript(
       `window.location.hash = ${JSON.stringify(shot.hash)}; true;`,
     );
@@ -750,6 +850,7 @@ if (!gotLock) {
     downloads.init();
     // Restore only the display rows here; WebTorrent is created on Resume.
     torrents.init();
+    localModel.init();
     extensions.init(session.defaultSession);
     hardenSession(session.defaultSession);
     shield.trackSession(session.defaultSession);

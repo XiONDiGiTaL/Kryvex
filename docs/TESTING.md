@@ -18,6 +18,9 @@ skipped, weakened or excluded to make the suite pass.
 | `pnpm verify:torrents` | exit 0 | A real `.torrent` and magnet were persisted across a location change, restored paused in a fresh manager with no WebTorrent client, then hydrated on Resume; both downloaded, reported a seed, and deleted their data |
 | `pnpm verify:torrent-restore-ui` | exit 0 | The built app opens a seeded profile with a saved torrent row and renders it as paused in the Downloads hub with a Resume action |
 | `pnpm verify:browser` | exit 0 | Find-in-page reports `1 of 3` for a local page; zoom reaches 110% on the live webview and resets to 100% |
+| `pnpm verify:identity` | exit 0 | A guest page saw `navigator.userAgentData` with a Google Chrome brand, matching platform, `getHighEntropyValues` and `fullVersionList`; `Sec-CH-UA`, `Sec-CH-UA-Mobile` and `Sec-CH-UA-Platform` arrived on the wire with no Electron token; farbling was active (2 pixels perturbed) and its wrappers still reported native code through `Function.prototype.toString` |
+| `pnpm verify:shield-filters` | exit 0 | The real engine downloaded 122,097 filters, compiled a custom list from the cached copy without the network, held a scriptlet back while trust was off, hid a custom cosmetic element in a live `<webview>`, ran a custom scriptlet in the page's main world, blocked a custom network rule before it reached the test server, scoped the YouTube bundle to youtube.com, and rebuilt after clearing the editor |
+| `pnpm verify:model` | exit 0 | A placeholder `.gguf` plus `scripts/fake-llama-server.mjs`: a non-GGUF path was refused, the runtime started on loopback, `/v1/models` reported the file name, a streamed chat reply arrived, and stop killed the process |
 | `pnpm verify:updater` | exit 0 | A loopback GitHub-shaped feed: an installed-mode build selected the version-matched Setup asset, a wrong SHA-256 was rejected with no stored file, a correct SHA-256 produced `ready` with matching bytes, an unpackaged build refused to launch the installer, a source checkout selected no binary and refused to download, and a 404 was reported as `no-release` |
 | `pnpm exec electron-builder --dir` | exit 0 | Unpacked Windows app rebuilt from this tree; the packaged `Kryvex.exe` passed `verify:location-ui` with `KRYVEX_APP` |
 | `pnpm run package:win` | exit 0 | Setup and Portable EXEs from the 0.5.0 tree; both report version `0.5.0` and `NotSigned` |
@@ -256,6 +259,9 @@ pnpm verify:torrents     # torrent queue restores paused across a location chang
 pnpm verify:torrent-restore-ui  # restored paused row in the real Downloads hub
 pnpm verify:browser      # find-in-page and page zoom
 pnpm verify:chromium     # engine switches reach real guest webviews
+pnpm verify:identity     # Chrome-shaped UA, client hints and hidden wrappers
+pnpm verify:shield-filters  # custom rules, scriptlet gate, YouTube bundle
+pnpm verify:model        # local .gguf file through the real runner
 pnpm verify:updater      # local release feed, checksums and source-mode guard
 pnpm verify:wallpaper    # backdrop is opt-in, theme-derived and image-capable
 ```
@@ -312,6 +318,24 @@ Not verified here:
   demand a native app handoff were not exercised.
 - `pnpm run package:win` was not run for 0.6.0, so the EXEs above remain the
   0.5.0 builds; unsigned artifacts and the missing auto-updater are unchanged.
+
+## Session persistence — 0.7.0 (2026-10-20)
+
+`node scripts/verify-service-engine.cjs` failed on `origin/main` at the restart
+step: the app closed its window and quit cleanly, but the service partition's
+`Cookies` database held no `kx=session-ok` entry, so the relaunched app opened
+the module signed out. An isolated probe showed Electron writes a `persist:`
+partition's cookies correctly once `cookies.flushStore()` completes, so the app
+now flushes every known partition (plus the default session) from
+`before-quit`, holding the quit for at most 1.5 s.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `node scripts/verify-service-engine.cjs` | **PASS** (before the fix: FAIL on `restored cookie`) | Real app, loopback fixture, window close and relaunch with the same isolated profile |
+| `npm run typecheck` / `npx vitest run` | exit 0, **260/260** in 27 files | Renderer and `electron/` |
+
+Regression guard: the harness fails if a future change drops the flush, because
+it restarts the real app rather than calling `flushStore` directly.
 
 ## Updater — 0.6.0 (2026-10-20)
 

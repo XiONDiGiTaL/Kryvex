@@ -6,8 +6,56 @@ import {
   mediaDevices,
   normalizeHttpOrigin,
   trimCrossOriginReferrer,
+  withChromeClientHints,
   withPrivacyHeaders,
 } from '../electron/privacy';
+
+describe('withChromeClientHints', () => {
+  it('replaces Electron product brands with the desktop Chrome set', () => {
+    const next = withChromeClientHints(
+      {
+        'sec-ch-ua': '"Chromium";v="152", "Not;A=Brand";v="8"',
+        'sec-ch-ua-full-version': '"152.0.0.0"',
+        'sec-ch-ua-full-version-list': '"Chromium";v="152.0.0.0"',
+        'sec-ch-ua-platform': '"Windows"',
+      },
+      '152.0.7000.12',
+    );
+    expect(next['sec-ch-ua']).toContain('"Google Chrome";v="152"');
+    expect(next['sec-ch-ua']).toContain('"Chromium";v="152"');
+    expect(next['sec-ch-ua-full-version']).toBe('"152.0.0.0"');
+    expect(next['sec-ch-ua-full-version-list']).toContain('Google Chrome');
+    expect(next['sec-ch-ua-platform']).toBe('"Windows"');
+  });
+
+  it('adds the low-entropy hints Electron omits', () => {
+    const next = withChromeClientHints({ Referer: 'https://x.test/' }, '152.0', 'Windows');
+    expect(next.Referer).toBe('https://x.test/');
+    expect(next['Sec-CH-UA']).toContain('"Google Chrome";v="152"');
+    expect(next['Sec-CH-UA-Mobile']).toBe('?0');
+    expect(next['Sec-CH-UA-Platform']).toBe('"Windows"');
+    // Request-only hints are never invented.
+    expect(next['Sec-CH-UA-Full-Version-List']).toBeUndefined();
+  });
+
+  it('never adds more than Chrome sends by default', () => {
+    const next = withChromeClientHints(
+      { 'sec-ch-ua': '"Chromium";v="152"', 'sec-ch-ua-platform': '"Linux"' },
+      '152.0',
+      'Linux',
+    );
+    expect(next['sec-ch-ua']).not.toContain('Electron');
+    expect(next['sec-ch-ua-platform']).toBe('"Linux"');
+    // Exactly Chrome's three low-entropy hints, in the casing they arrived in.
+    const hints = Object.keys(next).filter(key => key.toLowerCase().startsWith('sec-ch-ua'));
+    expect(hints.sort()).toEqual(['Sec-CH-UA-Mobile', 'sec-ch-ua', 'sec-ch-ua-platform']);
+  });
+
+  it('ignores a version it cannot read', () => {
+    const headers = { 'sec-ch-ua': '"Chromium";v="152"' };
+    expect(withChromeClientHints(headers, '')).toEqual(headers);
+  });
+});
 
 describe('isSafePartition', () => {
   it('allows persistent service modules and in-memory browser tabs', () => {
