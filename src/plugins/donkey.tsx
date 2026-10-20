@@ -11,6 +11,9 @@ export const SPECIAL_DONKEY_THEME: Theme = {
   id: 'special-donkey',
   name: 'Special Donkey Edition',
   mode: 'dark',
+  symbol: 'Dk',
+  family: 'custom',
+  number: 38,
   plugin: true,
   mark: 'donkey',
   tokens: {

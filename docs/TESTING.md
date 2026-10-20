@@ -9,15 +9,16 @@ skipped, weakened or excluded to make the suite pass.
 | Command | Result | Scope |
 | --- | --- | --- |
 | `pnpm typecheck` | exit 0 | `tsc --noEmit` for renderer and `electron/` (strict) |
-| `pnpm test` | exit 0, 110/110 | Vitest: URL normalisation/search resolution, service validation and helpers, starter state, state sanitisation (including saved browser tabs) and registry operations, history, download-history and storage-location validation, page-zoom stepping, catalogue, theme catalogue, Windows browser registration, i18n catalogues, Chrome Web Store URLs, privacy partitions/referrers/headers, Brave-style URL rewrites and farbling rules, media permission helpers, torrent magnet/name/peer/protocol rules and paused queue restore |
+| `pnpm test` | exit 0, 137/137 | Vitest: URL normalisation/search resolution, service validation and helpers, starter state, state sanitisation (including saved browser tabs) and registry operations, history, download-history and storage-location validation, page-zoom stepping, catalogue, theme catalogue, Windows browser registration, i18n catalogues, Chrome Web Store URLs, privacy partitions/referrers/headers, Brave-style URL rewrites and farbling rules, media permission helpers, torrent magnet/name/peer/protocol rules and paused queue restore |
 | `pnpm build` | exit 0 | Vite renderer (`dist/`) + `tsc` main/preload (`dist-electron/`); 468.11 kB JS, 54.02 kB CSS |
-| `pnpm capture` | exit 0 | Launches the built Electron window in a disposable profile and writes seventeen 1440×900 PNGs |
+| `pnpm capture` | exit 0 | Launches the built Electron window in a disposable profile and writes nineteen 1440×900 PNGs |
 | `pnpm verify:restart` | exit 0 | Real app launched repeatedly: theme, start view and a browser tab survive; a setting changed just before close also survives; a URL passed on the command line joins the restored tab |
 | `pnpm verify:downloads` | exit 0 | A completed download was written to a chosen folder, the location moved again, then the record was reloaded by a fresh manager and deleted from disk and the library; reset returned to Downloads |
 | `pnpm verify:location-ui` | exit 0 | The built app showed a seeded custom folder in **Settings → Data**, offered Change folder/reset, and reset the live path and bridge value to the real Downloads folder |
 | `pnpm verify:torrents` | exit 0 | A real `.torrent` and magnet were persisted across a location change, restored paused in a fresh manager with no WebTorrent client, then hydrated on Resume; both downloaded, reported a seed, and deleted their data |
 | `pnpm verify:torrent-restore-ui` | exit 0 | The built app opens a seeded profile with a saved torrent row and renders it as paused in the Downloads hub with a Resume action |
 | `pnpm verify:browser` | exit 0 | Find-in-page reports `1 of 3` for a local page; zoom reaches 110% on the live webview and resets to 100% |
+| `pnpm verify:updater` | exit 0 | A loopback GitHub-shaped feed: an installed-mode build selected the version-matched Setup asset, a wrong SHA-256 was rejected with no stored file, a correct SHA-256 produced `ready` with matching bytes, an unpackaged build refused to launch the installer, a source checkout selected no binary and refused to download, and a 404 was reported as `no-release` |
 | `pnpm exec electron-builder --dir` | exit 0 | Unpacked Windows app rebuilt from this tree; the packaged `Kryvex.exe` passed `verify:location-ui` with `KRYVEX_APP` |
 | `pnpm run package:win` | exit 0 | Setup and Portable EXEs from the 0.5.0 tree; both report version `0.5.0` and `NotSigned` |
 
@@ -47,7 +48,10 @@ What the unit suite covers:
   relative roots and the retained-root cap.
 - Zoom: fixed step scale, one-step movement, clamping at both ends and snapping
   of an off-step factor.
-- Themes: six themes, token completeness, the `kryvex-dark` default.
+- Themes: every catalogue theme has a complete token set, valid hex values,
+  unique ids, symbols and numbers, the six declared families are all
+  represented, the `kryvex-dark` default, plugin registration and the
+  custom-theme derivation (light/dark detection, readable accent ink).
 - Windows browser registration: the URL ProgID, `http`/`https` associations,
   StartMenuInternet client, Default Apps capabilities and
   RegisteredApplications pointer.
@@ -244,7 +248,80 @@ pnpm verify:location-ui  # download-location row and reset in the real app
 pnpm verify:torrents     # torrent queue restores paused across a location change
 pnpm verify:torrent-restore-ui  # restored paused row in the real Downloads hub
 pnpm verify:browser      # find-in-page and page zoom
+pnpm verify:updater      # local release feed, checksums and source-mode guard
 ```
 
 Each harness sets `KRYVEX_USER_DATA` (or opts into the capture flag) so it uses
 an isolated profile; none of them read or modify a real installation's state.
+
+## Service engine — 0.6.0 (2026-10-20)
+
+This pass added persistent service apps, notifications, unread badges, auth
+popups, per-service session clearing and the expanded preset catalogue. It was
+verified on Windows with Node 24.19.0, Electron 44.2.0 and pnpm 12.3.4 from
+`X:\Veyra`.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `pnpm typecheck` | exit 0 | Renderer and `electron/` in strict mode |
+| `pnpm test` | exit 0, **124/124** in 16 files | Existing suites plus unread-title parsing, the stable user agent, service partition rules, the new categories and the notification setting |
+| `pnpm build` | exit 0 | 496.27 kB JS, 55.26 kB CSS |
+| `pnpm capture` | exit 0 | All seventeen 1440×900 routes, including the keep-alive service route |
+| `node scripts/verify-service-engine.cjs` | exit 0 | Real app + loopback web app; see below |
+
+`verify-service-engine.cjs` asserts, in one run:
+
+- **Keep-alive:** after opening the fixture service, switching to Services,
+  waiting 1.5 s and returning, the guest's `window.__marker` is identical, its
+  interval advanced from 1 to 16 ticks while hidden, and its cookie is intact.
+- **Exact layout:** `.service-frame` equals `.app-main` (1192×824 at 1440×900),
+  the toolbar is 53 px, the guest is 1192×770, and `.app-main` reports
+  `overflow: hidden`.
+- **Restart persistence:** closing the window and relaunching with the same
+  isolated profile still yields `kx=session-ok` in the service partition.
+- **Notifications:** the service guest returns `granted` from
+  `Notification.requestPermission()`; a browser-tab guest returns `denied`.
+- **Auth popup:** `window.open('/popup')` from the service creates a real CDP
+  page target whose `document.cookie` contains the same session cookie.
+- **Unread:** a `(7) Fixture` title produces `7` in the toolbar, `7` on the
+  sidebar pin and `(7) Kryvex` as the window title.
+- **Session clear:** the toolbar lock button opens the confirmation dialog; the
+  confirmed clear returns an empty cookie from the remounted guest, even though
+  the fixture serves pages without re-setting it.
+- **User agent:** the guest reports
+  `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36…` with no
+  `Electron` token.
+
+Not verified here:
+
+- A real Discord/WhatsApp/Telegram login was not performed (no test accounts).
+  The client-side causes of a forced sign-out are covered; server-side token
+  invalidation is outside the app's control.
+- No OS toast was photographed. Permission is granted and the page constructs a
+  `Notification`; the native presenter is Chromium's.
+- The interactive Windows popup window's visual chrome and OAuth providers that
+  demand a native app handoff were not exercised.
+- `pnpm run package:win` was not run for 0.6.0, so the EXEs above remain the
+  0.5.0 builds; unsigned artifacts and the missing auto-updater are unchanged.
+
+## Updater — 0.6.0 (2026-10-20)
+
+This pass added GitHub release checks, checksum-verified downloads, a
+self-install path for packaged NSIS builds, and a manual path for portable and
+git builds. It was run on Windows with Electron 44.2.0 and pnpm 12.3.4 from
+`X:\Veyra`.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `pnpm typecheck` | exit 0 | Renderer and `electron/` in strict mode |
+| `pnpm test` | exit 0, **137/137** in 17 files | Existing suites plus 13 release-rules tests: tag normalisation, numeric and prerelease ordering, payload rejection, asset version matching, trusted hosts, loopback test feed, checksum parsing and byte formatting |
+| `pnpm build` | exit 0 | 513.39 kB JS, 56.85 kB CSS |
+| `pnpm verify:updater` | PASS | See the loopback-feed coverage above; actual output reported `available → checksum-failed → ready`, a stored 262,144-byte file with a matching hash, `mode: source` with no asset, and `no-release` |
+| `node scripts/release-checksums.cjs .tmp-release-test` | exit 0 | Two fake 9.9.9 artifacts produced a two-line `SHA256SUMS.txt` with the expected hashes |
+
+Not executed here: a tagged GitHub Actions release, a packaged self-install
+(the harness refuses to start an installer from an unpackaged tree), running
+the downloaded installer, and a real update against
+`github.com/XiONDiGiTaL/Kryvex`. Those require publishing a newer tag and
+installing the previous build; the manual procedure is in
+[UPDATES.md](UPDATES.md).

@@ -86,6 +86,50 @@ interface TorrentResult {
   record?: TorrentRecord;
 }
 
+type UpdatePhase =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'current'
+  | 'downloading'
+  | 'ready'
+  | 'installing'
+  | 'error';
+
+type UpdateMode = 'installed' | 'portable' | 'source';
+
+type UpdateErrorCode =
+  | 'offline'
+  | 'timeout'
+  | 'rate-limited'
+  | 'no-release'
+  | 'invalid-release'
+  | 'no-asset'
+  | 'download-failed'
+  | 'checksum-missing'
+  | 'checksum-failed'
+  | 'too-large'
+  | 'unsupported'
+  | 'unknown';
+
+interface UpdateStatus {
+  phase: UpdatePhase;
+  currentVersion: string;
+  latestVersion?: string;
+  releaseName?: string;
+  notes?: string;
+  pageUrl?: string;
+  assetName?: string;
+  assetSize?: number;
+  receivedBytes: number;
+  progress: number;
+  mode: UpdateMode;
+  canInstall: boolean;
+  canReveal: boolean;
+  checkedAt: number | null;
+  error?: UpdateErrorCode;
+}
+
 interface PermissionPrompt {
   id: string;
   origin: string;
@@ -187,10 +231,26 @@ const api = {
   takeBrowserUrls: (): Promise<string[]> => ipcRenderer.invoke('kryvex:browser:pending-urls'),
   browserClearTab: (partition: string): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:browser:clear-tab', partition),
+  serviceClearSession: (partition: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:services:clear-session', partition),
+  serviceSetNotifications: (enabled: boolean): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:services:notifications', enabled),
+  attention: (active: boolean): void => ipcRenderer.send('kryvex:attention', active),
   onOpenUrl: (listener: (url: string) => void): (() => void) => {
     const wrapped = (_event: IpcRendererEvent, url: string) => listener(url);
     ipcRenderer.on('kryvex:browser:open-url', wrapped);
     return () => ipcRenderer.removeListener('kryvex:browser:open-url', wrapped);
+  },
+  updateStatus: (): Promise<UpdateStatus | null> => ipcRenderer.invoke('kryvex:update:status'),
+  updateCheck: (): Promise<UpdateStatus | null> => ipcRenderer.invoke('kryvex:update:check'),
+  updateDownload: (): Promise<UpdateStatus | null> => ipcRenderer.invoke('kryvex:update:download'),
+  updateInstall: (): Promise<boolean> => ipcRenderer.invoke('kryvex:update:install'),
+  updateReveal: (): Promise<boolean> => ipcRenderer.invoke('kryvex:update:reveal'),
+  updateOpenRelease: (): Promise<boolean> => ipcRenderer.invoke('kryvex:update:release-page'),
+  onUpdateChanged: (listener: (status: UpdateStatus) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, status: UpdateStatus) => listener(status);
+    ipcRenderer.on('kryvex:update:changed', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:update:changed', wrapped);
   },
   appInfo: (): Promise<{
     version: string;

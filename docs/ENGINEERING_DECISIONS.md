@@ -141,3 +141,20 @@ with it.
 `electron/web-privacy.ts`, `electron/farbling-preload.ts` and
 `docs/ATTRIBUTION.md`. Known limits: no native fingerprint guarantees, no Safe
 Browsing, and top-level HTTPS upgrades only.
+
+## ED-012 — Custom GitHub updater, not electron-updater
+**Decision:** Check the public GitHub `releases/latest` endpoint from the main
+process, validate the tag and assets locally, download only a version-matched
+Setup/Portable EXE, require a matching `SHA256SUMS.txt` entry, and launch the
+interactive installer only from a packaged installed build. Portable and git
+builds never self-replace. Do not add `electron-updater`, a generic feed URL, a
+silent `/S` install, or a renderer-supplied download URL.
+**Reason:** The app needs one narrow, auditable path from a repository it already
+publishes to, not a general update framework with its own cache, provider and
+signing behaviour. Keeping the feed and asset rules in one pure module makes
+them unit-testable and prevents a compromised or misconfigured feed from
+choosing an executable. Checksums detect corruption and mismatched assets; they
+do not replace code signing, which remains absent and is called out in the UI
+and docs.
+**Status:** Implemented 2026-10-20; see `electron/update-rules.ts`,
+`electron/updater.ts`, `docs/UPDATES.md` and `pnpm verify:updater`.

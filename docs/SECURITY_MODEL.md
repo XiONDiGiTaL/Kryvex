@@ -107,6 +107,11 @@ switches in Settings. Brave source code is not copied; see
   fingerprint farbling.
 - A native Chromium patch for fingerprint resistance. The current preload is
   detectable by a determined page.
+- Update integrity. The main process checks a fixed GitHub endpoint, accepts
+  only HTTPS GitHub assets whose names match the release tag, and requires the
+  release's `SHA256SUMS.txt` entry to match before an installer can run. The
+  renderer cannot choose a URL or path. Builds are unsigned, so this detects
+  transport corruption and mismatched files, not a compromised repository.
 - Safe Browsing. Electron does not expose Chromium's Safe Browsing protocol or
   Brave's proxy, so Kryvex makes no malicious-site reputation claim.
 - A UI for per-site exceptions to referrer trimming or GPC.
@@ -119,8 +124,8 @@ switches in Settings. Brave source code is not copied; see
 private-session isolation, download handling, error recovery, shutdown.
 Record what was executed; never report unrun tests as passing.
 
-Executed so far: `pnpm typecheck` (0), `pnpm test` (110/110), `pnpm build` (0),
-`pnpm capture` (0, seventeen captures), restart-persistence, download-history and
+Executed so far: `pnpm typecheck` (0), `pnpm test` (137/137), `pnpm build` (0),
+`pnpm capture` (0, nineteen captures), restart-persistence, download-history and
 download-location UI, torrent-restore and find/zoom harnesses, download-manager
 integration test (completed file, collision-safe path, delete-file), Web Store
 extension install and removal harness, default-browser URL filtering/status

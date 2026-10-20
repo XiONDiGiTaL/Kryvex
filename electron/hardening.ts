@@ -50,8 +50,8 @@ export function hardenSession(ses: Session): void {
       contents.getURL(),
     );
   });
-  ses.setPermissionCheckHandler((_contents, permission, requestingOrigin, details) =>
-    permissions.check(permission, requestingOrigin, details.mediaType),
+  ses.setPermissionCheckHandler((contents, permission, requestingOrigin, details) =>
+    permissions.check(permission, requestingOrigin, details.mediaType, contents),
   );
 
   // Device permissions are a second gate for WebHID, WebUSB and Web Serial.

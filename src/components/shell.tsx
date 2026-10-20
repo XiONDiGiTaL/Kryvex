@@ -17,6 +17,8 @@ export function Header({
   onAdd,
   onSettings,
   onHelp,
+  onUpdate,
+  update = null,
   isElectron,
   mark = 'kx',
 }: {
@@ -26,6 +28,8 @@ export function Header({
   onAdd: () => void;
   onSettings: () => void;
   onHelp: () => void;
+  onUpdate?: () => void;
+  update?: { available: boolean; ready: boolean; version?: string } | null;
   isElectron: boolean;
   mark?: ThemeMarkKind;
 }) {
@@ -57,6 +61,21 @@ export function Header({
 
       <div className="header-right">
         <div className="header-tools" aria-label={t('Quick access')}>
+          {update?.available && onUpdate ? (
+            <button
+              className={`header-tool is-update ${update.ready ? 'is-ready' : ''}`}
+              onClick={onUpdate}
+              title={
+                update.version
+                  ? t('Update {version} is ready', { version: update.version })
+                  : t('Update available')
+              }
+            >
+              <Icon name="download" size={14} />
+              <span>{update.ready ? t('Update ready') : t('Update')}</span>
+              <span className="update-dot" aria-hidden="true" />
+            </button>
+          ) : null}
           <button className="header-tool" onClick={onAdd} title={t('Add a service')}>
             <Icon name="plus" size={14} />
             <span>{t('Add')}</span>
@@ -91,6 +110,7 @@ export function Header({
 export function Sidebar({
   state,
   routeView,
+  unread = {},
   collapsed,
   onToggle,
   onNavigate,
@@ -99,6 +119,7 @@ export function Sidebar({
 }: {
   state: PersistedState;
   routeView: ViewId;
+  unread?: Record<string, number>;
   collapsed: boolean;
   onToggle: () => void;
   onNavigate: (view: ViewId) => void;
@@ -147,6 +168,11 @@ export function Sidebar({
                 >
                   <ServiceIcon service={service} size={22} />
                   <span className="pinned-name">{service.name}</span>
+                  {unread[service.id] ? (
+                    <span className="pinned-unread mono" aria-label={`${unread[service.id]} unread`}>
+                      {(unread[service.id] ?? 0) > 99 ? '99+' : unread[service.id]}
+                    </span>
+                  ) : null}
                 </button>
               </li>
             ))}
@@ -216,7 +242,7 @@ export function StatusBar({
       <span className="status-sep" aria-hidden="true">
         ·
       </span>
-      <span className="mono">v{appInfo?.version ?? '0.5.0'}</span>
+      <span className="mono">v{appInfo?.version ?? '0.6.0'}</span>
     </footer>
   );
 }

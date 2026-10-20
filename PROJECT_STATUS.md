@@ -1,12 +1,14 @@
 # Kryvex — Project Status
 
-**Product:** Kryvex Desktop 0.5.0 — a modular Electron workspace where web apps
-become isolated, themed modules, with a restorable browser session, a persistent
-download history, find-in-page and page zoom, history/bookmarks, a persisted
-torrent queue that restores paused, microphone/camera prompts for web calls,
-Brave-style HTTPS upgrades, tracking-parameter stripping and per-site
-fingerprint farbling, and a download-location picker shared by regular
-downloads and the torrent root. Fictional element `x529`, symbol `Kx`, tagline
+**Product:** Kryvex Desktop 0.6.0 — a modular Electron workspace where web apps
+become isolated, themed service apps: mounted once, kept running, with native
+desktop notifications, unread badges, sandboxed sign-in popups, persistent
+sessions and per-service session clearing. It also has a restorable browser
+session, a persistent download history, find-in-page and page zoom,
+history/bookmarks, a persisted torrent queue that restores paused,
+microphone/camera prompts for web calls, Brave-style HTTPS upgrades,
+tracking-parameter stripping, per-site fingerprint farbling and a shared
+download location. Fictional element `x529`, symbol `Kx`, tagline
 “Precision in Every Connection.”
 
 **Repository:** https://github.com/XiONDiGiTaL/Kryvex (public, `main`, no
@@ -28,16 +30,25 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 - [x] **M2 — Reproducible baseline.** pnpm 12.3.4 (local tool dir; corepack
   blocked by EPERM), install/typecheck/test run in the reference clone.
 - [x] **M3 — Identity & shell.** Periodic-table tile logo, small/tray/mono
-  variants, `brand/BRAND.md`, `brand/tokens.json`, `brand/themes.json`, six
-  themes, PNG 16–512, 7-resolution `kryvex.ico`. App id
-  `net.xiondigital.kryvex`.
-- [x] **M4 — Theming (core).** Six themes applied at runtime from
-  `brand/themes.json`; density, sidebar mode, status bar and start view
-  persist. Theme Studio import/export and a formal contrast audit remain.
-- [x] **M5 — Services (core).** Registry with add/edit/remove/pin, validation,
-  search and category filters, starter catalogue, per-module persistent
-  sessions, loading/error/retry. Sohbet verified loading inside its module.
-  Hibernation and health checks remain.
+  variants, `brand/BRAND.md`, `brand/tokens.json`, `brand/themes.json` (schema
+  v3, 37 catalogue themes in six families), PNG 16–512, 7-resolution
+  `kryvex.ico`. App id `net.xiondigital.kryvex`.
+- [x] **M4 — Theming (core).** 38 themes applied at runtime from
+  `brand/themes.json` (37 catalogue + the Donkey plugin) and arranged as a
+  periodic table with symbols, families and palette strips; a **Custom** theme
+  is generated from five HSV/RGB pickers with derived line, raised and muted
+  tones and automatic light/dark detection. Gradient, glass and mono theme
+  flags drive chrome, sheen and type. Density, sidebar mode, status bar and
+  start view persist. Theme Studio import/export of third-party theme files
+  and a formal contrast audit remain.
+- [x] **M5 — Services as apps.** Registry with add/edit/remove/pin, validation,
+  search and category filters, 27 presets across communication, work, AI,
+  resources and media. A service frame is mounted once and kept alive; the
+  partition is set before `src`; the guest reports a Chrome user agent. Native
+  notifications are granted to service partitions only, unread counts come
+  from the page title, auth popups share the service session, pop-unders are
+  denied, and one service's session can be cleared without touching any other.
+  Hibernation, a notification-per-service granularity and health checks remain.
 - [x] **M6 — Browser (core).** Tabs that reopen after a restart, back/forward/
   reload, address bar with host-or-search resolution, bookmarks bar and toggle,
   in-memory per-tab partitions, system-browser handoff, a persistent
@@ -48,15 +59,19 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 - [ ] **M7 — Security (baseline shipped).** Sandboxed renderer, context
   isolation, a narrowed typed IPC bridge, hardened webviews, partition
   allowlist, http(s)-only navigation, an explicit per-origin mic/camera prompt
-  with other permissions/devices denied, externalised popups, GPC, cross-origin
+  with other permissions/devices denied, service-scoped notifications and auth
+  popups, background pop-under denial, GPC, cross-origin
   referrer trimming, in-memory browser tab partitions, atomic capped state
   writes, sender checks on every IPC handler, HTTPS upgrades with a one-time
   HTTP fallback, tracking-parameter stripping, per-site canvas/WebGL/audio
   farbling and EasyList Cookie. Remaining: per-site privacy exceptions,
   persisted per-module scopes, Safe Browsing equivalent, `pnpm audit`,
   packaged-app integrity checks, renderer CSP, macOS/Linux validation.
-- [ ] **M8 — Testing (partial).** 110/110 unit tests, strict typecheck, build and
-  seventeen-capture pass; live Sohbet probe passed. Download-manager,
+- [ ] **M8 — Testing (partial).** 149/149 unit tests, strict typecheck, build and
+  nineteen-capture pass; live Sohbet probe passed. The new service-engine
+  harness proves keep-alive, exact layout, restart persistence, notification
+  scoping, an auth popup on the same cookie, unread badges, session clear and
+  the browser user agent. Download-manager,
   default-browser, Web Store extension, loopback torrent (real peer transfer),
   torrent IPC/UI, real webview media-permission and privacy harnesses passed.
   Restart persistence, download history, the download-location row/reset
@@ -64,8 +79,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   row in the built UI, and find/zoom are automated through
   `pnpm verify:restart`, `pnpm verify:downloads`, `pnpm verify:location-ui`,
   `pnpm verify:torrents`, `pnpm verify:torrent-restore-ui` and
-  `pnpm verify:browser`. Remaining: broader e2e UI coverage, backup/restore,
-  measured performance comparison (`docs/PERFORMANCE.md` still holds no
+  `pnpm verify:browser` and `pnpm verify:updater`. Remaining: broader e2e UI
+  coverage, backup/restore,  measured performance comparison (`docs/PERFORMANCE.md` still holds no
   numbers).
 - [ ] **M9 — Packaging & CI.** The 0.5.0 Setup and Portable EXEs are published
   from the complete source tree (download-location picker, WebTorrent,
@@ -73,7 +88,9 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   a selectable install folder, Desktop/Start Menu shortcuts and an uninstaller;
   custom-dir install, installed/portable/unpacked capture, packaged
   paused-row and download-location smoke tests, checksums and clean uninstall
-  were verified. Remaining: code signing, interactive wizard pass and CI.
+  were verified. A tagged release workflow builds, checksums and publishes
+  artifacts, but has not run yet. Remaining: code signing, interactive wizard
+  pass and a CI run.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
   secret-scanned, main pushed and verified remotely; 0.3.0, 0.4.0 and 0.5.0
   releases published with checksum-verified artifacts.
@@ -81,6 +98,24 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   feature/security/limitation sections, honest testing docs and 0.3.0/0.4.0/
   0.5.0 release records are in place. Outstanding: engineering report and a
   signed public release.
+
+## Verified evidence (2026-10-20, service engine)
+
+- `pnpm typecheck` → exit 0.
+- `pnpm test` → exit 0, **124/124** in 16 files.
+- `pnpm build` → exit 0; 496.27 kB JS, 55.26 kB CSS.
+- `pnpm capture` → exit 0; all seventeen routes from the running app.
+- `node scripts/verify-service-engine.cjs` → **PASS**. One fixture service in an
+  isolated profile stayed mounted with the same `window.__marker` and cookie
+  across a switch to Services; its timer advanced from 1 to 16 ticks while
+  hidden; the partition kept its cookie after a full relaunch; the guest gained
+  notification permission while a browser tab was denied; an auth popup shared
+  the service cookie; `(7) Fixture` produced 7 in the toolbar, 7 on the sidebar
+  pin and `(7) Kryvex`; the toolbar lock button cleared the session to an empty
+  cookie; the guest reported a Chrome UA with no Electron token; and the stage
+  measured 1192×824 with a 1192×770 guest, `overflow: hidden`.
+- Real Discord/WhatsApp/Telegram sign-in was not performed; server-side token
+  invalidation cannot be overridden by a client.
 
 ## Verified evidence (2026-10-19)
 
@@ -162,7 +197,9 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 ## Known gaps
 
 - Windows only; no macOS/Linux run or platform icon sets.
-- No code-signed installer, auto-update, or CI.
+- No code-signed installer. Updates verify SHA-256 against the release's own
+  checksum list; that does not prove publisher identity. Portable and git
+  builds never self-replace, and there is no delta, beta or rollback channel.
 - No module hibernation; page zoom is remembered per tab for the current
   session only.
 - Torrent rows restore paused, but there is no bandwidth scheduler, ratio
@@ -175,11 +212,20 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   Electron does not expose Chromium's protocol.
 - State persistence now has a real close/relaunch harness, but it covers
   settings, start view and browser tabs rather than every view's transient UI.
-- Some third-party services resist embedding (strict SSO, popups,
-  user-agent checks); “Open externally” is the supported escape hatch.
+- Some third-party services resist embedding (strict SSO, user-agent checks,
+  or a server-side session reset); “Open externally” is the supported escape
+  hatch. Discord's own token invalidation is outside the app's control.
+- BetterDiscord/Vencord/AyuGram-style injection is deliberately not shipped;
+  compounds, local models and a gated emulator are designed but not built (see
+  `docs/PLATFORM_PLAN.md`).
+- Notifications are all-or-nothing for service modules; there is no per-service
+  mute or notification history in the shell yet.
 - “Kryvex” clearance unresolved (above).
 
 ## Next concrete action
 
-0.5.0 is published; no packaging action is pending. Take up Theme Studio or
-module hibernation next, while pursuing code signing for a signed release.
+0.6.0 source is complete and verified but not packaged or published. Package it
+when the release is authorized; the updater will only offer it after a newer
+tagged release publishes `SHA256SUMS.txt`. Then build the compound manifest and
+permission sheet described in `docs/PLATFORM_PLAN.md` before adding any branded
+add-on.

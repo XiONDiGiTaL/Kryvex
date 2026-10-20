@@ -34,14 +34,45 @@ Typography: Inter (UI) with `Cascadia Mono`/`JetBrains Mono` for metadata,
 shortcuts, element labels and counts. Sizes 11–22px; 13px body; header 52px;
 status bar 24px; module tabs 40px.
 
-## Built-in themes (`brand/themes.json`, schema v2)
+## Built-in themes (`brand/themes.json`, schema v3)
 
-Kryvex Dark (default), Kryvex Light, Midnight, Graphite, OLED Black, High
-Contrast. Each theme overrides `bg/surface/raised/line/ink/muted/accent/
-accentSoft` plus status colors; spacing, radius, type and motion stay shared.
-Light theme uses darker accents (`#0369A1`, `#0F766E`) so accent text and focus
-rings keep contrast on white. High Contrast uses white 1px borders, pure black
-surfaces and a visible focus ring.
+37 themes in six families, plus the plugin theme and the generated Custom tile.
+Each theme overrides `bg/surface/raised/line/ink/muted/accent/accentSoft` plus
+status colours and `onAccent` where needed; spacing, radius, type and motion
+stay shared. Every entry also carries `symbol` (two letters), `family`,
+`number` (tile position, `0` reserved for Custom) and optional `gradient`,
+`glass` and `mono` flags.
+
+| Family | Count | Themes |
+| --- | ---: | --- |
+| `core` | 6 | Kryvex Dark, Kryvex Light, Midnight, Graphite, OLED Black, High Contrast |
+| `spectrum` | 9 | Sunburst, Violet, Lapis Lazuli, Turquoise, Rose Quartz, Ember, Emerald, Amethyst, Obsidian |
+| `element` | 11 | Carbon, Neon, Argon, Krypton, Xenon, Radon, Sulfur, Iodine, Chlorine, Nitrogen, Silicon |
+| `metal` | 7 | Platinum, Titanium, Copper, Gold, Silver, Iron, Mercury |
+| `light` | 3 | Helium, Lithium, Oxygen |
+| `terminal` | 1 | Terminal |
+
+Light-family and light-mode accents are deliberately darker (`#0369A1`,
+`#0F766E` in Kryvex Light) so accent text and focus rings keep contrast on
+white. High Contrast uses white 1px borders, pure black surfaces and a visible
+focus ring. Carbon keeps near-black surfaces with a light-grey graphite edge;
+Platinum and Mercury set `glass` for an aero-style reflected sheen; Terminal
+uses near-black surfaces, phosphor green and `mono` for the whole interface.
+
+`applyTheme()` maps the flags onto `data-gradient`, `data-glass` and
+`data-terminal` attributes plus `--accent-gradient`, `--shine` and the UI font,
+so a theme stays one data object with no per-theme CSS.
+
+## Custom theme
+
+`buildCustomTheme()` turns five stored colours (`bg`, `surface`, `accent`,
+`accentSoft`, `ink`) into a complete palette: `raised`, `line` and `muted` are
+mixed with `color-mix`-compatible hex math in `src/lib/color.ts`, and
+`readableInk()` picks `--on-accent` by relative luminance. The mode is derived
+from the background luminance, so a pale background produces a light theme
+automatically. Colours are entered in `src/components/ColorPicker.tsx`
+(hue/saturation field, rainbow slider, HEX field and editable R/G/B inputs);
+malformed values are rejected by `sanitizeCustomTheme()` rather than shown.
 
 ## Theme Studio requirements (M4)
 

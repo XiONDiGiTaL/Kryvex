@@ -2,11 +2,13 @@ import type { BrowserWindow, MediaAccessPermissionRequest, WebContents } from 'e
 import crypto from 'node:crypto';
 import {
   isMediaPermission,
+  isNotificationPermission,
   isPrivacyPermission,
   mediaDevices,
   normalizeHttpOrigin,
   type MediaDevice,
 } from './privacy';
+import { serviceSessions } from './service-sessions';
 import type { PermissionPrompt } from './types';
 
 interface PendingPermission {
@@ -39,8 +41,14 @@ class PermissionManager {
     });
   }
 
-  check(permission: string, requestingOrigin: string, mediaType?: string): boolean {
+  check(
+    permission: string,
+    requestingOrigin: string,
+    mediaType?: string,
+    contents?: WebContents | null,
+  ): boolean {
     if (isPrivacyPermission(permission)) return true;
+    if (isNotificationPermission(permission)) return serviceSessions.allowsNotifications(contents);
     const origin = normalizeHttpOrigin(requestingOrigin);
     if (!isMediaPermission(permission) || !origin) return false;
     const granted = this.grants.get(origin);
@@ -61,6 +69,10 @@ class PermissionManager {
   ): void {
     if (isPrivacyPermission(permission)) {
       callback(true);
+      return;
+    }
+    if (isNotificationPermission(permission)) {
+      callback(serviceSessions.allowsNotifications(contents));
       return;
     }
     if (!isMediaPermission(permission) || contents.getType() !== 'webview') {

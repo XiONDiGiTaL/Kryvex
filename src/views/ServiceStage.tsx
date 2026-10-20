@@ -6,21 +6,105 @@ import { hostOf } from '../lib/url';
 import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from '../components/ui';
 import { Webview, type WebviewElement, type WebviewStatus } from '../components/Webview';
 
-export function ServiceView({
-  service,
-  isElectron,
-  onBack,
-  onEdit,
-  onDelete,
-  onToast,
-  mark = 'kx',
-}: {
-  service: Service;
+interface StageProps {
+  services: Service[];
+  openIds: string[];
+  activeId: string | null;
+  reloadTokens: Record<string, number>;
   isElectron: boolean;
+  unread: Record<string, number>;
+  notifications: boolean;
   mark?: ThemeMarkKind;
   onBack: () => void;
   onEdit: (service: Service) => void;
   onDelete: (service: Service) => void;
+  onClearSession: (service: Service) => void;
+  onTitle: (service: Service, title: string) => void;
+  onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+}
+
+/**
+ * Keeps every opened service mounted for the whole app session.
+ *
+ * A webview that is unmounted reloads from scratch next time it is shown: a
+ * chat client reconnects its gateway, re-runs bootstrap and, in Discord's
+ * case, can decide the stored token is stale. Keeping the guest alive keeps
+ * the connection, the scroll position, an in-progress call and the session
+ * itself intact while the user works somewhere else in Kryvex. Inactive frames
+ * are hidden, never destroyed; only closing the app or clearing a session
+ * ends them.
+ */
+export function ServiceStage({
+  services,
+  openIds,
+  activeId,
+  reloadTokens,
+  isElectron,
+  unread,
+  notifications,
+  mark = 'kx',
+  onBack,
+  onEdit,
+  onDelete,
+  onClearSession,
+  onTitle,
+  onToast,
+}: StageProps) {
+  const active = services.find(service => service.id === activeId) ?? null;
+  const open = openIds
+    .map(id => services.find(service => service.id === id))
+    .filter((service): service is Service => Boolean(service));
+
+  if (open.length === 0) return null;
+
+  return (
+    <section className={`service-stage ${active ? 'has-active' : 'is-idle'}`} aria-hidden={!active}>
+      {open.map(service => (
+        <ServiceFrame
+          key={`${service.id}-${reloadTokens[service.id] ?? 0}`}
+          service={service}
+          active={service.id === activeId}
+          isElectron={isElectron}
+          unread={unread[service.id] ?? 0}
+          notifications={notifications}
+          mark={mark}
+          onBack={onBack}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onClearSession={onClearSession}
+          onTitle={title => onTitle(service, title)}
+          onToast={onToast}
+        />
+      ))}
+    </section>
+  );
+}
+
+function ServiceFrame({
+  service,
+  active,
+  isElectron,
+  unread,
+  notifications,
+  mark = 'kx',
+  onBack,
+  onEdit,
+  onDelete,
+  onClearSession,
+  onTitle,
+  onToast,
+}: {
+  service: Service;
+  active: boolean;
+  isElectron: boolean;
+  unread: number;
+  notifications: boolean;
+  mark?: ThemeMarkKind;
+  onBack: () => void;
+  onEdit: (service: Service) => void;
+  onDelete: (service: Service) => void;
+  onClearSession: (service: Service) => void;
+  onTitle: (title: string) => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
 }) {
   const t = useT();
@@ -34,9 +118,14 @@ export function ServiceView({
   const [reloadKey, setReloadKey] = useState(0);
 
   const category = t(CATEGORIES.find(item => item.id === service.category)?.label ?? 'Other');
+  const badge = unread > 99 ? '99+' : String(unread);
 
   return (
-    <section className="view service-view">
+    <div
+      className={`service-frame ${active ? 'is-active' : ''}`}
+      data-service={service.id}
+      aria-hidden={!active}
+    >
       <header className="service-toolbar">
         <button className="icon-btn" onClick={onBack} aria-label={t('Back to services')} title={t('Back')}>
           <Icon name="back" size={16} />
@@ -49,11 +138,27 @@ export function ServiceView({
             <h1>{service.name}</h1>
             <span className="tag mono">{category}</span>
             {service.pinned ? <span className="tag mono accent">{t('PINNED')}</span> : null}
+            {unread > 0 ? (
+              <span className="tag mono service-unread" aria-label={t('{count} unread', { count: unread })}>
+                {badge}
+              </span>
+            ) : null}
           </div>
           <span className="mono service-url">{hostOf(service.url)}</span>
         </div>
 
         <div className="service-actions">
+          <span
+            className={`mono service-live ${notifications ? 'is-on' : ''}`}
+            title={
+              notifications
+                ? t('Desktop notifications are on for installed services.')
+                : t('Desktop notifications are off in Settings.')
+            }
+          >
+            <span className="status-dot" />
+            {notifications ? t('LIVE') : t('QUIET')}
+          </span>
           <button
             className="icon-btn"
             onClick={() => controller.current?.reload()}
@@ -72,6 +177,14 @@ export function ServiceView({
             <Icon name="external" size={14} />
             {t('Open externally')}
           </button>
+          <button
+            className="icon-btn"
+            onClick={() => onClearSession(service)}
+            title={t('Clear this session')}
+            aria-label={t('Clear this session')}
+          >
+            <Icon name="lock" size={16} />
+          </button>
           <button className="icon-btn" onClick={() => onEdit(service)} title={t('Edit')} aria-label={t('Edit service')}>
             <Icon name="edit" size={16} />
           </button>
@@ -87,7 +200,9 @@ export function ServiceView({
       </header>
 
       <div className="service-canvas">
-        {status.loading && !status.error ? <div className="loading-bar" aria-hidden="true" /> : null}
+        {active && status.loading && !status.error ? (
+          <div className="loading-bar" aria-hidden="true" />
+        ) : null}
 
         {!isElectron ? (
           <div className="webview-fallback">
@@ -111,17 +226,19 @@ export function ServiceView({
             key={`${service.id}-${reloadKey}`}
             src={service.url}
             partition={partitionFor(service.id)}
+            allowPopups
             controller={controller}
             onStatus={setStatus}
+            onTitle={onTitle}
             onNavigate={url => {
-              if (url !== service.url) {
+              if (active && url !== service.url) {
                 onToast(t('Navigated to {host}', { host: hostOf(url) }), 'info');
               }
             }}
           />
         )}
 
-        {status.error ? (
+        {active && status.error ? (
           <div className="webview-error" role="alert">
             <Icon name="shield" size={22} />
             <h3>{t('This module could not load')}</h3>
@@ -153,6 +270,6 @@ export function ServiceView({
           </div>
         ) : null}
       </div>
-    </section>
+    </div>
   );
 }

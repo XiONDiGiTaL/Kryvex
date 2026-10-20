@@ -10,6 +10,7 @@ import type {
   Settings as SettingsModel,
   Toast,
   ToastTone,
+  UpdateStatus,
   ViewId,
 } from './types';
 import { applyBaseTokens, applyTheme, getTheme, isThemeId } from './lib/themes';
@@ -29,7 +30,8 @@ import {
 } from './lib/store';
 import { loadState, saveState, saveStateNow } from './lib/storage';
 import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
-import { makeId } from './lib/services';
+import { makeId, partitionFor } from './lib/services';
+import { totalUnread, unreadFromTitle, windowTitle } from './lib/unread';
 import { hostOf } from './lib/url';
 import { Header, Sidebar, StatusBar } from './components/shell';
 import { ServiceDialog } from './components/ServiceDialog';
@@ -38,7 +40,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { EmptyState, Icon, Modal, ToastHost } from './components/ui';
 import { Home } from './views/Home';
 import { Services } from './views/Services';
-import { ServiceView } from './views/ServiceView';
+import { ServiceStage } from './views/ServiceStage';
 import { Browser, type BrowserPanel } from './views/Browser';
 import { Settings } from './views/Settings';
 
@@ -87,7 +89,15 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  // Service apps stay mounted for the session; openIds is the live set.
+  const [openIds, setOpenIds] = useState<string[]>([]);
+  const [unread, setUnread] = useState<Record<string, number>>({});
+  const [update, setUpdate] = useState<UpdateStatus | null>(null);
+  const [reloadTokens, setReloadTokens] = useState<Record<string, number>>({});
+  const unreadRef = useRef<Record<string, number>>({});
   const persisted = useRef(false);
+  const autoChecked = useRef(false);
+  const announcedUpdate = useRef<string | null>(null);
 
   const isElectron = typeof window !== 'undefined' && Boolean(window.kryvex);
   const i18n = useMemo(
@@ -235,11 +245,11 @@ export default function App() {
   const themeOverride = route.query.get('theme');
   const themeId =
     themeOverride && isThemeId(themeOverride) ? themeOverride : state.settings.themeId;
-  const themeMark = getTheme(themeId).mark ?? 'kx';
+  const themeMark = getTheme(themeId, state.settings.customTheme).mark ?? 'kx';
 
   useEffect(() => {
-    applyTheme(themeId);
-  }, [themeId]);
+    applyTheme(themeId, state.settings.customTheme);
+  }, [themeId, state.settings.customTheme]);
 
   useEffect(() => {
     document.documentElement.lang = i18n.language;
@@ -324,9 +334,67 @@ export default function App() {
   const openService = useCallback(
     (service: Service) => {
       setState(current => markOpened(current, service.id));
+      setOpenIds(current =>
+        [service.id, ...current.filter(id => id !== service.id)].slice(0, 8),
+      );
       navigate(`#/service/${service.id}`);
     },
     [navigate],
+  );
+
+  // A deep link or a restored hash must mount the module it points at.
+  useEffect(() => {
+    if (!route.serviceId) return;
+    setOpenIds(current =>
+      current.includes(route.serviceId as string)
+        ? current
+        : [route.serviceId as string, ...current].slice(0, 8),
+    );
+  }, [route.serviceId]);
+
+  const handleServiceTitle = useCallback((service: Service, title: string) => {
+    const count = unreadFromTitle(title);
+    const previous = unreadRef.current[service.id] ?? 0;
+    if (previous === count) return;
+    const next = { ...unreadRef.current, [service.id]: count };
+    unreadRef.current = next;
+    setUnread(next);
+    // A new message while Kryvex is in the background asks for attention in
+    // the taskbar; focusing the window clears it in the main process.
+    if (count > previous && !document.hasFocus()) window.kryvex?.attention(true);
+  }, []);
+
+  const clearServiceSession = useCallback(
+    (service: Service) => {
+      setConfirmRequest({
+        title: t('Clear the session for {name}?', { name: service.name }),
+        body: t(
+          'Cookies, local storage and cache for this service are deleted; no other module is touched. You will need to sign in again.',
+        ),
+        label: t('Clear session'),
+        onConfirm: () => {
+          setConfirmRequest(null);
+          void (async () => {
+            const ok = await window.kryvex
+              ?.serviceClearSession(partitionFor(service.id))
+              .catch(() => false);
+            if (ok) {
+              setReloadTokens(current => ({
+                ...current,
+                [service.id]: (current[service.id] ?? 0) + 1,
+              }));
+            }
+            pushToast(
+              ok
+                ? t('{name} session cleared. Sign in again when you reopen it.', { name: service.name })
+                : t('The session could not be cleared.'),
+              ok ? 'warning' : 'danger',
+            );
+          })();
+        },
+      });
+    },
+    [pushToast, t],
   );
 
   const saveService = useCallback(
@@ -350,6 +418,7 @@ export default function App() {
     (service: Service) => {
       const remove = () => {
         setState(current => removeService(current, service.id));
+        setOpenIds(current => current.filter(id => id !== service.id));
         setConfirmRequest(null);
         if (route.serviceId === service.id) navigate('services');
         pushToast(t('{name} removed.', { name: service.name }), 'warning');
@@ -374,6 +443,49 @@ export default function App() {
     setState(current => updateSettings(current, patch));
   }, []);
 
+  const checkForUpdates = useCallback(async () => {
+    if (!window.kryvex) return;
+    try {
+      const next = await window.kryvex.updateCheck();
+      if (next) setUpdate(next);
+    } catch {
+      pushToast(t('The update check failed.'), 'danger');
+    }
+  }, [pushToast, t]);
+
+  const downloadUpdate = useCallback(async () => {
+    if (!window.kryvex) return;
+    try {
+      const next = await window.kryvex.updateDownload();
+      if (!next) return;
+      setUpdate(next);
+      pushToast(
+        next.phase === 'ready'
+          ? t('Update downloaded and verified.')
+          : t('The update could not be downloaded.'),
+        next.phase === 'ready' ? 'success' : 'danger',
+      );
+    } catch {
+      pushToast(t('The update could not be downloaded.'), 'danger');
+    }
+  }, [pushToast, t]);
+
+  const installUpdate = useCallback(async () => {
+    if (!window.kryvex) return;
+    const started = await window.kryvex.updateInstall().catch(() => false);
+    if (started) pushToast(t('Closing Kryvex to run the installer…'), 'info');
+  }, [pushToast, t]);
+
+  const revealUpdate = useCallback(async () => {
+    if (!window.kryvex) return;
+    const shown = await window.kryvex.updateReveal().catch(() => false);
+    if (!shown) pushToast(t('The downloaded file could not be shown.'), 'warning');
+  }, [pushToast, t]);
+
+  const openUpdateRelease = useCallback(() => {
+    void window.kryvex?.updateOpenRelease().catch(() => undefined);
+  }, []);
+
   const resetWorkspace = useCallback(() => {
     setConfirmRequest({
       title: t('Reset the workspace?'),
@@ -385,6 +497,9 @@ export default function App() {
         setState(newState());
         setTabs([]);
         setActiveTabId(null);
+        setOpenIds([]);
+        setUnread({});
+        unreadRef.current = {};
         setConfirmRequest(null);
         navigate('home');
         pushToast(t('Workspace reset to starters.'), 'warning');
@@ -436,6 +551,74 @@ export default function App() {
       ? requestedPanel
       : null;
 
+  const unreadTotal = useMemo(() => totalUnread(unread), [unread]);
+
+  useEffect(() => {
+    document.title = windowTitle(unreadTotal);
+  }, [unreadTotal]);
+
+  // The main process grants desktop notifications only while this stays on.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    void window.kryvex
+      .serviceSetNotifications(state.settings.serviceNotifications)
+      .catch(() => undefined);
+  }, [isElectron, state.settings.serviceNotifications]);
+
+  // Update state lives in the main process; the shell only renders it and
+  // forwards explicit user actions. Announce a new version once per session.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    let alive = true;
+    const apply = (next: UpdateStatus | null) => {
+      if (!alive || !next) return;
+      setUpdate(next);
+      if (
+        next.phase === 'available' &&
+        next.latestVersion &&
+        announcedUpdate.current !== next.latestVersion
+      ) {
+        announcedUpdate.current = next.latestVersion;
+        pushToast(
+          t('Kryvex {version} is available. Open Settings to install it.', {
+            version: next.latestVersion,
+          }),
+          'info',
+        );
+      }
+    };
+    void window.kryvex
+      .updateStatus()
+      .then(apply)
+      .catch(() => undefined);
+    const stop = window.kryvex.onUpdateChanged(apply);
+    return () => {
+      alive = false;
+      stop();
+    };
+  }, [isElectron, pushToast, t]);
+
+  useEffect(() => {
+    if (!ready || !isElectron || !window.kryvex || !state.settings.autoCheckUpdates) return;
+    if (autoChecked.current) return;
+    autoChecked.current = true;
+    const run = () => {
+      void window.kryvex
+        ?.updateCheck()
+        .then(next => {
+          if (next) setUpdate(next);
+        })
+        .catch(() => undefined);
+    };
+    // Give the window time to paint before spending startup time on network.
+    const timer = window.setTimeout(run, 3000);
+    const interval = window.setInterval(run, 6 * 60 * 60 * 1000);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(interval);
+    };
+  }, [isElectron, ready, state.settings.autoCheckUpdates]);
+
   const title = useMemo(() => {
     if (route.serviceId) return activeService?.name ?? t('Missing module');
     switch (route.view) {
@@ -460,6 +643,22 @@ export default function App() {
         onAdd={() => setDialog({ mode: 'new' })}
         onSettings={() => navigate('settings')}
         onHelp={() => setHelpOpen(true)}
+        onUpdate={() => {
+          if (route.view === 'settings') {
+            document.getElementById('updates')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          } else {
+            navigate('settings?section=updates');
+          }
+        }}
+        update={
+          update && ['available', 'downloading', 'ready'].includes(update.phase)
+            ? {
+                available: true,
+                ready: update.phase === 'ready',
+                version: update.latestVersion,
+              }
+            : null
+        }
         isElectron={isElectron}
         mark={themeMark}
       />
@@ -467,6 +666,7 @@ export default function App() {
       <Sidebar
         state={state}
         routeView={route.view}
+        unread={unread}
         collapsed={state.settings.sidebarCollapsed}
         onToggle={() => updateSettingsPatch({ sidebarCollapsed: !state.settings.sidebarCollapsed })}
         onNavigate={view => navigate(view)}
@@ -474,20 +674,26 @@ export default function App() {
         onAdd={() => setDialog({ mode: 'new' })}
       />
 
-      <main className="app-main">
+      <main className={`app-main ${activeService ? 'is-service' : ''}`}>
+        <ServiceStage
+          services={state.services}
+          openIds={openIds}
+          activeId={activeService?.id ?? null}
+          reloadTokens={reloadTokens}
+          isElectron={isElectron}
+          unread={unread}
+          notifications={state.settings.serviceNotifications}
+          mark={themeMark}
+          onBack={() => navigate('services')}
+          onEdit={service => setDialog({ mode: 'edit', service })}
+          onDelete={deleteService}
+          onClearSession={clearServiceSession}
+          onTitle={handleServiceTitle}
+          onToast={pushToast}
+        />
+
         {route.serviceId ? (
-          activeService ? (
-            <ServiceView
-              key={activeService.id}
-              service={activeService}
-              isElectron={isElectron}
-              onBack={() => navigate('services')}
-              onEdit={service => setDialog({ mode: 'edit', service })}
-              onDelete={deleteService}
-              onToast={pushToast}
-              mark={themeMark}
-            />
-          ) : (
+          activeService ? null : (
             <div className="view">
               <EmptyState
                 title={t('That module is gone')}
@@ -560,6 +766,13 @@ export default function App() {
             onUpdate={updateSettingsPatch}
             onReset={resetWorkspace}
             onToast={pushToast}
+            update={update}
+            focusUpdates={route.query.get('section') === 'updates'}
+            onCheckUpdate={() => void checkForUpdates()}
+            onDownloadUpdate={() => void downloadUpdate()}
+            onInstallUpdate={() => void installUpdate()}
+            onRevealUpdate={() => void revealUpdate()}
+            onOpenRelease={openUpdateRelease}
           />
         )}
       </main>

@@ -28,6 +28,7 @@ type IconName =
   | 'command'
   | 'download'
   | 'folder'
+  | 'lock'
   | 'history';
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -165,6 +166,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M4 5v5h5" />
       <path d="M5.2 9.2A7.5 7.5 0 1 1 4.7 14" />
       <path d="M12 8v4.3l3 1.8" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="5" y="10.2" width="14" height="9.8" rx="2" />
+      <path d="M8.6 10.2V7.7a3.4 3.4 0 0 1 6.8 0v2.5" />
+      <path d="M12 13.8v2.6" />
     </>
   ),
 };

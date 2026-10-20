@@ -1,4 +1,4 @@
-# Kryvex application architecture (v0.5.0)
+# Kryvex application architecture (v0.6.0)
 
 This document describes the app that lives in `electron/` and `src/`. It is a
 purpose-built Electron application; no third-party desktop workspace is
@@ -12,7 +12,7 @@ vendored or rebranded.
 | Renderer | React 19 + TypeScript 7, bundled by Vite 8 |
 | State | Pure reducer-style helpers in `src/lib/store.ts`, persisted as JSON |
 | Styling | One stylesheet driven by CSS custom properties from `brand/tokens.json` |
-| Tests | Vitest, 110 unit tests over URL, services, catalogue, store, history, downloads and storage location, page zoom, themes, Windows browser registration, torrent rules and queue restore, media permissions and Brave-style URL rules |
+| Tests | Vitest, 149 unit tests over URL, services, catalogue, store, history, downloads and storage location, page zoom, themes, Windows browser registration, torrent rules and queue restore, media permissions, Brave-style URL rules, release-version comparison, asset/checksum validation and update-state rules |
 | Shield | `@ghostery/adblocker` over downloaded uBO/EasyList lists, with a combined privacy rewrite pipeline |
 | Extensions | Electron `session.extensions` with a guarded ZIP/CRX/folder installer |
 | Downloads | Chromium `will-download` events, main-process records, user-selected root, safe file lifecycle |
@@ -20,6 +20,7 @@ vendored or rebranded.
 | Voice/video | Per-session permission broker; explicit microphone/camera prompt for webviews |
 | Browser registration | Per-user Default Apps capabilities + `app.setAsDefaultProtocolClient` handoff |
 | Packaging | electron-builder (NSIS + portable, Windows), unsigned |
+| Updates | GitHub Releases feed in the main process, checksum-verified Setup download, interactive installer after quit |
 
 ## Process model
 
@@ -36,6 +37,7 @@ download manager          download records/actions    downloads/history bookmark
 torrent queue             torrent records/actions     torrent rows + file lists
 permission broker         permission prompt response mic/camera prompt
 default browser           browser handoff             default-browser status
+updater                   update actions              update status/actions
 capture routine
                                                         │
                                                         ▼
@@ -70,13 +72,22 @@ cleared when closed.
 ### Lifecycle
 
 1. **Registered** — validated and written to state.
-2. **Opening** — the service view mounts a webview; the loading bar renders.
+2. **Opening** — `ServiceStage` mounts a frame and its webview; the partition
+   attribute is set before the source, and the loading bar renders.
 3. **Active** — navigation events update the address display; the session is
    persistent for the lifetime of the profile.
-4. **Closed** — leaving the view destroys the webview element; the partition and
-   its cookies survive.There is no hibernation or crash isolation supervisor yet. Microphone and
-camera grants are per origin for the current app session, not a persisted
-per-module capability; a restart forgets them.
+4. **Hidden** — leaving the view hides the frame. The guest keeps running, so
+   its gateway, timer and call survive a view change.
+5. **Ended** — only the app closing, an explicit session clear, removing the
+   module, or the eight-frame LRU eviction unloads a guest. The partition and
+   its cookies survive all of those except an explicit clear.
+
+Desktop notifications are granted to service partitions only (see
+`electron/service-sessions.ts`), and an http(s) `window.open` from a service
+opens a sandboxed child window on the same session. Microphone and camera
+grants are per origin for the current app session, not a persisted per-module
+capability; a restart forgets them. There is no hibernation or crash isolation
+supervisor yet.
 
 ## State
 
@@ -300,8 +311,18 @@ renderer mounted. Kryvex never changes the system default silently.
 | `kryvex:browser:default-set` | renderer → main | shell sender only |
 | `kryvex:browser:default-settings` | renderer → main | shell sender only |
 | `kryvex:browser:pending-urls` | renderer → main | shell sender only |
+| `kryvex:services:clear-session` | renderer → main | shell sender, `persist:svc-*` partition only |
+| `kryvex:services:notifications` | renderer → main | shell sender, boolean |
+| `kryvex:attention` | renderer → main | shell sender, boolean; taskbar flash only |
 | `kryvex:browser:open-url` | main → renderer | validated http(s) URL |
 | `kryvex:downloads:changed` | main → renderer | display records only |
+| `kryvex:update:status` | renderer → main | shell sender, read-only status |
+| `kryvex:update:check` | renderer → main | shell sender, fixed GitHub feed |
+| `kryvex:update:download` | renderer → main | shell sender, release asset chosen by main |
+| `kryvex:update:install` | renderer → main | shell sender, packaged installed build only |
+| `kryvex:update:reveal` | renderer → main | shell sender, downloaded path only |
+| `kryvex:update:release-page` | renderer → main | shell sender, GitHub release page |
+| `kryvex:update:changed` | main → renderer | phase, versions, progress, error code |
 
 ## Security decisions
 
@@ -309,11 +330,18 @@ renderer mounted. Kryvex never changes the system default silently.
   context isolation and sandbox on, and rejects partitions outside the
   allowlist or `src` values that are not http(s). Kryvex's own farbling preload
   is registered on the session after those checks, never from webview markup.
-- `app.on('web-contents-created')` sends `window.open` to the system browser
-  after protocol validation and blocks non-http navigation inside webviews.
-- Permissions are denied except clipboard-sanitized-write, fullscreen and an
-  explicit microphone/camera grant. Media requests are origin-scoped, in
-  memory and shown in the trusted shell; other devices stay denied.
+- `app.on('web-contents-created')` blocks non-http navigation inside webviews
+  and popups. `window.open` from a recorded service partition becomes a
+  sandboxed child window on that same session; from a browser tab it is
+  externalised, except background pop-unders, which are denied. The shell
+  always externalises.
+- Permissions are denied except clipboard-sanitized-write, fullscreen, an
+  explicit microphone/camera grant and notifications for a service partition
+  while **Settings → Service apps → Desktop notifications** is on. Media
+  requests are origin-scoped, in memory and shown in the trusted shell; other
+  devices stay denied.
+- The app sets a Chrome-shaped `userAgentFallback` at launch so services do not
+  classify the embedded browser as Electron.
 - Magnet navigation is validated, prevented from reaching Chromium's external
   protocol handler and forwarded to the shell. Torrent folders and IDs are
   chosen by main, not the renderer.
@@ -321,6 +349,9 @@ renderer mounted. Kryvex never changes the system default silently.
 - `contextBridge` exposes a fixed typed API; there is no generic `ipcRenderer`.
   Shield, extension, download and browser mutations verify the sender is the
   shell window.
+- Update checks use a fixed GitHub endpoint. Asset hosts, version-matched
+  file names and a mandatory SHA-256 list are validated in the main process;
+  the renderer can only ask for a check, download, install or reveal.
 - Extension packages, filter-list URLs and download paths never come from
   renderer input; the main process owns all three.
 
@@ -330,14 +361,17 @@ renderer mounted. Kryvex never changes the system default silently.
 pnpm build     # dist/ + dist-electron/
 pnpm start     # launch built app
 pnpm capture   # build, launch with KRYVEX_CAPTURE=1, write screenshots/
+pnpm verify:updater  # local release feed, checksum rejection, source-mode guard
 ```
 
 The capture routine drives real routes (`#/home`, `#/home?help=1`,
 `#/services`, `#/services?dialog=new`, `#/service/<id>`, `#/browser?newtab=1`,
 `#/browser?panel=downloads`, `#/browser?url=…&panel=history`, `#/settings`,
-data/shield/browser/plugin scroll positions, `#/home?palette=1`,
-`#/home?theme=…`), waits for each view, and captures the window with
-`webContents.capturePage()`. It writes seventeen 1440×900 images. `pnpm capture`
+`#/settings?section=updates`, the Custom theme panel (opened by clicking
+`.theme-card.is-custom`), data/shield/browser/plugin scroll positions,
+`#/home?palette=1`, `#/home?theme=…`), waits for each view, and captures the
+window with
+`webContents.capturePage()`. It writes nineteen 1440×900 images. `pnpm capture`
 therefore doubles as a smoke test: the app must boot and render every route
 before screenshots exist.
 

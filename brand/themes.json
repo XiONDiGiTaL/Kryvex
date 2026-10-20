@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "themes": [
     {
       "id": "kryvex-dark",
@@ -17,7 +17,10 @@
         "success": "#4ADE80",
         "warning": "#FBBF24",
         "danger": "#F87171"
-      }
+      },
+      "symbol": "Kx",
+      "family": "core",
+      "number": 1
     },
     {
       "id": "kryvex-light",
@@ -35,7 +38,10 @@
         "success": "#15803D",
         "warning": "#B45309",
         "danger": "#B91C1C"
-      }
+      },
+      "symbol": "Kl",
+      "family": "core",
+      "number": 2
     },
     {
       "id": "midnight",
@@ -53,7 +59,10 @@
         "success": "#4ADE80",
         "warning": "#FBBF24",
         "danger": "#F87171"
-      }
+      },
+      "symbol": "Md",
+      "family": "core",
+      "number": 3
     },
     {
       "id": "graphite",
@@ -71,7 +80,10 @@
         "success": "#4ADE80",
         "warning": "#FBBF24",
         "danger": "#F87171"
-      }
+      },
+      "symbol": "Gr",
+      "family": "core",
+      "number": 4
     },
     {
       "id": "oled-black",
@@ -89,7 +101,10 @@
         "success": "#4ADE80",
         "warning": "#FBBF24",
         "danger": "#F87171"
-      }
+      },
+      "symbol": "Ob",
+      "family": "core",
+      "number": 5
     },
     {
       "id": "high-contrast",
@@ -104,6 +119,669 @@
         "muted": "#E6E6E6",
         "accent": "#38BDF8",
         "accentSoft": "#2DD4BF",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      },
+      "symbol": "Hc",
+      "family": "core",
+      "number": 6
+    },
+    {
+      "id": "sunburst",
+      "name": "Sunburst",
+      "symbol": "Sb",
+      "family": "spectrum",
+      "number": 7,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#1A0F07",
+        "surface": "#24150B",
+        "raised": "#2F2117",
+        "line": "#594A40",
+        "ink": "#FFF3E6",
+        "muted": "#D8A77B",
+        "accent": "#FF8A1F",
+        "accentSoft": "#FFC857",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      },
+      "gradient": true
+    },
+    {
+      "id": "violet",
+      "name": "Violet",
+      "symbol": "Vi",
+      "family": "spectrum",
+      "number": 8,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#130B1F",
+        "surface": "#1C1230",
+        "raised": "#271E3A",
+        "line": "#504662",
+        "ink": "#F4ECFF",
+        "muted": "#B8A3D9",
+        "accent": "#A855F7",
+        "accentSoft": "#F0ABFC",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      },
+      "gradient": true
+    },
+    {
+      "id": "lapis-lazuli",
+      "name": "Lapis Lazuli",
+      "symbol": "Lz",
+      "family": "spectrum",
+      "number": 9,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#081428",
+        "surface": "#0E1D38",
+        "raised": "#1A2842",
+        "line": "#445168",
+        "ink": "#EEF4FF",
+        "muted": "#93A9CC",
+        "accent": "#2F6FED",
+        "accentSoft": "#E3B341",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      },
+      "gradient": true
+    },
+    {
+      "id": "turquoise",
+      "name": "Turquoise",
+      "symbol": "Tq",
+      "family": "spectrum",
+      "number": 10,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#041A1A",
+        "surface": "#0A2625",
+        "raised": "#163130",
+        "line": "#3F5A58",
+        "ink": "#E6FFFB",
+        "muted": "#83C9C1",
+        "accent": "#2DD4BF",
+        "accentSoft": "#67E8F9",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "rose-quartz",
+      "name": "Rose Quartz",
+      "symbol": "Rq",
+      "family": "spectrum",
+      "number": 11,
+      "mode": "light",
+      "tokens": {
+        "bg": "#FBF1F4",
+        "surface": "#FFFFFF",
+        "raised": "#F5F5F5",
+        "line": "#CCC6C8",
+        "ink": "#2A1119",
+        "muted": "#7A5663",
+        "accent": "#D6336C",
+        "accentSoft": "#F06595",
+        "success": "#15803D",
+        "warning": "#B45309",
+        "danger": "#B91C1C"
+      }
+    },
+    {
+      "id": "ember",
+      "name": "Ember",
+      "symbol": "Eb",
+      "family": "spectrum",
+      "number": 12,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#170707",
+        "surface": "#220B0A",
+        "raised": "#2D1716",
+        "line": "#57413F",
+        "ink": "#FFEDE8",
+        "muted": "#D19A8A",
+        "accent": "#F97316",
+        "accentSoft": "#EF4444",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      },
+      "gradient": true
+    },
+    {
+      "id": "emerald",
+      "name": "Emerald",
+      "symbol": "Es",
+      "family": "spectrum",
+      "number": 13,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#04140E",
+        "surface": "#0A2118",
+        "raised": "#162C24",
+        "line": "#3F564D",
+        "ink": "#E8FFF5",
+        "muted": "#86C7A7",
+        "accent": "#10B981",
+        "accentSoft": "#6EE7B7",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "amethyst",
+      "name": "Amethyst",
+      "symbol": "Am",
+      "family": "spectrum",
+      "number": 14,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#160B1D",
+        "surface": "#21102B",
+        "raised": "#2C1C36",
+        "line": "#55455E",
+        "ink": "#F8ECFF",
+        "muted": "#C4A1D6",
+        "accent": "#C084FC",
+        "accentSoft": "#F0ABFC",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "obsidian",
+      "name": "Obsidian",
+      "symbol": "Oz",
+      "family": "spectrum",
+      "number": 15,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#050607",
+        "surface": "#0C0F12",
+        "raised": "#181B1E",
+        "line": "#414548",
+        "ink": "#E9EEF2",
+        "muted": "#8D9AA6",
+        "accent": "#38BDF8",
+        "accentSoft": "#94A3B8",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "platinum",
+      "name": "Platinum",
+      "symbol": "Pt",
+      "family": "metal",
+      "number": 16,
+      "mode": "light",
+      "tokens": {
+        "bg": "#EAEDF1",
+        "surface": "#F8FAFC",
+        "raised": "#EEF0F2",
+        "line": "#C3C7CB",
+        "ink": "#1B2430",
+        "muted": "#5B6878",
+        "accent": "#4B6B8A",
+        "accentSoft": "#C9A227",
+        "success": "#15803D",
+        "warning": "#B45309",
+        "danger": "#B91C1C"
+      },
+      "glass": true
+    },
+    {
+      "id": "terminal",
+      "name": "Terminal",
+      "symbol": "Tm",
+      "family": "terminal",
+      "number": 17,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#000000",
+        "surface": "#050805",
+        "raised": "#121412",
+        "line": "#304330",
+        "ink": "#B7FFB7",
+        "muted": "#5BA85B",
+        "accent": "#22C55E",
+        "accentSoft": "#86EFAC",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      },
+      "mono": true
+    },
+    {
+      "id": "carbon",
+      "name": "Carbon",
+      "symbol": "Cb",
+      "family": "element",
+      "number": 18,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#0A0A0A",
+        "surface": "#111111",
+        "raised": "#1D1D1D",
+        "line": "#444444",
+        "ink": "#E5E5E5",
+        "muted": "#9A9A9A",
+        "accent": "#A3A3A3",
+        "accentSoft": "#D4D4D4",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "neon",
+      "name": "Neon",
+      "symbol": "Ne",
+      "family": "element",
+      "number": 19,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#0A0410",
+        "surface": "#130A1C",
+        "raised": "#1F1627",
+        "line": "#4C4152",
+        "ink": "#FFF0FF",
+        "muted": "#C9A0D8",
+        "accent": "#FF2D95",
+        "accentSoft": "#22D3EE",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      },
+      "gradient": true
+    },
+    {
+      "id": "argon",
+      "name": "Argon",
+      "symbol": "Ar",
+      "family": "element",
+      "number": 20,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#0D0B1A",
+        "surface": "#17132B",
+        "raised": "#231F36",
+        "line": "#4B475E",
+        "ink": "#EFECFF",
+        "muted": "#A69BC9",
+        "accent": "#8B5CF6",
+        "accentSoft": "#38BDF8",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "krypton",
+      "name": "Krypton",
+      "symbol": "Kr",
+      "family": "element",
+      "number": 21,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#031416",
+        "surface": "#082326",
+        "raised": "#142E31",
+        "line": "#3C575A",
+        "ink": "#E0FBFF",
+        "muted": "#7FB8BF",
+        "accent": "#22D3EE",
+        "accentSoft": "#A7F3D0",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "xenon",
+      "name": "Xenon",
+      "symbol": "Xe",
+      "family": "element",
+      "number": 22,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#0A1018",
+        "surface": "#111B27",
+        "raised": "#1D2632",
+        "line": "#45505B",
+        "ink": "#EAF6FF",
+        "muted": "#93AFC7",
+        "accent": "#7DD3FC",
+        "accentSoft": "#E0F2FE",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "radon",
+      "name": "Radon",
+      "symbol": "Rn",
+      "family": "element",
+      "number": 23,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#160607",
+        "surface": "#210A0C",
+        "raised": "#2C1618",
+        "line": "#564041",
+        "ink": "#FFE9EA",
+        "muted": "#CF9799",
+        "accent": "#EF4444",
+        "accentSoft": "#FB923C",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      },
+      "gradient": true
+    },
+    {
+      "id": "helium",
+      "name": "Helium",
+      "symbol": "He",
+      "family": "light",
+      "number": 24,
+      "mode": "light",
+      "tokens": {
+        "bg": "#FFF8F2",
+        "surface": "#FFFFFF",
+        "raised": "#F5F5F5",
+        "line": "#CCC8C6",
+        "ink": "#2B1A10",
+        "muted": "#7A6151",
+        "accent": "#F97316",
+        "accentSoft": "#FBBF24",
+        "success": "#15803D",
+        "warning": "#B45309",
+        "danger": "#B91C1C"
+      }
+    },
+    {
+      "id": "lithium",
+      "name": "Lithium",
+      "symbol": "Li",
+      "family": "light",
+      "number": 25,
+      "mode": "light",
+      "tokens": {
+        "bg": "#FFF4F7",
+        "surface": "#FFFFFF",
+        "raised": "#F5F5F5",
+        "line": "#CCC7C8",
+        "ink": "#2C141B",
+        "muted": "#80606A",
+        "accent": "#E11D48",
+        "accentSoft": "#FB7185",
+        "success": "#15803D",
+        "warning": "#B45309",
+        "danger": "#B91C1C"
+      }
+    },
+    {
+      "id": "titanium",
+      "name": "Titanium",
+      "symbol": "Ti",
+      "family": "metal",
+      "number": 26,
+      "mode": "light",
+      "tokens": {
+        "bg": "#E9ECEF",
+        "surface": "#F6F8FA",
+        "raised": "#ECEEF0",
+        "line": "#C2C6C9",
+        "ink": "#1F262D",
+        "muted": "#5F6A75",
+        "accent": "#64748B",
+        "accentSoft": "#94A3B8",
+        "success": "#15803D",
+        "warning": "#B45309",
+        "danger": "#B91C1C"
+      }
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "symbol": "Cu",
+      "family": "metal",
+      "number": 27,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#180C06",
+        "surface": "#24130B",
+        "raised": "#2F1F17",
+        "line": "#59483F",
+        "ink": "#FFEEE2",
+        "muted": "#C99C7C",
+        "accent": "#B87333",
+        "accentSoft": "#F2A65A",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "symbol": "Au",
+      "family": "metal",
+      "number": 28,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#141005",
+        "surface": "#1F190A",
+        "raised": "#2A2416",
+        "line": "#554F3E",
+        "ink": "#FFF8E1",
+        "muted": "#C9B77C",
+        "accent": "#D4AF37",
+        "accentSoft": "#FDE68A",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "silver",
+      "name": "Silver",
+      "symbol": "Ag",
+      "family": "metal",
+      "number": 29,
+      "mode": "light",
+      "tokens": {
+        "bg": "#ECEFF1",
+        "surface": "#FAFBFC",
+        "raised": "#F0F1F2",
+        "line": "#C5C8CA",
+        "ink": "#1E252B",
+        "muted": "#61707C",
+        "accent": "#64748B",
+        "accentSoft": "#CBD5E1",
+        "success": "#15803D",
+        "warning": "#B45309",
+        "danger": "#B91C1C"
+      }
+    },
+    {
+      "id": "iron",
+      "name": "Iron",
+      "symbol": "Fe",
+      "family": "metal",
+      "number": 30,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#0C0D0F",
+        "surface": "#141619",
+        "raised": "#202224",
+        "line": "#484A4D",
+        "ink": "#EDEFF2",
+        "muted": "#9CA3AF",
+        "accent": "#6B7280",
+        "accentSoft": "#D1D5DB",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "mercury",
+      "name": "Mercury",
+      "symbol": "Hg",
+      "family": "metal",
+      "number": 31,
+      "mode": "light",
+      "tokens": {
+        "bg": "#EDF2F4",
+        "surface": "#FBFDFE",
+        "raised": "#F1F3F4",
+        "line": "#C4C8CA",
+        "ink": "#172126",
+        "muted": "#5E727B",
+        "accent": "#0E7490",
+        "accentSoft": "#67E8F9",
+        "success": "#15803D",
+        "warning": "#B45309",
+        "danger": "#B91C1C"
+      },
+      "glass": true
+    },
+    {
+      "id": "sulfur",
+      "name": "Sulfur",
+      "symbol": "Sf",
+      "family": "element",
+      "number": 32,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#141003",
+        "surface": "#1E1806",
+        "raised": "#292412",
+        "line": "#544E38",
+        "ink": "#FFF9D6",
+        "muted": "#C9B85F",
+        "accent": "#EAB308",
+        "accentSoft": "#FDE047",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "iodine",
+      "name": "Iodine",
+      "symbol": "Io",
+      "family": "element",
+      "number": 33,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#120817",
+        "surface": "#1B0D22",
+        "raised": "#26192D",
+        "line": "#504257",
+        "ink": "#F9E8FF",
+        "muted": "#BD9AC9",
+        "accent": "#8B5CF6",
+        "accentSoft": "#C084FC",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "chlorine",
+      "name": "Chlorine",
+      "symbol": "Cl",
+      "family": "element",
+      "number": 34,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#06140A",
+        "surface": "#0B2110",
+        "raised": "#172C1C",
+        "line": "#405645",
+        "ink": "#E9FFEE",
+        "muted": "#8AC79A",
+        "accent": "#22C55E",
+        "accentSoft": "#A3E635",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "oxygen",
+      "name": "Oxygen",
+      "symbol": "Ox",
+      "family": "light",
+      "number": 35,
+      "mode": "light",
+      "tokens": {
+        "bg": "#F0F9FF",
+        "surface": "#FFFFFF",
+        "raised": "#F5F5F5",
+        "line": "#C5CACE",
+        "ink": "#0C2333",
+        "muted": "#527086",
+        "accent": "#0284C7",
+        "accentSoft": "#38BDF8",
+        "success": "#15803D",
+        "warning": "#B45309",
+        "danger": "#B91C1C"
+      }
+    },
+    {
+      "id": "nitrogen",
+      "name": "Nitrogen",
+      "symbol": "Ni",
+      "family": "element",
+      "number": 36,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#080D15",
+        "surface": "#0F1724",
+        "raised": "#1B232F",
+        "line": "#444B58",
+        "ink": "#EAF1FB",
+        "muted": "#91A3BC",
+        "accent": "#60A5FA",
+        "accentSoft": "#A5B4FC",
+        "success": "#4ADE80",
+        "warning": "#FBBF24",
+        "danger": "#F87171"
+      }
+    },
+    {
+      "id": "silicon",
+      "name": "Silicon",
+      "symbol": "Si",
+      "family": "element",
+      "number": 37,
+      "mode": "dark",
+      "tokens": {
+        "bg": "#12100D",
+        "surface": "#1A1713",
+        "raised": "#25231F",
+        "line": "#4F4B46",
+        "ink": "#F5F0E8",
+        "muted": "#B3A998",
+        "accent": "#D6A96C",
+        "accentSoft": "#E8D5B7",
         "success": "#4ADE80",
         "warning": "#FBBF24",
         "danger": "#F87171"

@@ -38,6 +38,31 @@ describe('makeI18n', () => {
     expect(fr.t('Web preview')).toBe('Aperçu web');
   });
 
+  it('translates service-app copy and keeps English as the source', () => {
+    const de = makeI18n('de');
+    expect(de.t('Desktop notifications')).toBe('Desktop-Benachrichtigungen');
+    expect(de.t('AI')).toBe('KI');
+    expect(de.t('Clear this session')).toBe('Diese Sitzung löschen');
+
+    const fr = makeI18n('fr');
+    expect(fr.t('Resources')).toBe('Ressources');
+    expect(fr.t('Clear this session')).toBe('Effacer cette session');
+
+    const es = makeI18n('es');
+    expect(es.t('Service apps')).toBe('Apps de servicio');
+    expect(es.t('{count} unread', { count: 4 })).toBe('4 sin leer');
+    expect(makeI18n('en').t('Desktop notifications')).toBe('Desktop notifications');
+  });
+
+  it('localizes the periodic theme picker and custom colours', () => {
+    expect(makeI18n('es').t('CORE')).toBe('NÚCLEO');
+    expect(makeI18n('es').t('Custom theme')).toBe('Tema personalizado');
+    expect(makeI18n('de').t('METALS')).toBe('METALLE');
+    expect(makeI18n('fr').t('Apply custom theme')).toBe(
+      'Appliquer le thème personnalisé',
+    );
+  });
+
   it('localizes the system-language option label', () => {
     const { t } = makeI18n('de');
     expect(languageLabel('system', t)).toMatch(/^Systemsprache \([A-Z]{2}\)$/);

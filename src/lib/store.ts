@@ -14,7 +14,7 @@ import type {
 import { LANGUAGE_SETTINGS } from '../types';
 import { BRAND_ICONS } from './brand-icons';
 import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
-import { isThemeId } from './themes';
+import { isThemeId, sanitizeCustomTheme } from './themes';
 import { hostOf, isHttpUrl } from './url';
 
 const VIEWS: ViewId[] = ['home', 'services', 'browser', 'settings'];
@@ -128,6 +128,7 @@ function sanitizeSettings(raw: unknown): Settings {
   if (!isRecord(raw)) return base;
   return {
     themeId: typeof raw.themeId === 'string' && isThemeId(raw.themeId) ? raw.themeId : base.themeId,
+    customTheme: sanitizeCustomTheme(raw.customTheme),
     density: DENSITIES.includes(raw.density as Density) ? (raw.density as Density) : base.density,
     startView: VIEWS.includes(raw.startView as ViewId) ? (raw.startView as ViewId) : base.startView,
     language: LANGUAGE_SETTINGS.includes(raw.language as LanguageSetting)
@@ -139,6 +140,9 @@ function sanitizeSettings(raw: unknown): Settings {
       ? (raw.searchEngine as SearchEngine)
       : base.searchEngine,
     confirmBeforeDelete: raw.confirmBeforeDelete === undefined ? true : Boolean(raw.confirmBeforeDelete),
+    serviceNotifications:
+      raw.serviceNotifications === undefined ? true : Boolean(raw.serviceNotifications),
+    autoCheckUpdates: raw.autoCheckUpdates === undefined ? true : Boolean(raw.autoCheckUpdates),
   };
 }
 

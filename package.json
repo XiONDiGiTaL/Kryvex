@@ -1,7 +1,7 @@
 {
   "name": "kryvex",
   "productName": "Kryvex",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "A modular desktop workspace that brings independent web services, a browser and shared tools into one engineered surface.",
   "license": "MIT",
   "author": {
@@ -24,12 +24,15 @@
     "capture": "node scripts/capture.mjs",
     "package:dir": "pnpm build && electron-builder --dir",
     "package:win": "pnpm build && electron-builder",
+    "release:checksums": "node scripts/release-checksums.cjs",
     "verify:restart": "pnpm build && node scripts/verify-restart.cjs",
     "verify:downloads": "pnpm build && electron scripts/verify-download-history.cjs",
     "verify:location-ui": "pnpm build && node scripts/verify-download-location-ui.cjs",
     "verify:torrents": "pnpm build && node scripts/verify-torrents.cjs",
     "verify:torrent-restore-ui": "pnpm build && node scripts/verify-torrent-restore-ui.cjs",
-    "verify:browser": "pnpm build && node scripts/verify-browser-tools.cjs"
+    "verify:browser": "pnpm build && node scripts/verify-browser-tools.cjs",
+    "verify:services": "pnpm build && node scripts/verify-service-engine.cjs",
+    "verify:updater": "pnpm build && node scripts/verify-updater.cjs"
   },
   "build": {
     "appId": "net.xiondigital.kryvex",

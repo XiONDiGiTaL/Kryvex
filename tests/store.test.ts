@@ -62,6 +62,55 @@ describe('sanitizeState', () => {
     expect(state.settings.themeId).toBe('kryvex-dark');
     expect(state.settings.density).toBe('comfortable');
     expect(state.settings.searchEngine).toBe('duckduckgo');
+    // Notifications default to on, and an explicit opt-out survives a reload.
+    expect(state.settings.serviceNotifications).toBe(true);
+    expect(
+      sanitizeState({ settings: { serviceNotifications: false } }).settings
+        .serviceNotifications,
+    ).toBe(false);
+    // Update checks default to on, and an explicit opt-out survives a reload.
+    expect(state.settings.autoCheckUpdates).toBe(true);
+    expect(
+      sanitizeState({ settings: { autoCheckUpdates: false } }).settings.autoCheckUpdates,
+    ).toBe(false);
+  });
+
+  it('sanitises the saved custom theme without dropping the rest of settings', () => {
+    const state = sanitizeState({
+      settings: {
+        themeId: 'custom',
+        customTheme: {
+          name: 'Mine',
+          bg: '#112233',
+          surface: '#223344',
+          accent: 'not-a-colour',
+          accentSoft: '#ABC',
+          ink: '#FFFFFF',
+        },
+        density: 'compact',
+      },
+    });
+    expect(state.settings.themeId).toBe('custom');
+    expect(state.settings.density).toBe('compact');
+    expect(state.settings.customTheme.name).toBe('Mine');
+    expect(state.settings.customTheme.bg).toBe('#112233');
+    expect(state.settings.customTheme.surface).toBe('#223344');
+    expect(state.settings.customTheme.accent).toBe('#F97316');
+    expect(state.settings.customTheme.accentSoft).toBe('#AABBCC');
+    expect(state.settings.customTheme.ink).toBe('#FFFFFF');
+  });
+
+  it('accepts the AI and resource categories and rejects unknown ones', () => {
+    const state = sanitizeState({
+      services: [
+        makeService({ id: 's-ai', category: 'ai' }),
+        makeService({ id: 's-res', category: 'resources' }),
+        makeService({ id: 's-bad', category: 'nonsense' as Service['category'] }),
+      ],
+    });
+    expect(state.services.find(service => service.id === 's-ai')?.category).toBe('ai');
+    expect(state.services.find(service => service.id === 's-res')?.category).toBe('resources');
+    expect(state.services.find(service => service.id === 's-bad')?.category).toBe('other');
   });
 
   it('filters recents to known services and removes duplicates', () => {

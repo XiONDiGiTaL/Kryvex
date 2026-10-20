@@ -16,6 +16,7 @@ coverage/
 
 # logs and editor noise
 *.log
+*.tsbuildinfo
 .tmp-*
 .DS_Store
 Thumbs.db

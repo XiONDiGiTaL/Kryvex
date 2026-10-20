@@ -7,6 +7,8 @@ import { extensions } from './extensions';
 import { configurePrivacySwitches, hardenSession } from './hardening';
 import { permissions } from './permissions';
 import { isSafePartition } from './privacy';
+import { serviceSessions } from './service-sessions';
+import { stableUserAgent } from './user-agent';
 import { shield } from './shield';
 import {
   chooseDownloadLocation,
@@ -16,6 +18,7 @@ import {
 } from './storage';
 import { isMagnetLink } from './torrent-rules';
 import { torrents } from './torrents';
+import { updater } from './updater';
 import { webPrivacy } from './web-privacy';
 import type { TorrentResult } from './types';
 
@@ -32,6 +35,11 @@ const BROWSER_PARTITION = /^browser-[a-z0-9-]{1,64}$/i;
 // Electron host in the shell; packaged builds also carry the branded exe icon.
 app.setName('Kryvex');
 if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
+
+// Service modules must look like a normal Chromium browser. Electron's
+// default agent advertises "Electron/x", which several web clients treat as an
+// unsupported browser and answer with forced sign-outs or broken OAuth.
+app.userAgentFallback = stableUserAgent(process.platform, process.versions.chrome);
 
 // Integration harnesses use an isolated profile so they never read or write the
 // profile of the person running the app.
@@ -132,13 +140,65 @@ function hardenWebContents(): void {
       webPrivacy.ensureSession(contents.session, true);
     }
 
-    contents.setWindowOpenHandler(({ url }) => {
+    contents.setWindowOpenHandler(({ url, disposition }) => {
       if (isMagnetLink(url)) {
         forwardMagnet(url);
-      } else if (isSafeUrl(url)) {
-        void shell.openExternal(url);
+        return { action: 'deny' };
       }
+      // A hidden pop-under is the signature of an ad script, not a sign-in
+      // flow. Browser tabs never get one; a service still may, because some
+      // OAuth providers open a background window before focusing it.
+      if (
+        contents.getType() === 'webview' &&
+        !serviceSessions.isServiceSession(contents.session) &&
+        disposition === 'background-tab'
+      ) {
+        return { action: 'deny' };
+      }
+      // Sign-in providers (Google, Microsoft, Apple, passkeys) finish in a
+      // popup and hand the result back to the opener. A service module gets a
+      // real child window on its own persistent session; a browser tab still
+      // hands the link to the system browser.
+      if (
+        contents.getType() === 'webview' &&
+        serviceSessions.isServiceSession(contents.session) &&
+        isSafeUrl(url)
+      ) {
+        return {
+          action: 'allow',
+          overrideBrowserWindowOptions: {
+            width: 520,
+            height: 760,
+            minWidth: 420,
+            minHeight: 520,
+            parent: mainWindow ?? undefined,
+            autoHideMenuBar: true,
+            backgroundColor: '#0B0E12',
+            webPreferences: {
+              sandbox: true,
+              contextIsolation: true,
+              nodeIntegration: false,
+              webviewTag: false,
+            },
+          },
+        };
+      }
+      if (isSafeUrl(url)) void shell.openExternal(url);
       return { action: 'deny' };
+    });
+
+    // Popups are still untrusted pages: they may not leave http(s), and their
+    // own window.open calls go to the system browser rather than stacking
+    // unknown windows inside the app.
+    contents.on('did-create-window', window => {
+      const popup = window.webContents;
+      popup.setWindowOpenHandler(({ url }) => {
+        if (isSafeUrl(url)) void shell.openExternal(url);
+        return { action: 'deny' };
+      });
+      popup.on('will-navigate', (event, url) => {
+        if (!isSafeUrl(url)) event.preventDefault();
+      });
     });
 
     contents.on('will-navigate', (event, url) => {
@@ -147,7 +207,8 @@ function hardenWebContents(): void {
         forwardMagnet(url);
         return;
       }
-      if (contents.getType() === 'webview' && !isSafeUrl(url)) {
+      const type = contents.getType();
+      if ((type === 'webview' || type === 'window') && !isSafeUrl(url)) {
         event.preventDefault();
       }
     });
@@ -213,6 +274,9 @@ function createWindow(): BrowserWindow {
   });
 
   win.webContents.on('will-attach-webview', (event, webPreferences, params) => {
+    // Remember which sessions belong to service modules before the guest can
+    // ask for notifications or open an auth popup.
+    serviceSessions.markPartition(params.partition);
     delete (webPreferences as { preload?: string }).preload;
     webPreferences.nodeIntegration = false;
     webPreferences.contextIsolation = true;
@@ -230,8 +294,12 @@ function createWindow(): BrowserWindow {
     void win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   }
 
+  // A new message flashes the taskbar button; looking at the window stops it.
+  win.on('focus', () => win.flashFrame(false));
+
   win.on('closed', () => {
     mainWindow = null;
+    updater.dispose();
   });
 
   return win;
@@ -388,6 +456,19 @@ function registerIpc(): void {
     if (!isShellSender(event)) return [];
     return defaultBrowser.takePendingUrls();
   });
+  ipcMain.handle('kryvex:services:clear-session', (event, partition: unknown) => {
+    if (!isShellSender(event)) return false;
+    return serviceSessions.clear(partition);
+  });
+  ipcMain.handle('kryvex:services:notifications', (event, enabled: unknown) => {
+    if (!isShellSender(event) || typeof enabled !== 'boolean') return serviceSessions.notificationsEnabled();
+    serviceSessions.setNotifications(enabled);
+    return serviceSessions.notificationsEnabled();
+  });
+  ipcMain.on('kryvex:attention', (event, active: unknown) => {
+    if (!isShellSender(event) || !mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.flashFrame(Boolean(active));
+  });
   ipcMain.handle('kryvex:browser:clear-tab', async (event, partition: unknown) => {
     if (!isShellSender(event) || typeof partition !== 'string' || !BROWSER_PARTITION.test(partition)) {
       return false;
@@ -418,6 +499,26 @@ function registerIpc(): void {
     await shell.openExternal(url);
     return true;
   });
+  ipcMain.handle('kryvex:update:status', (event) =>
+    isShellSender(event) ? updater.status() : null,
+  );
+  ipcMain.handle('kryvex:update:check', (event) =>
+    isShellSender(event) ? updater.check() : null,
+  );
+  ipcMain.handle('kryvex:update:download', (event) =>
+    isShellSender(event) ? updater.download() : null,
+  );
+  ipcMain.handle('kryvex:update:install', (event) =>
+    isShellSender(event) ? updater.install() : false,
+  );
+  ipcMain.handle('kryvex:update:reveal', (event) =>
+    isShellSender(event) ? updater.reveal() : false,
+  );
+  ipcMain.handle('kryvex:update:release-page', (event) => {
+    if (!isShellSender(event)) return false;
+    updater.openRelease();
+    return true;
+  });
 }
 
 function wait(ms: number): Promise<void> {
@@ -437,6 +538,7 @@ async function runCapture(win: BrowserWindow): Promise<void> {
     wait?: number;
     scroll?: 'bottom' | string;
     block?: 'start' | 'center' | 'end';
+    click?: string;
   }> = [
     { name: 'home', hash: '#/home' },
     { name: 'help', hash: '#/home?help=1' },
@@ -451,6 +553,13 @@ async function runCapture(win: BrowserWindow): Promise<void> {
       wait: 2500,
     },
     { name: 'settings', hash: '#/settings' },
+    {
+      name: 'settings-custom',
+      hash: '#/settings',
+      click: '.theme-card.is-custom',
+      scroll: '.custom-theme-panel',
+    },
+    { name: 'settings-updates', hash: '#/settings?section=updates', scroll: '#updates' },
     { name: 'settings-data', hash: '#/settings', scroll: '.download-location-copy' },
     { name: 'settings-shield', hash: '#/settings', scroll: '.shield-panel' },
     {
@@ -472,6 +581,12 @@ async function runCapture(win: BrowserWindow): Promise<void> {
       `window.location.hash = ${JSON.stringify(shot.hash)}; true;`,
     );
     await wait(shot.wait ?? 950);
+    if (shot.click) {
+      await win.webContents.executeJavaScript(
+        `document.querySelector(${JSON.stringify(shot.click)})?.click(); true;`,
+      );
+      await wait(350);
+    }
     if (shot.scroll === 'bottom') {
       await win.webContents.executeJavaScript(
         `document.querySelector('.app-main').scrollTop = 999999; true;`,
@@ -542,9 +657,11 @@ if (!gotLock) {
     downloads.trackSession(session.defaultSession);
     hardenWebContents();
     registerIpc();
+    updater.init();
 
     mainWindow = createWindow();
     extensions.attachWindow(mainWindow);
+    updater.attachWindow(mainWindow);
     downloads.attachWindow(mainWindow);
     defaultBrowser.attachWindow(mainWindow);
     permissions.attachWindow(mainWindow);
@@ -565,6 +682,7 @@ if (!gotLock) {
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         mainWindow = createWindow();
+        updater.attachWindow(mainWindow);
       }
     });
   });

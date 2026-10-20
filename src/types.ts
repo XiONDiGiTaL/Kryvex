@@ -6,6 +6,8 @@ export type ServiceCategory =
   | 'communication'
   | 'productivity'
   | 'development'
+  | 'ai'
+  | 'resources'
   | 'media'
   | 'other';
 
@@ -136,8 +138,19 @@ export const LANGUAGE_SETTINGS = ['system', 'en', 'es', 'de', 'fr'] as const;
 export type LanguageSetting = (typeof LANGUAGE_SETTINGS)[number];
 export type ResolvedLanguage = Exclude<LanguageSetting, 'system'>;
 
+export interface CustomTheme {
+  name: string;
+  bg: string;
+  surface: string;
+  accent: string;
+  accentSoft: string;
+  ink: string;
+}
+
 export interface Settings {
   themeId: string;
+  /** User-authored palette used by the built-in Custom theme tile. */
+  customTheme: CustomTheme;
   density: Density;
   startView: ViewId;
   language: LanguageSetting;
@@ -145,6 +158,10 @@ export interface Settings {
   showStatusBar: boolean;
   searchEngine: SearchEngine;
   confirmBeforeDelete: boolean;
+  /** Desktop notifications from persistent service modules. */
+  serviceNotifications: boolean;
+  /** Ask GitHub for a newer release shortly after launch. */
+  autoCheckUpdates: boolean;
 }
 
 export interface BrowserTab {
@@ -205,6 +222,50 @@ export interface ExtensionRecord {
   error?: string;
 }
 
+export type UpdatePhase =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'current'
+  | 'downloading'
+  | 'ready'
+  | 'installing'
+  | 'error';
+
+export type UpdateMode = 'installed' | 'portable' | 'source';
+
+export type UpdateErrorCode =
+  | 'offline'
+  | 'timeout'
+  | 'rate-limited'
+  | 'no-release'
+  | 'invalid-release'
+  | 'no-asset'
+  | 'download-failed'
+  | 'checksum-missing'
+  | 'checksum-failed'
+  | 'too-large'
+  | 'unsupported'
+  | 'unknown';
+
+export interface UpdateStatus {
+  phase: UpdatePhase;
+  currentVersion: string;
+  latestVersion?: string;
+  releaseName?: string;
+  notes?: string;
+  pageUrl?: string;
+  assetName?: string;
+  assetSize?: number;
+  receivedBytes: number;
+  progress: number;
+  mode: UpdateMode;
+  canInstall: boolean;
+  canReveal: boolean;
+  checkedAt: number | null;
+  error?: UpdateErrorCode;
+}
+
 export interface KryvexBridge {
   platform: string;
   loadState: () => Promise<unknown>;
@@ -254,7 +315,17 @@ export interface KryvexBridge {
   openDefaultApps: () => Promise<boolean>;
   takeBrowserUrls: () => Promise<string[]>;
   browserClearTab: (partition: string) => Promise<boolean>;
+  serviceClearSession: (partition: string) => Promise<boolean>;
+  serviceSetNotifications: (enabled: boolean) => Promise<boolean>;
+  attention: (active: boolean) => void;
   onOpenUrl: (listener: (url: string) => void) => () => void;
+  updateStatus: () => Promise<UpdateStatus | null>;
+  updateCheck: () => Promise<UpdateStatus | null>;
+  updateDownload: () => Promise<UpdateStatus | null>;
+  updateInstall: () => Promise<boolean>;
+  updateReveal: () => Promise<boolean>;
+  updateOpenRelease: () => Promise<boolean>;
+  onUpdateChanged: (listener: (status: UpdateStatus) => void) => () => void;
 }
 
 export type ToastTone = 'info' | 'success' | 'warning' | 'danger';

@@ -1,0 +1,58 @@
+name: Release
+
+# The in-app updater reads the latest stable GitHub release. A release must
+# contain Kryvex-Setup-<version>-x64.exe, Kryvex-Portable-<version>-x64.exe and
+# SHA256SUMS.txt; the updater rejects anything else.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Check the tag matches package.json
+        run: >
+          node -e "const p = require('./package.json');
+          if ('v' + p.version !== process.env.GITHUB_REF_NAME) {
+            console.error('Tag ' + process.env.GITHUB_REF_NAME + ' does not match package version ' + p.version);
+            process.exit(1);
+          }"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm package:win
+
+      - name: Write checksums
+        run: node scripts/release-checksums.cjs
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release/Kryvex-Setup-*-x64.exe
+            release/Kryvex-Portable-*-x64.exe
+            release/SHA256SUMS.txt

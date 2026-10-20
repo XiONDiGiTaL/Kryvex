@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BRAND_ICONS } from '../src/lib/brand-icons';
 import { SERVICE_PRESETS } from '../src/lib/catalog';
 import {
+  CATEGORIES,
   SERVICE_COLORS,
   letterFor,
   makeId,
@@ -88,13 +89,33 @@ describe('service catalogue', () => {
   it('offers presets with real brand marks and https endpoints', () => {
     expect(SERVICE_PRESETS.length).toBeGreaterThanOrEqual(12);
     for (const preset of SERVICE_PRESETS) {
-      expect(preset.icon in BRAND_ICONS).toBe(true);
+      // A preset may omit a mark and fall back to the site favicon, but a
+      // declared mark must always resolve to a bundled glyph.
+      if (preset.icon) expect(preset.icon in BRAND_ICONS).toBe(true);
       expect(preset.url.startsWith('https://')).toBe(true);
       expect(preset.name.length).toBeGreaterThan(0);
     }
     expect(SERVICE_PRESETS.some(preset => preset.id === 'instagram')).toBe(true);
     expect(SERVICE_PRESETS.some(preset => preset.id === 'telegram')).toBe(true);
     expect(SERVICE_PRESETS.some(preset => preset.id === 'whatsapp')).toBe(true);
+  });
+
+  it('covers the messaging clients people expect to replace with a desktop app', () => {
+    const ids = SERVICE_PRESETS.map(preset => preset.id);
+    for (const id of ['discord', 'messenger', 'whatsapp', 'telegram', 'instagram', 'gmail']) {
+      expect(ids).toContain(id);
+    }
+    // Every preset carries a category that the filter chips understand.
+    for (const preset of SERVICE_PRESETS) {
+      expect(CATEGORIES.some(category => category.id === preset.category)).toBe(true);
+    }
+  });
+
+  it('lists AI assistants and resource links as links, not bundled clients', () => {
+    const ids = SERVICE_PRESETS.map(preset => preset.id);
+    for (const id of ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'fmhy', 'lmstudio']) {
+      expect(ids).toContain(id);
+    }
   });
 });
 

@@ -61,19 +61,23 @@ away.
   Browser and Settings.
 - **Local by design.** One JSON state file on your machine. No account, no
   telemetry, no cloud sync, no analytics SDK.
-- **A real design system.** Seven themes (six core + one plugin), density
-  modes, brand tokens, visible focus rings, reduced-motion support, and a
-  periodic-table identity built from one vector tile.
+- **A real design system.** 38 built-in themes in six families plus a plugin,
+  organised as a periodic table with two-letter symbols, and a **Custom** slot
+  with full HSV/RGB colour pickers. Density modes, brand tokens, visible focus
+  rings and reduced-motion support ride on the same tokens.
 
-> Status: **working desktop prototype (0.5.0)**. The app boots, modules load,
-> sessions persist, themes switch, the shield blocks tracker requests and
+> Status: **working desktop prototype (0.6.0, packaged and published)**. The app boots, modules load, service apps stay running with their
+> sessions, native notifications and unread badges work, auth popups complete
+> inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
 > fallback, tracking parameters are stripped, canvas/WebGL/audio readbacks are
 > farbled per site, the browser keeps downloads/history/bookmarks, calls can
 > request the microphone and camera, torrents live in the downloads hub,
 > downloads and new torrents can use any writable folder you choose, and the
-> Windows installer and portable build run. Builds are unsigned; no
-> auto-update yet.
+> Windows installer and portable build run. Builds are unsigned. The app
+> checks GitHub Releases for updates, verifies the installer checksum and
+> can install it on restart; portable and git builds download or point at
+> the release instead.
 
 ## Install on Windows
 
@@ -82,12 +86,34 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.5.0-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.5.0-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.6.0-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.6.0-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.5.0** artifacts were built from the complete source tree and are
+The **0.6.0** artifacts were built from the complete source tree and are
 published on the [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
-The checksum list covers the two 0.5.0 artifacts in this release.
+`SHA256SUMS.txt` covers the two 0.6.0 artifacts, and the in-app updater relies
+on it.
+### Updates
+
+Kryvex can update itself from this repository's public releases. **Settings →
+Updates** checks on demand, and by default once shortly after launch and every
+six hours. Nothing downloads until you choose **Download update**.
+
+| Build | What an available update does |
+| --- | --- |
+| Installed (NSIS) | Downloads the Setup EXE, verifies its SHA-256 checksum, then **Install and restart** closes Kryvex and launches the verified installer. |
+| Portable | Downloads and verifies the Portable EXE, then shows it in Explorer so you can run it after closing Kryvex. A running EXE cannot replace itself. |
+| Git checkout | Reports the newer release and opens its page. The working tree is never modified; use `git pull`. |
+
+The update check contacts only `api.github.com` for `XiONDiGiTaL/Kryvex`, uses
+stable releases only, and rejects assets that are not GitHub-hosted or do not
+match the release version. A release is ignored unless it publishes
+`SHA256SUMS.txt` with a matching entry. See [docs/UPDATES.md](docs/UPDATES.md)
+for the full trust chain and release steps.
+
+Installed 0.6.0 builds can update themselves from later releases. Older
+installs predate the updater, so update those once by running the 0.6.0
+installer.
 
 The setup is not click-through: it opens a normal Windows wizard, lets you
 pick the install location, and can launch Kryvex when it finishes. The default
@@ -95,18 +121,61 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The 0.5.0 Setup was installed to a custom directory, launched from that
-install, and uninstalled cleanly. The Portable EXE was launched directly. The
-installed, portable and unpacked builds each completed all seventeen capture
-routes, and the packaged app passed the download-location UI harness. Artifact
-checksums, verification steps and limitations are recorded in
+The **0.6.0** Setup and Portable EXEs were built from this tree and the
+unpacked build completed all nineteen capture routes. Artifact checksums,
+verification steps and limitations are recorded in
+[docs/RELEASE_0.6.0.md](docs/RELEASE_0.6.0.md); earlier releases are in
 [docs/RELEASE_0.5.0.md](docs/RELEASE_0.5.0.md).
 
 **Unsigned build notice.** Code signing is not configured yet, so Windows
 SmartScreen may show **Unknown publisher**. Only continue if you built the
 artifact yourself or downloaded it from a release you trust.
 
-## What's new in 0.5.0
+## What's new in 0.6.0
+
+Kryvex now runs services like installed apps rather than browser pages.
+
+- **Sessions that stay signed in:** a service is mounted once and kept alive
+  while you work elsewhere, its partition is applied before the page loads, and
+  the guest reports a Chrome user agent instead of Electron. Reloading a view is
+  no longer enough to end a chat session.
+- **Desktop notifications:** installed services can raise native notifications
+  and taskbar alerts. Throwaway browser tabs stay blocked. Toggle in
+  **Settings → Service apps**.
+- **Unread badges:** `(3) Discord`-style page titles produce counts in the
+  toolbar, on sidebar pins and in the window title, and flash the taskbar when a
+  message arrives in the background.
+- **Sign-in popups:** OAuth and passkey flows open a sandboxed child window on
+  the same service session. Background pop-unders from ordinary browsing are
+  denied.
+- **Clear one session:** the lock button in a service toolbar deletes only that
+  service's cookies, storage and cache, after confirmation.
+- **A real catalogue:** 27 presets across communication, work, AI and resources
+  — Discord, Messenger, WhatsApp, Telegram, Instagram, Gmail, ChatGPT, Claude,
+  Gemini, Copilot, Perplexity, Hugging Face, Freebuff, LM Studio, Ollama, FMHY
+  and more.
+- **38 themes as a periodic table:** the theme picker is now a periodic-table
+  grid with two-letter symbols, family bands and palette strips — Sunburst,
+  Violet, Lapis Lazuli, Turquoise, Rose Quartz, Ember, Emerald, Amethyst,
+  Obsidian, the element set (Carbon, Neon, Argon, Krypton, Xenon, Radon, Sulfur,
+  Iodine, Chlorine, Nitrogen, Silicon), metals (Platinum, Titanium, Copper,
+  Gold, Silver, Iron, Mercury), lights (Helium, Lithium, Oxygen) and a
+  high-contrast **Terminal**. Platinum and Mercury add an aero-style glass
+  sheen; gradient themes paint buttons and marks with an accent-to-accent
+  gradient.
+- **Custom colours:** the **Custom** tile opens a five-picker colour studio —
+  hue/saturation field, rainbow slider, HEX and editable R/G/B — that derives
+  the remaining tones and switches light/dark from the background luminance.
+- **In-app updates:** **Settings → Updates** checks GitHub Releases, verifies
+  the installer against a mandatory `SHA256SUMS.txt`, and can install and
+  restart. Portable and git builds get the release page instead.
+- **Docs that take a position:** [SERVICES.md](docs/SERVICES.md) explains the
+  engine, [PLATFORM_PLAN.md](docs/PLATFORM_PLAN.md) triages client mods,
+  compounds, local models and the emulator idea, [UPDATES.md](docs/UPDATES.md)
+  covers the release/checksum chain, and [LEGAL.md](docs/LEGAL.md) holds the
+  privacy/terms/cookies/accessibility pack.
+
+## What was new in 0.5.0
 
 - **Choose where files go:** **Settings → Data** now shows the active download
   folder and opens the native Windows folder picker. Regular downloads save
@@ -202,10 +271,10 @@ faster; the same actions remain available on screen.
 | Area | What works today |
 | --- | --- |
 | **Module registry** | Add, edit, remove and pin services. Name, URL, category, colour, glyph and brand-icon validation. Search, category filters, recents, starter catalogue, duplicate-safe IDs. |
-| **Service catalogue** | Fifteen presets — Instagram, Telegram, WhatsApp, Discord, Messenger, Gmail, GitHub, Linear, Notion, Figma, Trello, Spotify, YouTube, Reddit and X — with brand marks and honest notes about embedding limits. |
+| **Service catalogue** | 27 presets across communication (Discord, Messenger, WhatsApp, Telegram, Instagram, Gmail, X), work (GitHub, Linear, Notion, Figma, Trello), AI (ChatGPT, Claude, Gemini, Copilot, Perplexity, Hugging Face, Freebuff), resources (FMHY, LM Studio, Ollama, Awesome Electron, Internet Archive) and media (Spotify, YouTube, Reddit), with brand marks and honest notes about embedding limits. |
 | **Brand icons** | Built-in CC0 Simple Icons paths for known services. Unknown services request their own `/favicon.ico` directly, then fall back to a letter tile. No third-party favicon service. |
-| **Isolated sessions** | One persistent partition per service; disposable in-memory partitions per browser tab, cleared on close. Cookies and sign-in stay inside the module. |
-| **Service workspace** | Live webview with reload, open externally, edit, remove, loading bar, and an error state with retry when a page refuses to load. |
+| **Isolated sessions** | One persistent partition per service; disposable in-memory partitions per browser tab, cleared on close. Cookies and sign-in stay inside the module. Opened services stay mounted, so a view change never reloads them. |
+| **Service apps** | Keep-alive webview, native notifications, unread badges, sandboxed OAuth popups on the same session, per-service session clearing, reload, open externally, edit, remove, loading bar and an error state with retry. A Chrome-shaped user agent replaces Electron's. |
 | **Browser** | Tabs that reopen after a restart, back / forward / reload, address bar with host-or-search resolution, per-tab in-memory session, find-in-page (`Ctrl F`), page zoom (`Ctrl +` / `Ctrl -` / `Ctrl 0`), bookmarks bar, system-browser handoff, direct URL deep links. |
 | **Browser library** | Downloads, history and bookmarks in a side panel. Live download progress, pause/resume, cancel, show in folder, remove and delete-file actions; searchable history with clear/remove; full bookmark list. |
 | **Downloads** | Chromium downloads are observed in the main process across services and browser tabs, saved to the folder chosen in **Settings → Data** (Downloads by default) with collision-safe names, and exposed only as tracked display records. Finished history is written to `userData/kryvex-downloads.json`, so the library survives a restart; a download interrupted by quitting is shown as interrupted. |
@@ -217,13 +286,13 @@ faster; the same actions remain available on screen.
 | **Fingerprint farbling** | A sandboxed frame preload perturbs canvas `getImageData`/`toDataURL`/`toBlob`, WebGL `readPixels` and `AnalyserNode` frequency data with stable per-site, per-launch noise. The trusted shell is never patched. |
 | **Extensions** | Install Chrome-compatible extensions from a Chrome Web Store detail page in one click, or from `.zip`, `.crx` or a folder; enable, disable, remove. Loaded into services and browser sessions. |
 | **Languages** | System language or English, Spanish, German and French across the shell, browser library, dialogs, themes and extension messages. |
-| **Themes** | Six core themes plus the **Special Donkey Edition** plugin (true black + gold, donkey line-art brand mark). All token-driven from `brand/themes.json` and `src/plugins/`. |
+| **Themes** | 37 catalogue themes in six periodic-table families — core, spectrum, elements, metals, lights and terminal — plus the **Special Donkey Edition** plugin and a **Custom** tile you build from five RGB/HSV colour pickers. All token-driven from `brand/themes.json` and `src/plugins/`. |
 | **Layout** | Collapsible sidebar (rail ↔ expanded), comfortable/compact density, toggleable status bar, adjustable start view. |
 | **Usability** | Header Add / Settings / Help buttons, Home common-action cards, a clickable quick-help dialog, visible dialog buttons, and optional keyboard shortcuts. |
 | **Command palette** | Fuzzy-ish filter over navigation, actions, services and themes; arrow keys, `Enter`, `Esc`. Optional — every action also has a visible button. |
 | **Persistence** | Debounced writes with an atomic temp-file rename, 1 MB cap, defensive sanitisation on every load. Reset restores starters. |
 | **Security** | Sandboxed renderer, context isolation, fixed IPC bridge, sender checks on every IPC call, hardened webviews, partition allowlist, http(s)-only navigation, prompt-only microphone/camera access, denied device permissions, externalised popups, GPC, referrer trimming, no-pings, no DNS prefetch, WebRTC public-interface policy, HTTPS upgrades with a one-time fallback, tracking-parameter stripping and per-site fingerprint farbling. |
-| **Quality** | 110 unit tests, strict TypeScript across renderer and main, production build, packaged-app run, real screenshots from the running window, and harnesses for restart persistence, download history and location, torrent restore, find-in-page and zoom. |
+| **Quality** | 149 unit tests, strict TypeScript across renderer and main, production build, packaged-app run, real screenshots from the running window, and harnesses for restart persistence, download history and location, torrent restore, find-in-page, zoom and the updater. |
 
 ## Screenshots
 
@@ -332,6 +401,16 @@ A self-contained plugin: true-black surfaces, gold line work, and a donkey mark
 in place of the element tile. It is still a normal token theme, so every
 surface, focus ring and chart follows it.
 
+### Updates
+
+![Settings Updates panel reporting the current build against the latest release](screenshots/settings-updates.png)
+
+**Settings → Updates** checks this repository's public releases, shows the
+running build and explain what each build can do with a new version. Installed
+builds download a checksum-verified Setup EXE and can install it on restart;
+portable builds reveal the verified EXE for a manual swap; a git checkout just
+links to the release.
+
 ### Download location
 
 ![Settings Data section with the download folder, Change folder and reset actions](screenshots/settings-data.png)
@@ -343,12 +422,19 @@ folder they were saved in.
 
 ### Settings and themes
 
-![Settings with seven themes](screenshots/settings.png)
+![Settings with the periodic-table theme picker](screenshots/settings.png)
 
 ![Settings about panel](screenshots/settings-about.png)
 
 Theme, density, start view, search engine, sidebar behaviour, reset and runtime
-details. The About panel reports the actual Electron/Chromium versions from the
+details. The picker groups all 38 themes by family; **Custom** opens the colour
+studio.
+
+![Custom theme colour pickers](screenshots/settings-custom.png)
+
+Every colour in the Custom theme has a hue/saturation field, a rainbow slider
+and an editable HEX, R, G and B value. Applying it derives the matching line,
+raised and muted tones and switches light/dark automatically. The About panel reports the actual Electron/Chromium versions from the
 running app, the `x529` element designation, and linked developer credits for
 XiONDiGiTaL and player529.
 
@@ -488,18 +574,26 @@ projects you trust. Kryvex does not audit or endorse them.
 
 ## Themes
 
-Six core themes live in [`brand/themes.json`](brand/themes.json); the seventh
-is a plugin:
+37 catalogue themes live in [`brand/themes.json`](brand/themes.json), the
+**Special Donkey Edition** ships as a plugin, and **Custom** is generated from
+your own colours. The picker arranges them as a periodic table: every tile
+carries a two-letter symbol, a family label, its mode and a palette strip, so
+the whole collection reads at a glance.
 
-| Theme | Mode | Character |
-| --- | --- | --- |
-| **Kryvex Dark** | dark | Default. Graphite surfaces, electric blue + teal accents. |
-| **Kryvex Light** | light | Same tokens, darker accents for contrast on white. |
-| **Midnight** | dark | Deep navy, cooler accents. |
-| **Graphite** | dark | Neutral industrial greys. |
-| **OLED Black** | dark | True black for OLED panels. |
-| **High Contrast** | dark | White borders, maximum legibility. |
-| **Special Donkey Edition** | dark | Plugin. True black, gold outlines, donkey brand mark. |
+| Family | Themes |
+| --- | --- |
+| **Core** | Kryvex Dark, Kryvex Light, Midnight, Graphite, OLED Black, High Contrast |
+| **Spectrum** | Sunburst, Violet, Lapis Lazuli (deep blue with gold ascents), Turquoise, Rose Quartz, Ember, Emerald, Amethyst, Obsidian |
+| **Elements** | Carbon (near-black charcoal), Neon, Argon, Krypton, Xenon, Radon, Sulfur, Iodine, Chlorine, Nitrogen, Silicon |
+| **Metals** | Platinum (silver with an aero glass sheen), Titanium, Copper, Gold, Silver, Iron, Mercury |
+| **Lights** | Helium, Lithium, Oxygen |
+| **Terminal** | Terminal — pitch black with high-contrast phosphor green in the mono face |
+| **Plugin** | Special Donkey Edition — true black, gold outlines, donkey mark |
+| **Custom** | Five colour pickers (background, surface, accent, accent two, text) with a hue/saturation field, rainbow slider, HEX field and editable R/G/B channels; raised, line and muted tones are mixed automatically. |
+
+Gradient themes paint buttons, marks, active outlines and the tile strip with
+an accent-to-accent gradient; glass themes add a reflected sheen to chrome
+surfaces; the terminal theme swaps the interface to the mono face.
 
 [`brand/tokens.json`](brand/tokens.json) is the single source of truth for
 colour, spacing, radii, typography, motion and shell metrics. Themes apply CSS
@@ -568,8 +662,8 @@ flowchart LR
   bridge.
 - **Renderer** owns UI and validation. It has no filesystem or shell access.
 - **Remote content** runs in hardened webviews: no preload, no Node, sandboxed,
-  isolated partitions, http(s)-only navigation, popups sent to the system
-  browser, and permissions denied except clipboard writes, fullscreen and the
+  isolated partitions, http(s)-only navigation, auth popups allowed only from
+  service sessions and background pop-unders denied, and permissions denied except clipboard writes, fullscreen and the
   explicit microphone/camera prompt.
 
 ### Project structure
@@ -593,7 +687,7 @@ electron/
 src/
   App.tsx              shell, routing, state, palette, dialogs, toasts
   components/          shell chrome, service dialog, palette, webview, UI
-  views/               Home, Services, ServiceView, Browser, Settings
+  views/               Home, Services, ServiceStage, Browser, Settings
   lib/                 store, services, catalogue, brand icons, themes, storage
   plugins/             Special Donkey Edition theme + mark
   styles.css           all UI styling, token-driven
@@ -621,7 +715,7 @@ pnpm dev
 
 # 3. verify
 pnpm typecheck     # renderer + main, strict
-pnpm test          # 110 unit tests
+pnpm test          # 149 unit tests
 
 # 4. production build
 pnpm build         # dist/ (renderer) + dist-electron/ (main + preload)
@@ -645,8 +739,10 @@ pnpm start         # run the built app
 | `pnpm verify:torrents` | Persist a .torrent and magnet across a location change, restore them paused in a fresh manager, then resume and delete both. |
 | `pnpm verify:torrent-restore-ui` | Launch the built app with a seeded queue and check the restored paused row and Resume action in Downloads. |
 | `pnpm verify:browser` | Drive find-in-page and page zoom through the real toolbar. |
+| `pnpm verify:updater` | Run the real app against a local release feed: available, bad checksum, ready, source-mode and missing-release paths. |
 | `pnpm run package:dir` | electron-builder unpacked Windows directory (`release/win-unpacked`). |
 | `pnpm run package:win` | electron-builder installer/portable targets (unsigned). |
+| `pnpm release:checksums` | Write `release/SHA256SUMS.txt` for the Setup and Portable EXEs. |
 
 `pnpm pack` is pnpm's own tarball command, not the packaging script — use
 `pnpm run package:*`.
@@ -707,7 +803,9 @@ a Portable EXE for no-install use. The unpacked build remains at
 | Renderer isolation | `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` |
 | Bridge surface | Fixed typed IPC calls; shell-sender checks on every read and mutation |
 | Remote content | Webviews attach without preload; Node, web security and insecure content forced off |
-| Sessions | Allowlist: persistent `persist:svc-*`, disposable `browser-*`; enforced in `will-attach-webview` |
+| Sessions | Allowlist: persistent `persist:svc-*`, disposable `browser-*`; enforced in `will-attach-webview`; a service is mounted once and kept alive until cleared, removed or evicted |
+| Notifications | Native notifications only for a recorded service partition while the setting is on; browser tabs denied |
+| Sign-in popups | Service `window.open` → sandboxed child on the same session; browser pop-unders denied; everything else external |
 | Navigation | Non-http(s) URLs blocked in webviews; shell cannot navigate away from the app |
 | Popups | Denied in-app, forwarded to the system browser after protocol validation |
 | Permissions | All denied except `clipboard-sanitized-write` and `fullscreen`; USB/HID/Serial and Bluetooth denied |
@@ -758,9 +856,12 @@ The full license and modification notes are in
 
 - **Windows first.** The app runs on Electron and should work on macOS/Linux,
   but only Windows has been exercised here; packaging is Windows-only.
-- **Unsigned installer and no auto-update yet.** `pnpm run package:win`
-  produces Setup and Portable EXEs; code signing and update feeds are roadmap
-  work.
+- **Unsigned installer.** `pnpm run package:win` produces Setup and Portable
+  EXEs; code signing is still roadmap work. Updates verify SHA-256 against the
+  release's own checksum list, which does not prove the publisher's identity.
+- **No delta updates or beta channel.** Each update downloads the full
+  installer from the latest stable release; rollback is a manual reinstall.
+  Portable and git builds never self-replace.
 - **Shield is list-based network filtering.** It is not the full uBlock Origin
   extension: no uBO dashboard, no per-site dynamic rules, and cosmetic
   filtering depends on the upstream engine. uBO classic's MV2 network layer

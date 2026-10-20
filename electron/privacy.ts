@@ -26,6 +26,14 @@ export function isMediaPermission(permission: string): boolean {
   return permission === 'media';
 }
 
+/**
+ * Desktop notifications are granted only to persistent service modules, and
+ * only while the user keeps the setting on. Browser tabs stay denied.
+ */
+export function isNotificationPermission(permission: string): boolean {
+  return permission === 'notifications';
+}
+
 /** Maps Chromium's mediaTypes (or an absent list) to user-facing devices. */
 export function mediaDevices(types: readonly string[] | undefined): MediaDevice[] {
   if (!types || types.length === 0) return ['microphone', 'camera'];

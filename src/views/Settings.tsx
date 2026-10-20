@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type {
   AppInfo,
+  CustomTheme,
   DefaultBrowserStatus,
   DownloadLocation,
   ExtensionRecord,
@@ -8,16 +9,43 @@ import type {
   PersistedState,
   Settings as SettingsModel,
   ShieldStatus,
+  UpdateStatus,
   ViewId,
 } from '../types';
-import { THEMES } from '../lib/themes';
+import {
+  CUSTOM_THEME_ID,
+  DEFAULT_CUSTOM_THEME,
+  THEMES,
+  THEME_FAMILIES,
+  buildCustomTheme,
+  type Theme,
+  type ThemeFamily,
+} from '../lib/themes';
 import { extensionMessage, LANGUAGES, languageLabel, useI18n } from '../lib/i18n';
 import { THEME_PLUGINS } from '../plugins';
 import { DonkeyMark } from '../plugins/donkey';
+import { ColorPicker } from '../components/ColorPicker';
 import { Icon, ThemeMark, type ThemeMarkKind } from '../components/ui';
 import { logoUrl } from '../assets';
 
 type PrivacyOption = 'httpsUpgrade' | 'stripTracking' | 'fingerprint';
+
+function formatBytes(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return '0 MB';
+  const mb = value / (1024 * 1024);
+  if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
+  return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
+}
+
+const FAMILY_LABELS: Record<ThemeFamily, string> = {
+  core: 'CORE',
+  spectrum: 'SPECTRUM',
+  element: 'ELEMENTS',
+  metal: 'METALS',
+  light: 'LIGHT',
+  terminal: 'TERMINAL',
+  custom: 'CUSTOM',
+};
 
 function timeLabel(timestamp: number | null, locale: string, never: string): string {
   if (!timestamp) return never;
@@ -38,6 +66,13 @@ export function Settings({
   onUpdate,
   onReset,
   onToast,
+  update = null,
+  focusUpdates = false,
+  onCheckUpdate,
+  onDownloadUpdate,
+  onInstallUpdate,
+  onRevealUpdate,
+  onOpenRelease,
 }: {
   state: PersistedState;
   info: AppInfo | null;
@@ -46,6 +81,13 @@ export function Settings({
   onUpdate: (patch: Partial<SettingsModel>) => void;
   onReset: () => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  update?: UpdateStatus | null;
+  focusUpdates?: boolean;
+  onCheckUpdate: () => void;
+  onDownloadUpdate: () => void;
+  onInstallUpdate: () => void;
+  onRevealUpdate: () => void;
+  onOpenRelease: () => void;
 }) {
   const { t, locale } = useI18n();
   const settings = state.settings;
@@ -54,6 +96,17 @@ export function Settings({
   const [defaultBrowser, setDefaultBrowser] = useState<DefaultBrowserStatus | null>(null);
   const [downloadLocation, setDownloadLocation] = useState<DownloadLocation | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [customOpen, setCustomOpen] = useState(settings.themeId === CUSTOM_THEME_ID);
+  const updatesRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!focusUpdates) return;
+    updatesRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [focusUpdates]);
+
+  useEffect(() => {
+    if (settings.themeId === CUSTOM_THEME_ID) setCustomOpen(true);
+  }, [settings.themeId]);
 
   useEffect(() => {
     if (!isElectron || !window.kryvex) return;
@@ -259,7 +312,142 @@ export function Settings({
     }
   }
 
+  function updateErrorCopy(code: UpdateStatus['error']): string {
+    switch (code) {
+      case 'offline':
+        return t('No network connection was available.');
+      case 'timeout':
+        return t('The server took too long to answer.');
+      case 'rate-limited':
+        return t('GitHub limited update checks. Try again in a few minutes.');
+      case 'no-release':
+        return t('The repository has no published release yet.');
+      case 'invalid-release':
+        return t('The release data did not match the expected format.');
+      case 'no-asset':
+        return t('This release has no installer for this build. Use the release page.');
+      case 'download-failed':
+        return t('The download did not finish.');
+      case 'checksum-missing':
+        return t('The release does not publish a SHA-256 checksum, so the download was rejected.');
+      case 'checksum-failed':
+        return t('The downloaded file did not match the release checksum and was deleted.');
+      case 'too-large':
+        return t('That download is larger than the updater allows.');
+      case 'unsupported':
+        return t('This build updates with git. Use the release page for a packaged installer.');
+      default:
+        return t('The update could not continue.');
+    }
+  }
+
+  const updatePhase = update?.phase ?? 'idle';
+  const updatePercent = Math.round((update?.progress ?? 0) * 100);
+  let updateTitle = t('No update check has run yet.');
+  let updateDetail = t(
+    'Kryvex asks GitHub Releases for the newest published version. Only the public release feed is contacted.',
+  );
+  if (updatePhase === 'checking') {
+    updateTitle = t('Checking GitHub Releases…');
+    updateDetail = t('This usually takes a moment. Nothing is downloaded yet.');
+  } else if (updatePhase === 'current') {
+    updateTitle = t('Kryvex {version} is the latest release.', {
+      version: update?.latestVersion ?? update?.currentVersion ?? '',
+    });
+    updateDetail = t('Last checked {time}.', {
+      time: timeLabel(update?.checkedAt ?? null, locale, t('never')),
+    });
+    if (update?.latestVersion && update.latestVersion !== update.currentVersion) {
+      updateTitle = t('Kryvex {current} is newer than the latest published release ({latest}).', {
+        current: update.currentVersion,
+        latest: update.latestVersion,
+      });
+    }
+  } else if (updatePhase === 'available') {
+    updateTitle = t('Kryvex {version} is available.', {
+      version: update?.latestVersion ?? '',
+    });
+    updateDetail =
+      update?.mode === 'source'
+        ? t('This checkout is updated with git. Packaged installers are on the release page.')
+        : update?.error
+          ? updateErrorCopy(update.error)
+          : t('Download the installer, then Kryvex verifies it against the release checksum.');
+  } else if (updatePhase === 'downloading') {
+    updateTitle = t('Downloading Kryvex {version}…', { version: update?.latestVersion ?? '' });
+    updateDetail = t('{received} of {total} · the SHA-256 checksum is verified before install.', {
+      received: formatBytes(update?.receivedBytes ?? 0),
+      total: formatBytes(update?.assetSize ?? 0),
+    });
+  } else if (updatePhase === 'ready') {
+    updateTitle = t('Kryvex {version} is ready to install.', { version: update?.latestVersion ?? '' });
+    updateDetail = update?.canInstall
+      ? t('The installer was verified. Kryvex closes, runs it, and you can reopen when it finishes.')
+      : t('The file was verified. Portable builds cannot replace themselves, so close Kryvex and run the new EXE.');
+  } else if (updatePhase === 'installing') {
+    updateTitle = t('Closing Kryvex to install…');
+    updateDetail = t('The verified installer is starting. Your services, tabs and settings stay in place.');
+  } else if (updatePhase === 'error') {
+    updateTitle = t('The update could not continue.');
+    updateDetail = updateErrorCopy(update?.error);
+  }
   const shieldReady = shield?.phase === 'ready';
+  const customPreview = buildCustomTheme(settings.customTheme);
+
+  function updateCustomTheme(patch: Partial<CustomTheme>) {
+    onUpdate({ customTheme: { ...settings.customTheme, ...patch } });
+  }
+
+  function applyTheme(id: string, name: string) {
+    onUpdate({ themeId: id });
+    onToast(t('{name} theme applied.', { name }), 'success');
+  }
+
+  function renderThemeTile(theme: Theme) {
+    const label = t(theme.name);
+    const active = settings.themeId === theme.id;
+    const style = {
+      '--tile-accent': theme.tokens.accent,
+      '--tile-soft': theme.tokens.accentSoft,
+      '--tile-bg': theme.tokens.bg,
+      '--tile-surface': theme.tokens.surface,
+      '--tile-ink': theme.tokens.ink,
+    } as CSSProperties;
+    return (
+      <button
+        key={theme.id}
+        className={`theme-card element-card ${active ? 'is-active' : ''} ${
+          theme.gradient ? 'is-gradient' : ''
+        } ${theme.glass ? 'is-glass' : ''} ${theme.mono ? 'is-mono' : ''} ${
+          theme.plugin ? 'is-plugin' : ''
+        }`}
+        style={style}
+        onClick={() => applyTheme(theme.id, label)}
+        aria-pressed={active}
+        title={label}
+      >
+        <span className="element-number mono">
+          {theme.number ? String(theme.number).padStart(2, '0') : 'CX'}
+        </span>
+        <span className="element-symbol mono">{theme.symbol ?? theme.id.slice(0, 2).toUpperCase()}</span>
+        <span className="element-name">{label}</span>
+        <span className="element-meta mono">
+          {t(FAMILY_LABELS[theme.family ?? 'core'])} · {t(theme.mode === 'dark' ? 'DARK' : 'LIGHT')}
+        </span>
+        <span
+          className="element-strip"
+          style={{
+            background: `linear-gradient(90deg, ${theme.tokens.bg}, ${theme.tokens.surface} 34%, ${theme.tokens.accent} 72%, ${theme.tokens.accentSoft})`,
+          }}
+        />
+        {active ? (
+          <span className="theme-check">
+            <Icon name="check" size={13} />
+          </span>
+        ) : null}
+      </button>
+    );
+  }
 
   return (
     <section className="view settings-view">
@@ -279,7 +467,7 @@ export function Settings({
         <div className="section-head">
           <h2>{t('Appearance')}</h2>
           <span className="mono muted-label">
-            {THEMES.length} {t('THEMES')} · {THEME_PLUGINS.length} {t('PLUGIN')}
+            {THEMES.length + 1} {t('THEMES')} · {THEME_PLUGINS.length} {t('PLUGIN')}
           </span>
         </div>
 
@@ -301,57 +489,137 @@ export function Settings({
           </select>
         </div>
 
-        <div className="theme-grid">
-          {THEMES.map(theme => (
-            <button
-              key={theme.id}
-              className={`theme-card ${settings.themeId === theme.id ? 'is-active' : ''} ${
-                theme.plugin ? 'is-plugin' : ''
-              }`}
-              onClick={() => {
-                onUpdate({ themeId: theme.id });
-                onToast(t('{name} theme applied.', { name: t(theme.name) }), 'success');
-              }}
-              aria-pressed={settings.themeId === theme.id}
-            >
-              <span
-                className="theme-swatch"
-                style={{ background: theme.tokens.bg, borderColor: theme.tokens.line }}
-              >
-                <span className="theme-rail" style={{ background: theme.tokens.surface }}>
-                  <span style={{ background: theme.tokens.accent }} />
-                  <span style={{ background: theme.tokens.raised }} />
-                  <span style={{ background: theme.tokens.raised }} />
-                </span>
-                <span className="theme-body" style={{ background: theme.tokens.surface }}>
-                  <span style={{ background: theme.tokens.ink, width: '62%' }} />
-                  <span style={{ background: theme.tokens.muted, width: '84%' }} />
-                  <span style={{ background: theme.tokens.accent, width: '40%' }} />
-                  <span
-                    style={{
-                      background: theme.tokens.accentSoft,
-                      width: '28%',
-                      opacity: 0.85,
-                    }}
-                  />
-                </span>
-              </span>
-              <span className="theme-meta">
-                <strong>{t(theme.name)}</strong>
-                <span className="mono">
-                  {theme.plugin ? 'PLUGIN · ' : ''}
-                  {t(theme.mode === 'dark' ? 'Dark' : 'Light')} ·{' '}
-                  {theme.tokens.accent?.toUpperCase()}
-                </span>
-              </span>
-              {settings.themeId === theme.id ? (
-                <span className="theme-check">
-                  <Icon name="check" size={13} />
-                </span>
-              ) : null}
-            </button>
-          ))}
+        <div className="theme-families">
+          {([...THEME_FAMILIES, 'custom'] as ThemeFamily[]).map(family => {
+            const entries = THEMES.filter(theme => (theme.family ?? 'core') === family);
+            if (entries.length === 0 && family !== 'custom') return null;
+            return (
+              <section className="theme-family" key={family}>
+                <div className="theme-family-head">
+                  <span className="mono">{t(FAMILY_LABELS[family])}</span>
+                  <span className="theme-family-line" aria-hidden="true" />
+                </div>
+                <div className="theme-grid">
+                  {entries.map(renderThemeTile)}
+                  {family === 'custom' ? (
+                    <button
+                      className={`theme-card element-card is-custom ${
+                        settings.themeId === CUSTOM_THEME_ID ? 'is-active' : ''
+                      }`}
+                      style={
+                        {
+                          '--tile-accent': settings.customTheme.accent,
+                          '--tile-soft': settings.customTheme.accentSoft,
+                          '--tile-bg': customPreview.tokens.bg,
+                          '--tile-surface': customPreview.tokens.surface,
+                          '--tile-ink': customPreview.tokens.ink,
+                        } as CSSProperties
+                      }
+                      onClick={() => {
+                        setCustomOpen(true);
+                        applyTheme(CUSTOM_THEME_ID, settings.customTheme.name);
+                      }}
+                      aria-pressed={settings.themeId === CUSTOM_THEME_ID}
+                    >
+                      <span className="element-number mono">00</span>
+                      <span className="element-symbol mono">Cx</span>
+                      <span className="element-name">
+                        {settings.customTheme.name || t('Custom')}
+                      </span>
+                      <span className="element-meta mono">
+                        {t('CUSTOM')} ·{' '}
+                        {t(customPreview.mode === 'dark' ? 'DARK' : 'LIGHT')}
+                      </span>
+                      <span
+                        className="element-strip"
+                        style={{
+                          background: `linear-gradient(90deg, ${settings.customTheme.bg}, ${settings.customTheme.surface} 34%, ${settings.customTheme.accent} 72%, ${settings.customTheme.accentSoft})`,
+                        }}
+                      />
+                      {settings.themeId === CUSTOM_THEME_ID ? (
+                        <span className="theme-check">
+                          <Icon name="check" size={13} />
+                        </span>
+                      ) : null}
+                    </button>
+                  ) : null}
+                </div>
+              </section>
+            );
+          })}
         </div>
+
+        {customOpen ? (
+          <section className="custom-theme-panel" id="custom-theme">
+            <div className="section-head">
+              <h3>{t('Custom theme')}</h3>
+              <span className="mono muted-label">
+                {t(customPreview.mode === 'dark' ? 'DARK' : 'LIGHT')} · {settings.customTheme.accent}
+              </span>
+            </div>
+            <p className="custom-theme-copy">
+              {t(
+                'Pick a background, surface, two accents and text colour. Kryvex derives the raised, line and muted tones and switches light/dark automatically.',
+              )}
+            </p>
+            <label className="custom-name-field">
+              <span>{t('Name')}</span>
+              <input
+                value={settings.customTheme.name}
+                maxLength={40}
+                onChange={event => updateCustomTheme({ name: event.target.value })}
+                aria-label={t('Theme name')}
+              />
+            </label>
+            <div className="custom-color-grid">
+              <ColorPicker
+                label={t('Background')}
+                value={settings.customTheme.bg}
+                onChange={bg => updateCustomTheme({ bg })}
+              />
+              <ColorPicker
+                label={t('Surface')}
+                value={settings.customTheme.surface}
+                onChange={surface => updateCustomTheme({ surface })}
+              />
+              <ColorPicker
+                label={t('Accent')}
+                value={settings.customTheme.accent}
+                onChange={accent => updateCustomTheme({ accent })}
+              />
+              <ColorPicker
+                label={t('Accent 2')}
+                value={settings.customTheme.accentSoft}
+                onChange={accentSoft => updateCustomTheme({ accentSoft })}
+              />
+              <ColorPicker
+                label={t('Text')}
+                value={settings.customTheme.ink}
+                onChange={ink => updateCustomTheme({ ink })}
+              />
+            </div>
+            <div className="custom-theme-actions">
+              <button
+                className="btn primary small"
+                onClick={() => applyTheme(CUSTOM_THEME_ID, settings.customTheme.name)}
+              >
+                {t('Apply custom theme')}
+              </button>
+              <button
+                className="btn secondary small"
+                onClick={() => {
+                  onUpdate({ customTheme: { ...DEFAULT_CUSTOM_THEME } });
+                  onToast(t('Custom colours reset.'), 'info');
+                }}
+              >
+                {t('Reset colours')}
+              </button>
+              <button className="link" onClick={() => setCustomOpen(false)}>
+                {t('Hide')}
+              </button>
+            </div>
+          </section>
+        ) : null}
 
         {THEME_PLUGINS.map(plugin => (
           <div key={plugin.id} className="plugin-card">
@@ -683,6 +951,136 @@ export function Settings({
             {t('Open the Chrome Web Store')} <Icon name="external" size={12} />
           </button>
         </section>
+
+        <section
+          className="settings-block panel panel-wide updates-panel"
+          id="updates"
+          ref={updatesRef}
+        >
+          <div className="section-head">
+            <h2>{t('Updates')}</h2>
+            <span className="mono muted-label">
+              {update
+                ? `v${update.currentVersion} · ${t('BUILD')} ${update.mode.toUpperCase()}`
+                : t('DESKTOP ONLY')}
+            </span>
+          </div>
+
+          {isElectron ? (
+            <>
+              <div className={`update-status is-${updatePhase}`} aria-live="polite">
+                <strong>{updateTitle}</strong>
+                <p>{updateDetail}</p>
+                {updatePhase === 'available' && update?.releaseName ? (
+                  <p className="mono update-release-name">{update.releaseName}</p>
+                ) : null}
+                {update?.notes && (updatePhase === 'available' || updatePhase === 'ready') ? (
+                  <p className="update-notes">{update.notes}</p>
+                ) : null}
+                {updatePhase === 'downloading' ? (
+                  <div
+                    className="update-progress"
+                    role="progressbar"
+                    aria-label={t('Download progress')}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={updatePercent}
+                  >
+                    <span style={{ width: `${updatePercent}%` }} />
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="update-actions">
+                {updatePhase === 'idle' || updatePhase === 'current' || updatePhase === 'error' ? (
+                  <button className="btn primary small" onClick={onCheckUpdate}>
+                    <Icon name="reload" size={13} />
+                    {t('Check for updates')}
+                  </button>
+                ) : null}
+                {updatePhase === 'checking' ? (
+                  <button className="btn primary small" disabled>
+                    {t('Checking…')}
+                  </button>
+                ) : null}
+                {updatePhase === 'available' && update?.mode !== 'source' ? (
+                  <button
+                    className="btn primary small"
+                    onClick={onDownloadUpdate}
+                    disabled={!update?.assetName}
+                  >
+                    <Icon name="download" size={13} />
+                    {t('Download update')}
+                  </button>
+                ) : null}
+                {updatePhase === 'available' && update?.mode === 'source' ? (
+                  <button className="btn primary small" onClick={onOpenRelease}>
+                    <Icon name="external" size={13} />
+                    {t('Open release page')}
+                  </button>
+                ) : null}
+                {updatePhase === 'downloading' ? (
+                  <button className="btn primary small" disabled>
+                    {t('Downloading…')}
+                  </button>
+                ) : null}
+                {updatePhase === 'ready' && update?.canInstall ? (
+                  <button className="btn primary small" onClick={onInstallUpdate}>
+                    <Icon name="reload" size={13} />
+                    {t('Install and restart')}
+                  </button>
+                ) : null}
+                {updatePhase === 'ready' && !update?.canInstall ? (
+                  <button className="btn primary small" onClick={onRevealUpdate}>
+                    <Icon name="folder" size={13} />
+                    {t('Show downloaded file')}
+                  </button>
+                ) : null}
+                {updatePhase === 'installing' ? (
+                  <button className="btn primary small" disabled>
+                    {t('Installing…')}
+                  </button>
+                ) : null}
+                <button className="btn secondary small" onClick={onOpenRelease}>
+                  <Icon name="external" size={13} />
+                  {t('View release')}
+                </button>
+                {(updatePhase === 'available' || updatePhase === 'ready') && (
+                  <button className="link" onClick={onCheckUpdate}>
+                    {t('Check again')}
+                  </button>
+                )}
+              </div>
+
+              <div className="setting-row">
+                <div>
+                  <strong>{t('Check for updates automatically')}</strong>
+                  <p>
+                    {t(
+                      'Ask GitHub shortly after launch and every six hours. Downloads never start without you.',
+                    )}
+                  </p>
+                </div>
+                <button
+                  className={`switch ${settings.autoCheckUpdates ? 'is-on' : ''}`}
+                  role="switch"
+                  aria-checked={settings.autoCheckUpdates}
+                  onClick={() => onUpdate({ autoCheckUpdates: !settings.autoCheckUpdates })}
+                >
+                  <span />
+                </button>
+              </div>
+
+              <p className="shield-note">
+                {t(
+                  'Installed builds can replace themselves with a checksum-verified release installer. Portable builds download and verify the EXE, then ask you to run it. A git checkout is never modified.',
+                )}
+              </p>
+            </>
+          ) : (
+            <p className="shield-note">{t('Available in the Windows app.')}</p>
+          )}
+        </section>
       </div>
 
       <div className="settings-columns">
@@ -844,6 +1242,58 @@ export function Settings({
             <code className="mono code-line">persist:svc-* · browser-* (in-memory)</code>
           </div>
         </section>
+
+        <section className="settings-block panel panel-wide services-settings-panel">
+          <h2>{t('Service apps')}</h2>
+
+          <div className="setting-row">
+            <div>
+              <strong>{t('Desktop notifications')}</strong>
+              <p>
+                {t(
+                  'Installed services can raise native notifications and taskbar alerts, like the desktop app they replace. Browser tabs stay blocked. Reload an open service to apply a change.',
+                )}
+              </p>
+            </div>
+            <button
+              className={`switch ${settings.serviceNotifications ? 'is-on' : ''}`}
+              role="switch"
+              aria-checked={settings.serviceNotifications}
+              onClick={() => onUpdate({ serviceNotifications: !settings.serviceNotifications })}
+            >
+              <span />
+            </button>
+          </div>
+
+          <div className="setting-row">
+            <div>
+              <strong>{t('Apps stay running')}</strong>
+              <p>
+                {t(
+                  'An opened service keeps its connection, call and scroll position while you work elsewhere in Kryvex. Only closing the app or clearing its session ends it.',
+                )}
+              </p>
+            </div>
+            <code className="mono code-line">persist:svc-*</code>
+          </div>
+
+          <div className="setting-row column">
+            <div>
+              <strong>{t('Sign-in popups')}</strong>
+              <p>
+                {t(
+                  'OAuth and passkey flows open in a sandboxed child window on the same service session. Other popups are sent to your default browser.',
+                )}
+              </p>
+            </div>
+          </div>
+
+          <p className="shield-note">
+            {t(
+              'Clear one service’s cookies and storage from the lock button in its toolbar. Removing a module never deletes its session; clearing is always explicit.',
+            )}
+          </p>
+        </section>
       </div>
 
       <div className="settings-columns">
@@ -922,7 +1372,7 @@ export function Settings({
                 {mark === 'donkey'
                   ? `${t('Special Donkey Edition')} · `
                   : `${t('ELEMENT x529 · Kx')} · `}
-                v{info?.version ?? '0.5.0'}
+                v{info?.version ?? '0.6.0'}
               </p>
             </div>
           </div>

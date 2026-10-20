@@ -1,11 +1,14 @@
 import type { PersistedState, Service, ServiceCategory } from '../types';
 import { BRAND_ICONS } from './brand-icons';
+import { DEFAULT_CUSTOM_THEME } from './themes';
 import { normalizeUrl } from './url';
 
 export const CATEGORIES: ReadonlyArray<{ id: ServiceCategory; label: string }> = [
   { id: 'communication', label: 'Communication' },
   { id: 'productivity', label: 'Productivity' },
   { id: 'development', label: 'Development' },
+  { id: 'ai', label: 'AI' },
+  { id: 'resources', label: 'Resources' },
   { id: 'media', label: 'Media' },
   { id: 'other', label: 'Other' },
 ];
@@ -161,6 +164,7 @@ export function starterState(): PersistedState {
     history: [],
     settings: {
       themeId: 'kryvex-dark',
+      customTheme: { ...DEFAULT_CUSTOM_THEME },
       density: 'comfortable',
       startView: 'home',
       language: 'system',
@@ -168,6 +172,8 @@ export function starterState(): PersistedState {
       showStatusBar: true,
       searchEngine: 'duckduckgo',
       confirmBeforeDelete: true,
+      serviceNotifications: true,
+      autoCheckUpdates: true,
     },
     recent: [],
     browser: { tabs: [], activeTabId: null },

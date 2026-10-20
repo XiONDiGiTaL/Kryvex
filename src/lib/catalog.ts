@@ -7,7 +7,8 @@ export interface ServicePreset {
   url: string;
   category: ServiceCategory;
   color: string;
-  icon: BrandIconKey;
+  /** Optional: unknown brands fall back to the site favicon, then a letter. */
+  icon?: BrandIconKey;
   note: string;
 }
 
@@ -150,6 +151,110 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     color: '#94A3B8',
     icon: 'x',
     note: 'Timeline and direct messages.',
+  },
+  {
+    id: 'chatgpt',
+    name: 'ChatGPT',
+    url: 'https://chatgpt.com',
+    category: 'ai',
+    color: '#34D399',
+    note: 'OpenAI chat. Sign-in stays inside this module.',
+  },
+  {
+    id: 'claude',
+    name: 'Claude',
+    url: 'https://claude.ai',
+    category: 'ai',
+    color: '#FB7185',
+    icon: 'claude',
+    note: 'Anthropic Claude in a persistent session.',
+  },
+  {
+    id: 'gemini',
+    name: 'Gemini',
+    url: 'https://gemini.google.com',
+    category: 'ai',
+    color: '#A78BFA',
+    icon: 'gemini',
+    note: 'Google Gemini. Google sign-in uses a real auth popup.',
+  },
+  {
+    id: 'copilot',
+    name: 'Copilot',
+    url: 'https://copilot.microsoft.com',
+    category: 'ai',
+    color: '#60A5FA',
+    icon: 'copilot',
+    note: 'Microsoft Copilot. Microsoft sign-in uses a real auth popup.',
+  },
+  {
+    id: 'perplexity',
+    name: 'Perplexity',
+    url: 'https://www.perplexity.ai',
+    category: 'ai',
+    color: '#2DD4BF',
+    icon: 'perplexity',
+    note: 'Answer engine with cited sources.',
+  },
+  {
+    id: 'huggingface',
+    name: 'Hugging Face',
+    url: 'https://huggingface.co',
+    category: 'ai',
+    color: '#FBBF24',
+    icon: 'huggingface',
+    note: 'Models, datasets and Spaces.',
+  },
+  {
+    id: 'freebuff',
+    name: 'Freebuff',
+    url: 'https://freebuff.com',
+    category: 'ai',
+    color: '#38BDF8',
+    note: 'Coding agent workspace in its own tab.',
+  },
+  {
+    id: 'fmhy',
+    name: 'FMHY',
+    url: 'https://fmhy.net',
+    category: 'resources',
+    color: '#94A3B8',
+    note: 'Community-maintained index of free resources. External links only; Kryvex does not host or endorse their content.',
+  },
+  {
+    id: 'lmstudio',
+    name: 'LM Studio',
+    url: 'https://lmstudio.ai',
+    category: 'resources',
+    color: '#A78BFA',
+    icon: 'lmstudio',
+    note: 'Documentation and downloads for local models you run yourself.',
+  },
+  {
+    id: 'ollama',
+    name: 'Ollama',
+    url: 'https://ollama.com',
+    category: 'resources',
+    color: '#94A3B8',
+    icon: 'ollama',
+    note: 'Local model runtime and model library.',
+  },
+  {
+    id: 'awesome-electron',
+    name: 'Awesome Electron',
+    url: 'https://github.com/sindresorhus/awesome-electron',
+    category: 'resources',
+    color: '#94A3B8',
+    icon: 'github',
+    note: 'Curated list of Electron apps and tools.',
+  },
+  {
+    id: 'archive',
+    name: 'Internet Archive',
+    url: 'https://archive.org',
+    category: 'resources',
+    color: '#FBBF24',
+    note: 'Public library of archived pages, audio and video.',
   },
 ];
 

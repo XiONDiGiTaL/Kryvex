@@ -13,6 +13,7 @@ export interface WebviewElement extends HTMLElement {
   stopFindInPage: (action: 'clearSelection' | 'keepSelection' | 'activateSelection') => void;
   getZoomFactor: () => number;
   setZoomFactor: (factor: number) => void;
+  executeJavaScript: (code: string) => Promise<unknown>;
 }
 
 export interface WebviewStatus {
@@ -31,6 +32,8 @@ interface WebviewProps {
   src: string;
   partition: string;
   controller?: MutableRefObject<WebviewElement | null>;
+  /** Service modules may open sign-in popups; browser tabs never do. */
+  allowPopups?: boolean;
   onNavigate?: (url: string) => void;
   onTitle?: (title: string) => void;
   onStatus?: (status: WebviewStatus) => void;
@@ -41,23 +44,43 @@ interface WebviewProps {
  * Thin wrapper around Electron's <webview>. The element is created outside
  * JSX because React has no intrinsic tag for it; all hardening happens in the
  * main process, not here.
+ *
+ * `partition` and `src` are applied imperatively and in that order. Electron
+ * documents that the partition must be set before the source: a guest that
+ * loads first is bound to the default in-memory session, which is how a
+ * service could appear to forget its sign-in. React cannot guarantee attribute
+ * order, so the wrapper does it explicitly.
  */
 export function Webview({
   src,
   partition,
   controller,
+  allowPopups = false,
   onNavigate,
   onTitle,
   onStatus,
   onFound,
 }: WebviewProps) {
   const ref = useRef<WebviewElement | null>(null);
-  const initialSrc = useRef(src);
+  const initial = useRef({ src, partition, allowPopups });
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (controller) controller.current = el;
+
+    const attach = () => {
+      // Partition must exist before the guest navigates anywhere.
+      if (el.getAttribute('partition') !== initial.current.partition) {
+        el.setAttribute('partition', initial.current.partition);
+      }
+      if (initial.current.allowPopups) el.setAttribute('allowpopups', '');
+      if (el.getAttribute('src') !== initial.current.src) {
+        el.setAttribute('src', initial.current.src);
+      }
+    };
+    attach();
+    el.addEventListener('dom-ready', attach, { once: true });
 
     const readStatus = (loading: boolean, error: string | null = null) => {
       onStatus?.({
@@ -108,6 +131,7 @@ export function Webview({
     el.addEventListener('did-fail-load', onFail);
 
     return () => {
+      el.removeEventListener('dom-ready', attach);
       el.removeEventListener('did-start-loading', onStart);
       el.removeEventListener('did-stop-loading', onStop);
       el.removeEventListener('dom-ready', onReady);
@@ -125,11 +149,9 @@ export function Webview({
       ref.current = node;
       if (controller) controller.current = node;
     },
-    src: initialSrc.current,
     partition,
     className: 'webview',
-    allowpopups: undefined,
-    webpreferences: 'contextIsolation=yes, nodeIntegration=no, sandbox=yes',
+    webpreferences: 'contextIsolation=yes, nodeIntegration=no, sandbox=yes, backgroundThrottling=no',
     style: { width: '100%', height: '100%' },
   });
 }
