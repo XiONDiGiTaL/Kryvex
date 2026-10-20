@@ -82,29 +82,35 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   `pnpm verify:browser` and `pnpm verify:updater`. Remaining: broader e2e UI
   coverage, backup/restore,  measured performance comparison (`docs/PERFORMANCE.md` still holds no
   numbers).
-- [ ] **M9 — Packaging & CI.** The 0.5.0 Setup and Portable EXEs are published
-  from the complete source tree (download-location picker, WebTorrent,
-  persistence/find/zoom and paused torrent restore included). They build with
-  a selectable install folder, Desktop/Start Menu shortcuts and an uninstaller;
-  custom-dir install, installed/portable/unpacked capture, packaged
-  paused-row and download-location smoke tests, checksums and clean uninstall
-  were verified. A tagged release workflow builds, checksums and publishes
-  artifacts, but has not run yet. Remaining: code signing, interactive wizard
-  pass and a CI run.
+- [x] **M9 — Packaging & CI.** The **0.6.0** Setup and Portable EXEs were
+  built locally and then by GitHub Actions on the `v0.6.0` tag; the workflow
+  ran typecheck, tests, `package:win`, wrote `SHA256SUMS.txt` and published the
+  release. The unpacked build completed all nineteen capture routes, including
+  the theme picker and the custom colour studio. Remaining: code signing and an
+  interactive-wizard pass.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0, 0.4.0 and 0.5.0
-  releases published with checksum-verified artifacts.
+  secret-scanned, main pushed and verified remotely; 0.3.0, 0.4.0, 0.5.0 and
+  0.6.0 releases published. The 0.6.0 release carries the Setup and Portable
+  EXEs plus `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so
+  the in-app updater accepts it.
 - [ ] **M11 — Final review.** README with nineteen real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0/0.4.0/
-  0.5.0 release records are in place. Outstanding: engineering report and a
-  signed public release.
+  feature/security/limitation sections, honest testing docs and 0.3.0–0.6.0
+  release records are in place. Outstanding: engineering report and a signed
+  public release.
 
 ## Verified evidence (2026-10-20, service engine)
 
 - `pnpm typecheck` → exit 0.
-- `pnpm test` → exit 0, **124/124** in 16 files.
-- `pnpm build` → exit 0; 496.27 kB JS, 55.26 kB CSS.
-- `pnpm capture` → exit 0; all seventeen routes from the running app.
+- `pnpm test` → exit 0, **149/149** in 18 files.
+- `pnpm build` → exit 0; 533.68 kB JS (159.67 kB gzip), 61.77 kB CSS.
+- `pnpm capture` → exit 0; all nineteen routes from the running app, including
+  `settings-custom` (the Custom colour studio, opened by clicking the tile).
+- `pnpm verify:updater` → **PASS**; an available update was detected from a
+  loopback feed, a wrong SHA-256 was rejected as `checksum-failed`, the corrected
+  download reached `ready` with the Install action, and a source-mode build
+  reported the release without offering an install.
+- Packaged capture → exit 0; `release/win-unpacked/Kryvex.exe` (version 0.6.0,
+  `NotSigned`) completed all nineteen routes in a disposable profile.
 - `node scripts/verify-service-engine.cjs` → **PASS**. One fixture service in an
   isolated profile stayed mounted with the same `window.__marker` and cookie
   across a switch to Services; its timer advanced from 1 to 16 ticks while
