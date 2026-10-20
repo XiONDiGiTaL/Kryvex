@@ -23,7 +23,7 @@
     "test": "vitest run",
     "capture": "node scripts/capture.mjs",
     "package:dir": "pnpm build && electron-builder --dir",
-    "package:win": "pnpm build && electron-builder",
+    "package:win": "pnpm build && electron-builder --publish never",
     "release:checksums": "node scripts/release-checksums.cjs",
     "verify:restart": "pnpm build && node scripts/verify-restart.cjs",
     "verify:downloads": "pnpm build && electron scripts/verify-download-history.cjs",

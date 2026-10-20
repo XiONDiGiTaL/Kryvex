@@ -52,16 +52,18 @@ Download the installer, portable build and checksum list from the
 
 ## Artifacts
 
-Built with `pnpm run package:win` under `release/` (ignored by Git) and
-attached to the GitHub release:
+Built by the tag-triggered workflow with `pnpm run package:win` under
+`release/` (ignored by Git) and attached to the GitHub release:
 
-| File | Size | SHA-256 |
-| --- | ---: | --- |
-| `Kryvex-Setup-0.6.0-x64.exe` | 114.6 MiB | `ad077c2b0daed74cd279c489bf43757ffc2b0c376543100bdca726075d521e5c` |
-| `Kryvex-Portable-0.6.0-x64.exe` | 114.3 MiB | `4f23a19422a0f36fae0f86d87f86c01c454e12258d787f79586d2a8048a92eb5` |
+| File | Size |
+| --- | ---: |
+| `Kryvex-Setup-0.6.0-x64.exe` | ~114.6 MiB |
+| `Kryvex-Portable-0.6.0-x64.exe` | ~114.3 MiB |
 
-The release checksum list is `SHA256SUMS.txt`. It is required by the updater:
-a release without a matching entry is ignored.
+`SHA256SUMS.txt` in the release is authoritative: it is generated from the
+published files by `scripts/release-checksums.cjs`, and the updater ignores any
+release whose installer has no matching entry. The sizes above come from the
+local build of the same source tree.
 
 ## Install
 
@@ -93,7 +95,8 @@ build.
 - **Packaged capture:** `release/win-unpacked/Kryvex.exe` completed all
   nineteen capture routes, including the periodic-table picker and the custom
   theme panel.
-- **Checksums:** both artifacts were hashed after packaging and match the table.
+- **Checksums:** both artifacts were hashed after packaging; the published
+  `SHA256SUMS.txt` is regenerated from the uploaded files by the workflow.
 - **Authenticode:** both EXEs report `NotSigned`.
 
 ## Known limitations
