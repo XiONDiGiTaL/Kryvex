@@ -1,7 +1,7 @@
 # Kryvex 0.8.0 — Windows release
 
-Prepared 2026-10-20; publishes from the `v0.8.0` tag. This release runs a GGUF
-model file you already have, presents a real Chrome identity to embedded
+Published 2026-10-21 from the `v0.8.0` tag (commit `be02c4d`). This release runs a
+GGUF model file you already have, presents a real Chrome identity to embedded
 services, lets the shield take your own filter lists, and tells you plainly when
 a check finds no update.
 
@@ -63,7 +63,15 @@ Built by the tag-triggered workflow with `pnpm run package:win` under
 
 `SHA256SUMS.txt` is authoritative: it is generated from the published files by
 `scripts/release-checksums.cjs`, and the updater ignores any release whose
-installer has no matching entry. Exact sizes are listed on the release page.
+installer has no matching entry.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.8.0-x64.exe` | 120,286,633 B (114.7 MiB) | `352fb5c870874d862bd960d50d22f7c1adae7f7a9522be7b62384a83f8ad33b3` |
+| `Kryvex-Portable-0.8.0-x64.exe` | 120,049,414 B (114.5 MiB) | `d62b44bc3ad0b9e0622f8a04b5900125902eb529a2e87eb23aaae6ddff9cf5ff` |
+
+Both downloaded copies hash to those values, and both EXEs report
+`ProductVersion 0.8.0`.
 
 ## Install
 
@@ -98,6 +106,16 @@ were run directly with npm, npx and node.
   surviving a restart and per-service clearing.
 - `node scripts/verify-restart.cjs` — PASS.
 - `npm run audit:i18n` — clean.
+- **The published artifacts, not just the tree:** the Portable EXE downloaded
+  from the release launched in a disposable profile with no feed override,
+  reported `mode: portable` and version `0.8.0`, and its launch check against
+  the live GitHub API returned `current`. Settings → Updates rendered
+  `v0.8.0 · BUILD PORTABLE`, `Kryvex 0.8.0 is the latest release.` and a green
+  `UP TO DATE` verdict matching `var(--success)`, and **Check for updates**
+  raised `Kryvex 0.8.0 is up to date.` as a success toast. The same build shows
+  the model runner at Settings → Vexium and a `Chrome/152.0.0.0` renderer user
+  agent with no Electron token. Applying the app's own `update-rules` to the
+  live release payload returns `available` for 0.7.0 and `current` for 0.8.0.
 
 `verify-identity` and `verify-shield-filters` had already passed against this
 tree and were not re-run for this cut because their inputs did not change.

@@ -85,19 +85,20 @@ away.
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
   support ride on the same tokens.
 
-> Status: **working desktop prototype (0.7.0, packaged and published)**. The app boots, modules load, service apps stay running with their
+> Status: **working desktop prototype (0.8.0, packaged and published)**. The app boots, modules load, service apps stay running with their
 > sessions, native notifications and unread badges work, auth popups complete
 > inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
 > fallback, tracking parameters are stripped, canvas/WebGL/audio readbacks are
 > farbled per site, the browser keeps downloads/history/bookmarks, calls can
 > request the microphone and camera, rooms carry presence, chat and screen
-> share, Vexium answers from a local model, torrents live in the downloads hub,
+> share, Vexium answers from a local model or a GGUF file you point it at,
+> torrents live in the downloads hub,
 > downloads and new torrents can use any writable folder you choose, and the
 > Windows installer and portable build run. Builds are unsigned. The app
 > checks GitHub Releases for updates, verifies the installer checksum and
-> can install it on restart; portable and git builds download or point at
-> the release instead.
+> can install it on restart, says **UP TO DATE** in green when nothing newer
+> exists; portable and git builds download or point at the release instead.
 
 ## Install on Windows
 
@@ -106,13 +107,13 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.7.0-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.7.0-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.8.0-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.8.0-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.7.0** artifacts are built from the complete source tree by the
+The **0.8.0** artifacts are built from the complete source tree by the
 tag-triggered workflow and published on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
-`SHA256SUMS.txt` covers the two 0.7.0 artifacts, and the in-app updater relies
+`SHA256SUMS.txt` covers the two 0.8.0 artifacts, and the in-app updater relies
 on it.
 ### Updates
 
@@ -132,8 +133,8 @@ match the release version. A release is ignored unless it publishes
 `SHA256SUMS.txt` with a matching entry. See [docs/UPDATES.md](docs/UPDATES.md)
 for the full trust chain and release steps.
 
-Installed 0.6.0 builds can update themselves from later releases. Older
-installs predate the updater, so update those once by running the 0.6.0
+Installed builds from 0.6.0 onward can update themselves from later releases.
+Older installs predate the updater, so update those once by running the 0.6.0
 installer.
 
 The setup is not click-through: it opens a normal Windows wizard, lets you
@@ -142,10 +143,11 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The **0.7.0** Setup and Portable EXEs are built from this tree by the release
+The **0.8.0** Setup and Portable EXEs are built from this tree by the release
 workflow, and the unpacked build completes every capture route. Artifact
 checksums, verification steps and limitations are recorded in
-[docs/RELEASE_0.7.0.md](docs/RELEASE_0.7.0.md); earlier releases are in
+[docs/RELEASE_0.8.0.md](docs/RELEASE_0.8.0.md); earlier releases are in
+[docs/RELEASE_0.7.0.md](docs/RELEASE_0.7.0.md),
 [docs/RELEASE_0.6.0.md](docs/RELEASE_0.6.0.md) and
 [docs/RELEASE_0.5.0.md](docs/RELEASE_0.5.0.md).
 
@@ -153,7 +155,38 @@ checksums, verification steps and limitations are recorded in
 SmartScreen may show **Unknown publisher**. Only continue if you built the
 artifact yourself or downloaded it from a release you trust.
 
-## What's new in 0.7.0
+## What's new in 0.8.0
+
+Run the model you already have, sign in where Electron used to be refused, and
+filter with lists you chose. Kryvex still hosts nothing and uploads nothing.
+
+- **Run a model file:** **Settings → Vexium → Run a model file** takes a `.gguf`
+  you already downloaded and starts llama.cpp's `llama-server` against it on a
+  free loopback port, bound to `127.0.0.1` so nothing reaches the LAN. A large
+  file shows `starting → running` while it loads, context size and GPU layers
+  are adjustable, and **Stop server** or quitting ends the process. Kryvex ships
+  no weights and checks no remote catalogue.
+- **A Chrome identity for embedded pages:** guests report
+  `Google Chrome / Chromium / Not(A:Brand` with full client hints through
+  `getHighEntropyValues` and `Sec-CH-UA` on the wire, so Google stops treating a
+  module as an anonymous Electron window. Fingerprint farbling still hides its
+  JavaScript wrappers from `Function.prototype.toString`.
+- **My filters:** the shield accepts the uBlock Origin syntax people already
+  paste — `||ads.example.com^`, `example.com##.ad`, `example.com##+js(…)` — and
+  compiles it from the cached lists, so applying needs no download. Scriptlets
+  sit behind their own switch, the editor imports and exports plain text, and a
+  YouTube preset bundles ad and feed blocking for one site.
+- **Sign-ins survive a restart:** every service partition's cookie store is
+  flushed before the window closes, capped at 1.5 s, so a module signed into
+  minutes before quit reopens signed in.
+- **Up to date, visibly:** a check that finds nothing newer shows a green
+  **UP TO DATE** verdict beside the running version, and a manual check confirms
+  with a toast naming that version instead of looking like nothing happened.
+- **Translation coverage is enforced:** `npm run audit:i18n` scans JSX text and
+  human-facing attributes for strings that bypass `t()`, and the test suite runs
+  that audit, so a hardcoded sentence fails CI.
+
+## What was new in 0.7.0
 
 Rooms, a local assistant, a real engine panel, and a first run that starts with
 a look instead of a list.

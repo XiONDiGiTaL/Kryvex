@@ -28,11 +28,12 @@
   default-browser, torrent, torrent-UI, media-permission, privacy and updater
   harnesses.  Remaining: broader e2e/UI tests, backup/restore, measured performance
   comparison.
-- **M9** ◐ the tag workflow builds and publishes the 0.6.0 and 0.7.0 Setup and
-  Portable EXEs with `SHA256SUMS.txt`, and the 0.7.0 unpacked build completes all
-  twenty-seven captures. Remaining: signing and interactive-wizard QA.
+- **M9** ◐ the tag workflow builds and publishes the Setup and Portable EXEs
+  with `SHA256SUMS.txt` — 0.6.0, 0.7.0 and 0.8.0 so far — and the 0.7.0 unpacked
+  build completes all twenty-seven captures. Remaining: signing and
+  interactive-wizard QA.
 - **M10** ✅ `XiONDiGiTaL/Kryvex` published (main, no force-push); 0.3.0 through
-  0.7.0 releases published with checksum-verified artifacts.
+  0.8.0 releases published with checksum-verified artifacts.
 - **M11** ◐ README, banner, twenty-four real-UI screenshots, limitations, testing
-  docs and 0.3.0/0.4.0/0.5.0 release records delivered. Remaining: engineering
-  report and a signed public release.
+  docs and release records up to 0.8.0 delivered. Remaining: engineering report
+  and a signed public release.

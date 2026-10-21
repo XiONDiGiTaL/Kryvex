@@ -585,3 +585,27 @@ clicked in a packaged build; the screenshot for this pass came from the source
 checkout (`BUILD SOURCE`), and no packaged 0.7.1 exists yet. `verify-local-model`
 uses `scripts/fake-llama-server.mjs`, not a real llama.cpp binary with real
 weights.
+
+## Published 0.8.0 artifacts — 2026-10-21
+
+Run after the tag-triggered workflow published the release, against the EXEs
+downloaded from `github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.0`, so the
+shipped binary is what was checked rather than the source checkout.
+
+| Check | Result |
+| --- | --- |
+| Workflow run 39523097023 | success — tag/version check, install, typecheck, tests, `package:win`, checksums, publish |
+| Asset digests vs `SHA256SUMS.txt` | identical for both EXEs (`352fb5c8…33b3` Setup, `d62b44bc…f5ff` Portable) |
+| Version resources | both report `ProductVersion 0.8.0`, `FileVersion 0.8.0` |
+| Live feed through `update-rules` | parses `v0.8.0`, trusted Setup and Portable URLs, checksum entries present; `available` from 0.7.0, `current` from 0.8.0 |
+| Portable EXE, launched with no feed override | `mode: portable`, `currentVersion 0.8.0`, launch check `phase: current` |
+| Settings → Updates in that build | `v0.8.0 · BUILD PORTABLE`, `Kryvex 0.8.0 is the latest release.`, `UP TO DATE` with icon, `.is-current`, colour equal to a `var(--success)` probe |
+| **Check for updates** clicked in that build | `toast toast-success`: `Kryvex 0.8.0 is up to date.` |
+| Settings → Vexium in that build | `RUN A MODEL FILE`, `IDLE`, empty-model copy, Choose model… / Get models / Download llama.cpp / Find runtime… / Start server |
+| Renderer user agent in that build | `Chrome/152.0.0.0`, no Electron token |
+
+**Not executed:** the installed 0.7.x build on this machine was left running and
+was not driven through an in-app install, so the self-update itself is covered by
+the feed comparison and the artifacts rather than a completed replacement; the
+model runner was inspected in the shipped UI but not started against real GGUF
+weights, because none are available on this machine.

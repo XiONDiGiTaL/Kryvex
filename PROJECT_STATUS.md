@@ -97,22 +97,58 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   Remaining: broader e2e UI
   coverage, backup/restore,  measured performance comparison (`docs/PERFORMANCE.md` still holds no
   numbers).
-- [x] **M9 — Packaging & CI.** The **0.6.0** and **0.7.0** Setup and Portable
-  EXEs are built by GitHub Actions on their `v*` tags; the workflow checks the
-  tag against `package.json`, runs typecheck and tests, runs `package:win`,
-  writes `SHA256SUMS.txt` and publishes the release. The 0.7.0 unpacked build
-  completes all twenty-seven capture routes, including Rooms, the theme gallery,
-  the Chromium engine panel and the wallpaper panel. Remaining: code signing
-  and an interactive-wizard pass.
+- [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0** and **0.8.0** Setup and
+  Portable EXEs are built by GitHub Actions on their `v*` tags; the workflow
+  checks the tag against `package.json`, runs typecheck and tests, runs
+  `package:win`, writes `SHA256SUMS.txt` and publishes the release. The 0.7.0
+  unpacked build completes all twenty-seven capture routes, including Rooms, the
+  theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
+  code signing and an interactive-wizard pass.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.7.0
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.0
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it.
 - [ ] **M11 — Final review.** README with real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0–0.7.0
+  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.0
   release records are in place. Outstanding: engineering report and a signed
   public release.
+
+## Verified evidence (2026-10-21, published 0.8.0 artifacts)
+
+- The `v0.8.0` tag was pushed at `be02c4d`; the tag-triggered Release workflow
+  (run 39523097023) passed every step — tag/version check, install, typecheck,
+  tests, `package:win`, checksums and publish — and published the release
+  without a draft.
+- The published assets report `Kryvex-Setup-0.8.0-x64.exe` at 120,286,633 bytes
+  and `Kryvex-Portable-0.8.0-x64.exe` at 120,049,414 bytes. Downloaded copies
+  hash to `352fb5c8…33b3` and `d62b44bc…f5ff`, byte-identical to the digests
+  GitHub reports and to both lines of the published `SHA256SUMS.txt`, which is
+  what the updater verifies before offering an install.
+- Both EXEs report `ProductVersion 0.8.0`, `FileVersion 0.8.0`, company `XiØN`.
+- **The live feed is accepted by the app's own rules.** Fetching
+  `api.github.com/repos/XiONDiGiTaL/Kryvex/releases/latest` and running the
+  compiled `update-rules` over it yields release `0.8.0`, a trusted Setup URL, a
+  Portable asset and matching checksum entries; the comparison returns
+  `available` for a 0.7.0 build and `current` for both 0.8.0 and 0.8.1.
+- **The published Portable build passes end to end.** Launched from the
+  downloaded EXE in a disposable profile with no feed override: it reported
+  `mode: portable`, `currentVersion 0.8.0`, and the live check returned
+  `phase: current`; Settings → Updates rendered `v0.8.0 · BUILD PORTABLE`,
+  `Kryvex 0.8.0 is the latest release.` and `UP TO DATE` with an SVG check,
+  `.update-status.is-current` and `rgb(74, 222, 128)` — equal to the probe
+  painted with `var(--success)`. Clicking **Check for updates** raised the
+  `toast toast-success` reading `Kryvex 0.8.0 is up to date.`
+- The same build exposes the model runner at Settings → Vexium: `RUN A MODEL
+  FILE`, state `IDLE`, the empty-model copy, and Choose model… / Get models /
+  Download llama.cpp / Find runtime… / Start server. Get models and Download
+  llama.cpp only open external pages; nothing is fetched by Kryvex.
+- Its renderer user agent is `Chrome/152.0.0.0` with no Electron token, so the
+  identity change is present in the shipped binary rather than only in source.
+- **Limit:** the installed 0.7.x build on this machine was left running and was
+  not driven through the in-app install; the upgrade path is proven by the live
+  feed comparison (`available` for 0.7.0) and the workflow's artifacts, not by a
+  completed self-update.
 
 ## Verified evidence (2026-10-20, layout clipping)
 
@@ -441,8 +477,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
 ## Next concrete action
 
-0.8.0 is prepared in `docs/RELEASE_0.8.0.md`; the tag is the remaining step,
-and the release workflow builds and publishes the artifacts from it. Next after
-that: code signing, an interactive-wizard pass on the installer, and the
-compound manifest and permission sheet described in
-`docs/PLATFORM_PLAN.md` before adding any branded add-on.
+0.8.0 is published from the `v0.8.0` tag with the Setup, Portable and checksum
+assets, and the running app's own rules accept that release. Next: code
+signing, an interactive-wizard pass on the installer, and the compound manifest
+and permission sheet described in `docs/PLATFORM_PLAN.md` before adding any
+branded add-on.
