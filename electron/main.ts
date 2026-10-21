@@ -1,4 +1,13 @@
-import { app, BrowserWindow, dialog, ipcMain, screen, session, shell } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  screen,
+  session,
+  shell,
+  type WebContents,
+} from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { assistant } from './assistant';
@@ -83,6 +92,10 @@ configurePrivacySwitches();
 initChromium(readState());
 
 let mainWindow: BrowserWindow | null = null;
+// Captured while the window is alive: every IPC sender check compares against
+// this instead of reading `mainWindow.webContents`, which throws once the
+// window has been destroyed.
+let shellContents: WebContents | null = null;
 
 function forwardMagnet(url: string): void {
   if (!isMagnetLink(url) || !mainWindow || mainWindow.isDestroyed()) return;
@@ -351,7 +364,10 @@ function createWindow(): BrowserWindow {
   // A new message flashes the taskbar button; looking at the window stops it.
   win.on('focus', () => win.flashFrame(false));
 
+  const contents = win.webContents;
+  shellContents = contents;
   win.on('closed', () => {
+    if (shellContents === contents) shellContents = null;
     mainWindow = null;
     updater.dispose();
     assistant.dispose();
@@ -361,7 +377,7 @@ function createWindow(): BrowserWindow {
 }
 
 function isShellSender(event: Electron.IpcMainInvokeEvent): boolean {
-  return Boolean(mainWindow && event.sender === mainWindow.webContents);
+  return Boolean(shellContents && event.sender === shellContents);
 }
 
 function torrentResult(ok: boolean, message: string): TorrentResult {

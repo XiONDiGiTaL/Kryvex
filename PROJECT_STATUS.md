@@ -137,6 +137,26 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   `shell === attached` and no `shell === win.webContents`, and closing it exited
   with code 0 and no exception text.
 
+## Fixed (2026-10-21, window lifecycle audit)
+
+- Electron's semantics were measured before changing anything: inside a
+  `closed` handler `win.isDestroyed()` and `win.id` still answer, while
+  `win.webContents`, `win.getTitle()`, `win.isVisible()` and
+  `contents.getURL()` throw `Object has been destroyed`.
+- Fixed: `main.ts` (IPC sender check reads a captured `shellContents`),
+  `permissions.ts` (shell contents captured at attach; `isShellCapture` and
+  `send` no longer read `window.webContents`), `party.ts` (display handler checks
+  the shell is alive before `mainFrame`, `listSources` asks `isDestroyed()` before
+  `getType()`), and the folder pickers in `extensions.ts`, `torrents.ts` and
+  `storage.ts` now require a live parent window.
+- New `electron/lifecycle.ts` (`isAliveWindow`, `isAliveContents`) is pure and
+  unit-tested; `scripts/audit-lifecycle.cjs` (`pnpm audit:lifecycle`) scans
+  close/destroy handlers, and `tests/lifecycle.test.ts` runs it against both the
+  tree and a fixture holding the old crashing line.
+- Evidence: `npm run typecheck` exit 0; `npx vitest run` **268/268** in 28 files;
+  `verify:party-close`, `verify:updater`, `verify:service-engine` and
+  `verify:rooms` (screen share 2560×1440) all PASS; `audit:i18n` clean.
+
 ## Verified evidence (2026-10-21, published 0.8.0 artifacts)
 
 - The `v0.8.0` tag was pushed at `be02c4d`; the tag-triggered Release workflow

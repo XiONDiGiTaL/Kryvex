@@ -3,6 +3,7 @@ import extract from 'extract-zip';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { isAliveWindow } from './lifecycle';
 import type { ExtensionRecord } from './types';
 
 interface StoredExtension {
@@ -225,8 +226,10 @@ class ExtensionManager {
   }
 
   async installFromDialog(folder: boolean): Promise<InstallResult> {
-    if (!this.window) return this.result(false, 'The main window is not ready.');
-    const picked = await dialog.showOpenDialog(this.window, {
+    const window = this.window;
+    // `showOpenDialog` needs a live parent; a destroyed window throws.
+    if (!isAliveWindow(window)) return this.result(false, 'The main window is not ready.');
+    const picked = await dialog.showOpenDialog(window, {
       title: folder ? 'Choose an unpacked Chrome extension' : 'Choose a Chrome extension package',
       properties: folder ? ['openDirectory'] : ['openFile'],
       filters: folder

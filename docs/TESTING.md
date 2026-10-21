@@ -586,6 +586,64 @@ checkout (`BUILD SOURCE`), and no packaged 0.7.1 exists yet. `verify-local-model
 uses `scripts/fake-llama-server.mjs`, not a real llama.cpp binary with real
 weights.
 
+## Window lifecycle audit — 2026-10-21
+
+After the 0.8.1 close crash, every `closed`/`destroyed` handler and every late
+callback in `electron/` was checked for reads of an object that may already be
+destroyed. Electron's behaviour was measured first, because it decides what a
+safe guard looks like:
+
+| Inside a `closed` handler | Result |
+| --- | --- |
+| `win.isDestroyed()` | returns `true` |
+| `win.id` | returns the id |
+| `win.webContents` | **throws `Object has been destroyed`** |
+| `win.getTitle()`, `win.isVisible()` | **throws** |
+| `contents.isDestroyed()` | returns `true` |
+| `contents.id` | returns the id |
+| `contents.getURL()` | **throws** |
+
+Fixed in the audit:
+
+- `party.ts` — the 0.8.1 crash: the `closed` handler read `win.webContents`.
+  The display-media handler also read `shell.mainFrame` without checking whether
+  the shell was alive, and `listSources` called `getType()` before `isDestroyed()`.
+- `main.ts` — `isShellSender` compared IPC senders against
+  `mainWindow.webContents`; it now compares against a `shellContents` reference
+  captured at window creation, so an IPC arriving during teardown cannot throw.
+- `permissions.ts` — `isShellCapture` read `this.window.webContents` from the
+  permission path, and `send` read it again; both use a shell reference captured
+  at attach time and `isAliveContents`.
+- `extensions.ts`, `torrents.ts`, `storage.ts` — `dialog.showOpenDialog(window)`
+  was reached with only a null check; a destroyed parent throws, so each now
+  guards with `isAliveWindow` and reports "The main window is not ready."
+- Already safe and left alone: `updater.ts`, `downloads.ts`, `assistant.ts`,
+  `default-browser.ts`, `party.ts`'s `safeTitle`/`safeDetail`, and `shield.ts`
+  all ask `isDestroyed()` before a send or wrap the read in `try`/`catch`;
+  `chromium.ts` and `web-privacy.ts` only touch ids on `destroyed` events.
+
+New guard: `tests/lifecycle.test.ts` unit-tests `isAliveWindow`/`isAliveContents`
+(including a wrapper that throws from `isDestroyed()`), runs
+`node scripts/audit-lifecycle.cjs` over `electron/` and requires a clean report,
+and runs the same audit against a fixture containing the old
+`win.webContents`-in-`closed` line to prove the audit still catches it.
+
+| Command | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npx vitest run` | exit 0, **268/268** in 28 files |
+| `node scripts/audit-lifecycle.cjs` | clean, 38 files |
+| `node scripts/verify-party-close.cjs` | PASS |
+| `node scripts/verify-updater.cjs` | PASS, including the up-to-date verdict |
+| `node scripts/verify-service-engine.cjs` | PASS (mount, badge, popup cookie, cookie across restart, clear) |
+| `node scripts/verify-rooms.cjs` | PASS (presence, chat, 2560×1440 screen share through the changed display handler) |
+| `npm run audit:i18n` | clean |
+
+**Not executed:** a close while a media prompt is on screen was not staged, so
+the permission broker's teardown path is covered by the guard and the type
+checker rather than a click-through; and the audit is a heuristic over handler
+bodies, not a type check, so a read hidden behind a helper is still possible.
+
 ## Close-time exception — 0.8.1 (2026-10-21)
 
 Reported from the installed build: closing Kryvex raised **“A JavaScript error

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type WebTorrent from 'webtorrent';
 import type { Torrent } from 'webtorrent';
+import { isAliveWindow } from './lifecycle';
 import type { TorrentRecord, TorrentResult, TorrentSource, ToastTone } from './types';
 import {
   MAX_ACTIVE_TORRENTS,
@@ -184,8 +185,10 @@ class TorrentManager {
   }
 
   async addFromDialog(): Promise<TorrentResult> {
-    if (!this.window) return this.result(false, 'The main window is not ready.');
-    const picked = await dialog.showOpenDialog(this.window, {
+    const window = this.window;
+    // `showOpenDialog` needs a live parent; a destroyed window throws.
+    if (!isAliveWindow(window)) return this.result(false, 'The main window is not ready.');
+    const picked = await dialog.showOpenDialog(window, {
       title: 'Open a torrent file',
       properties: ['openFile'],
       filters: [{ name: 'BitTorrent metadata', extensions: ['torrent'] }],

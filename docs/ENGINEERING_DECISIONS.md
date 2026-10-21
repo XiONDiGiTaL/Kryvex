@@ -158,3 +158,26 @@ do not replace code signing, which remains absent and is called out in the UI
 and docs.
 **Status:** Implemented 2026-10-20; see `electron/update-rules.ts`,
 `electron/updater.ts`, `docs/UPDATES.md` and `pnpm verify:updater`.
+
+## ED-013 — Never read a window after it has closed
+**Decision:** Capture the references a module needs (`win.webContents` for the
+shell or a window) while the window is alive, compare against those references,
+and ask `isDestroyed()` through the helpers in `electron/lifecycle.ts` before any
+late send or dialog. Do not read `win.webContents`, `win.getTitle()`,
+`contents.getURL()` or `contents.mainFrame` inside a `closed`/`destroyed`
+listener or in a callback that resumed after the window went away. Wrap reads
+that cannot be avoided in `try`/`catch`.
+**Reason:** Electron destroys the object before those events fire. A destroyed
+`BrowserWindow` or `WebContents` still answers `isDestroyed()` but throws
+`Object has been destroyed` for every other property, and an exception escaping
+a listener becomes the blocking “A JavaScript error occurred in the main
+process” dialog — the crash fixed in 0.8.1. Guarding with `isDestroyed()` alone
+is not enough when the guard itself reads `webContents`, and `getAllWebContents`
+listeners must ask about destruction before calling `getType()`.
+**Status:** Implemented 2026-10-21. Modules audited: `main.ts` (IPC sender check
+now compares a captured `shellContents`), `party.ts`, `permissions.ts`,
+`extensions.ts`, `torrents.ts`, `storage.ts`, `updater.ts`, `downloads.ts`,
+`assistant.ts`, `default-browser.ts`, `chromium.ts`, `web-privacy.ts`.
+`tests/lifecycle.test.ts` runs `scripts/audit-lifecycle.cjs` (`pnpm
+audit:lifecycle`) over `electron/` and fails if a close/destroy handler reads a
+window again.

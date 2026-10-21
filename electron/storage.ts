@@ -1,6 +1,7 @@
 import { app, dialog, type BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { isAliveWindow } from './lifecycle';
 import type { DownloadLocation, DownloadLocationResult } from './types';
 import {
   defaultStorageConfig,
@@ -151,15 +152,18 @@ export function setDownloadLocation(value: string): DownloadLocation {
 }
 
 export async function chooseDownloadLocation(
-  window: BrowserWindow,
+  parent: BrowserWindow,
 ): Promise<DownloadLocationResult> {
   const location = downloadLocation();
+  if (!isAliveWindow(parent)) {
+    return { ok: false, message: 'The main window is not ready.', location };
+  }
   if (choosing) {
     return { ok: false, message: 'The folder picker is already open.', location };
   }
   choosing = true;
   try {
-    const picked = await dialog.showOpenDialog(window, {
+    const picked = await dialog.showOpenDialog(parent, {
       title: 'Choose a download folder',
       defaultPath: location.path,
       properties: ['openDirectory', 'createDirectory'],

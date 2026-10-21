@@ -8,6 +8,7 @@ import {
   normalizeHttpOrigin,
   type MediaDevice,
 } from './privacy';
+import { isAliveContents } from './lifecycle';
 import { partyHasPendingPick } from './party';
 import { serviceSessions } from './service-sessions';
 import type { PermissionPrompt } from './types';
@@ -28,23 +29,31 @@ interface PendingPermission {
  */
 class PermissionManager {
   private window: BrowserWindow | null = null;
+  // Captured while the window is alive: `win.webContents` throws once the
+  // window is destroyed, and permission checks can arrive during teardown.
+  private shell: WebContents | null = null;
   private grants = new Map<string, Set<MediaDevice>>();
   private pending = new Map<string, PendingPermission>();
   private attached = new WeakSet<BrowserWindow>();
 
   attachWindow(win: BrowserWindow): void {
     this.window = win;
+    this.shell = win.webContents;
     if (this.attached.has(win)) return;
     this.attached.add(win);
     win.once('closed', () => {
-      if (this.window === win) this.window = null;
+      if (this.window === win) {
+        this.window = null;
+        this.shell = null;
+      }
       this.denyAll();
     });
   }
 
   /** Display capture belongs to the shell; a webview asking is refused. */
   private isShellCapture(contents?: WebContents | null): boolean {
-    return Boolean(contents && this.window && contents === this.window.webContents);
+    const shell = this.shell;
+    return Boolean(contents && isAliveContents(shell) && contents === shell);
   }
 
   check(
@@ -175,9 +184,10 @@ class PermissionManager {
   }
 
   private send(channel: string, payload: unknown): void {
-    if (!this.window || this.window.isDestroyed()) return;
+    const shell = this.shell;
+    if (!isAliveContents(shell)) return;
     try {
-      this.window.webContents.send(channel, payload);
+      shell.send(channel, payload);
     } catch {
       /* the window may be closing while the request is in flight */
     }

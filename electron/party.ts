@@ -6,6 +6,7 @@ import {
   type BrowserWindow,
   type WebContents,
 } from 'electron';
+import { isAliveContents } from './lifecycle';
 import type { PartySource } from './types';
 
 /**
@@ -66,7 +67,8 @@ function safeDetail(contents: WebContents): string {
 async function listSources(): Promise<PartySource[]> {
   const apps: PartySource[] = [];
   for (const contents of webContents.getAllWebContents()) {
-    if (contents.getType() !== 'webview' || contents.isDestroyed()) continue;
+    // Ask about destruction first: `getType()` throws on a gone guest.
+    if (!isAliveContents(contents) || contents.getType() !== 'webview') continue;
     apps.push({
       id: `app:${contents.id}`,
       kind: 'app',
@@ -121,9 +123,22 @@ export function partyInit(): void {
       return;
     }
     // The shell is the only trusted frame; a webview request is refused even
-    // if a stale pending pick exists.
+    // if a stale pending pick exists. A shell that already closed cannot own a
+    // stream, and reading `mainFrame` off it would throw.
+    const shellContents = shell;
+    if (!isAliveContents(shellContents)) {
+      callback({});
+      return;
+    }
     const frame = request.frame;
-    if (frame && shell && frame !== shell.mainFrame) {
+    let shellFrame = null;
+    try {
+      shellFrame = shellContents.mainFrame;
+    } catch {
+      callback({});
+      return;
+    }
+    if (frame && frame !== shellFrame) {
       callback({});
       return;
     }
@@ -135,7 +150,7 @@ export function partyInit(): void {
     const app = APP_ID.exec(pick.id);
     if (app) {
       const contents = webContents.fromId(Number(app[1]));
-      if (!contents || contents.isDestroyed() || contents.getType() !== 'webview') {
+      if (!isAliveContents(contents) || contents.getType() !== 'webview') {
         callback({});
         return;
       }

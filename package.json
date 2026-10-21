@@ -42,7 +42,8 @@
     "verify:identity": "pnpm build && electron scripts/verify-browser-identity.cjs",
     "verify:shield-filters": "pnpm build && electron scripts/verify-shield-filters.cjs",
     "verify:model": "pnpm build && electron scripts/verify-local-model.cjs",
-    "verify:party-close": "pnpm build && node scripts/verify-party-close.cjs"
+    "verify:party-close": "pnpm build && node scripts/verify-party-close.cjs",
+    "audit:lifecycle": "node scripts/audit-lifecycle.cjs"
   },
   "build": {
     "appId": "net.xiondigital.kryvex",
