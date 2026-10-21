@@ -1,8 +1,9 @@
 # Kryvex 0.8.2 — Windows patch release
 
-Published 2026-10-21 from the `v0.8.2` tag. 0.8.1 fixed the one handler named in
-the reported stack; this release closes the rest of that class of bug, so an
-installed build stops reading windows and web contents that are already gone.
+Published 2026-10-21 from the `v0.8.2` tag (commit `31cfe5d`). 0.8.1 fixed the
+one handler named in the reported stack; this release closes the rest of that
+class of bug, so an installed build stops reading windows and web contents that
+are already gone.
 
 Download the installer, portable build and checksum list from the
 [Kryvex 0.8.2 release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.2).
@@ -57,8 +58,15 @@ Built by the tag-triggered workflow with `pnpm run package:win` under
 
 `SHA256SUMS.txt` is authoritative: it is generated from the published files by
 `scripts/release-checksums.cjs`, and the updater ignores any release whose
-installer has no matching entry. Sizes and digests are recorded here after the
-build.
+installer has no matching entry.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.8.2-x64.exe` | 120,287,904 B (114.7 MiB) | `41a009f8c3c9c6cbf8bab3ec830ca18bb4a932492043ca2087f4241573ebe036` |
+| `Kryvex-Portable-0.8.2-x64.exe` | 120,050,696 B (114.5 MiB) | `5dca57aa46e846fa3e961727419ab9335d3431c90c0dbc524ca143429c2468b6` |
+
+Both downloaded copies hash to those values, and both EXEs report
+`ProductVersion 0.8.2`.
 
 ## Install
 
@@ -86,6 +94,24 @@ The Portable EXE runs without installation. Its state still lives in
 - `node scripts/verify-rooms.cjs` — PASS with a 2560×1440 screen share flowing
   through the changed display handler.
 - `npm run audit:i18n` — clean.
+- Published artifacts: the release workflow (run 39559900423) passed every step
+  and published without a draft. The downloaded Setup and Portable EXEs hash to
+  the entries in `SHA256SUMS.txt` and to the digests GitHub reports, and both
+  report `ProductVersion 0.8.2` / `FileVersion 0.8.2`. The Portable build's
+  extracted `resources/app.asar` carries `isAliveWindow` in `storage.js`,
+  `extensions.js` and `torrents.js` with the “not ready” answers,
+  `shellContents` in `main.js`'s `isShellSender`, `isAliveContents` in
+  `permissions.js`, and the attach-time reference in `party.js`; the old
+  `shell === win.webContents` text is absent.
+- The downloaded Portable EXE was launched against a disposable profile through
+  `KRYVEX_USER_DATA`: it opened a window titled **Kryvex**, wrote its profile,
+  and closed through the window's own close path — the process was gone within
+  40 s and no Kryvex process or dialog was left behind.
+- The live feed passes the app's own rules: parsing
+  `api.github.com/repos/XiONDiGiTaL/Kryvex/releases/latest` yields release
+  `0.8.2` with a trusted Setup URL, a Portable asset and checksum entries that
+  match the uploaded digests; `isNewer` returns true for 0.8.1 and false for
+  0.8.2.
 
 ## Known limitations
 
@@ -93,6 +119,11 @@ The Portable EXE runs without installation. Its state still lives in
   publisher.
 - The lifecycle audit is a heuristic over handler bodies, not a parser: a read
   hidden behind a helper function is still possible.
+- The Portable close was checked by window, process list and duration rather
+  than a numeric exit code: PowerShell reports `ExitCode` only for a process it
+  started, and the portable launcher spawns the app as a child. An installed
+  0.8.1 build was not driven through the in-app self-update either; that path is
+  covered by the live feed comparison above.
 - A close while a media-permission prompt is on screen was not staged, so the
   broker's teardown path is covered by the guard and the type checker rather
   than by a click-through.

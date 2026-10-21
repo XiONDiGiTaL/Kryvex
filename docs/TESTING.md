@@ -701,6 +701,32 @@ version `0.8.1`, and the live check returned `current`; its extracted
 `shell === win.webContents` read; closing that window exited with code 0 and
 printed no `Object has been destroyed` or `Uncaught Exception` text.
 
+**Published 0.8.2 check.** The release workflow (run 39559900423) passed every
+step and published `Kryvex-Setup-0.8.2-x64.exe` (120,287,904 B,
+`41a009f8…e036`) and `Kryvex-Portable-0.8.2-x64.exe` (120,050,696 B,
+`5dca57aa…68b6`). Downloaded copies hash to those values and to the digests
+GitHub reports, and both EXEs report `ProductVersion 0.8.2` / `FileVersion
+0.8.2`. Extracting the Portable build's `resources/app.asar` shows the guards in
+the shipped code rather than only in the checkout: `isAliveWindow` before
+`dialog.showOpenDialog` in `storage.js`, `extensions.js` and `torrents.js` with
+the “The main window is not ready.” answers, `shellContents` in `main.js`'s
+`isShellSender`, `isAliveContents` in `permissions.js`, and the attach-time
+reference in `party.js`'s `closed` handler; `shell === win.webContents` no
+longer appears anywhere in the archive.
+
+That EXE was then launched against a disposable profile via `KRYVEX_USER_DATA`.
+It opened a window titled **Kryvex**, wrote its Chromium profile, and was closed
+through the window's own close path: the process was gone within 40 s and no
+Kryvex process or dialog remained. **Limit:** the numeric exit code was not
+captured — PowerShell reports `ExitCode` only for a process it started itself,
+and the portable launcher spawns the app as a child — so “closed cleanly” rests
+on the window closing, the process disappearing and nothing being left behind,
+not on an exit status. The installed 0.8.1 build was not driven through the
+in-app self-update; the live feed was checked instead with the compiled
+`update-rules`: release `0.8.2`, trusted Setup URL, Portable asset, checksum
+entries matching the uploaded digests, `isNewer('0.8.1')` true and
+`isNewer('0.8.2')` false.
+
 ## Published 0.8.0 artifacts — 2026-10-21
 
 Run after the tag-triggered workflow published the release, against the EXEs

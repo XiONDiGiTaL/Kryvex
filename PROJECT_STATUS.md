@@ -161,6 +161,15 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   every property except `isDestroyed()` and an Electron stub that counts dialog
   requests. It passes on this tree and fails with `1 call(s)` / “Selection
   cancelled” when the compiled download-picker guard is removed.
+- **Shipped:** 0.8.2 was tagged at `31cfe5d`; the Release workflow (run
+  39559900423) passed and published `Kryvex-Setup-0.8.2-x64.exe` (120,287,904 B,
+  `41a009f8…e036`) and `Kryvex-Portable-0.8.2-x64.exe` (120,050,696 B,
+  `5dca57aa…68b6`), whose downloaded copies match `SHA256SUMS.txt` and report
+  `ProductVersion 0.8.2`. The Portable build's extracted `app.asar` contains
+  `isAliveWindow` in the three picker modules, `shellContents` in
+  `isShellSender` and `isAliveContents` in `permissions.js`, and no
+  `shell === win.webContents`. Launched against a disposable profile it opened
+  the shell, wrote its profile and closed with no process or dialog left behind.
 
 ## Verified evidence (2026-10-21, published 0.8.0 artifacts)
 
