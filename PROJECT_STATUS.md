@@ -207,6 +207,30 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   `Kryvex.exe` at `ProductVersion 0.8.3.0`. Relaunched, Settings → Updates read
   `v0.8.3 · BUILD INSTALLED` with a green **UP TO DATE** verdict.
 
+## Added (2026-10-21, repeatable self-update check)
+
+- The release checks had been one-off drivers per release, and the installer
+  wizard was never captured: NSIS draws its pages as native controls, so a CDP
+  screenshot of the shell cannot include them. `scripts/verify-self-update.cjs`
+  (`pnpm verify:self-update`) and `scripts/verify-wizard.ps1` make the whole
+  chain repeatable: installed binary from `InstallLocation`, isolated profile,
+  the real Updates panel, the downloaded installer's hash against the live
+  `SHA256SUMS.txt`, the hand-off to the installer, every wizard page as text and
+  a PNG, the installer's exit code, and the version afterwards.
+- Three corrections came from running it rather than reasoning about it: `Enter`
+  never advanced the wizard because focus sat on a radio button, so the forward
+  button is now clicked through `WM_COMMAND`; the same command posted to the
+  disabled **Next >** on the install page skipped the file copy entirely, so the
+  script checks `IsWindowEnabled`; and NSIS restores the archive timestamps of
+  copied files, so an unchanged `Kryvex.exe` mtime is not evidence of a skipped
+  install and progress is judged from the wizard instead.
+- Evidence on this machine (installed 0.8.3, latest 0.8.3): the live check
+  reported `current`; the wizard capture recorded 4 pages with a PNG each
+  (`Choose Installation Options → Choose Install Location → Installing →
+  Completing Kryvex Setup`), the install page ran 20,560 ms, the installer exited
+  0, and the attach path against a detached installer recorded 5 pages and exit
+  0. Details and the limits of the run are in `docs/TESTING.md`.
+
 ## Verified evidence (2026-10-21, published 0.8.0 artifacts)
 
 - The `v0.8.0` tag was pushed at `be02c4d`; the tag-triggered Release workflow

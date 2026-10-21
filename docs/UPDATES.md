@@ -139,6 +139,19 @@ proves four things:
 pnpm verify:updater
 ```
 
+To check the whole chain against an installation, `pnpm verify:self-update`
+drives the installed build through the live feed and captures the NSIS wizard
+page by page, including the installer's exit code:
+
+```bash
+pnpm verify:self-update
+pnpm verify:self-update --wizard   # capture the wizard even when up to date
+```
+
+The wizard pages are read from the dialog's native controls and saved as text and
+PNGs under `.tmp-self-update/wizard/`; the run reports every check in
+`.tmp-self-update/report.json`. [TESTING.md](TESTING.md) records the results.
+
 Test-only environment variables, both ignored in a packaged build:
 
 | Variable | Effect |
@@ -154,6 +167,7 @@ Test-only environment variables, both ignored in a packaged build:
    EXE and `SHA256SUMS.txt` matches `certutil -hashfile <file> SHA256`.
 4. Choose **Install and restart**. The app quits, the setup wizard appears, and
    the updated version is reported after relaunch. Settings, services, tabs and
-   the state file survive.
+   the state file survive. `pnpm verify:self-update` performs this step and
+   records what the wizard showed.
 5. Repeat with the portable build: it must offer the EXE in Explorer, not run
    it, and the old EXE must keep working until the user replaces it.

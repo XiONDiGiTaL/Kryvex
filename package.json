@@ -36,6 +36,7 @@
     "verify:services": "pnpm build && node scripts/verify-service-engine.cjs",
     "verify:chromium": "pnpm build && node scripts/verify-chromium-settings.cjs",
     "verify:updater": "pnpm build && node scripts/verify-updater.cjs",
+    "verify:self-update": "node scripts/verify-self-update.cjs",
     "verify:rooms": "pnpm build && node scripts/verify-rooms.cjs",
     "verify:gallery": "pnpm build && node scripts/verify-theme-gallery.cjs",
     "verify:layout": "pnpm build && node scripts/verify-layout.cjs",

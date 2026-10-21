@@ -932,3 +932,82 @@ Not recorded:
   self-update run left behind; this run moved the real installation to 0.8.3
   rather than a sandbox.
 
+## Self-update harness — 2026-10-21
+
+Every release before this one was checked with a one-off driver written for that
+release, and the installer wizard was never captured: NSIS renders its pages as
+native controls, so a CDP screenshot of the shell does not include them and the
+wizard's pages were always a stated gap. `scripts/verify-self-update.cjs`
+(`pnpm verify:self-update`) and `scripts/verify-wizard.ps1` make that repeatable.
+
+```bash
+pnpm verify:self-update              # installed build against the live feed
+pnpm verify:self-update --wizard     # also capture the wizard page by page
+pnpm verify:self-update --installer <path>   # capture a specific installer
+pnpm verify:self-update --exe <path>         # a non-default installation
+```
+
+What the driver does:
+
+1. Resolves the installed `Kryvex.exe` from `HKCU\Software
+et.xiondigital.kryvex`
+   (`InstallLocation`), falling back to `C:\Kryvex`.
+2. Starts it with an isolated profile and a DevTools port, so the user's settings,
+   tabs and sessions are untouched.
+3. Reads and clicks the real **Settings → Updates** panel: the version header, the
+   status card, the verdict and the button row.
+4. On `available`, clicks **Download update**, hashes the file the app wrote and
+   compares it with `SHA256SUMS.txt` from the live release, then clicks **Install
+   and restart**.
+5. Attaches to the installer the app spawned detached, captures every page as
+   text plus a PNG, presses each page's forward button, and reads the installer's
+   exit code from a process handle opened while it was alive.
+6. Reads the installed binary's version afterwards and closes any Kryvex process
+   the wizard's finish page relaunched.
+
+The wizard capture works on the dialog's own controls: visible children are read
+with their class, text and screen position, sorted into visual order, and the
+forward button is clicked by posting `WM_COMMAND` with its control id. Three
+things had to be measured rather than assumed:
+
+- **`Enter` did not advance the wizard.** On the first page focus sits on a radio
+  button, so the keystroke never reached the default button and the capture
+  stalled. The forward button is now clicked through `WM_COMMAND`, which needs no
+  focus at all.
+- **Clicking `IDOK` on the install page skipped the file copy.** The first version
+  sent the command regardless of state, and the installer's disabled **Next >**
+  during installation advanced past the copy: five pages appeared and the
+  installation directory was never rewritten. The script now checks
+  `IsWindowEnabled` and waits instead.
+- **An unchanged `Kryvex.exe` timestamp does not mean nothing was written.** NSIS
+  restores the archive timestamps of the files it copies, so a same-version
+  reinstall leaves `Kryvex.exe` looking untouched while replacing `resources` and
+  `locales`. The harness therefore judges progress from the wizard: an install
+  page that ran for 20.5 s, a finish page, and exit code 0 — not from file times.
+
+### Run on this machine, installed 0.8.3 (latest published 0.8.3)
+
+| Check | Result |
+| --- | --- |
+| Live feed check | `is-current`, `Kryvex 0.8.3 is the latest release.` — nothing newer to install |
+| Installer used for the wizard run | `Kryvex-Setup-0.8.3-x64.exe`, 120,292,667 B, hash equal to `SHA256SUMS.txt` |
+| Wizard pages | 4 captured with a PNG each: `Choose Installation Options` → `Choose Install Location` → `Installing` → `Completing Kryvex Setup` |
+| Page 1 copy | "Who should this application be installed for?", "There is already a per-user installation.(C:\Kryvex) Will reinstall/upgrade." |
+| Install page duration | 20,560 ms between `Installing` and `Completing Kryvex Setup` |
+| Installer exit code | 0, read from a handle on a process the script started |
+| Attach path | the same capture against a **detached** installer found by name also passed: 5 pages, exit code 0, so the path the app's own hand-off uses is exercised |
+| Relaunched app | the finish page started Kryvex with the real profile; those processes were closed by the harness |
+| Report | `.tmp-self-update/report.json` and `.tmp-self-update/wizard/{wizard.json,pages/*.png}` |
+
+Not verified by this run, and not claimed:
+
+- No version-changing install was available, because 0.8.3 is the latest release.
+  The wizard was captured by reinstalling 0.8.3 over itself, which the installer
+  itself labels a reinstall/upgrade, and the app's app→installer hand-off was
+  exercised separately through the attach path. The next release is the first
+  one this harness will carry through a real version change.
+- The assertions that read page titles match English copy (`install`, `complet`,
+  `please wait`). A localized installer would need its own patterns.
+- The wizard runs with elevation only when the chosen directory needs it; a
+  protected install path was not staged.
+
