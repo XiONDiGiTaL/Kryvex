@@ -85,7 +85,7 @@ away.
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
   support ride on the same tokens.
 
-> Status: **working desktop prototype (0.8.1, packaged and published)**. The app boots, modules load, service apps stay running with their
+> Status: **working desktop prototype (0.8.2, packaged and published)**. The app boots, modules load, service apps stay running with their
 > sessions, native notifications and unread badges work, auth popups complete
 > inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
@@ -107,13 +107,13 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.8.1-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.8.1-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.8.2-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.8.2-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.8.1** artifacts are built from the complete source tree by the
+The **0.8.2** artifacts are built from the complete source tree by the
 tag-triggered workflow and published on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
-`SHA256SUMS.txt` covers the two 0.8.1 artifacts, and the in-app updater relies
+`SHA256SUMS.txt` covers the two 0.8.2 artifacts, and the in-app updater relies
 on it.
 ### Updates
 
@@ -143,10 +143,11 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The **0.8.1** Setup and Portable EXEs are built from this tree by the release
+The **0.8.2** Setup and Portable EXEs are built from this tree by the release
 workflow, and the unpacked build completes every capture route. Artifact
 checksums, verification steps and limitations are recorded in
-[docs/RELEASE_0.8.1.md](docs/RELEASE_0.8.1.md); earlier releases are in
+[docs/RELEASE_0.8.2.md](docs/RELEASE_0.8.2.md); earlier releases are in
+[docs/RELEASE_0.8.1.md](docs/RELEASE_0.8.1.md),
 [docs/RELEASE_0.8.0.md](docs/RELEASE_0.8.0.md),
 [docs/RELEASE_0.7.0.md](docs/RELEASE_0.7.0.md),
 [docs/RELEASE_0.6.0.md](docs/RELEASE_0.6.0.md) and
@@ -156,7 +157,23 @@ checksums, verification steps and limitations are recorded in
 SmartScreen may show **Unknown publisher**. Only continue if you built the
 artifact yourself or downloaded it from a release you trust.
 
-## What's new in 0.8.1
+## What's new in 0.8.2
+
+Closing the app was only the most visible read of a window that no longer
+existed. This release guards the rest of the class. Choosing a download folder,
+installing an extension, or opening a `.torrent` used to hand the dialog a
+window that could already be destroyed, which threw inside the picker and became
+the blocking **“A JavaScript error occurred in the main process”** dialog; each
+now answers **“The main window is not ready.”** The IPC sender check and the
+permission broker compare a web contents reference captured while the window was
+alive, and Rooms checks that its shell is alive before touching `mainFrame`.
+`pnpm audit:lifecycle` walks every `closed`/`destroyed` handler and fails if one
+reads a window again — the test suite runs it, and runs it against the old
+crashing line to prove it still catches it. `pnpm verify:guards` drives the
+three compiled pickers with a destroyed window and an Electron stub that counts
+dialog requests. Everything in 0.8.1 is included.
+
+## What was new in 0.8.1
 
 One fix: closing the app no longer raises **“A JavaScript error occurred in the
 main process — TypeError: Object has been destroyed”**. The Rooms broker read

@@ -1,6 +1,6 @@
 # Kryvex — Project Status
 
-**Product:** Kryvex Desktop 0.8.1 — a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.8.2 — a modular Electron workspace where web apps
 become isolated, themed service apps: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
 sessions and per-service session clearing. It also has rooms with presence,
@@ -97,7 +97,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   Remaining: broader e2e UI
   coverage, backup/restore,  measured performance comparison (`docs/PERFORMANCE.md` still holds no
   numbers).
-- [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0**, **0.8.0** and **0.8.1**
+- [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0**, **0.8.0**, **0.8.1** and **0.8.2**
   Setup and Portable EXEs are built by GitHub Actions on their `v*` tags; the
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
   `package:win`, writes `SHA256SUMS.txt` and publishes the release. The 0.7.0
@@ -105,12 +105,12 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.1
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.2
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it.
 - [ ] **M11 — Final review.** README with real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.1
+  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.2
   release records are in place. Outstanding: engineering report and a signed
   public release.
 
@@ -156,6 +156,11 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 - Evidence: `npm run typecheck` exit 0; `npx vitest run` **268/268** in 28 files;
   `verify:party-close`, `verify:updater`, `verify:service-engine` and
   `verify:rooms` (screen share 2560×1440) all PASS; `audit:i18n` clean.
+- **Folder pickers checked directly:** the new `pnpm verify:guards` drives the
+  compiled download, extension and torrent pickers with a window that throws on
+  every property except `isDestroyed()` and an Electron stub that counts dialog
+  requests. It passes on this tree and fails with `1 call(s)` / “Selection
+  cancelled” when the compiled download-picker guard is removed.
 
 ## Verified evidence (2026-10-21, published 0.8.0 artifacts)
 
@@ -520,8 +525,9 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
 ## Next concrete action
 
-0.8.1 is published from the `v0.8.1` tag with the Setup, Portable and checksum
-assets, so installed builds can pick up the close fix through **Settings →
-Updates**. Next: code signing, an interactive-wizard pass on the installer, and
+0.8.2 is published from the `v0.8.2` tag with the Setup, Portable and checksum
+assets, so installed builds pick up the lifecycle guards and the folder-picker
+fixes through **Settings → Updates**. Next: code signing, an interactive-wizard
+pass on the installer, and
 the compound manifest and permission sheet described in
 `docs/PLATFORM_PLAN.md` before adding any branded add-on.

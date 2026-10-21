@@ -637,7 +637,19 @@ and runs the same audit against a fixture containing the old
 | `node scripts/verify-updater.cjs` | PASS, including the up-to-date verdict |
 | `node scripts/verify-service-engine.cjs` | PASS (mount, badge, popup cookie, cookie across restart, clear) |
 | `node scripts/verify-rooms.cjs` | PASS (presence, chat, 2560×1440 screen share through the changed display handler) |
+| `node scripts/verify-window-guards.cjs` | PASS on all three pickers; FAIL (`1 call(s)`, "Selection cancelled") with the compiled download-picker guard removed |
 | `npm run audit:i18n` | clean |
+
+The folder pickers needed their own probe because the crash they could raise
+happens before any dialog appears. `scripts/verify-window-guards.cjs`
+(`pnpm verify:guards`) replaces `electron` with a stub that counts
+`dialog.showOpenDialog` calls, then calls the compiled download, extension and
+torrent pickers with a window that answers `isDestroyed()` and throws on every
+other property. Passing requires the “not ready” answer **and** zero dialog
+calls, so a removed guard fails either by throwing or by reaching Electron. Both
+directions were run: deleting the guard from `dist-electron/storage.js` made the
+probe report `1 call(s)` and “Selection cancelled”, and restoring the compiled
+file returned it to PASS.
 
 **Not executed:** a close while a media prompt is on screen was not staged, so
 the permission broker's teardown path is covered by the guard and the type
