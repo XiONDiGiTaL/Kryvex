@@ -114,6 +114,22 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   release records are in place. Outstanding: engineering report and a signed
   public release.
 
+## Fixed (2026-10-21, error dialog on close)
+
+- **Reported:** closing the installed build showed **“A JavaScript error occurred
+  in the main process — TypeError: Object has been destroyed”**, at
+  `dist-electron/party.js` inside a `BrowserWindow` `closed` listener.
+- **Cause:** `partyAttachWindow` compared `shell === win.webContents` inside the
+  `closed` handler. The window is already destroyed by then, so that getter
+  throws and the exception becomes Electron's blocking dialog. A standalone
+  probe with a real `BrowserWindow` reproduced the throw from both `win.close()`
+  and `app.quit()`; instrumenting the handler in the app logged the same message.
+- **Fix:** capture `webContents` at attach time and compare against that
+  reference, so the handler reads nothing off the closed window.
+- **Guard:** `node scripts/verify-party-close.cjs` (`pnpm verify:party-close`)
+  fails against the old handler with `Object has been destroyed` and passes
+  against the new one, checked in both directions.
+
 ## Verified evidence (2026-10-21, published 0.8.0 artifacts)
 
 - The `v0.8.0` tag was pushed at `be02c4d`; the tag-triggered Release workflow

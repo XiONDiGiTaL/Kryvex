@@ -586,6 +586,41 @@ checkout (`BUILD SOURCE`), and no packaged 0.7.1 exists yet. `verify-local-model
 uses `scripts/fake-llama-server.mjs`, not a real llama.cpp binary with real
 weights.
 
+## Close-time exception — 0.8.1 (2026-10-21)
+
+Reported from the installed build: closing Kryvex raised **“A JavaScript error
+occurred in the main process — TypeError: Object has been destroyed”** with the
+stack pointing at `dist-electron/party.js` inside a `BrowserWindow` `closed`
+listener.
+
+- **Cause.** `partyAttachWindow` released its shell reference by evaluating
+  `win.webContents` inside the `closed` handler. Electron destroys the window
+  before that event, so the getter throws; the exception escapes the listener
+  and Electron turns it into the blocking dialog.
+- **Proof, isolated from the app.** A probe that created a real `BrowserWindow`
+  and read `win.webContents` inside `closed` threw `Object has been destroyed`
+  from both `win.close()` and `app.quit()`, so the expression is wrong on its
+  own terms rather than only under one close path.
+- **Proof, inside the app.** Instrumenting the handler with a `try`/`catch` and
+  closing the window printed `THREW reading webContents: Object has been
+  destroyed`; the shipped line was the same read. A plain `closed` handler
+  without the catch sometimes exits before the exception is reported, which is
+  why the dialog is intermittent in a source run and consistent in a packaged
+  one.
+- **Fix.** The reference is captured at attach time and the handler compares
+  against that, touching neither the window nor its contents.
+- **Guard.** `node scripts/verify-party-close.cjs` (`pnpm verify:party-close`)
+  drives the compiled module with a window that throws on every property access
+  once it is marked destroyed. It fails with `Object has been destroyed` against
+  the old handler and passes against the new one; that difference was checked in
+  both directions rather than assumed.
+- `npm run typecheck` exit 0; `npx vitest run` **261/261** in 27 files;
+  `npm run build` exit 0.
+
+**Not executed:** the fix was not observed suppressing the dialog in an
+installed 0.7.x profile — that build still contains the old line until 0.8.1
+installs over it.
+
 ## Published 0.8.0 artifacts — 2026-10-21
 
 Run after the tag-triggered workflow published the release, against the EXEs
