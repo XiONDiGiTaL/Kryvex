@@ -93,14 +93,26 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    pnpm verify:updater
    ```
 
-3. Commit and push a tag:
+3. Capture the installer wizard and archive it beside the release record. With
+   the previous release installed, this drives the app's own update and records
+   every page of the wizard it hands over to:
+
+   ```bash
+   pnpm release:wizard
+   ```
+
+   The pages, their text and the installer's exit code land in
+   `docs/media/releases/<version>-wizard/`. Reference that directory from a
+   `## Wizard capture` section in `docs/RELEASE_<version>.md` before committing.
+
+4. Commit and push a tag:
 
    ```bash
    git tag v0.6.1
    git push origin v0.6.1
    ```
 
-4. The workflow installs dependencies, typechecks, tests, runs
+5. The workflow installs dependencies, typechecks, tests, runs
    `pnpm package:win`, writes `release/SHA256SUMS.txt`, and publishes a GitHub
    release with:
 
@@ -108,8 +120,8 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    - `Kryvex-Portable-<version>-x64.exe`
    - `SHA256SUMS.txt`
 
-   It fails if the tag does not match `package.json` or an expected artifact is
-   missing.
+   It fails if the tag does not match `package.json`, if the record has no
+   wizard capture (`pnpm release:check`), or if an expected artifact is missing.
 
 The GitHub release must remain **stable** (not a draft or prerelease) for the
 updater to see it, and it must be the latest stable release.

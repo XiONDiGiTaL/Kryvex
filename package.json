@@ -26,6 +26,8 @@
     "package:dir": "pnpm build && electron-builder --dir",
     "package:win": "pnpm build && electron-builder --publish never",
     "release:checksums": "node scripts/release-checksums.cjs",
+    "release:wizard": "node scripts/verify-self-update.cjs --wizard --archive",
+    "release:check": "node scripts/check-release-record.cjs",
     "verify:restart": "pnpm build && node scripts/verify-restart.cjs",
     "verify:downloads": "pnpm build && electron scripts/verify-download-history.cjs",
     "verify:location-ui": "pnpm build && node scripts/verify-download-location-ui.cjs",

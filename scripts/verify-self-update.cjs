@@ -18,6 +18,10 @@
  *   node scripts/verify-self-update.cjs --installer <p> capture this installer
  *   node scripts/verify-self-update.cjs --no-app        skip the app, wizard only
  *   node scripts/verify-self-update.cjs --exe <path>    use another installation
+ *   node scripts/verify-self-update.cjs --archive       copy the capture into
+ *                                                       docs/media/releases/
+ *                                                       <version>-wizard/ for
+ *                                                       the release record
  *
  * Readiness: the app is started with an isolated profile, so the run does not
  * touch the user's settings, tabs or sessions. The installer itself still writes
@@ -348,6 +352,97 @@ function assertWizardCapture(wizard) {
   );
 }
 
+/**
+ * Copies the capture into the repository, next to the release record, so a tag
+ * carries what its installer actually showed. Paths inside the manifest are
+ * relative to that directory; the temp paths from the run are not recorded.
+ */
+function archiveCapture(version) {
+  if (!report.wizard) {
+    check('the capture was archived with the release record', false, 'no wizard capture in this run');
+    return null;
+  }
+  const target = path.join(root, 'docs', 'media', 'releases', `${version}-wizard`);
+  fs.rmSync(target, { recursive: true, force: true });
+  fs.mkdirSync(path.join(target, 'pages'), { recursive: true });
+
+  const pages = (report.wizard.pages || []).map(page => {
+    const name = path.basename(page.image || `page-${page.index}.png`);
+    if (page.image && fs.existsSync(page.image)) {
+      fs.copyFileSync(page.image, path.join(target, 'pages', name));
+    }
+    return {
+      index: page.index,
+      title: page.title,
+      windowTitle: page.windowTitle,
+      texts: page.texts,
+      buttons: page.buttons,
+      image: page.image ? `pages/${name}` : null,
+      at: page.at,
+    };
+  });
+
+  const manifest = {
+    version,
+    installerVersion: report.installerVersion || null,
+    installer: report.wizard.installer ? path.basename(report.wizard.installer) : null,
+    recordedAt: new Date().toISOString(),
+    startedHere: report.wizard.startedHere,
+    exitCode: report.wizard.exitCode,
+    pageCount: report.wizard.pageCount,
+    durationMs: report.wizard.durationMs,
+    pages,
+  };
+  fs.writeFileSync(path.join(target, 'wizard.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const rows = pages.map(page => {
+    const detail = (page.texts || [])
+      .slice(1, 4)
+      .join(' · ')
+      .replace(/\|/g, '\\|');
+    const label = page.image
+      ? `[${page.title || `Page ${page.index}`}](${page.image.split('/').map(encodeURIComponent).join('/')})`
+      : page.title;
+    return `| ${page.index} | ${label} | ${detail} |`;
+  });
+  const passes = report.checks
+    .map(item => `- ${item.ok ? 'PASS' : 'FAIL'} ${item.name}${item.detail ? ` — ${item.detail}` : ''}`)
+    .join('\n');
+  const markdown = `# Wizard capture — Kryvex ${version}
+
+Recorded ${manifest.recordedAt} by \`pnpm verify:self-update --wizard --archive\`.
+
+| Field | Value |
+| --- | --- |
+| Installer | \`${manifest.installer || 'unknown'}\` |
+| Installer version | ${manifest.installerVersion || 'unknown'} |
+| Pages | ${manifest.pageCount} |
+| Exit code | ${manifest.exitCode} |
+| Mode | ${manifest.startedHere ? 'started by the harness' : 'attached to the installer the app launched'} |
+
+| # | Page | Text on the page |
+| --- | --- | --- |
+${rows.join('\n')}
+
+The wizard is a native Windows dialog, so these pages cannot appear in a CDP
+screenshot of the shell. They are read from the dialog's own controls in visual
+order, and the installer's exit code comes from a process handle opened while it
+was alive.
+
+## Checks from the run
+
+${passes}
+`;
+  fs.writeFileSync(path.join(target, 'capture.md'), markdown);
+
+  check(
+    'the capture was archived with the release record',
+    true,
+    `docs/media/releases/${version}-wizard/`,
+  );
+  return target;
+}
+
 function kryvexPids() {
   const result = run([
     'powershell.exe',
@@ -502,6 +597,7 @@ async function stopNewApps(before) {
         report.wizard = capture.data;
         process.stdout.write(capture.stdout);
         if (capture.stderr) process.stderr.write(capture.stderr);
+        report.installerVersion = productVersion(installerToCapture);
       } else {
         report.stages.push({ stage: 'up-to-date', ...(await cdp.evaluate(PANEL)) });
       }
@@ -573,6 +669,7 @@ async function stopNewApps(before) {
     report.wizard = capture.data;
     process.stdout.write(capture.stdout);
     if (capture.stderr) process.stderr.write(capture.stderr);
+    report.installerVersion = version;
     if (report.wizard) {
       assertWizardCapture(report.wizard);
       if (!wizardOnly) {
@@ -583,6 +680,14 @@ async function stopNewApps(before) {
       }
     } else {
       check('the wizard capture produced a manifest', false, 'no wizard.json');
+    }
+  }
+
+  if (flag('archive')) {
+    const archived = archiveCapture(release.version);
+    if (archived) {
+      report.archive = path.relative(root, archived).split(path.sep).join('/');
+      console.log(`archived: ${report.archive}`);
     }
   }
 

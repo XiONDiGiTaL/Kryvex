@@ -100,7 +100,9 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 - [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0**, **0.8.0**, **0.8.1**, **0.8.2** and **0.8.3**
   Setup and Portable EXEs are built by GitHub Actions on their `v*` tags; the
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
-  `package:win`, writes `SHA256SUMS.txt` and publishes the release. The 0.7.0
+  `package:win`, writes `SHA256SUMS.txt` and publishes the release, and it now
+  refuses a tag whose release record carries no installer wizard capture
+  (`pnpm release:check`). The 0.7.0
   unpacked build completes all twenty-seven capture routes, including Rooms, the
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
@@ -224,6 +226,11 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   script checks `IsWindowEnabled`; and NSIS restores the archive timestamps of
   copied files, so an unchanged `Kryvex.exe` mtime is not evidence of a skipped
   install and progress is judged from the wizard instead.
+- The capture is part of the cut, not an afterthought: `pnpm release:wizard`
+  archives it under `docs/media/releases/<version>-wizard/`, `pnpm release:check`
+  refuses a record without it, and the release workflow runs that check before
+  building. 0.8.3's capture is committed there retroactively, and its record
+  says plainly that it is a same-version reinstall.
 - Evidence on this machine (installed 0.8.3, latest 0.8.3): the live check
   reported `current`; the wizard capture recorded 4 pages with a PNG each
   (`Choose Installation Options → Choose Install Location → Installing →

@@ -142,7 +142,28 @@ Not recorded for this run, and not claimed:
   returned no value), so “the wizard finished” rests on the process exiting, the
   EXE being replaced and the new version reporting itself.
 
+## Wizard capture
+
+The installer is a native Windows dialog, so its pages appear in no screenshot of
+the app. `pnpm verify:self-update --wizard --archive` reads them from the
+dialog's own controls and commits them with this record:
+[capture.md](media/releases/0.8.3-wizard/capture.md), four pages and exit code 0.
+
+| # | Page | What it said |
+| --- | --- | --- |
+| 1 | [Choose Installation Options](media/releases/0.8.3-wizard/pages/01-Choose%20Installation%20Options.png) | "Who should this application be installed for?"; "There is already a per-user installation.(C:\Kryvex) Will reinstall/upgrade." |
+| 2 | [Choose Install Location](media/releases/0.8.3-wizard/pages/02-Choose%20Install%20Location.png) | Destination `C:\Kryvex`; "Space required: 421.3 MB" |
+| 3 | [Installing](media/releases/0.8.3-wizard/pages/03-Installing.png) | "Please wait while Kryvex is being installed." |
+| 4 | [Completing Kryvex Setup](media/releases/0.8.3-wizard/pages/04-Completing%20Kryvex%20Setup.png) | "Kryvex has been installed on your computer. Click Finish to close Setup."; **Run Kryvex** checked |
+
+The capture was made after this release was published, and because 0.8.3 is the
+latest release it is a same-version reinstall — the installer itself calls it a
+reinstall/upgrade. The install page ran for 20,323 ms between the two pages, and
+the installer exited 0. The next release's capture is the first that will record
+a real version change, driven by the app's own update.
+
 ## Known limitations
+
 
 - The artifacts are **unsigned**; Windows SmartScreen may warn about an unknown
   publisher.

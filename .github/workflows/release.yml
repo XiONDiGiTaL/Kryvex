@@ -36,6 +36,9 @@ jobs:
             process.exit(1);
           }"
 
+      - name: Check the release record carries its wizard capture
+        run: node scripts/check-release-record.cjs
+
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm typecheck

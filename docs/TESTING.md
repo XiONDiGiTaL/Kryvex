@@ -947,6 +947,13 @@ pnpm verify:self-update --installer <path>   # capture a specific installer
 pnpm verify:self-update --exe <path>         # a non-default installation
 ```
 
+`--archive` copies the capture into `docs/media/releases/<version>-wizard/` —
+`wizard.json`, a PNG per page and a `capture.md` — so the release record carries
+what its installer showed. `pnpm release:check` fails when the record for the
+current version has no such section or archive, and the release workflow runs
+that check before it builds anything, so a tag cannot ship a record that omits
+the wizard.
+
 What the driver does:
 
 1. Resolves the installed `Kryvex.exe` from `HKCU\Software
