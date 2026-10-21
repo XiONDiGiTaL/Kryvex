@@ -871,3 +871,64 @@ auth popup cookie, the cookie surviving a restart and per-service clearing.
 changes popup routing in `main.ts` and browser tabs in the renderer; none of
 those harnesses was re-run, so they are not claimed for this tree.
 
+## Published 0.8.3 artifacts — 2026-10-21
+
+Run after the tag-triggered workflow published the release, against the EXEs
+downloaded from `github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.3`.
+
+| Check | Result |
+| --- | --- |
+| Workflow run 39582848868 | success — tag/version check, install, typecheck, tests, `package:win`, checksums, publish |
+| Release state | `v0.8.3` published, `isDraft: false`, `isPrerelease: false` |
+| Asset digests vs `SHA256SUMS.txt` | identical for both EXEs (`ed91ad07…8787` Setup, 120,292,667 B; `850fe2c6…8ec4` Portable, 120,055,522 B) |
+| Version resources | both report `ProductVersion 0.8.3` |
+| Shipped archive | the Portable EXE's `resources/app.asar` reports package version `0.8.3`, contains `dist-electron/popup-tabs.js` and `dist-electron/popup-rules.js`, and `main.js` registers `kryvex:popups:list|canvas|show|hide|hide-all|close|action`; the placement code has `skipTaskbar` and `setBounds`, and the policy has `background-tab` and `about:blank` |
+
+**Not executed:** the Portable EXE from this release was not launched; the update
+run below exercised the installed build instead, and the archive was inspected
+statically.
+
+## In-app self-update, 0.8.2 → 0.8.3 — 2026-10-21
+
+The installed 0.8.2 at `C:\Kryvex` was driven through its own **Settings →
+Updates** to the published 0.8.3. The app was started from that install with an
+isolated profile (`KRYVEX_USER_DATA`, `APPDATA` and `LOCALAPPDATA` redirected)
+and `--remote-debugging-port`; the panel was read and clicked through DevTools in
+the real renderer.
+
+| Stage | What the installed 0.8.2 showed |
+| --- | --- |
+| Before a check | `v0.8.2 · BUILD INSTALLED`, "No update check has run yet.", `Check for updates` / `View release` |
+| After **Check for updates** | `Kryvex 0.8.3 is available.`, "Download the installer, then Kryvex verifies it against the release checksum.", `Download update` / `View release` / `Check again`, notes `**Full Changelog**: …/compare/v0.8.2...v0.8.3` |
+| After **Download update** | `Kryvex 0.8.3 is ready to install.`, "The installer was verified. Kryvex closes, runs it, and you can reopen when it finishes.", `Install and restart` |
+| After **Install and restart** | "Closing Kryvex to install…", `Installing…`; the app exited with code 0 and the wizard opened |
+
+Checks on the artifacts and the result:
+
+| Check | Result |
+| --- | --- |
+| Downloaded installer | `updates/Kryvex-Setup-0.8.3-x64.exe`, 120,292,667 bytes, SHA-256 `ed91ad0793de3a504c1a2667fbe464959da57429ee7c80af1240ed86533b8787` — identical to the published digest, so the mandatory checksum check passed on the real file |
+| Time to ready | the panel was already at `is-ready` at the first poll 1.5 s after **Download update**; the download was not re-measured for throughput |
+| Installation target | `C:\Kryvex`, replacing the installed 0.8.2 in place |
+| Installed binary | `Kryvex.exe` reports `ProductVersion 0.8.3.0` and a write time of 2026-10-21 06:14 |
+| Relaunched app | `window.kryvex.appInfo()` returns `version 0.8.3`, `packaged true`, Electron 44.2.0 / Chrome 152.0.7977.76 |
+| Settings → Updates after the update | `v0.8.3 · BUILD INSTALLED`, `Kryvex 0.8.3 is the latest release.`, `UP TO DATE`, "Last checked Oct 21, 2026, 06:19 AM" |
+| **Check for updates** again | stayed `current` with the same title and verdict |
+
+Not recorded:
+
+- The wizard was advanced by sending `Enter` to its default button. Only the
+  window title (`Kryvex Setup`) and the installed result were captured, not the
+  page sequence or its copy.
+- The installer process's exit code came back empty (PowerShell returned no
+  value), so "the wizard finished" rests on the process exiting, the EXE being
+  replaced and the new version reporting itself.
+- The finish page relaunched Kryvex with the **real** user profile
+  (`%APPDATA%\Kryvex`), because NSIS starts the app through the shell rather
+  than inheriting the driver's environment. That instance was closed with a
+  window close, and the version check was a separate launch with an isolated
+  profile.
+- Before this run the installed copy was 0.8.2, the version the previous
+  self-update run left behind; this run moved the real installation to 0.8.3
+  rather than a sandbox.
+

@@ -193,6 +193,19 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   clean; `verify:popups` PASS with a popup tab titled by its page, `kx-popup-ok`
   received by the opener, **0 px** drift between the popup client rectangle and
   the canvas, hide/show on tab switch, and a clean return to the opener on close.
+- **Shipped:** 0.8.3 was tagged at `fc64024`; the Release workflow (run
+  39582848868) passed and published `Kryvex-Setup-0.8.3-x64.exe` (120,292,667 B,
+  `ed91ad07…8787`) and `Kryvex-Portable-0.8.3-x64.exe` (120,055,522 B,
+  `850fe2c6…8ec4`), whose downloaded copies match `SHA256SUMS.txt` and report
+  `ProductVersion 0.8.3`. The Portable build's extracted `app.asar` carries
+  `popup-tabs.js` and `popup-rules.js` and registers every `kryvex:popups:*`
+  channel.
+- **Update path checked end to end:** the installed 0.8.2 at `C:\Kryvex` showed
+  `Kryvex 0.8.3 is available.` after **Check for updates**, downloaded a file
+  hashing to the published digest, reported `Kryvex 0.8.3 is ready to install.`
+  after verification, exited with code 0 on **Install and restart**, and left
+  `Kryvex.exe` at `ProductVersion 0.8.3.0`. Relaunched, Settings → Updates read
+  `v0.8.3 · BUILD INSTALLED` with a green **UP TO DATE** verdict.
 
 ## Verified evidence (2026-10-21, published 0.8.0 artifacts)
 

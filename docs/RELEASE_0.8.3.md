@@ -58,8 +58,15 @@ Built by the tag-triggered workflow with `pnpm run package:win` under
 
 `SHA256SUMS.txt` is authoritative: it is generated from the published files by
 `scripts/release-checksums.cjs`, and the updater ignores any release whose
-installer has no matching entry. Sizes and digests are recorded here after the
-build.
+installer has no matching entry.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.8.3-x64.exe` | 120,292,667 B (114.7 MiB) | `ed91ad0793de3a504c1a2667fbe464959da57429ee7c80af1240ed86533b8787` |
+| `Kryvex-Portable-0.8.3-x64.exe` | 120,055,522 B (114.5 MiB) | `850fe2c6aa5112563b31f9927ccec345429f8f03dbeb56390b333d004f4a8ec4` |
+
+Both downloaded copies hash to those values and to the digests GitHub reports,
+and both EXEs report `ProductVersion 0.8.3`.
 
 ## Install
 
@@ -86,10 +93,54 @@ The Portable EXE runs without installation. Its state still lives in
 - `node scripts/verify-service-engine.cjs` — PASS.
 - `node scripts/audit-i18n.cjs` — clean; the popup tab's fallback label and the
   canvas note are translated for es/de/fr.
-- Previously recorded and unchanged by this release: the installed 0.8.1 was
-  driven through **Settings → Updates** to 0.8.2, with the downloaded installer
-  matching the published SHA-256 and the installed binary reporting
-  `ProductVersion 0.8.2` (see [TESTING.md](TESTING.md)).
+- Published artifacts: the tag workflow (run 39582848868) passed every step and
+  published a stable, non-draft release. The downloaded Setup and Portable EXEs
+  hash to `SHA256SUMS.txt` and to the digests GitHub reports, and both report
+  `ProductVersion 0.8.3`. Extracting the Portable build's `resources/app.asar`
+  shows `dist-electron/popup-tabs.js` and `dist-electron/popup-rules.js` beside
+  a `main.js` that registers every `kryvex:popups:*` channel, with `skipTaskbar`
+  and `setBounds` in the placement code — the feature is in the shipped binary,
+  not only in the checkout.
+
+## Self-update from an installed 0.8.2
+
+The installed 0.8.2 at `C:\Kryvex` was driven through its own **Settings →
+Updates** to this release, with an isolated profile and a DevTools port so the
+panel could be read without touching the user's state.
+
+| Stage | What the installed 0.8.2 showed |
+| --- | --- |
+| Before a check | `v0.8.2 · BUILD INSTALLED`, "No update check has run yet.", `Check for updates` / `View release` |
+| After **Check for updates** | `Kryvex 0.8.3 is available.`, "Download the installer, then Kryvex verifies it against the release checksum.", `Download update` / `View release` / `Check again`, with the release notes reading `**Full Changelog**: …/compare/v0.8.2...v0.8.3` |
+| After **Download update** | `Kryvex 0.8.3 is ready to install.`, "The installer was verified. Kryvex closes, runs it, and you can reopen when it finishes.", `Install and restart` |
+| After **Install and restart** | "Closing Kryvex to install…", then the app exited with code 0 and the NSIS wizard opened |
+
+The file the updater downloaded into its own profile was
+`updates/Kryvex-Setup-0.8.3-x64.exe`, 120,292,667 bytes, SHA-256
+`ed91ad0793de3a504c1a2667fbe464959da57429ee7c80af1240ed86533b8787` — identical
+to the published digest, so the mandatory check ran on the real file rather than
+a fixture.
+
+After the wizard finished, `C:\Kryvex\Kryvex.exe` reported
+`ProductVersion 0.8.3.0` with a fresh write time, and a launch with an isolated
+profile returned `version 0.8.3`, `packaged true`, Electron 44.2.0 / Chrome 152.
+Settings → Updates in that build read `v0.8.3 · BUILD INSTALLED`,
+"Kryvex 0.8.3 is the latest release.", a green **UP TO DATE** verdict and "Last
+checked Oct 21, 2026, 06:19 AM"; pressing **Check for updates** again kept the
+same current verdict.
+
+Not recorded for this run, and not claimed:
+
+- The wizard was advanced by sending `Enter` to its default button, so only the
+  window title (`Kryvex Setup`) and the installed result were captured — not the
+  page sequence or its copy.
+- The finish page relaunched Kryvex with the **real** user profile
+  (`%APPDATA%\Kryvex`), because NSIS starts the app through the shell rather
+  than inheriting the driver's environment. That instance was closed afterwards;
+  the version check above used a separate launch with an isolated profile.
+- The reported exit code for the installer process came back empty (PowerShell
+  returned no value), so “the wizard finished” rests on the process exiting, the
+  EXE being replaced and the new version reporting itself.
 
 ## Known limitations
 
