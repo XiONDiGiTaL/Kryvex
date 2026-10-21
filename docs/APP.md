@@ -1,4 +1,4 @@
-# Kryvex application architecture (v0.8.0)
+# Kryvex application architecture (v0.8.1)
 
 This document describes the app that lives in `electron/` and `src/`. It is a
 purpose-built Electron application; no third-party desktop workspace is

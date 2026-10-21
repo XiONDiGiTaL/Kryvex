@@ -85,7 +85,7 @@ away.
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
   support ride on the same tokens.
 
-> Status: **working desktop prototype (0.8.0, packaged and published)**. The app boots, modules load, service apps stay running with their
+> Status: **working desktop prototype (0.8.1, packaged and published)**. The app boots, modules load, service apps stay running with their
 > sessions, native notifications and unread badges work, auth popups complete
 > inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
@@ -107,13 +107,13 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.8.0-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.8.0-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.8.1-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.8.1-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.8.0** artifacts are built from the complete source tree by the
+The **0.8.1** artifacts are built from the complete source tree by the
 tag-triggered workflow and published on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
-`SHA256SUMS.txt` covers the two 0.8.0 artifacts, and the in-app updater relies
+`SHA256SUMS.txt` covers the two 0.8.1 artifacts, and the in-app updater relies
 on it.
 ### Updates
 
@@ -143,10 +143,11 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The **0.8.0** Setup and Portable EXEs are built from this tree by the release
+The **0.8.1** Setup and Portable EXEs are built from this tree by the release
 workflow, and the unpacked build completes every capture route. Artifact
 checksums, verification steps and limitations are recorded in
-[docs/RELEASE_0.8.0.md](docs/RELEASE_0.8.0.md); earlier releases are in
+[docs/RELEASE_0.8.1.md](docs/RELEASE_0.8.1.md); earlier releases are in
+[docs/RELEASE_0.8.0.md](docs/RELEASE_0.8.0.md),
 [docs/RELEASE_0.7.0.md](docs/RELEASE_0.7.0.md),
 [docs/RELEASE_0.6.0.md](docs/RELEASE_0.6.0.md) and
 [docs/RELEASE_0.5.0.md](docs/RELEASE_0.5.0.md).
@@ -155,10 +156,19 @@ checksums, verification steps and limitations are recorded in
 SmartScreen may show **Unknown publisher**. Only continue if you built the
 artifact yourself or downloaded it from a release you trust.
 
-## What's new in 0.8.0
+## What's new in 0.8.1
 
-Run the model you already have, sign in where Electron used to be refused, and
-filter with lists you chose. Kryvex still hosts nothing and uploads nothing.
+One fix: closing the app no longer raises **“A JavaScript error occurred in the
+main process — TypeError: Object has been destroyed”**. The Rooms broker read
+`win.webContents` inside the window's `closed` handler, where the window is
+already gone; it now compares against a reference captured when the window was
+attached. `pnpm verify:party-close` fails with `Object has been destroyed` if the
+old read comes back. Everything in 0.8.0 is included.
+
+## What was new in 0.8.0
+
+Run the model you already have, sign in where Electron was refused, and filter
+with lists you chose. Kryvex still hosts nothing and uploads nothing.
 
 - **Run a model file:** **Settings → Vexium → Run a model file** takes a `.gguf`
   you already downloaded and starts llama.cpp's `llama-server` against it on a

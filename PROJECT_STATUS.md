@@ -1,6 +1,6 @@
 # Kryvex — Project Status
 
-**Product:** Kryvex Desktop 0.8.0 — a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.8.1 — a modular Electron workspace where web apps
 become isolated, themed service apps: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
 sessions and per-service session clearing. It also has rooms with presence,
@@ -97,20 +97,20 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   Remaining: broader e2e UI
   coverage, backup/restore,  measured performance comparison (`docs/PERFORMANCE.md` still holds no
   numbers).
-- [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0** and **0.8.0** Setup and
-  Portable EXEs are built by GitHub Actions on their `v*` tags; the workflow
-  checks the tag against `package.json`, runs typecheck and tests, runs
+- [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0**, **0.8.0** and **0.8.1**
+  Setup and Portable EXEs are built by GitHub Actions on their `v*` tags; the
+  workflow checks the tag against `package.json`, runs typecheck and tests, runs
   `package:win`, writes `SHA256SUMS.txt` and publishes the release. The 0.7.0
   unpacked build completes all twenty-seven capture routes, including Rooms, the
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.0
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.1
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it.
 - [ ] **M11 — Final review.** README with real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.0
+  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.1
   release records are in place. Outstanding: engineering report and a signed
   public release.
 

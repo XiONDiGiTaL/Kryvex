@@ -4,7 +4,7 @@
 > advice. Replace the bracketed placeholders and have a lawyer review it before
 > publishing a paid or public distribution.
 
-Last updated: 2026-10-21. Applies to Kryvex 0.8.0.
+Last updated: 2026-10-21. Applies to Kryvex 0.8.1.
 
 ## Privacy policy
 
