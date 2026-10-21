@@ -29,11 +29,11 @@
   harnesses.  Remaining: broader e2e/UI tests, backup/restore, measured performance
   comparison.
 - **M9** ◐ the tag workflow builds and publishes the Setup and Portable EXEs
-  with `SHA256SUMS.txt` — 0.6.0 through 0.8.2 so far — and the 0.7.0 unpacked
+  with `SHA256SUMS.txt` — 0.6.0 through 0.8.3 so far — and the 0.7.0 unpacked
   build completes all twenty-seven captures. Remaining: signing and
   interactive-wizard QA.
 - **M10** ✅  `XiONDiGiTaL/Kryvex` published (main, no force-push); 0.3.0 through
-  0.8.2 releases published with checksum-verified artifacts.
+  0.8.3 releases published with checksum-verified artifacts.
 - **M11** ◐ README, banner, twenty-four real-UI screenshots, limitations, testing
-  docs and release records up to 0.8.2 delivered. Remaining: engineering report
+  docs and release records up to 0.8.3 delivered. Remaining: engineering report
   and a signed public release.

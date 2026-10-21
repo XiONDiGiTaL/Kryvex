@@ -66,7 +66,8 @@ away.
   loaded into each session.
 - **A browser with a memory.** Tabs, searchable history, a full bookmark list,
   live download progress and a one-click Windows default-browser setup live in
-  the same workspace.
+  the same workspace. A page's pop-up opens as a tab, so a sign-in that needs a
+  new window finishes inside Kryvex instead of leaving for the system browser.
 - **Controls where you expect them.** Add, Settings and Help stay visible in the
   header, and Home puts the four most common actions in one strip. Keyboard
   shortcuts exist for speed, but they are not the only route through the app.
@@ -85,7 +86,7 @@ away.
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
   support ride on the same tokens.
 
-> Status: **working desktop prototype (0.8.2, packaged and published)**. The app boots, modules load, service apps stay running with their
+> Status: **working desktop prototype (0.8.3, packaged and published)**. The app boots, modules load, service apps stay running with their
 > sessions, native notifications and unread badges work, auth popups complete
 > inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
@@ -107,13 +108,13 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.8.2-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.8.2-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.8.3-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.8.3-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.8.2** artifacts are built from the complete source tree by the
+The **0.8.3** artifacts are built from the complete source tree by the
 tag-triggered workflow and published on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
-`SHA256SUMS.txt` covers the two 0.8.2 artifacts, and the in-app updater relies
+`SHA256SUMS.txt` covers the two 0.8.3 artifacts, and the in-app updater relies
 on it.
 ### Updates
 
@@ -143,10 +144,11 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The **0.8.2** Setup and Portable EXEs are built from this tree by the release
+The **0.8.3** Setup and Portable EXEs are built from this tree by the release
 workflow, and the unpacked build completes every capture route. Artifact
 checksums, verification steps and limitations are recorded in
-[docs/RELEASE_0.8.2.md](docs/RELEASE_0.8.2.md); earlier releases are in
+[docs/RELEASE_0.8.3.md](docs/RELEASE_0.8.3.md); earlier releases are in
+[docs/RELEASE_0.8.2.md](docs/RELEASE_0.8.2.md),
 [docs/RELEASE_0.8.1.md](docs/RELEASE_0.8.1.md),
 [docs/RELEASE_0.8.0.md](docs/RELEASE_0.8.0.md),
 [docs/RELEASE_0.7.0.md](docs/RELEASE_0.7.0.md),
@@ -157,7 +159,22 @@ checksums, verification steps and limitations are recorded in
 SmartScreen may show **Unknown publisher**. Only continue if you built the
 artifact yourself or downloaded it from a release you trust.
 
-## What's new in 0.8.2
+## What's new in 0.8.3
+
+A page's `window.open` used to leave Kryvex for the system browser, so a Google
+or Microsoft sign-in finished in another application and the page that started
+it waited forever for the message that ends the flow. The popup now stays in
+Kryvex: it keeps its own window — and with it `window.opener` and the session
+the provider needs — while the tab strip shows it as a tab with the page's
+title, a close button and back/forward/reload, and the window is placed exactly
+over the browser canvas so the toolbar and tabs stay yours. Another tab hides
+it, the tab shows it again, and `window.close()` returns you to the page that
+opened it. Service modules keep the sign-in window beside their stage. Electron
+cannot move that page into a tab view ("already attached to a window"), and
+moving it is what would break the sign-in, which is why the window is real and
+the tab is the shell's view of it. Everything in 0.8.2 is included.
+
+## What was new in 0.8.2
 
 Closing the app was only the most visible read of a window that no longer
 existed. This release guards the rest of the class. Choosing a download folder,

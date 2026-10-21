@@ -829,3 +829,45 @@ Not recorded:
 - The machine's installed copy was 0.7.0 before this run and is 0.8.2 now; that
   is the end state an update would have produced, but it was a real change to
   the user's installation rather than a sandbox.
+## 0.8.3 release candidate — 2026-10-21
+
+Run on the release tree at version 0.8.3, on Windows 11 with Node 24.19.0,
+Electron 44.2.0 and npm 12.0.2 (`pnpm` is not on this shell's PATH, so the same
+entry points were run through npm, npx and node).
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer and `electron/` types | `npm run typecheck` | exit 0 |
+| Unit suite | `npx vitest run` | exit 0, **287/287** in 29 files (19 new popup-rule cases) |
+| Renderer and main-process build | `npm run build` | exit 0 |
+| Window-lifecycle audit | `node scripts/audit-lifecycle.cjs` | clean, 40 files |
+| Translation audit | `node scripts/audit-i18n.cjs` | clean, 19 renderer files |
+| Popup tabs | `node scripts/verify-popup-tabs.cjs` | PASS, 0 px drift |
+| Updater, all phases | `node scripts/verify-updater.cjs` | PASS |
+| Service engine | `node scripts/verify-service-engine.cjs` | PASS |
+
+The popup run reported the following, in its own words:
+
+```
+{"opener":"http://127.0.0.1:8126/","tab":"Fixture sign-in","openerMessage":"kx-popup-ok",
+ "canvas":{"x":248,"y":130,"width":1192,"height":722},
+ "popupRect":{"title":"Fixture sign-in","x":808,"y":383,"width":1192,"height":722},
+ "drift":0,"returned":"Popup fixture"}
+```
+
+The updater run exercised the same phases as before — `available` for a fixture
+release, `checksum-failed` for a corrupted download, `ready` after a verified
+one, the **ready to install** card, `no-asset` for a source checkout,
+`no-release` for a missing feed, and the **UP TO DATE** verdict with
+`color rgb(74, 222, 128)` equal to the `--success` probe. The service engine run
+repeated mount, unread badge, service notification permission, keep-alive, the
+auth popup cookie, the cookie surviving a restart and per-service clearing.
+
+**Not run for this candidate:** `verify:guards`, `verify:restart`,
+`verify:downloads`, `verify:location-ui`, `verify:torrents`,
+`verify:torrent-restore-ui`, `verify:browser`, `verify:chromium`, `verify:rooms`,
+`verify:gallery`, `verify:layout`, `verify:wallpaper`, `verify:identity`,
+`verify:shield-filters`, `verify:model` and `verify:party-close`. This release
+changes popup routing in `main.ts` and browser tabs in the renderer; none of
+those harnesses was re-run, so they are not claimed for this tree.
+

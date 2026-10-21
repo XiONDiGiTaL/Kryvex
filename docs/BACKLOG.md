@@ -27,6 +27,8 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
   `pnpm verify:location-ui`).
 - [x] Kryvex 0.5.0 Setup/Portable release published with the download-location
   picker, checksum-verified artifacts and packaged smoke tests.
+- [x] Browser pop-ups open as in-app tabs, so a page's sign-in window returns
+  its result to the opener instead of leaving Kryvex (`pnpm verify:popups`).
 - [ ] Per-site zoom memory.
 - [x] Torrent queue restore after restart: rows reload paused with no client or
   transfer, and resume only when the user asks (`pnpm verify:torrents`).
