@@ -164,6 +164,9 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'New tab': 'Nueva pestaña',
     'Close {name}': 'Cerrar {name}',
     'Browser tabs': 'Pestañas del navegador',
+    'Pop-up': 'Ventana emergente',
+    'This sign-in window is open as a tab.':
+      'Esta ventana de inicio de sesión está abierta como pestaña.',
     'Bookmark this page': 'Marcar esta página',
     'Remove bookmark': 'Quitar marcador',
     'Bookmark saved.': 'Marcador guardado.',
@@ -552,6 +555,9 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'New tab': 'Neuer Tab',
     'Close {name}': '{name} schließen',
     'Browser tabs': 'Browser-Tabs',
+    'Pop-up': 'Pop-up',
+    'This sign-in window is open as a tab.':
+      'Dieses Anmeldefenster ist als Tab geöffnet.',
     'Bookmark this page': 'Diese Seite merken',
     'Remove bookmark': 'Lesezeichen entfernen',
     'Bookmark saved.': 'Lesezeichen gespeichert.',
@@ -934,6 +940,9 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'New tab': 'Nouvel onglet',
     'Close {name}': 'Fermer {name}',
     'Browser tabs': 'Onglets du navigateur',
+    'Pop-up': 'Fenêtre contextuelle',
+    'This sign-in window is open as a tab.':
+      'Cette fenêtre de connexion est ouverte comme onglet.',
     'Bookmark this page': 'Ajouter cette page aux signets',
     'Remove bookmark': 'Retirer le signet',
     'Bookmark saved.': 'Signet enregistré.',

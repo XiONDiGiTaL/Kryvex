@@ -27,6 +27,7 @@ import { ensureBrowserIdentity } from './identity';
 import { localModel } from './local-model';
 import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
 import { permissions } from './permissions';
+import { popupTabs } from './popup-tabs';
 import { isSafePartition } from './privacy';
 import { serviceSessions } from './service-sessions';
 import { stableUserAgent } from './user-agent';
@@ -115,6 +116,15 @@ function isSafeUrl(raw: unknown): raw is string {
   }
 }
 
+/** A canvas rectangle from the renderer; anything else clears it. */
+function isPopupRect(value: unknown): value is { x: number; y: number; width: number; height: number } {
+  if (!value || typeof value !== 'object') return false;
+  const rect = value as Record<string, unknown>;
+  return [rect.x, rect.y, rect.width, rect.height].every(
+    item => typeof item === 'number' && Number.isFinite(item),
+  );
+}
+
 function statePath(): string {
   return path.join(app.getPath('userData'), STATE_FILE);
 }
@@ -182,6 +192,11 @@ function hardenWebContents(): void {
         forwardMagnet(url);
         return { action: 'deny' };
       }
+      // A browser tab's popup becomes an in-app tab: the real Chromium window
+      // (so `window.opener` and the shared session survive) placed over the
+      // browser canvas, instead of leaving for the system browser.
+      const popup = popupTabs.open(contents, url, disposition);
+      if (popup) return popup;
       // A hidden pop-under is the signature of an ad script, not a sign-in
       // flow. Browser tabs never get one; a service still may, because some
       // OAuth providers open a background window before focusing it.
@@ -228,6 +243,9 @@ function hardenWebContents(): void {
     // own window.open calls go to the system browser rather than stacking
     // unknown windows inside the app.
     contents.on('did-create-window', window => {
+      // A popup tab keeps the window-open policy above, so a link opened from
+      // inside it stays in Kryvex too.
+      if (popupTabs.claim(window, contents)) return;
       const popup = window.webContents;
       popup.setWindowOpenHandler(({ url }) => {
         if (isSafeUrl(url)) void shell.openExternal(url);
@@ -631,6 +649,28 @@ function registerIpc(): void {
     if (!isShellSender(event) || !mainWindow || mainWindow.isDestroyed()) return;
     mainWindow.flashFrame(Boolean(active));
   });
+  ipcMain.handle('kryvex:popups:list', (event) => (isShellSender(event) ? popupTabs.list() : []));
+  ipcMain.on('kryvex:popups:canvas', (event, rect: unknown) => {
+    if (!isShellSender(event)) return;
+    popupTabs.setCanvas(isPopupRect(rect) ? rect : null);
+  });
+  ipcMain.handle('kryvex:popups:show', (event, id: unknown) =>
+    isShellSender(event) ? popupTabs.show(id) : false,
+  );
+  ipcMain.handle('kryvex:popups:hide', (event, id: unknown) =>
+    isShellSender(event) ? popupTabs.hide(id) : false,
+  );
+  ipcMain.handle('kryvex:popups:hide-all', (event) => {
+    if (!isShellSender(event)) return false;
+    popupTabs.hideAll();
+    return true;
+  });
+  ipcMain.handle('kryvex:popups:close', (event, id: unknown) =>
+    isShellSender(event) ? popupTabs.close(id) : false,
+  );
+  ipcMain.handle('kryvex:popups:action', (event, id: unknown, action: unknown) =>
+    isShellSender(event) ? popupTabs.action(id, action) : false,
+  );
   ipcMain.handle('kryvex:browser:clear-tab', async (event, partition: unknown) => {
     if (!isShellSender(event) || typeof partition !== 'string' || !BROWSER_PARTITION.test(partition)) {
       return false;
@@ -885,6 +925,7 @@ if (!gotLock) {
     defaultBrowser.attachWindow(mainWindow);
     permissions.attachWindow(mainWindow);
     torrents.attachWindow(mainWindow);
+    popupTabs.attachWindow(mainWindow);
     downloads.setTorrentFileHandler(filePath => {
       void torrents.addTorrentFile(filePath).then(result => {
         torrents.notify(result.message, result.ok ? 'success' : 'danger');

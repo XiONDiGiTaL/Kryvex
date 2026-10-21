@@ -1710,6 +1710,24 @@ kbd {
   white-space: nowrap;
 }
 
+/* A popup tab is a real popup window placed over the canvas; the tab strip
+   still owns its label, so the page never looks like a second application. */
+.tab.is-popup {
+  border-style: dashed;
+  border-color: var(--line-soft);
+}
+
+.tab.is-popup.is-active {
+  border-style: solid;
+}
+
+.tab-popup-mark {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  flex: none;
+}
+
 .tab-close {
   width: 20px;
   height: 20px;
@@ -1861,6 +1879,26 @@ kbd {
 
 .browser-page.is-hidden {
   display: none;
+}
+
+/* Shown only if the popup window could not be placed over the canvas. */
+.browser-popup-note {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+  background: var(--bg);
+  text-align: center;
+  padding: 24px;
+}
+
+.browser-popup-note p {
+  margin: 0;
+  font-size: 13px;
 }
 
 .browser-start {

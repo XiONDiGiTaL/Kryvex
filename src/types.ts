@@ -1,7 +1,11 @@
-import type { BrandIconKey } from './lib/brand-icons';
+import type {
+  BrandIconKey
+} from './lib/brand-icons';
 // The engine profile is a contract with the main process: one type, one
 // sanitizer, defined next to the Electron wiring and shared with the UI.
 import type { ChromiumSettings, EngineInfo } from '../electron/chromium-rules';
+import type { PopupTabInfo, PopupTabRect } from '../electron/types';
+export type { PopupTabInfo, PopupTabRect } from '../electron/types';
 export type {
   ChromiumColorScheme,
   ChromiumSettings,
@@ -471,6 +475,16 @@ export interface KryvexBridge {
   openDefaultApps: () => Promise<boolean>;
   takeBrowserUrls: () => Promise<string[]>;
   browserClearTab: (partition: string) => Promise<boolean>;
+  popupsList: () => Promise<PopupTabInfo[]>;
+  popupsCanvas: (rect: PopupTabRect | null) => void;
+  popupsShow: (id: string) => Promise<boolean>;
+  popupsHide: (id: string) => Promise<boolean>;
+  popupsHideAll: () => Promise<boolean>;
+  popupsClose: (id: string) => Promise<boolean>;
+  popupsAction: (id: string, action: 'back' | 'forward' | 'reload' | 'stop') => Promise<boolean>;
+  onPopupOpened: (listener: (popup: PopupTabInfo) => void) => () => void;
+  onPopupChanged: (listener: (popup: PopupTabInfo) => void) => () => void;
+  onPopupClosed: (listener: (event: { id: string }) => void) => () => void;
   serviceClearSession: (partition: string) => Promise<boolean>;
   serviceSetNotifications: (enabled: boolean) => Promise<boolean>;
   assistantProbe: (baseUrl: string) => Promise<AssistantProbe>;

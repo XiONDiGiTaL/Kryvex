@@ -156,6 +156,24 @@ export interface PartySource {
   thumbnail?: string;
 }
 
+/** One in-app popup tab: a real popup window the shell places over the canvas. */
+export interface PopupTabInfo {
+  id: string;
+  url: string;
+  title: string;
+  loading: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+}
+
+/** The browser canvas rectangle, reported by the renderer in CSS pixels. */
+export interface PopupTabRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface DefaultBrowserStatus {
   supported: boolean;
   isDefault: boolean;

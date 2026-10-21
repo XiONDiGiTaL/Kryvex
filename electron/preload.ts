@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import type { PopupTabInfo, PopupTabRect } from './types';
 
 type DownloadState = 'progressing' | 'paused' | 'completed' | 'cancelled' | 'interrupted';
 
@@ -235,6 +236,30 @@ const api = {
   takeBrowserUrls: (): Promise<string[]> => ipcRenderer.invoke('kryvex:browser:pending-urls'),
   browserClearTab: (partition: string): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:browser:clear-tab', partition),
+  popupsList: (): Promise<PopupTabInfo[]> => ipcRenderer.invoke('kryvex:popups:list'),
+  popupsCanvas: (rect: PopupTabRect | null): void =>
+    ipcRenderer.send('kryvex:popups:canvas', rect),
+  popupsShow: (id: string): Promise<boolean> => ipcRenderer.invoke('kryvex:popups:show', id),
+  popupsHide: (id: string): Promise<boolean> => ipcRenderer.invoke('kryvex:popups:hide', id),
+  popupsHideAll: (): Promise<boolean> => ipcRenderer.invoke('kryvex:popups:hide-all'),
+  popupsClose: (id: string): Promise<boolean> => ipcRenderer.invoke('kryvex:popups:close', id),
+  popupsAction: (id: string, action: 'back' | 'forward' | 'reload' | 'stop'): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:popups:action', id, action),
+  onPopupOpened: (listener: (popup: PopupTabInfo) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, popup: PopupTabInfo) => listener(popup);
+    ipcRenderer.on('kryvex:popups:opened', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:popups:opened', wrapped);
+  },
+  onPopupChanged: (listener: (popup: PopupTabInfo) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, popup: PopupTabInfo) => listener(popup);
+    ipcRenderer.on('kryvex:popups:changed', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:popups:changed', wrapped);
+  },
+  onPopupClosed: (listener: (event: { id: string }) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, event: { id: string }) => listener(event);
+    ipcRenderer.on('kryvex:popups:closed', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:popups:closed', wrapped);
+  },
   serviceClearSession: (partition: string): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:services:clear-session', partition),
   serviceSetNotifications: (enabled: boolean): Promise<boolean> =>

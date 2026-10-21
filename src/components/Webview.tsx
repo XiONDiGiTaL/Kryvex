@@ -32,7 +32,11 @@ interface WebviewProps {
   src: string;
   partition: string;
   controller?: MutableRefObject<WebviewElement | null>;
-  /** Service modules may open sign-in popups; browser tabs never do. */
+  /**
+   * Lets `window.open` reach the main process, which decides where the window
+   * goes: a service keeps its sign-in window, a browser tab gets an in-app
+   * popup tab. Without it Electron refuses the popup before that policy runs.
+   */
   allowPopups?: boolean;
   onNavigate?: (url: string) => void;
   onTitle?: (title: string) => void;

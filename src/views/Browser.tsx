@@ -6,6 +6,7 @@ import type {
   DownloadRecord,
   HistoryEntry,
   PersistedState,
+  PopupTabInfo,
   TorrentRecord,
 } from '../types';
 import { makeId } from '../lib/services';
@@ -152,7 +153,18 @@ export function Browser({
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
 }) {
   const { t, locale } = useI18n();
-  const active = tabs.find(tab => tab.id === activeTabId) ?? null;
+  // Popup tabs live in the main process: each one is a real popup window the
+  // shell places over the canvas. The renderer keeps only their tab entries.
+  const [popupTabs, setPopupTabs] = useState<PopupTabInfo[]>([]);
+  const popupOpeners = useRef(new Map<string, string | null>());
+  const activePopup = popupTabs.find(tab => tab.id === activeTabId) ?? null;
+  const active = activePopup ? null : (tabs.find(tab => tab.id === activeTabId) ?? null);
+  const currentUrl = active?.url ?? activePopup?.url ?? '';
+  const currentTitle = active?.title ?? activePopup?.title ?? '';
+  const tabsRef = useRef(tabs);
+  const activeTabRef = useRef(activeTabId);
+  tabsRef.current = tabs;
+  activeTabRef.current = activeTabId;
   const [address, setAddress] = useState(active?.url ?? '');
   const [status, setStatus] = useState<WebviewStatus>({
     loading: false,
@@ -177,6 +189,7 @@ export function Browser({
   const [findResult, setFindResult] = useState<FindResult>({ matches: 0, activeMatch: 0 });
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const findInput = useRef<HTMLInputElement | null>(null);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
   const controllers = useRef(new Map<string, WebviewElement | null>());
   const openedInitial = useRef(false);
   const notifiedDownloads = useRef(new Set<string>());
@@ -206,6 +219,93 @@ export function Browser({
     setAddress(active?.url ?? '');
     setStatus({ loading: false, canGoBack: false, canGoForward: false, error: null });
   }, [active?.id, active?.url]);
+
+  // Popup tabs: the main process announces each window it opens and the tab
+  // strip mirrors it. Closing the popup — the provider finishes and calls
+  // window.close() — returns to the tab that opened it.
+  useEffect(() => {
+    const bridge = window.kryvex;
+    if (!bridge) return;
+    let live = true;
+    void bridge.popupsList().then(list => {
+      if (!live || list.length === 0) return;
+      setPopupTabs(current => {
+        const known = new Set(current.map(tab => tab.id));
+        return [...current, ...list.filter(tab => !known.has(tab.id))];
+      });
+    });
+    const stopOpened = bridge.onPopupOpened(popup => {
+      popupOpeners.current.set(popup.id, activeTabRef.current);
+      setPopupTabs(current => [...current.filter(tab => tab.id !== popup.id), popup]);
+      setActiveTabId(popup.id);
+    });
+    const stopChanged = bridge.onPopupChanged(popup => {
+      setPopupTabs(current => current.map(tab => (tab.id === popup.id ? popup : tab)));
+    });
+    const stopClosed = bridge.onPopupClosed(({ id }) => {
+      const opener = popupOpeners.current.get(id) ?? null;
+      popupOpeners.current.delete(id);
+      setPopupTabs(current => current.filter(tab => tab.id !== id));
+      setActiveTabId(current => {
+        if (current !== id) return current;
+        if (opener && tabsRef.current.some(tab => tab.id === opener)) return opener;
+        return tabsRef.current[tabsRef.current.length - 1]?.id ?? null;
+      });
+    });
+    return () => {
+      live = false;
+      stopOpened();
+      stopChanged();
+      stopClosed();
+    };
+  }, [setActiveTabId]);
+
+  // Only the selected popup is visible: another tab, or another popup, leaves
+  // the canvas to the page underneath.
+  useEffect(() => {
+    const bridge = window.kryvex;
+    if (!bridge) return;
+    if (!activePopup) {
+      void bridge.popupsHideAll();
+      return;
+    }
+    void bridge.popupsShow(activePopup.id);
+  }, [activePopup]);
+
+  useEffect(() => {
+    if (!activePopup) return;
+    setAddress(activePopup.url);
+    setStatus({
+      loading: activePopup.loading,
+      canGoBack: activePopup.canGoBack,
+      canGoForward: activePopup.canGoForward,
+      error: null,
+    });
+  }, [activePopup]);
+
+  // The popup is a real window placed over the canvas, so the renderer owns the
+  // geometry: report it on mount, on resize, when the library panel opens, and
+  // when an ancestor scrolls.
+  useEffect(() => {
+    const bridge = window.kryvex;
+    const node = canvasRef.current;
+    if (!bridge || !node) return;
+    const report = () => {
+      const rect = node.getBoundingClientRect();
+      bridge.popupsCanvas({ x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+    };
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(node);
+    window.addEventListener('resize', report);
+    window.addEventListener('scroll', report, true);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', report);
+      window.removeEventListener('scroll', report, true);
+      bridge.popupsCanvas(null);
+    };
+  }, []);
 
   // Each tab keeps its own page zoom; Kryvex only remembers it for the session.
   useEffect(() => {
@@ -334,8 +434,8 @@ export function Browser({
   }, [isElectron]);
 
   const bookmarked = useMemo(
-    () => (active?.url ? state.bookmarks.some(bookmark => bookmark.url === active.url) : false),
-    [active?.url, state.bookmarks],
+    () => (currentUrl ? state.bookmarks.some(bookmark => bookmark.url === currentUrl) : false),
+    [currentUrl, state.bookmarks],
   );
 
   const visibleHistory = useMemo(() => {
@@ -653,6 +753,33 @@ export function Browser({
             </button>
           </div>
         ))}
+        {popupTabs.map(tab => (
+          <div
+            key={tab.id}
+            className={`tab is-popup ${tab.id === activeTabId ? 'is-active' : ''}`}
+          >
+            <button
+              role="tab"
+              aria-selected={tab.id === activeTabId}
+              className="tab-label"
+              onClick={() => setActiveTabId(tab.id)}
+              title={tab.url || tab.title || t('Pop-up')}
+            >
+              <span className="tab-dot" aria-hidden="true" />
+              <span className="tab-popup-mark" aria-hidden="true">
+                <Icon name="external" size={11} />
+              </span>
+              <span className="tab-title">{tab.title || t('Pop-up')}</span>
+            </button>
+            <button
+              className="tab-close"
+              onClick={() => void window.kryvex?.popupsClose(tab.id)}
+              aria-label={t('Close {name}', { name: tab.title || t('Pop-up') })}
+            >
+              <Icon name="close" size={12} />
+            </button>
+          </div>
+        ))}
         <button className="new-tab-btn" onClick={newTab} aria-label={t('New tab')} title={t('New tab')}>
           <Icon name="plus" size={15} />
         </button>
@@ -661,11 +788,11 @@ export function Browser({
 
         <button
           className={`icon-btn ${bookmarked ? 'is-on' : ''}`}
-          disabled={!active?.url}
+          disabled={!currentUrl}
           onClick={() => {
-            if (!active?.url) return;
+            if (!currentUrl) return;
             if (bookmarked) {
-              const existing = state.bookmarks.find(bookmark => bookmark.url === active.url);
+              const existing = state.bookmarks.find(bookmark => bookmark.url === currentUrl);
               if (existing) {
                 onRemoveBookmark(existing.id);
                 onToast(t('Bookmark removed.'), 'info');
@@ -673,8 +800,8 @@ export function Browser({
             } else {
               onAddBookmark({
                 id: makeId('b'),
-                url: active.url,
-                title: active.title || hostOf(active.url),
+                url: currentUrl,
+                title: currentTitle || hostOf(currentUrl),
                 createdAt: Date.now(),
               });
               onToast(t('Bookmark saved.'), 'success');
@@ -691,7 +818,11 @@ export function Browser({
         <button
           className="icon-btn"
           disabled={!status.canGoBack}
-          onClick={() => controllers.current.get(active?.id ?? '')?.goBack()}
+          onClick={() =>
+            activePopup
+              ? void window.kryvex?.popupsAction(activePopup.id, 'back')
+              : controllers.current.get(active?.id ?? '')?.goBack()
+          }
           aria-label={t('Back')}
         >
           <Icon name="back" size={16} />
@@ -699,15 +830,23 @@ export function Browser({
         <button
           className="icon-btn"
           disabled={!status.canGoForward}
-          onClick={() => controllers.current.get(active?.id ?? '')?.goForward()}
+          onClick={() =>
+            activePopup
+              ? void window.kryvex?.popupsAction(activePopup.id, 'forward')
+              : controllers.current.get(active?.id ?? '')?.goForward()
+          }
           aria-label={t('Forward')}
         >
           <Icon name="forward" size={16} />
         </button>
         <button
           className="icon-btn"
-          onClick={() => controllers.current.get(active?.id ?? '')?.reload()}
-          disabled={!active?.url}
+          onClick={() =>
+            activePopup
+              ? void window.kryvex?.popupsAction(activePopup.id, 'reload')
+              : controllers.current.get(active?.id ?? '')?.reload()
+          }
+          disabled={!currentUrl}
           aria-label={t('Reload')}
         >
           <Icon name="reload" size={16} />
@@ -935,10 +1074,19 @@ export function Browser({
       ) : null}
 
       <div className="browser-body">
-        <div className="browser-canvas">
+        <div className="browser-canvas" ref={canvasRef}>
           {status.loading && !status.error ? <div className="loading-bar" aria-hidden="true" /> : null}
 
-          {!active || active.url === '' ? (
+          {activePopup ? (
+            // The popup window covers this area while it is selected; the note
+            // is what remains if the window could not be shown.
+            <div className="browser-popup-note">
+              <Icon name="external" size={20} />
+              <p>{t('This sign-in window is open as a tab.')}</p>
+            </div>
+          ) : null}
+
+          {!activePopup && (!active || active.url === '') ? (
             <div className="browser-start">
               <ThemeMark mark={mark} size={64} variant="tile" />
               <h2>{active ? t('Where to?') : t('No tabs open')}</h2>
@@ -1056,6 +1204,10 @@ export function Browser({
                       key={`${tab.id}-${engineRevision}`}
                       src={tab.url}
                       partition={`browser-${tab.id}`}
+                      // Sign-in popups must reach the main process, which turns
+                      // them into in-app tabs; without this Electron refuses
+                      // window.open before the handler is consulted.
+                      allowPopups
                       controller={{
                         get current() {
                           return controllers.current.get(tab.id) ?? null;
@@ -1494,13 +1646,13 @@ export function Browser({
                   </span>
                   <button
                     className="link"
-                    disabled={!active?.url || bookmarked}
+                    disabled={!currentUrl || bookmarked}
                     onClick={() => {
-                      if (!active?.url) return;
+                      if (!currentUrl) return;
                       onAddBookmark({
                         id: makeId('b'),
-                        url: active.url,
-                        title: active.title || hostOf(active.url),
+                        url: currentUrl,
+                        title: currentTitle || hostOf(currentUrl),
                         createdAt: Date.now(),
                       });
                       onToast(t('Bookmark saved.'), 'success');

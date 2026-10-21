@@ -750,3 +750,82 @@ was not driven through an in-app install, so the self-update itself is covered b
 the feed comparison and the artifacts rather than a completed replacement; the
 model runner was inspected in the shipped UI but not started against real GGUF
 weights, because none are available on this machine.
+
+## Popup tabs — 2026-10-21
+
+A browser tab's `window.open` used to leave for the system browser, so a Google
+or Microsoft sign-in finished in another application and the opener page never
+received the `postMessage` that completes the flow. `electron/popup-tabs.ts` now
+keeps the real popup window (opener and session intact) and places it over the
+browser canvas as a popup tab.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `pnpm typecheck` | exit 0 | Renderer and `electron/` |
+| `pnpm test` | exit 0, **287/287** in 29 files | Includes 19 new `popup-rules` cases |
+| `pnpm build` | exit 0 | Renderer bundle and main process |
+| `node scripts/verify-popup-tabs.cjs` | **PASS** | Real app, loopback fixture, CDP |
+| `node scripts/audit-lifecycle.cjs` | exit 0, 40 files | No window reads in close handlers |
+| `node scripts/audit-i18n.cjs` | exit 0, 19 files | New strings go through `t()` |
+
+`verify-popup-tabs.cjs` opens a loopback page in a browser tab and calls
+`window.open('/popup')` with a user gesture from the guest. It asserts, in one
+run: a `.tab.is-popup` entry with the popup page's title becomes the selected
+tab; the opener page's `message` listener receives `kx-popup-ok` (the step that
+fails when the window leaves Kryvex); the popup window's client rectangle equals
+the canvas rectangle measured in the shell, drift 0 px; selecting the opener tab
+hides the popup window and selecting the popup tab shows it again; closing the
+popup removes the tab and returns to the opener.
+
+Not verified here:
+
+- A real Google or Microsoft sign-in was not completed (no test accounts). The
+  transport the providers use — `window.opener.postMessage` across a real popup
+  on the same session — is what the harness exercises.
+- The visual screenshot of the overlay is not captured: screen capture of the
+  window region reflects whatever is in front on the desktop, and CDP screenshots
+  of the shell do not include a native child window. Placement is proven
+  numerically instead.
+- A shell modal can render behind an open popup, because the popup is an owned
+  window and stays above its parent. This is documented, not fixed.
+
+## In-app self-update, 0.8.1 → 0.8.2 — 2026-10-21
+
+The published 0.8.2 artifacts had been checked, but no installed build had been
+driven through its own updater. This run did that on Windows 11: the official
+0.8.1 Setup (`Kryvex-Setup-0.8.1-x64.exe`, SHA-256
+`880b1804…634f`, matching the v0.8.1 `SHA256SUMS.txt`) was installed to
+`C:\Kryvex`, and the app was started with an isolated profile
+(`KRYVEX_USER_DATA`, `APPDATA` and `LOCALAPPDATA` redirected) plus
+`--remote-debugging-port`.
+
+| Stage | What the installed 0.8.1 showed |
+| --- | --- |
+| Settings → Updates, before a check | `v0.8.1 · BUILD INSTALLED`, "No update check has run yet", `Check for updates` / `View release` |
+| After **Check for updates** | `Kryvex 0.8.2 is available.`, `Download update` / `View release` / `Check again` |
+| Download | `Kryvex-Setup-0.8.2-x64.exe` written into the profile's `updates/` folder in about three minutes on this connection |
+| After the download | `Kryvex 0.8.2 is ready to install.`, "The installer was verified.", `Install and restart` |
+| After **Install and restart** | the app quit and the NSIS wizard opened (`Kryvex Setup`, process `Kryvex-Setup-0.8.2-x64`) |
+
+Checks on the artifacts and the result:
+
+| Check | Result |
+| --- | --- |
+| Downloaded installer | `updates/Kryvex-Setup-0.8.2-x64.exe`, 120,287,904 bytes, SHA-256 `41a009f8c3c9c6cbf8bab3ec830ca18bb4a932492043ca2087f4241573ebe036` — identical to the published digest, so the app's mandatory checksum check passed on the real file |
+| Installation target | `C:\Kryvex` (the directory the previous install recorded in `HKCU\Software\<appId>\InstallLocation`), replacing 0.8.1 in place |
+| Installed binary | `Kryvex.exe` reports `ProductVersion 0.8.2.0` |
+| Relaunched app | `window.kryvex.appInfo()` returns `version 0.8.2`, `packaged true`, Electron 44.2.0 / Chrome 152 |
+| Settings → Updates after the update | `v0.8.2 · BUILD INSTALLED`, `Kryvex 0.8.2 is the latest release.`, `UP TO DATE`, "Last checked …" |
+
+Not recorded:
+
+- The wizard was advanced by sending `Enter` to the default button; the page
+  sequence and its exact copy were not captured, only the window title and the
+  installed result.
+- The installer's finish page relaunched Kryvex with the **real** user profile
+  (`%APPDATA%\Kryvex`), because NSIS starts the app through the shell rather
+  than inheriting the test instance's environment. The version check was then
+  repeated on a separate launch with an isolated profile.
+- The machine's installed copy was 0.7.0 before this run and is 0.8.2 now; that
+  is the end state an update would have produced, but it was a real change to
+  the user's installation rather than a sandbox.

@@ -283,7 +283,27 @@ remain in the same state file. The browser also accepts
 Open tabs are part of persisted state (`browser.tabs` / `browser.activeTabId`,
 validated down to twenty tabs). Tabs reopen by URL after a restart; page content
 is not cached, and browser tab partitions stay in-memory, so a restored tab
-starts signed out where it was signed in before.
+starts signed out where it was signed in before. Popup tabs are never persisted:
+they belong to a live window.
+
+Popups stay inside Kryvex. `electron/popup-tabs.ts` claims a browser tab's
+`window.open` (http(s) or `about:blank`, never a background pop-under) and lets
+Chromium create its real popup window, so `window.opener`, `postMessage` and the
+tab's cookie partition all survive — the part that breaks when a sign-in window
+leaves for the system browser. The window is frameless, taskbar-hidden and
+parented to the shell, and it is positioned over `.browser-canvas` using the
+rectangle the renderer reports; the tab strip shows it as a popup tab with the
+page's own title. Selecting another tab hides it, selecting the popup shows it,
+and `window.close()` removes the tab and returns to the opener. The address bar,
+back/forward and reload act on the popup through IPC. Service modules keep the
+plain child sign-in window they already had, because their popups belong beside
+the service stage.
+
+Electron cannot move an allowed popup's `webContents` into a tab (adopting it
+into a `WebContentsView` fails with "already attached to a window"), which is why
+the page is a real window placed over the canvas rather than a tab in the DOM.
+The trade-off is z-order: a shell modal opened while a popup is visible can
+appear behind it.
 
 `Ctrl+F` opens find-in-page for the active tab (`findInPage` / `stopFindInPage`
 on the webview), with match counts and next/previous. `Ctrl +`/`Ctrl -` step the
@@ -381,9 +401,9 @@ renderer mounted. Kryvex never changes the system default silently.
   is registered on the session after those checks, never from webview markup.
 - `app.on('web-contents-created')` blocks non-http navigation inside webviews
   and popups. `window.open` from a recorded service partition becomes a
-  sandboxed child window on that same session; from a browser tab it is
-  externalised, except background pop-unders, which are denied. The shell
-  always externalises.
+  sandboxed child window on that same session. From a browser tab it becomes an
+  in-app popup tab on the same session, placed over the canvas; background
+  pop-unders and non-http(s) URLs are denied. The shell always externalises.
 - Permissions are denied except clipboard-sanitized-write, fullscreen, an
   explicit microphone/camera grant and notifications for a service partition
   while **Settings → Service apps → Desktop notifications** is on. Media
