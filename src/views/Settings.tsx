@@ -1785,7 +1785,15 @@ export function Settings({
           {isElectron ? (
             <>
               <div className={`update-status is-${updatePhase}`} aria-live="polite">
-                <strong>{updateTitle}</strong>
+                <div className="update-status-head">
+                  <strong>{updateTitle}</strong>
+                  {updatePhase === 'current' ? (
+                    <span className="update-verdict is-current" data-testid="update-up-to-date">
+                      <Icon name="check" size={12} />
+                      {t('UP TO DATE')}
+                    </span>
+                  ) : null}
+                </div>
                 <p>{updateDetail}</p>
                 {updatePhase === 'available' && update?.releaseName ? (
                   <p className="mono update-release-name">{update.releaseName}</p>

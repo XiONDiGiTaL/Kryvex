@@ -33,6 +33,16 @@ toast for that version in the current session. Opening it jumps to the Updates
 panel. The preference is stored in the normal state file as
 `settings.autoCheckUpdates` and defaults to `true` for existing profiles.
 
+## When there is no update
+
+A check that finds nothing newer is still an answer, so the panel shows one: a
+green **UP TO DATE** verdict with a check mark sits beside `Kryvex <version> is
+the latest release.`, and the status card picks up the theme's success colour.
+Clicking **Check for updates** by hand also raises a success toast naming the
+running version, so a click never looks like it did nothing. The same verdict
+appears when the running build is ahead of the newest published release (for
+example a local build), because no update is available in either case.
+
 ## Trust chain
 
 1. The feed URL is fixed to

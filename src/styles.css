@@ -2103,10 +2103,40 @@ kbd {
   background: var(--bg);
 }
 
+.updates-panel .update-status-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
 .updates-panel .update-status strong {
   color: var(--ink);
   font-size: 13px;
   font-weight: 600;
+}
+
+/* The green verdict shown once a check proves no newer release exists. */
+.updates-panel .update-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.updates-panel .update-verdict.is-current {
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 40%, var(--line-soft));
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+}
+
+.updates-panel .update-status.is-current {
+  border-color: color-mix(in srgb, var(--success) 32%, var(--line-soft));
 }
 
 .updates-panel .update-status > p {

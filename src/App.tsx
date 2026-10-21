@@ -532,6 +532,16 @@ export default function App() {
     try {
       const next = await window.kryvex.updateCheck();
       if (next) setUpdate(next);
+      // A manual check that finds nothing is still an answer: say so plainly
+      // instead of leaving the panel looking as if nothing happened.
+      if (next?.phase === 'current') {
+        pushToast(
+          t('Kryvex {version} is up to date.', {
+            version: next.latestVersion ?? next.currentVersion,
+          }),
+          'success',
+        );
+      }
     } catch {
       pushToast(t('The update check failed.'), 'danger');
     }

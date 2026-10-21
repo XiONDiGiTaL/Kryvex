@@ -19,6 +19,7 @@ const root = path.resolve(__dirname, '..');
 const profile = path.join(root, '.tmp-update-profile');
 const port = Number(process.env.KRYVEX_UPDATE_TEST_PORT || 9444);
 const cdpPort = Number(process.env.KRYVEX_UPDATE_CDP_PORT || 9445);
+const appVersion = require(path.join(root, 'package.json')).version;
 const assetName = 'Kryvex-Setup-9.9.9-x64.exe';
 const assetBytes = crypto.randomBytes(256 * 1024);
 const assetHash = crypto.createHash('sha256').update(assetBytes).digest('hex');
@@ -31,12 +32,15 @@ let serverPort = port;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function payload() {
+  // `current` serves exactly the running version so the check proves the
+  // up-to-date branch instead of always finding a newer release.
+  const version = feedMode === 'current' ? appVersion : '9.9.9';
   return {
-    tag_name: 'v9.9.9',
-    name: 'Kryvex 9.9.9 test feed',
+    tag_name: `v${version}`,
+    name: `Kryvex ${version} test feed`,
     body: 'A local release used by the updater harness.',
     published_at: new Date().toISOString(),
-    html_url: 'https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v9.9.9',
+    html_url: `https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v${version}`,
     draft: false,
     prerelease: false,
     assets: [
@@ -320,6 +324,53 @@ async function main() {
   console.log('missing release:', JSON.stringify({ phase: missing.phase, error: missing.error }));
   if (missing.phase !== 'error' || missing.error !== 'no-release') {
     throw new Error('A missing release was not reported.');
+  }
+
+  // Latest published release equals the running build: the panel must say so
+  // with the green verdict instead of leaving the previous state on screen.
+  feedMode = 'current';
+  const current = await cdp.evaluate(`window.kryvex.updateCheck()`);
+  console.log(
+    'up-to-date check:',
+    JSON.stringify({ phase: current.phase, latest: current.latestVersion }),
+  );
+  if (current.phase !== 'current') throw new Error('Expected the up-to-date phase.');
+  if (current.latestVersion !== appVersion) throw new Error('Wrong latest version.');
+
+  await cdp.evaluate(`location.hash = '#/settings?section=updates'; true`);
+  await waitFor(
+    cdp.evaluate,
+    `Boolean(document.querySelector('.updates-panel'))`,
+    'the updates panel',
+  );
+  const upToDateUi = await waitFor(
+    cdp.evaluate,
+    `(() => {
+      const verdict = document.querySelector('.updates-panel [data-testid="update-up-to-date"]');
+      const panel = document.querySelector('.updates-panel .update-status');
+      if (!verdict || !panel) return null;
+      // Resolve the theme's success colour so the green tint is proven, not assumed.
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--success)';
+      document.body.appendChild(probe);
+      const success = getComputedStyle(probe).color;
+      probe.remove();
+      return {
+        label: verdict.textContent.trim(),
+        icon: Boolean(verdict.querySelector('svg')),
+        current: panel.classList.contains('is-current'),
+        color: getComputedStyle(verdict).color,
+        success,
+      };
+    })()`,
+    'the up-to-date verdict',
+  );
+  console.log('up-to-date UI:', JSON.stringify(upToDateUi));
+  if (!upToDateUi.label.includes('UP TO DATE')) throw new Error('The verdict text is missing.');
+  if (!upToDateUi.icon) throw new Error('The verdict has no check icon.');
+  if (!upToDateUi.current) throw new Error('The status card did not switch to current.');
+  if (upToDateUi.color !== upToDateUi.success) {
+    throw new Error(`The verdict is not tinted by the success colour (${upToDateUi.color}).`);
   }
 
   cdp.close();

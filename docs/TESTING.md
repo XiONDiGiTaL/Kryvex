@@ -1,4 +1,4 @@
-# Testing record — Kryvex (0.3.0–0.7.0)
+# Testing record — Kryvex (0.3.0–0.8.0)
 
 All results below were produced on 2026-10-19 on Windows with Node 24.19.0,
 pnpm 12.3.4 and Electron 44.2.0. Commands were run from `X:\Veyra`; no test was
@@ -555,3 +555,33 @@ Turning the switch off, then reloading, leaves `backgroundImage: none`.
 **Not executed:** the wash was checked against computed styles and screenshots,
 not a colorimetric comparison across all 90 catalogue themes; and the web-only
 preview's localStorage path for images was not exercised.
+
+## Up-to-date verdict — 0.8.0 (2026-10-20)
+
+A check that finds no newer release now proves it instead of leaving the panel
+unchanged: a green **UP TO DATE** verdict with a check mark sits beside the
+latest-release line, the card takes the theme's success colour, and a manual
+check raises a success toast. Run on Windows with Node 24.19.0 and Electron
+44.2.0 from `X:\Veyra`.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `npm run typecheck` | exit 0 | Renderer and `electron/` in strict mode |
+| `npx vitest run` | exit 0, **261/261** in 27 files | Adds the verdict and toast copy to all four languages, keeps the JSX copy audit clean |
+| `npm run build` | exit 0 | Renderer and main |
+| `node scripts/verify-updater.cjs` | PASS | Real app, local feed: the existing release, checksum, download and source cases, then a feed serving the running version. Status becomes `current`, and the panel renders `.update-verdict` with `UP TO DATE`, an SVG check, `.update-status.is-current`, and a computed colour identical to `var(--success)` (`rgb(74, 222, 128)` in Kryvex Dark) |
+| `npx electron scripts/verify-local-model.cjs` | PASS | A `.gguf` path is accepted, a non-GGUF path is rejected, the fake llama.cpp server starts on loopback, `/v1/models` reports it, a chat reply streams, and the process stops |
+| `node scripts/verify-service-engine.cjs` | PASS | Re-run on the 0.8.0 tree: unread badge `7`, sign-in popup cookie, `cookie after restart: "kx=session-ok"`, and the per-service clear |
+| `node scripts/verify-restart.cjs` | PASS | Theme and a browser tab survive an immediate close; a URL passed on the command line joins the restored tab |
+| `npm run audit:i18n` | clean | No hardcoded UI strings in 19 renderer files |
+
+`verify-updater.cjs` previously only exercised an available release, so the
+new `feedMode = 'current'` case is what guards the verdict from regressing; it
+compares the verdict's computed colour against a probe element painted with
+`var(--success)` rather than hardcoding a hex value.
+
+**Not executed:** the toast was exercised through the code path and types, not
+clicked in a packaged build; the screenshot for this pass came from the source
+checkout (`BUILD SOURCE`), and no packaged 0.7.1 exists yet. `verify-local-model`
+uses `scripts/fake-llama-server.mjs`, not a real llama.cpp binary with real
+weights.

@@ -34,6 +34,16 @@ describe('feature copy', () => {
     expect(makeI18n('de').t('GPU layers: {count}', { count: 999 })).toBe('GPU-Schichten: 999');
   });
 
+  it('localizes the up-to-date verdict shown after a check', () => {
+    expect(makeI18n('es').t('UP TO DATE')).toBe('AL DÍA');
+    expect(makeI18n('de').t('UP TO DATE')).toBe('AKTUELL');
+    expect(makeI18n('fr').t('UP TO DATE')).toBe('À JOUR');
+    expect(
+      makeI18n('de').t('Kryvex {version} is up to date.', { version: '1.2.3' }),
+    ).toBe('Kryvex 1.2.3 ist auf dem neuesten Stand.');
+    expect(makeI18n('en').t('UP TO DATE')).toBe('UP TO DATE');
+  });
+
   it('localizes the developer credit links', () => {
     expect(makeI18n('es').t('{name} on GitHub', { name: 'player529' })).toBe('player529 en GitHub');
     expect(makeI18n('de').t('{name} on GitHub', { name: 'XiONDiGiTaL' })).toBe('XiONDiGiTaL auf GitHub');

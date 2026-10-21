@@ -511,7 +511,9 @@ every surface, focus ring and chart follows it.
 running build and explain what each build can do with a new version. Installed
 builds download a checksum-verified Setup EXE and can install it on restart;
 portable builds reveal the verified EXE for a manual swap; a git checkout just
-links to the release.
+links to the release. When nothing newer exists the panel says so in green — an
+**UP TO DATE** verdict beside the running version — and a manual check confirms
+with a toast instead of leaving the panel looking untouched.
 
 ### Download location
 

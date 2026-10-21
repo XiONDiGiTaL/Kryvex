@@ -1,6 +1,6 @@
 # Kryvex — Project Status
 
-**Product:** Kryvex Desktop 0.7.0 — a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.8.0 — a modular Electron workspace where web apps
 become isolated, themed service apps: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
 sessions and per-service session clearing. It also has rooms with presence,
@@ -259,6 +259,23 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   `{name} on GitHub` in es/de/fr); the edition marks are brand names and stay as
   written. `tests/i18n.test.ts` runs the audit so a hardcoded sentence fails CI.
 
+## Verified evidence (2026-10-20, up-to-date verdict)
+
+- `npm run typecheck` → exit 0; `npx vitest run` → exit 0, **261/261** in 27
+  files; `npm run build` → exit 0.
+- `node scripts/verify-updater.cjs` → **PASS**. The harness gained a feed that
+  serves the running version: the status became `current`, the panel rendered
+  `.update-verdict` with the text `UP TO DATE`, an SVG check, and
+  `.update-status.is-current`, and the verdict's computed colour equalled a
+  probe painted with `var(--success)` (`rgb(74, 222, 128)` in Kryvex Dark)
+  rather than a hardcoded hex.
+- `npx electron scripts/verify-local-model.cjs` → **PASS**: `.gguf` accepted,
+  non-GGUF refused, stand-in runtime started on loopback, `/v1/models`
+  reported it, a reply streamed, `stop()` ended the process.
+- **Limit:** the toast raised by a manual check was exercised through the code
+  path and types, not by clicking it in a packaged build; the panel screenshot
+  came from the source checkout (`BUILD SOURCE`).
+
 ## Verified evidence (2026-10-20, shield filters and local model)
 
 - `pnpm test` → exit 0, **255/255** in 27 files, including
@@ -415,15 +432,17 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   or a server-side session reset); “Open externally” is the supported escape
   hatch. Discord's own token invalidation is outside the app's control.
 - BetterDiscord/Vencord/AyuGram-style injection is deliberately not shipped;
-  compounds, local models and a gated emulator are designed but not built (see
-  `docs/PLATFORM_PLAN.md`).
+  compounds and a gated emulator are designed but not built (see
+  `docs/PLATFORM_PLAN.md`). Local models shipped as the GGUF runner above,
+  which still needs a llama.cpp binary the user supplies.
 - Notifications are all-or-nothing for service modules; there is no per-service
   mute or notification history in the shell yet.
 - “Kryvex” clearance unresolved (above).
 
 ## Next concrete action
 
-0.7.0 is tagged and published by the release workflow. Next: code signing, an
-interactive-wizard pass on the installer, and the compound manifest and
-permission sheet described in `docs/PLATFORM_PLAN.md` before adding any branded
-add-on.
+0.8.0 is prepared in `docs/RELEASE_0.8.0.md`; the tag is the remaining step,
+and the release workflow builds and publishes the artifacts from it. Next after
+that: code signing, an interactive-wizard pass on the installer, and the
+compound manifest and permission sheet described in
+`docs/PLATFORM_PLAN.md` before adding any branded add-on.
