@@ -129,6 +129,13 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 - **Guard:** `node scripts/verify-party-close.cjs` (`pnpm verify:party-close`)
   fails against the old handler with `Object has been destroyed` and passes
   against the new one, checked in both directions.
+- **Shipped:** 0.8.1 was tagged at `374f25e`, the Release workflow passed, and
+  the published `Kryvex-Setup-0.8.1-x64.exe` (120,286,681 B,
+  `880b1804…634f`) and `Kryvex-Portable-0.8.1-x64.exe` (120,049,554 B,
+  `df96bf96…b93e`) match `SHA256SUMS.txt` and report `ProductVersion 0.8.1`.
+  The downloaded Portable build's extracted `resources/app.asar` contains
+  `shell === attached` and no `shell === win.webContents`, and closing it exited
+  with code 0 and no exception text.
 
 ## Verified evidence (2026-10-21, published 0.8.0 artifacts)
 
@@ -493,8 +500,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
 ## Next concrete action
 
-0.8.0 is published from the `v0.8.0` tag with the Setup, Portable and checksum
-assets, and the running app's own rules accept that release. Next: code
-signing, an interactive-wizard pass on the installer, and the compound manifest
-and permission sheet described in `docs/PLATFORM_PLAN.md` before adding any
-branded add-on.
+0.8.1 is published from the `v0.8.1` tag with the Setup, Portable and checksum
+assets, so installed builds can pick up the close fix through **Settings →
+Updates**. Next: code signing, an interactive-wizard pass on the installer, and
+the compound manifest and permission sheet described in
+`docs/PLATFORM_PLAN.md` before adding any branded add-on.

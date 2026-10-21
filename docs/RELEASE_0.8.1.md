@@ -1,7 +1,7 @@
 # Kryvex 0.8.1 — Windows patch release
 
-Published 2026-10-21 from the `v0.8.1` tag. This is a one-fix patch: 0.7.x and
-0.8.0 could show an error dialog when the app closed.
+Published 2026-10-21 from the `v0.8.1` tag (commit `374f25e`). This is a
+one-fix patch: 0.7.x and 0.8.0 could show an error dialog when the app closed.
 
 Download the installer, portable build and checksum list from the
 [Kryvex 0.8.1 release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.1).
@@ -39,8 +39,15 @@ Built by the tag-triggered workflow with `pnpm run package:win` under
 
 `SHA256SUMS.txt` is authoritative: it is generated from the published files by
 `scripts/release-checksums.cjs`, and the updater ignores any release whose
-installer has no matching entry. Published sizes and digests are recorded below
-after the build.
+installer has no matching entry.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.8.1-x64.exe` | 120,286,681 B (114.7 MiB) | `880b1804c733ffe83b48651759746fa53e333339f35b1f4da6eed7df3702634f` |
+| `Kryvex-Portable-0.8.1-x64.exe` | 120,049,554 B (114.5 MiB) | `df96bf9672fe4b619eab6867d39b887347624e4963a65f9d3ae6dcab3604b93e` |
+
+Both downloaded copies hash to those values, and both EXEs report
+`ProductVersion 0.8.1`.
 
 ## Install
 
@@ -62,8 +69,14 @@ The Portable EXE runs without installation. Its state still lives in
   was checked in both directions.
 - `node scripts/verify-updater.cjs` — PASS, including the up-to-date branch.
 - Published artifacts: the Setup and Portable EXEs hash to the entries in
-  `SHA256SUMS.txt`, report `ProductVersion 0.8.1`, and the Portable build's
-  live update check returns `current`.
+  `SHA256SUMS.txt` and report `ProductVersion 0.8.1`.
+- The downloaded Portable EXE launched in a disposable profile with no feed
+  override: `mode: portable`, `currentVersion 0.8.1`, and the launch check
+  against the live GitHub API returned `current`. Its extracted
+  `resources/app.asar` contains `shell === attached` and no longer contains
+  `shell === win.webContents`, so the fixed handler is in the shipped binary.
+  Closing that window exited with code 0 and printed no "Object has been
+  destroyed" or "Uncaught Exception" text.
 
 ## Known limitations
 

@@ -621,6 +621,16 @@ listener.
 installed 0.7.x profile — that build still contains the old line until 0.8.1
 installs over it.
 
+**Published 0.8.1 check.** The release workflow passed and published
+`Kryvex-Setup-0.8.1-x64.exe` (120,286,681 B, `880b1804…634f`) and
+`Kryvex-Portable-0.8.1-x64.exe` (120,049,554 B, `df96bf96…b93e`); downloaded
+copies hash to those values and report `ProductVersion 0.8.1`. The downloaded
+Portable EXE, launched with no feed override, reported `mode: portable`,
+version `0.8.1`, and the live check returned `current`; its extracted
+`resources/app.asar` contains `shell === attached` and no longer contains the old
+`shell === win.webContents` read; closing that window exited with code 0 and
+printed no `Object has been destroyed` or `Uncaught Exception` text.
+
 ## Published 0.8.0 artifacts — 2026-10-21
 
 Run after the tag-triggered workflow published the release, against the EXEs
