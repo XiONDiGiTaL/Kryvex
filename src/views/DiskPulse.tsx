@@ -275,6 +275,7 @@ export function DiskPulse({
           <div className="disk-heart-top">
             <span className="mono">{health ? `${health.drive}` : t('DRIVE')}</span>
             <span className="disk-state mono">
+              {usedPercent >= 90 ? <span className="disk-alert">{t('LOW SPACE')}</span> : null}
               {health ? t('{percent}% FULL', { percent: usedPercent }) : t('CHECKING')}
             </span>
           </div>

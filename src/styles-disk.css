@@ -84,6 +84,32 @@
   color: var(--ink);
 }
 
+.disk-alert {
+  margin-right: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: var(--accent-wash);
+  letter-spacing: 0.12em;
+}
+
+.disk-heart.is-hot {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.disk-heart.is-hot .disk-ecg-line {
+  stroke: color-mix(in srgb, var(--accent) 58%, var(--ink));
+}
+
+.disk-heart.is-hot .disk-meter > span {
+  background: linear-gradient(
+    90deg,
+    var(--accent-wash-strong),
+    color-mix(in srgb, var(--accent) 55%, var(--ink))
+  );
+}
+
 .disk-ecg {
   display: block;
   width: 100%;
