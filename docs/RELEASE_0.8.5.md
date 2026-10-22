@@ -54,20 +54,21 @@ regional search engines, Vexium, the emulator itself and the lifecycle guards.
 
 ## Artifacts
 
-Built by the tag-triggered workflow with `pnpm run package:win` and attached to
-the GitHub release:
+Built by the tag-triggered workflow (run
+[39761506782](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/39761506782),
+commit `4b382ce`) and attached to the published, stable
+[v0.8.5 release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.5):
 
-| File |
-| --- |
-| `Kryvex-Setup-0.8.5-x64.exe` |
-| `Kryvex-Portable-0.8.5-x64.exe` |
-| `SHA256SUMS.txt` |
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.8.5-x64.exe` | 120,457,454 B (114.88 MiB) | `2e33e00edda119173556e890644c7e5997e468d349f5ca94a99a79baaaa337cb` |
+| `Kryvex-Portable-0.8.5-x64.exe` | 120,220,324 B (114.65 MiB) | `1dbd21a5866e7cf61fc2e48feb4efc6826fb16f6c8a88ffdfa70242341557830` |
 
-`SHA256SUMS.txt` is authoritative: it is generated from the published files by
-`scripts/release-checksums.cjs`, and the updater ignores a release whose
-installer has no matching entry. Both EXEs report `ProductVersion 0.8.5` and are
-**unsigned**. The sizes and digests of the published files, and the workflow run
-that produced them, are recorded in [TESTING.md](TESTING.md).
+`SHA256SUMS.txt` (189 B) carries both digests: it is generated from the
+published files by `scripts/release-checksums.cjs`, and the updater ignores a
+release whose installer has no matching entry. The three files were downloaded
+from the release page again, both EXEs report `ProductVersion 0.8.5`, and
+`sha256sum -c SHA256SUMS.txt` verifies both. Both are **unsigned**.
 
 ### Build note (this machine only)
 
@@ -123,6 +124,19 @@ installs pnpm, is unaffected and still runs the plain `pnpm package:win`.
   overflowed that box and rendered as `[ Emulato…` in a 3× capture, which is why
   the caption changed.
 - `node scripts/check-release-record.cjs` — PASS for 0.8.5.
+- **Published artifacts.** The release workflow passed every step (tag/version
+  check, release record, install, typecheck, 390 tests, the one-time-code relay,
+  packaging, checksums) and published a stable, non-draft release with the
+  Setup, Portable and `SHA256SUMS.txt` assets. The files were downloaded from
+  `releases/download/v0.8.5/`, hashed locally and matched the published sizes
+  and the checksum file.
+- **Published build exercised, not just hashed.** The published Portable EXE was
+  launched with `--remote-debugging-port` and an isolated profile:
+  `window.kryvex.appInfo()` returned `{version: "0.8.5", electron: "44.2.0",
+  chrome: "152.0.7977.76", node: "24.20.0", packaged: true}`, and the Services
+  row reported `[ Retro ]` / `x532` / `8-bit` with
+  `scrollWidth === clientWidth === 46` (nothing clipped). Capture:
+  [screenshots/release-0.8.5-published-tile.png](../screenshots/release-0.8.5-published-tile.png).
 
 ## Wizard capture
 
@@ -147,6 +161,10 @@ no stray instance.
 
 - The artifacts are **unsigned**; Windows SmartScreen may warn about an unknown
   publisher.
+- The pilot install in `C:\Kryvex` was replaced from the locally built installer
+  earlier the same day and reports the same `0.8.5`, so it will not be offered
+  an update to the published build; running the published Setup once picks up
+  the `[ Retro ]` caption. Nothing else differs between the two builds.
 - Lexium bundles no speech weights and no translation service. A transcript
   needs a Whisper-compatible server you run, and translation needs a
   LibreTranslate server or the keyless fallback. OCR is the only tab that works

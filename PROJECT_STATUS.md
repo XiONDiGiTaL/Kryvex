@@ -100,7 +100,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   numbers).
 - [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0**, **0.8.0**, **0.8.1**, **0.8.2**, **0.8.3**,
   **0.8.4** and **0.8.5** Setup and Portable EXEs are built by GitHub Actions on their `v*` tags
-  (**0.8.5** is also built and installed locally, before its tag); the
+  (**0.8.5** was also built and installed locally before its tag, and both
+  published EXEs were re-downloaded and hash-verified afterwards); the
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
   `package:win`, writes `SHA256SUMS.txt` and publishes the release, and it now
   refuses a tag whose release record carries no installer wizard capture
@@ -111,8 +112,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.4
-  releases published, with 0.8.5 packaged and installed but not yet tagged. Each release carries the Setup and Portable EXEs plus
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.5
+  releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it.
 - [ ] **M11 — Final review.** README with real screenshots, banner,

@@ -1072,3 +1072,34 @@ electron-builder detects pnpm from the lock file and cannot run it. Packaging
 used a temporary pnpm shim on `PATH` plus
 `--config.electronDist=<pre-extracted Electron 44.2.0>`, which also avoids an
 `EPERM` rename of `release/win-unpacked.tmp` seen three times on this drive.
+
+## Published 0.8.5 artifacts — 2026-10-22
+
+The `v0.8.5` tag (`4b382ce`) triggered release run
+[39761506782](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/39761506782),
+which completed successfully: tag/version check, release-record check, install,
+typecheck, 390 tests, the one-time-code relay, packaging, checksums and publish.
+The release is stable (not a draft or prerelease).
+
+| Asset | Bytes | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.8.5-x64.exe` | 120,457,454 | `2e33e00edda119173556e890644c7e5997e468d349f5ca94a99a79baaaa337cb` |
+| `Kryvex-Portable-0.8.5-x64.exe` | 120,220,324 | `1dbd21a5866e7cf61fc2e48feb4efc6826fb16f6c8a88ffdfa70242341557830` |
+| `SHA256SUMS.txt` | 189 | covers both |
+
+All three were downloaded from `releases/download/v0.8.5/`; `sha256sum -c
+SHA256SUMS.txt` reports OK for both EXEs, and both report `ProductVersion
+0.8.5`.
+
+The published Portable EXE was run with `--remote-debugging-port=9334` and an
+isolated `KRYVEX_USER_DATA`/`APPDATA`. `window.kryvex.appInfo()` returned
+`{"version":"0.8.5","platform":"win32","electron":"44.2.0","chrome":"152.0.7977.76","node":"24.20.0","packaged":true}`.
+On `#/services` the emulator tile read `x532` / `8-bit` / `[ Retro ]` with
+`aria-label="Emulator · element x532 · 8-bit"`, `scrollWidth === clientWidth ===
+46` and 7 px type — no ellipsis in the shipped build. Capture:
+`screenshots/release-0.8.5-published-tile.png`.
+
+**Not repeated:** the published Setup was not installed by this pass because the
+pilot `C:\Kryvex` install was running and already reports 0.8.5; the installer's
+own wizard was captured from the locally built 0.8.5 Setup earlier (five pages,
+exit 0). An in-app 0.8.4 → 0.8.5 update was therefore not exercised here.

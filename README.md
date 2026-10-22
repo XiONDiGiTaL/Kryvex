@@ -86,7 +86,7 @@ away.
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
   support ride on the same tokens.
 
-> Status: **working desktop prototype (0.8.5, packaged and installed)**. The app boots, modules load, service apps stay running with their
+> Status: **working desktop prototype (0.8.5, packaged and published)**. The app boots, modules load, service apps stay running with their
 > sessions, native notifications and unread badges work, auth popups complete
 > inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
@@ -111,8 +111,8 @@ to `release/`:
 | `Kryvex-Setup-0.8.5-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
 | `Kryvex-Portable-0.8.5-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.8.5** artifacts are built from this tree and installed locally; the
-newest **published** build is 0.8.4 on the
+The **0.8.5** artifacts are built from this tree by the tag-triggered workflow
+and published on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
 Each release is built from the complete source tree by the tag-triggered
 workflow, and `SHA256SUMS.txt` covers its two artifacts, which the in-app
