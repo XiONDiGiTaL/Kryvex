@@ -1,0 +1,318 @@
+# Vexium local models — Phase 1 survey and proposal
+
+Status: **awaiting XiØN's approval of one starter model.** Nothing in this note
+is implemented: no downloader, no download button, no bundled weights, no change
+to the running app.
+
+A nonfunctional UI sketch lives at
+[mockups/vexium-models.html](mockups/vexium-models.html) with a rendered capture
+at [media/vexium-models-mockup.png](media/vexium-models-mockup.png). Every control
+in it is inert on purpose.
+
+## 1. What "default model" means here
+
+Vexium already runs inference through the user's own llama.cpp `llama-server`
+(`electron/local-model.ts`, loopback only). This proposal adds **one** thing to
+that path: a way to fetch an existing, pinned GGUF artifact, verify it, and
+register it as a model the user may then start.
+
+| Claim | True? |
+| --- | --- |
+| Kryvex trains a model | **No.** Vexium is an assistant surface, not a model. |
+| Kryvex bundles weights | **No.** The installer stays as it is. |
+| Any download happens without a click | **No.** No download on first launch, at startup, or in the background. |
+| A "default model" exists before approval | **No.** Recommended ≠ installed ≠ running. |
+| Inference leaves the machine | **No.** It stays on `127.0.0.1`, unchanged. |
+
+Three ideas stay separate and are not conflated anywhere in this plan:
+
+1. **Installation** — fetch existing weights once, verify, keep them in
+   `userData/models`.
+2. **Retrieval** — hand approved documents to the model as context at request
+   time. No embedding server, no vector database.
+3. **Fine-tuning** — a separate, offline training project (§10). Not in the
+   desktop installer, not in this release.
+
+## 2. How the evidence below was obtained (2026-10-22)
+
+- **Catalogue metadata**: Hugging Face REST API,
+  `GET https://huggingface.co/api/models/<repo>?blobs=true`, read at the
+  repository's own commit (`sha`), which is the revision quoted in §4. That
+  response carries the `gated` flag, the card's `license` field, each file's
+  exact byte `size`, and for LFS files the LFS `sha256` (Git LFS stores the
+  content hash as the pointer oid, so this is the file's SHA-256).
+- **Artifact identity**: the first 8 MiB of each GGUF were read with an HTTP
+  `Range` request and the GGUF header parsed directly. That yielded
+  `general.architecture`, block count, head counts, key/value lengths, context
+  length, quantisation version and `general.file_type` **from the file itself**.
+  No repository code was executed; nothing was downloaded in full.
+- **Licence text**: `LICENSE` (or the card's embedded licence, for the Llama
+  quant) fetched at the same pinned revision.
+- **Runtime support**: `MODEL_ARCH` entries in
+  `https://raw.githubusercontent.com/ggml-org/llama.cpp/master/gguf-py/gguf/constants.py`
+  (`qwen2`, `qwen3`, `llama`, `gemma3`, `lfm2` all present on 2026-10-22).
+- **ModelScope**: its public file API
+  (`/api/v1/models/<repo>/repo/files?Revision=master&Recursive=true`) returns a
+  per-file `Sha256`, so an integrity interface does exist. It is **deferred**,
+  not integrated: its CDN redirect behaviour and any auth requirements were not
+  verified. See §8.
+
+Facts not verified by the above are marked **unverified** in place. Nothing here
+is copied from memory: every size, hash, licence id and architecture string was
+read from the pinned revision or the artifact header.
+
+## 3. Comparison — three practical candidates
+
+| | **A. Qwen2.5-1.5B-Instruct** | **B. Llama 3.2 3B Instruct** | **C. Qwen3-1.7B** |
+| --- | --- | --- | --- |
+| Publisher / repo | Qwen · `Qwen/Qwen2.5-1.5B-Instruct-GGUF` | Meta weights, quantised by bartowski · `bartowski/Llama-3.2-3B-Instruct-GGUF` | Qwen · `Qwen/Qwen3-1.7B-GGUF` |
+| Commit | `91cad51170dc346986eccefdc2dd33a9da36ead9` | `5ab33fa94d1d04e903623ae72c95d1696f09f9e8` | `90862c4b9d2787eaed51d12237eafdfe7c5f6077` |
+| File | `qwen2.5-1.5b-instruct-q4_k_m.gguf` | `Llama-3.2-3B-Instruct-Q4_K_M.gguf` | `Qwen3-1.7B-Q8_0.gguf` |
+| Bytes (MiB / GiB) | 1,117,320,736 (1,065.6 / 1.041) | 2,019,377,696 (1,925.8 / 1.881) | 1,834,426,016 (1,749.4 / 1.708) |
+| SHA-256 | `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e` | `6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff` | `061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a` |
+| Licence | Apache-2.0 | Llama 3.2 Community Licence | Apache-2.0 |
+| Commercial use | Yes, no threshold | Yes, under 700M MAU; attribution + naming duties | Yes, no threshold |
+| Auth / gate | None | Repo is open; the licence is accepted by use | None |
+| Arch in artifact | `qwen2` | `llama` | `qwen3` |
+| Quantisation | Q4_K_M (`file_type` 15) | Q4_K_M (`file_type` 15) | Q8_0 (`file_type` 7) — the only quant Qwen ships here |
+| Est. RAM, 4k ctx | **≈1.5–1.7 GB** | ≈2.6–2.9 GB | ≈2.5–2.7 GB |
+| CPU-first | **Yes** | Needs a comfortable 8 GB machine | Heavier KV cache than its size suggests |
+
+The byte sizes, hashes, commit ids, licence ids and architecture strings are
+read directly (§2); memory figures are estimates and say so.
+
+Screened out before the table:
+
+| Candidate | Why not |
+| --- | --- |
+| `google/gemma-3-1b-it-qat-q4_0-gguf` (commit `d1be121d36172a4b0b964657e2ee859d61138593`, 1,003,541,152 B, `gemma` licence, SHA-256 `95e5b8d891cd6a794f66c2a6fb59a41e9562b4660560b854274eceffb628b22a`) | `gated: "manual"`: an account, a gate acceptance and an access token are required, so it cannot be a one-click starter that works anonymously. The card itself returned HTTP 401 to this survey. |
+| `LiquidAI/LFM2-1.2B-GGUF` (commit `5399e76c648f4eb8c053feb1ab747277dea5bf8b`, `LFM2-1.2B-Q4_K_M.gguf`, 730,893,248 B, SHA-256 `55175400e3f509a9616227afeffd58d87e80b9f628a5d3d54ada884d85221fed`, `lfm1.0`) | Smallest and fastest option, but the LFM Open Licence is a bespoke licence with a commercial revenue threshold, and `lfm2` is a very new architecture — an older user `llama-server` would refuse the file. Kept as a later "fast lane" candidate, not the starter. |
+| `microsoft/Phi-3.5-mini-instruct-gguf` | The repository answered HTTP 401 to this survey, so its gate, licence file and artifact metadata could not be verified. Not considered further. |
+
+## 4. Candidate detail
+
+### A. Qwen2.5-1.5B-Instruct — **recommended starter**
+
+| Field | Value |
+| --- | --- |
+| Publisher | Qwen (Alibaba Cloud), first-party GGUF repository |
+| Repository | [`Qwen/Qwen2.5-1.5B-Instruct-GGUF`](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF) |
+| Revision | `91cad51170dc346986eccefdc2dd33a9da36ead9` (repo `sha`, last modified 2024-09-20) |
+| Base model | `Qwen/Qwen2.5-1.5B-Instruct` (instruction-tuned; GGUF made by the publisher, not a third-party re-quant) |
+| File | `qwen2.5-1.5b-instruct-q4_k_m.gguf` |
+| Size | 1,117,320,736 B = 1,065.6 MiB = 1.041 GiB |
+| SHA-256 | `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e` (HF LFS metadata at the pinned revision; the downloader re-hashes) |
+| Licence | Apache-2.0 — `LICENSE` at the same revision opens "Apache License Version 2.0, January 2004" |
+| Commercial use | Permitted; keep the licence and notices, state changes, no trademark grant, patent grant included. Kryvex distributes no weights, so its own obligation is to link the licence. |
+| Auth / gate | None; anonymous download |
+| Architecture | `qwen2`, 28 blocks, hidden 1,536, 12 Q heads / 2 KV heads, key/value length 128, native context 32,768 (all from the GGUF header) |
+| llama.cpp | `qwen2` is a long-standing architecture; any 2024-or-later `llama-server` build knows it |
+| Languages | Card: "**Multilingual support** for over 29 languages, including Chinese, English, French, Spanish, Portuguese, German, Italian, Russian, Japanese, Korean…" — the four Kryvex languages are claimed. **Not yet tested in Kryvex.** |
+| Context for first test | **4096**, which is already `DEFAULT_CONTEXT`; 8,192 is reasonable on a 16 GB machine, and the app clamps at 131,072 |
+| Memory estimate | ≈1.04 GiB weights + 112 MiB KV @ 4k (f16, 2×28×2×128×2 B/token) + 0.3–0.6 GB runtime overhead ⇒ **≈1.5–1.7 GB resident**. Assumes CPU inference, f16 KV, no mmap savings counted, batch ≤512. Not measured on this machine yet. |
+| Known limits | 1.5B instruction-following is shallow: unreliable multi-step reasoning, weak arithmetic (hence the deterministic tools in §9), invented app specifics without provided context, and it drifts on long inputs. Adequate for chat, rewriting, short summaries and translation drafts; not for analysis. |
+| Unverified | Actual tokens/s on this machine; the four-language output quality; whether the 32,768 native context is stable beyond 8k on CPU. |
+
+### B. Llama 3.2 3B Instruct — stronger option
+
+| Field | Value |
+| --- | --- |
+| Publisher | Meta (weights) / bartowski (quantiser, `quantized_by: bartowski`) |
+| Repository | [`bartowski/Llama-3.2-3B-Instruct-GGUF`](https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF) |
+| Revision | `5ab33fa94d1d04e903623ae72c95d1696f09f9e8` |
+| Base model | `meta-llama/Llama-3.2-3B-Instruct` (the card names it as `base_model`) |
+| File | `Llama-3.2-3B-Instruct-Q4_K_M.gguf` |
+| Size | 2,019,377,696 B = 1,925.8 MiB = 1.881 GiB |
+| SHA-256 | `6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff` |
+| Licence | Llama 3.2 Community Licence (`llama3.2`); the card embeds the agreement text |
+| Commercial use | Permitted below 700 million MAU; above it a Meta licence is required (clause 2). Duties when distributed or exposed: provide the agreement, "prominently display 'Built with Llama'", keep the Notice file with "Llama 3.2 is licensed under the Llama 3.2 Community License, Copyright © Meta Platforms, Inc. All Rights Reserved.", and prefix a derived model's name with "Llama". Kryvex links to a file rather than redistributing it, but the model manager must show these duties before install. |
+| Auth / gate | This quant repo is readable anonymously; Meta's own repo is gated. The licence is accepted by use. |
+| Architecture | `llama`, 28 blocks, hidden 3,072, 24 Q / 8 KV heads, key/value length 128, trained context 131,072 (from the GGUF header) |
+| llama.cpp | `llama` architecture, universally supported |
+| Languages | Card front matter lists `en, de, fr, it, pt, hi, es, th`; GGUF `general.languages` holds 8 entries. Kryvex's four are covered on paper. **Not tested.** |
+| Context for first test | 4096 (do not start at 131k; KV cost grows linearly) |
+| Memory estimate | ≈1.88 GiB + 448 MiB KV @ 4k (f16, 2×28×8×128×2) + 0.3–0.6 GB overhead ⇒ **≈2.6–2.9 GB resident** |
+| Known limits | Better at instructions and longer answers than A, still not a reasoning model; more RAM and roughly half the speed on the same CPU. The quantiser is a third party, so provenance is "Meta weights, bartowski quant", not "publisher GGUF". |
+| Unverified | Tokens/s; whether 3B quality justifies double the download on an 8 GB machine. |
+
+### C. Qwen3-1.7B — newer, but the wrong shape for a starter
+
+| Field | Value |
+| --- | --- |
+| Publisher | Qwen, first-party GGUF |
+| Repository | [`Qwen/Qwen3-1.7B-GGUF`](https://huggingface.co/Qwen/Qwen3-1.7B-GGUF) |
+| Revision | `90862c4b9d2787eaed51d12237eafdfe7c5f6077` |
+| Base model | `Qwen/Qwen3-1.7B` |
+| File | `Qwen3-1.7B-Q8_0.gguf` — the only quant in the repo |
+| Size | 1,834,426,016 B = 1,749.4 MiB = 1.708 GiB |
+| SHA-256 | `061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a` |
+| Licence | Apache-2.0 |
+| Commercial use | Permitted on the same terms as A |
+| Auth / gate | None |
+| Architecture | `qwen3`, 28 blocks, hidden 2,048, 16 Q / 8 KV heads, key/value length 128, native context 40,960 |
+| llama.cpp | `qwen3` is present in current llama.cpp; a build predating Qwen3 support would reject the file. The **exact minimum build was not verified here** — treat it as unverified. |
+| Languages | Card: "Support of 100+ languages and dialects"; stronger multilingual claim than A. |
+| Context for first test | 4096 |
+| Memory estimate | ≈1.71 GiB + 448 MiB KV @ 4k (8 KV heads, not 2) + overhead ⇒ **≈2.5–2.7 GB** |
+| Known limits | Twice the download and ~1.6× the RAM of A for the same parameter count, because only Q8_0 exists and its KV cache is four times larger. Thinking mode must be suppressed (`/no_think`) or a starter chat opens with reasoning dumps. Newer architecture, so older runtimes fail. |
+| Unverified | Tokens/s; `/no_think` behaviour in `llama-server`'s chat template for this exact artifact; minimum runtime build. |
+
+## 5. Recommendation and the approval request
+
+**Recommendation: A, Qwen2.5-1.5B-Instruct, `qwen2.5-1.5b-instruct-q4_k_m.gguf`.**
+
+Why: it is the only candidate that is simultaneously first-party, Apache-2.0
+with no commercial threshold, ungated, quantised by its publisher, on an
+architecture every recent `llama-server` already knows, and small enough that a
+4 GB-free machine can hold it next to the app. It is also the only one whose KV
+cache (2 KV heads) makes 8k context affordable on CPU. The tradeoff is honest:
+Llama 3.2 3B writes better prose and follows harder instructions, at 1.8× the
+download and roughly double the RAM; Qwen3-1.7B is newer and better at
+languages but ships only Q8_0 and costs more memory than its parameter count
+suggests.
+
+Approval, if granted, covers **exactly** this artifact and nothing else:
+
+| Item | Value |
+| --- | --- |
+| Repository | `Qwen/Qwen2.5-1.5B-Instruct-GGUF` |
+| Revision | `91cad51170dc346986eccefdc2dd33a9da36ead9` |
+| File | `qwen2.5-1.5b-instruct-q4_k_m.gguf` |
+| Bytes | 1,117,320,736 |
+| SHA-256 | `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e` |
+| Licence | Apache-2.0 |
+| Source host | `huggingface.co` (+ the CDN host it redirects to, to be measured before the allowlist is fixed) |
+
+Until that approval arrives: **no downloader, no enabled Download button, no
+weights, no new network code.** The sketch in
+[mockups/vexium-models.html](mockups/vexium-models.html) is inert.
+
+## 6. Phase 2 — approved model manager (plan, not code)
+
+Only after approval. Settings → Vexium → **Download models**.
+
+Files, following the existing split of pure rules + main-process side effects:
+
+| File | Role |
+| --- | --- |
+| `electron/model-catalogue.ts` | The reviewed catalogue: id, publisher, repo, revision, filename, bytes, sha256, licence id + link, arch, context, notes. **Compiled in**, not fetched. |
+| `electron/model-rules.ts` | Pure, unit-tested: catalogue schema validation, eligibility (licence/commercial/arch/size), ranking, filename generation, redirect policy, size bounds, `sha256` formatting. |
+| `electron/model-download.ts` | Main process only: HTTPS stream, allowlist, redirect validation, byte cap, hashing while streaming, `.part` file, atomic rename, cancel, cleanup, disk check. |
+| `electron/local-model.ts` | **Unchanged** except a `configure({ path })` call after install. Inference path stays as it is. |
+| IPC | `modelsCatalogue()`, `modelsInstalled()`, `modelsDownload(id)`, `modelsCancel(id)`, `modelsDelete(id, confirm)`. Ids, never URLs or paths. |
+| `model-library.json` (userData) | `{ id, filename, bytes, sha256, installedAt, licence, revision }` per installed model. Written only after verification. |
+| `src/views/Settings.tsx` + `src/lib/local-models.ts` | The panel and its view helpers; all strings via `t()` in en/es/de/fr. |
+
+Flow, exactly as specified:
+
+1. The card shows one artifact: publisher, repo + revision, filename, bytes,
+   licence, quantisation, estimated memory (**labelled an estimate**),
+   capabilities and limits, and whether a runtime is available.
+2. **Download** is an explicit click on that one card. Nothing starts on launch.
+3. Progress shows bytes transferred and total, with **Cancel**.
+4. The stream is hashed; completion requires exact byte count **and** SHA-256
+   match. Only then is the `.part` renamed into `userData/models`.
+5. **Use this model** calls the existing `modelConfigure({ path })`; **Start
+   server** stays a separate button. A combined **Download and run** is allowed
+   only with that second action disclosed in the same dialog.
+6. A running model is never stopped, replaced or switched by an install.
+
+Deletion: confirmation dialog, path resolved from `model-library.json`, and a
+refusal for anything outside `userData/models`, for a running model, or for a
+file the user imported by hand. Imported files are never deleted by the app.
+
+## 7. Threat model
+
+| # | Threat | Mitigation |
+| --- | --- | --- |
+| 1 | Renderer asks for an arbitrary URL or path | IPC accepts a catalogue **id** only; every URL, filename and size comes from the compiled catalogue. |
+| 2 | Redirect to an unapproved host | Explicit host allowlist for the first hop **and** every redirect; redirect count bounded (≤3); final URL re-validated. |
+| 3 | HTTPS downgrade | `http:` refused outright; no fallback on failure. |
+| 4 | Credentials, loopback or private-network target | Reject URLs with userinfo, and any host resolving to loopback, link-local, RFC1918 or CGNAT ranges — the same guard `electron/assistant-rules.ts` applies to assistant URLs, extended to downloads. |
+| 5 | Oversized or endless response | `Content-Length` must equal the pinned size; hard byte cap; abort on overflow; truncation detected and deleted. |
+| 6 | Wrong or tampered bytes | SHA-256 pinned at the catalogue level, computed during the stream, compared before rename. Mismatch deletes the `.part`. |
+| 7 | Path traversal via a filename | Filenames are generated (`<id>.gguf`); the remote name is never used as a path. Verified with `path.resolve` containment. |
+| 8 | Symlink / TOCTOU on rename | Write inside `userData/models` with exclusive creation, then `rename` within the same directory; refuse to follow a symlink target. |
+| 9 | Disk exhaustion | Stat the target volume, require free space ≥ size + margin, report the shortfall instead of failing mid-stream. |
+| 10 | Partial file treated as installed | Install state comes from `model-library.json` + a re-stat of the file; `.part` files are never listed and are swept on launch. |
+| 11 | Model silently replaces a running one | Install only writes the library; starting is a separate, explicit action. |
+| 12 | Model output tries to run a tool | Structured tool requests validated by schema + allowlist against real app state (§9); no command, JS, IPC or path execution. |
+| 13 | Model-card text carries instructions | All remote metadata is data, never prompt or code; it is displayed, escaped, and never fed to the model automatically. |
+| 14 | Hardware fingerprint sent out | Recommendations computed locally; no hardware detail leaves the machine unless the user explicitly asks for a remote check, and then only a plain metadata GET (§8). |
+| 15 | Token/credential leakage | The starter needs no HF token; the downloader has no auth header support in Phase 2. |
+| 16 | Runtime supply chain | Kryvex still ships no runtime binary; the existing user-provided/PATH `llama-server` is used. Model downloads and inference stay separate boundaries. |
+
+## 8. Phase 3 — discovery, deferred
+
+Start with the reviewed catalogue compiled into the app (Phase 2). Remote
+discovery, if added, is an explicit user action: one metadata request to the
+Hugging Face API, no prompts, transcripts, documents, usernames or workspace
+content, catalogue metadata cached only, an offline catalogue that always works,
+and discovered candidates displayed **separately** from installable ones until
+licence, provenance, compatibility, exact size, revision and integrity are all
+verified. Popularity and benchmark claims are signals, not proof.
+
+Ranking order: (1) runtime/arch compatibility, (2) licence eligibility,
+(3) fit in a conservative memory budget, (4) download/storage footprint,
+(5) task and language fit, (6) quality evidence and its limits. File size is
+never presented as runtime memory use.
+
+ModelScope: its file API does expose per-file `Sha256` (observed for
+`Qwen/Qwen2.5-1.5B-Instruct-GGUF` and `Qwen/Qwen3-1.7B-GGUF`), so it is a
+plausible second source. It stays a **source link + deferred adapter** until its
+download redirects and CDN hosts are documented and measured — no scraping, no
+unverified download path.
+
+## 9. Assistant behaviour and tools
+
+The starter is expected to handle ordinary conversation, rewriting, short
+summaries of text the user pastes, explanations with stated uncertainty, Kryvex
+help grounded in maintained docs, and en/de/es/fr once tested. It must not be
+sold as frontier reasoning, and it cannot know current facts without a
+retrieval step.
+
+Deterministic tools stay in the app and never go through the model: safe
+arithmetic, local date/time, unit conversion, allowlisted navigation/search.
+A model may *propose* a structured request; the app validates it against a
+strict schema and allowlist, resolves targets from real state, confirms
+state-changing actions and rejects destructive or unknown ones. The model never
+reads services, tabs, files or page content on its own; "use this text" is a
+future feature that requires an explicit selection and a visible scope.
+
+Web search stays user-triggered and discloses that the query leaves the machine;
+an entire conversation is never uploaded as a query.
+
+## 10. Optional future fine-tuning (design note only)
+
+Approved base model + licence-compatible data; never collect conversations
+silently; separate consent for any contributed example; evaluate the tuned model
+against its base on a fixed prompt set; keep base-model attribution and licence
+duties; state hardware and cost explicitly; no training dependency in the
+desktop installer. Kryvex's changing app facts are handled by retrieval of
+maintained docs, not by fine-tuning.
+
+## 11. Tests planned for Phase 2 (none written yet)
+
+Catalogue schema and pinned-artifact validation; licence/arch/compatibility
+eligibility; ranking against synthetic hardware profiles; confirmation and
+cancellation paths; redirect allowlisting and HTTPS enforcement; rejection of
+private/loopback destinations and arbitrary paths; size bounds, truncated
+responses, hash mismatch and cleanup; **no network request before consent**; a
+`.part` file never listed as installed; correct handoff to the existing
+`LocalModel`; no transcript persistence; i18n audit and assistant regressions.
+
+## 12. Not verified / open questions
+
+1. Tokens/s and resident memory for any candidate on this machine — no model was
+   downloaded or run for this note.
+2. The exact `llama.cpp` build that first supported `qwen3` (and `lfm2`); only
+   the architecture strings in current master were confirmed.
+3. Hugging Face CDN redirect hosts and their stability — the allowlist must be
+   measured before implementation, not guessed.
+4. en/es/de/fr output quality for the starter; needs a fixed prompt set run
+   after install.
+5. Gemma 3 1B's licence text: the repository is gated, so only its licence id
+   and gate flag were read.
+6. ModelScope download redirects, rate limits and auth behaviour.
+7. Whether a 1.5B model is good enough for Kryvex help without retrieval — the
+   plan assumes retrieval is required for app-specific facts.

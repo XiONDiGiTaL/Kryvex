@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vexium local models — nonfunctional mockup</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #06080a;
+        --panel: #0d1114;
+        --panel-2: #11171b;
+        --line: #1f2a30;
+        --ink: #e8e6df;
+        --muted: #8b989f;
+        --accent: #d8c690;
+        --accent-soft: #9fb3bc;
+        --danger: #e08585;
+        --mono: "Cascadia Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 40px 32px 56px;
+        background: radial-gradient(1200px 600px at 18% -10%, #0e1a1f 0%, var(--bg) 62%);
+        color: var(--ink);
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .wrap { max-width: 1080px; margin: 0 auto; }
+      .kicker { color: var(--accent); letter-spacing: 0.32em; font-size: 10px; text-transform: uppercase; }
+      h1 { font-size: 20px; letter-spacing: 0.06em; margin: 6px 0 4px; font-weight: 600; }
+      .lede { color: var(--muted); margin: 0 0 22px; max-width: 70ch; }
+      .inert {
+        display: inline-flex; gap: 8px; align-items: center;
+        border: 1px solid #3a2f18; background: #1a1509; color: var(--accent);
+        padding: 4px 10px; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+      }
+      .grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; }
+      section { border: 1px solid var(--line); background: var(--panel); }
+      section > header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 14px; border-bottom: 1px solid var(--line);
+        font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted);
+      }
+      .body { padding: 14px; }
+      .tile-row { display: flex; gap: 12px; align-items: flex-start; }
+      .tile {
+        width: 64px; height: 64px; border: 1px solid var(--line); background: var(--panel-2);
+        display: grid; place-items: center; color: var(--accent); position: relative; flex: none;
+      }
+      .tile span { font-size: 17px; letter-spacing: 0.02em; }
+      .tile small { position: absolute; top: 4px; left: 6px; font-size: 8px; color: var(--accent-soft); }
+      .name { font-size: 15px; margin: 2px 0 2px; }
+      .sub { color: var(--muted); font-size: 11.5px; }
+      dl { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 0; margin: 14px 0 0; }
+      dt, dd { margin: 0; padding: 5px 0; border-top: 1px solid #16202400; font-size: 11.5px; }
+      dt { color: var(--muted); }
+      dd { color: var(--ink); word-break: break-word; }
+      dd .hash { color: var(--accent-soft); }
+      .tag {
+        display: inline-block; border: 1px solid var(--line); padding: 0 6px; margin-left: 6px;
+        font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-soft);
+      }
+      .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+      button {
+        font: inherit; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+        padding: 7px 12px; border: 1px solid var(--line); background: #131a1e; color: var(--muted);
+        cursor: not-allowed;
+      }
+      button.primary { border-color: #3a2f18; background: #1a1509; color: #6b5c33; }
+      button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .note { margin: 12px 0 0; color: var(--muted); font-size: 11px; }
+      .note strong { color: var(--danger); font-weight: 500; }
+      .list { display: flex; flex-direction: column; gap: 10px; }
+      .row {
+        display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        border: 1px solid var(--line); background: var(--panel-2); padding: 9px 11px;
+        color: var(--muted); font-size: 11px;
+      }
+      .row b { color: var(--ink); font-weight: 500; }
+      .empty { color: var(--muted); font-size: 11.5px; padding: 6px 0 2px; }
+      .bar { height: 6px; background: #0a0f12; border: 1px solid var(--line); margin: 10px 0 6px; }
+      .bar > i { display: block; height: 100%; width: 0; background: var(--accent); }
+      .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; }
+      .foot { margin-top: 20px; color: #55636a; font-size: 10.5px; }
+      .kbd { border: 1px solid var(--line); padding: 0 4px; font-size: 10px; color: var(--muted); }
+      a { color: var(--accent-soft); }
+      @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="kicker">Kryvex · Settings → Vexium</div>
+      <h1>Download models</h1>
+      <p class="lede">
+        Phase 1 sketch. Every control below is disabled, no request is made, and no
+        weights exist in this build. A model is recommended, never installed, until
+        you approve this exact artifact and press Download.
+      </p>
+      <span class="inert">▲ Nonfunctional mockup — awaiting approval</span>
+
+      <div class="grid" style="margin-top: 20px">
+        <section>
+          <header>
+            <span>Recommended starter</span>
+            <span>qwen2.5-1.5b-instruct</span>
+          </header>
+          <div class="body">
+            <div class="tile-row">
+              <div class="tile"><small>x533</small><span>Vx</span></div>
+              <div>
+                <p class="name">Qwen2.5-1.5B-Instruct <span class="tag">CPU-first</span></p>
+                <p class="sub">Qwen (Alibaba Cloud) · first-party GGUF · Apache-2.0</p>
+              </div>
+            </div>
+
+            <dl>
+              <dt>Source</dt>
+              <dd>huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF</dd>
+              <dt>Revision</dt>
+              <dd><span class="hash">91cad51170dc346986eccefdc2dd33a9da36ead9</span></dd>
+              <dt>File</dt>
+              <dd>qwen2.5-1.5b-instruct-q4_k_m.gguf</dd>
+              <dt>Download size</dt>
+              <dd>1,117,320,736 B · 1.04 GiB</dd>
+              <dt>SHA-256</dt>
+              <dd><span class="hash">6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e</span></dd>
+              <dt>Licence</dt>
+              <dd>Apache-2.0 · commercial use permitted · no gate</dd>
+              <dt>Quantisation</dt>
+              <dd>Q4_K_M (GGUF file_type 15)</dd>
+              <dt>Memory</dt>
+              <dd>≈1.5–1.7 GB resident at 4k context <span class="tag">estimate</span></dd>
+              <dt>Architecture</dt>
+              <dd>qwen2 · 28 blocks · 2 KV heads · native 32,768</dd>
+              <dt>Languages</dt>
+              <dd>en · es · de · fr claimed by the publisher; tested: no</dd>
+              <dt>Good at</dt>
+              <dd>chat, rewriting, short summaries, translation drafts</dd>
+              <dt>Limits</dt>
+              <dd>shallow multi-step reasoning, weak arithmetic, no current facts without retrieval</dd>
+              <dt>Runtime</dt>
+              <dd>llama-server not detected — download is safe, starting needs a runtime</dd>
+            </dl>
+
+            <div class="bar" role="progressbar" aria-label="Download progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+            <div class="meta"><span>0 B of 1.04 GiB</span><span>waiting for your approval</span></div>
+
+            <div class="actions">
+              <button class="primary" disabled aria-disabled="true">Download</button>
+              <button disabled aria-disabled="true">Use this model</button>
+              <button disabled aria-disabled="true">Start server</button>
+              <button disabled aria-disabled="true">Cancel</button>
+            </div>
+            <p class="note">
+              <strong>Disabled on purpose.</strong> This card is a design sketch for the
+              approved model manager. Nothing here downloads, and the button stays
+              inert until XiØN approves this exact revision, size, hash and licence.
+            </p>
+          </div>
+        </section>
+
+        <div class="list">
+          <section>
+            <header><span>Already installed</span><span>0</span></header>
+            <div class="body">
+              <p class="empty">No models installed. This build downloaded nothing.</p>
+              <div class="row" style="margin-top: 10px"><b>Choose an existing local GGUF…</b><span>file picker</span></div>
+              <div class="row"><b>Runtime setup</b><span>llama.cpp help</span></div>
+            </div>
+          </section>
+
+          <section>
+            <header><span>Checks before download</span><span>6</span></header>
+            <div class="body">
+              <div class="row"><b>Pinned revision</b><span>required</span></div>
+              <div class="row"><b>Exact byte size</b><span>required</span></div>
+              <div class="row"><b>SHA-256 match</b><span>required</span></div>
+              <div class="row"><b>HTTPS + host allowlist</b><span>required</span></div>
+              <div class="row"><b>Licence shown first</b><span>required</span></div>
+              <div class="row"><b>Free disk space</b><span>required</span></div>
+            </div>
+          </section>
+
+          <section>
+            <header><span>Discovery</span><span>offline</span></header>
+            <div class="body">
+              <p class="empty">
+                The catalogue ships with the app. A remote “Check for models” is a
+                separate, user-triggered metadata request and is not part of this
+                phase.
+              </p>
+              <div class="actions"><button disabled aria-disabled="true">Check for models</button></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <p class="foot">
+        Nonfunctional design reference · docs/mockups/vexium-models.html · Kryvex 0.8.5
+      </p>
+    </div>
+  </body>
+</html>
