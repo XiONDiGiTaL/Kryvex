@@ -218,6 +218,63 @@ export interface AssistantSettings {
 export type LocalModelPhase = 'idle' | 'starting' | 'running' | 'stopped' | 'error';
 
 /** A GGUF file the user chose, plus the llama.cpp server serving it. */
+export interface ModelMemoryEstimate {
+  minBytes: number;
+  maxBytes: number;
+  contextTokens: number;
+}
+
+/** One reviewed artifact. The renderer receives facts, never a URL. */
+export interface ModelCatalogueEntry {
+  id: string;
+  name: string;
+  publisher: string;
+  repository: string;
+  revision: string;
+  filename: string;
+  bytes: number;
+  sha256: string;
+  licence: string;
+  licenceUrl: string;
+  quantisation: string;
+  architecture: string;
+  contextLength: number;
+  languages: string[];
+  capabilities: string[];
+  limitations: string[];
+  memory: ModelMemoryEstimate;
+  commercialUse: boolean;
+}
+
+export interface ModelInstalledRow {
+  id: string;
+  name: string;
+  filename: string;
+  bytes: number;
+  sha256: string;
+  installedAt: string;
+  licence: string;
+  revision: string;
+  present: boolean;
+  path: string;
+}
+
+export type ModelDownloadPhase = 'downloading' | 'verifying' | 'installed' | 'cancelled' | 'failed';
+
+export interface ModelDownloadProgress {
+  id: string;
+  phase: ModelDownloadPhase;
+  received: number;
+  total: number;
+  error?: string;
+}
+
+export interface ModelDownloadResult {
+  ok: boolean;
+  model?: ModelInstalledRow;
+  error?: string;
+}
+
 export interface LocalModelStatus {
   phase: LocalModelPhase;
   path: string;
@@ -671,6 +728,12 @@ export interface KryvexBridge {
   modelStart: () => Promise<LocalModelStatus>;
   modelStop: () => Promise<LocalModelStatus>;
   modelConfigure: (patch: LocalModelPatch) => Promise<LocalModelStatus>;
+  modelsCatalogue: () => Promise<ModelCatalogueEntry[]>;
+  modelsInstalled: () => Promise<ModelInstalledRow[]>;
+  modelsDownload: (id: string) => Promise<ModelDownloadResult>;
+  modelsCancel: (id: string) => Promise<boolean>;
+  modelsDelete: (id: string) => Promise<ModelDownloadResult>;
+  onModelProgress: (listener: (progress: ModelDownloadProgress) => void) => () => void;
   wallpaperLoad: () => Promise<WallpaperImage | null>;
   wallpaperSave: (dataUrl: string) => Promise<WallpaperImage | null>;
   wallpaperClear: () => Promise<boolean>;

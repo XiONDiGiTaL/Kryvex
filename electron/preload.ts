@@ -299,6 +299,16 @@ const api = {
   modelStop: (): Promise<unknown> => ipcRenderer.invoke('kryvex:model:stop'),
   modelConfigure: (patch: unknown): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:model:configure', patch),
+  modelsCatalogue: (): Promise<unknown> => ipcRenderer.invoke('kryvex:models:catalogue'),
+  modelsInstalled: (): Promise<unknown> => ipcRenderer.invoke('kryvex:models:installed'),
+  modelsDownload: (id: string): Promise<unknown> => ipcRenderer.invoke('kryvex:models:download', id),
+  modelsCancel: (id: string): Promise<boolean> => ipcRenderer.invoke('kryvex:models:cancel', id),
+  modelsDelete: (id: string): Promise<unknown> => ipcRenderer.invoke('kryvex:models:delete', id),
+  onModelProgress: (listener: (event: unknown) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, payload: unknown) => listener(payload);
+    ipcRenderer.on('kryvex:models:progress', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:models:progress', wrapped);
+  },
   wallpaperLoad: (): Promise<unknown> => ipcRenderer.invoke('kryvex:wallpaper:load'),
   wallpaperSave: (dataUrl: string): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:wallpaper:save', dataUrl),

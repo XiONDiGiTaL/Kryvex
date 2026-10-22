@@ -25,6 +25,7 @@ import { extensions } from './extensions';
 import { configurePrivacySwitches, hardenSession } from './hardening';
 import { ensureBrowserIdentity } from './identity';
 import { localModel } from './local-model';
+import { modelManager } from './model-download';
 import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
 import { permissions } from './permissions';
 import { popupTabs } from './popup-tabs';
@@ -437,6 +438,23 @@ function registerIpc(): void {
   );
   ipcMain.handle('kryvex:model:configure', (event, patch: unknown) =>
     isShellSender(event) ? localModel.configure(patch) : localModel.status(),
+  );
+  // Model downloads take a catalogue id only. URLs, sizes and paths never
+  // cross this bridge from the renderer.
+  ipcMain.handle('kryvex:models:catalogue', (event) =>
+    isShellSender(event) ? modelManager.catalogue() : [],
+  );
+  ipcMain.handle('kryvex:models:installed', (event) =>
+    isShellSender(event) ? modelManager.installed() : [],
+  );
+  ipcMain.handle('kryvex:models:download', (event, id: unknown) =>
+    isShellSender(event) ? modelManager.download(id) : { ok: false, error: 'not-in-catalogue' },
+  );
+  ipcMain.handle('kryvex:models:cancel', (event, id: unknown) =>
+    isShellSender(event) ? modelManager.cancel(id) : false,
+  );
+  ipcMain.handle('kryvex:models:delete', (event, id: unknown) =>
+    isShellSender(event) ? modelManager.remove(id) : { ok: false, error: 'not-in-catalogue' },
   );
   ipcMain.handle('kryvex:wallpaper:load', (event) =>
     isShellSender(event) ? readWallpaper(app.getPath('userData')) : null,
@@ -969,6 +987,7 @@ if (!gotLock) {
     // Restore only the display rows here; WebTorrent is created on Resume.
     torrents.init();
     localModel.init();
+    modelManager.init();
     extensions.init(session.defaultSession);
     hardenSession(session.defaultSession);
     shield.trackSession(session.defaultSession);
@@ -982,6 +1001,7 @@ if (!gotLock) {
     partyAttachWindow(mainWindow);
     extensions.attachWindow(mainWindow);
     updater.attachWindow(mainWindow);
+    modelManager.attachWindow(mainWindow);
     assistant.attachWindow(mainWindow);
     downloads.attachWindow(mainWindow);
     defaultBrowser.attachWindow(mainWindow);
@@ -1004,8 +1024,9 @@ if (!gotLock) {
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         mainWindow = createWindow();
-        partyAttachWindow(mainWindow);
-        updater.attachWindow(mainWindow);
+      partyAttachWindow(mainWindow);
+      updater.attachWindow(mainWindow);
+      modelManager.attachWindow(mainWindow);
     assistant.attachWindow(mainWindow);
       }
     });

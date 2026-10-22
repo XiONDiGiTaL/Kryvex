@@ -1378,3 +1378,130 @@ body[data-player-bar='1'] .app-main {
     padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px) + 92px);
   }
 }
+
+/* ---------- Reviewed model catalogue (Settings → Vexium) ---------- */
+
+.model-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.model-card {
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+  padding: 12px 14px;
+}
+
+.model-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.model-card-head strong {
+  font-size: 14px;
+}
+
+.model-sub,
+.model-state,
+.model-missing {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.model-state {
+  white-space: nowrap;
+  color: var(--accent-soft);
+}
+
+.model-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 14px;
+  margin: 0 0 10px;
+  font-size: 11.5px;
+}
+
+.model-facts > div {
+  display: contents;
+}
+
+.model-facts dt {
+  color: var(--muted);
+}
+
+.model-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.model-hash {
+  font-size: 10.5px;
+  color: var(--accent-soft);
+}
+
+.model-progress {
+  margin: 0 0 10px;
+}
+
+.model-progress .bar {
+  height: 6px;
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.model-progress .bar > i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 160ms linear;
+}
+
+.model-progress .meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.model-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.model-installed {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.model-message {
+  margin: 0;
+  font-size: 11.5px;
+}
+
+.model-message.tone-success {
+  color: var(--accent);
+}
+
+.model-message.tone-danger {
+  color: var(--danger, #e08585);
+}
+
+.model-message.tone-info {
+  color: var(--muted);
+}

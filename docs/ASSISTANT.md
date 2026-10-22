@@ -106,3 +106,62 @@ model.
   starts on loopback, `/v1/models` reports the file's name, a streamed chat
   reply arrives, and `stop()` ends the process. Inference speed still depends
   on the user's llama.cpp build and hardware and was not measured here.
+
+## Reviewed model downloads
+
+Settings → Vexium → **Download models** fetches exactly one artifact: the pinned
+Qwen2.5-1.5B-Instruct Q4_K_M GGUF recorded in
+[VEXIUM_MODELS.md](VEXIUM_MODELS.md). No weights are bundled, no request is made
+at launch, and inference is unchanged — the file is handed to the existing
+`LocalModel` path only when the user presses **Start server**.
+
+| Concern | Where it lives |
+| --- | --- |
+| Catalogue | `electron/model-catalogue.ts` (compiled in, one entry) |
+| Policy | `electron/model-rules.ts` (pure: URL, host, redirect, size, hash, path) |
+| Transfer | `electron/model-download.ts` (main process only) |
+| Library | `userData/kryvex-models.json`, written after verification only |
+| Bridge | `modelsCatalogue`, `modelsInstalled`, `modelsDownload`, `modelsCancel`, `modelsDelete`, `onModelProgress` |
+| UI | `src/components/ModelManager.tsx`, helpers in `src/lib/local-models.ts` |
+
+The renderer sends a **catalogue id**; the main process owns every URL, host,
+byte count and path:
+
+- one pinned revision and filename per entry, so a branch name cannot shift the
+  artifact underneath the catalogue;
+- HTTPS only, no credentials, no fragment; hosts are `huggingface.co` and
+  `.hf.co` subdomains (the measured hop was `us.aws.cdn.hf.co`);
+- redirects are followed by hand, re-validated per hop and capped at three;
+- the response must match the pinned byte count; the body is streamed to
+  `<id>.part` under `userData/models`, capped at the pinned size;
+- the finished file is re-hashed from disk and must match the pinned SHA-256
+  before an atomic rename; a failure or cancel deletes the part file;
+- free space is checked first (`statfs`), and a `.part` left by a crash is
+  swept on the next launch;
+- deletion resolves an id from the library, requires confirmation, refuses a
+  model the running server is serving, and never touches an imported file;
+- installing never stops, replaces or restarts a model.
+
+The card discloses publisher, source, revision, filename, exact bytes, SHA-256,
+licence, quantisation, architecture, estimated memory (labelled an estimate),
+languages, capabilities and limits, plus whether `llama-server` was found.
+
+### What was verified in the built app
+
+Driving the built Electron app through CDP on 2026-10-22:
+
+- the panel rendered the pinned facts (`1,117,320,736` B and the full SHA-256)
+  with a single **Download** action, and no request was made before it;
+- after the click the progress bar reported `264 MiB of 1.04 GiB` / `24%`;
+- the install finished with `1,117,320,736` bytes on disk and a locally
+  recomputed SHA-256 of
+  `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e`, matching
+  the catalogue; only the `.gguf` remained, no `.part`;
+- **Use this model** pointed `modelStatus().path` at the installed file and left
+  it `stopped` (no `llama-server` on that machine);
+- **Delete → Remove** emptied `kryvex-models.json`, removed the file and showed
+  “The model file was deleted.”
+
+Not verified: a real `llama-server` start against the downloaded file, and an
+end-to-end 1.1 GB transfer on a slow or dropping connection. The redirect hop
+was measured once with a `HEAD` request, not under every CDN region.

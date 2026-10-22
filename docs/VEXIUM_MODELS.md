@@ -1,8 +1,9 @@
 # Vexium local models — Phase 1 survey and proposal
 
-Status: **awaiting XiØN's approval of one starter model.** Nothing in this note
-is implemented: no downloader, no download button, no bundled weights, no change
-to the running app.
+Status: **approved and implemented.** XiØN approved the starter artifact in §5
+on 2026-10-22, so Settings → Vexium → **Download models** now fetches exactly
+that file (§13). No weights are bundled in the installer, nothing is fetched at
+launch, and the inference path is unchanged.
 
 A nonfunctional UI sketch lives at
 [mockups/vexium-models.html](mockups/vexium-models.html) with a rendered capture
@@ -183,9 +184,9 @@ Approval, if granted, covers **exactly** this artifact and nothing else:
 | Licence | Apache-2.0 |
 | Source host | `huggingface.co` (+ the CDN host it redirects to, to be measured before the allowlist is fixed) |
 
-Until that approval arrives: **no downloader, no enabled Download button, no
-weights, no new network code.** The sketch in
-[mockups/vexium-models.html](mockups/vexium-models.html) is inert.
+Approval was granted for exactly this list and nothing wider — one artifact,
+one revision, one hash. The shipped implementation is recorded in §13; the
+sketch in [mockups/vexium-models.html](mockups/vexium-models.html) stays inert.
 
 ## 6. Phase 2 — approved model manager (plan, not code)
 
@@ -316,3 +317,48 @@ responses, hash mismatch and cleanup; **no network request before consent**; a
 6. ModelScope download redirects, rate limits and auth behaviour.
 7. Whether a 1.5B model is good enough for Kryvex help without retrieval — the
    plan assumes retrieval is required for app-specific facts.
+
+## 13. Phase 2 as built
+
+The approved artifact is the only entry in `electron/model-catalogue.ts`. The
+panel lives inside the existing Settings → Vexium block
+(`src/components/ModelManager.tsx`), so it reuses the panel's scroll position,
+theme tokens and focus styles instead of adding a second settings surface.
+
+| File | What it does |
+| --- | --- |
+| `electron/model-catalogue.ts` | The pinned entry: repository, revision, filename, bytes, SHA-256, licence + link, quantisation, architecture, context, languages, capability/limit ids, memory estimate. |
+| `electron/model-rules.ts` | Pure policy: host and URL allowlist, one-hop redirect resolution, catalogue validation, generated filenames, path containment, size/hash verdict, delete guard, free-space margin. |
+| `electron/model-download.ts` | Main-process transfer: pinned URL, manual redirects, byte cap, streamed `.part`, re-hash from disk, atomic rename, library JSON, cancel, delete, `.part` sweep. |
+| `electron/main.ts` | Five IPC handlers, all guarded by `isShellSender`, taking an id only. |
+| `electron/preload.ts`, `src/types.ts` | `modelsCatalogue`, `modelsInstalled`, `modelsDownload`, `modelsCancel`, `modelsDelete`, `onModelProgress`. |
+| `src/components/ModelManager.tsx`, `src/lib/local-models.ts` | The card, progress bar (`role="progressbar"`, `aria-valuenow`), cancel, use, confirm-delete, size/memory formatting and failure-key mapping. |
+| `src/lib/i18n-models.ts` | English keys plus es/de/fr copy, merged in `i18n.tsx` after the tool copy. |
+| `tests/model-rules.test.ts` | 17 deterministic tests: catalogue shape and pinned facts, host/URL policy, redirects, path containment, delete guard, size/hash verdicts, progress clamping, panel formatting. |
+
+Host allowlist, measured rather than guessed: `HEAD` on the pinned resolve URL
+returned `302` to `us.aws.cdn.hf.co` (Xet bridge) with
+`content-length: 1117320736` and `accept-ranges: bytes`. The policy therefore
+allows `huggingface.co` plus `.hf.co` subdomains, which covers
+`us.aws.cdn.hf.co` and the classic `cdn-lfs.hf.co` while rejecting
+`huggingface.co.evil.test` and `evil-hf.co`.
+
+### Evidence from the built app (2026-10-22)
+
+- The panel rendered `Qwen2.5-1.5B-Instruct`, the exact
+  `1,117,320,736` B size, the full SHA-256, `Apache-2.0` and an estimate label,
+  with **Download** as its only action.
+- Pressing Download produced `Downloading 264 MiB of 1.04 GiB` / `24%` on the
+  progress bar; the transfer completed, and the file on disk was
+  `1,117,320,736` bytes whose locally recomputed SHA-256 equalled
+  `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e`.
+  `models/` held only the `.gguf`; the library JSON recorded the revision.
+- **Use this model** set the existing model path and left the runtime `stopped`
+  (no `llama-server` on the test machine).
+- **Delete → Remove** emptied the library, deleted the file and reported it.
+- A first pass exposed a real bug: deletion was refused after **Use this model**
+  because the guard treated a *selected* model as running. The guard now asks the
+  runtime's phase, and the retest passed.
+
+Not verified: starting a real `llama-server` against the downloaded file, a
+transfer over a flaky connection, and CDN behaviour outside the measured region.

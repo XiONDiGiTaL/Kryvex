@@ -224,6 +224,18 @@ muted. Leaving the player page no longer pauses the track, and an unset weather
 location no longer reads as 0,0 and reports Null Island weather as local.
 Everything in 0.8.4 is included.
 
+## In the next release
+
+**Settings → Vexium → Download models** can now fetch one reviewed starter
+model. The card shows the publisher, pinned revision, exact byte size, SHA-256,
+licence, quantisation and an estimated memory figure *before* anything is
+fetched; the download starts only when you press Download, reports bytes and
+percentage, can be cancelled, and is streamed to a `.part` file that is only
+renamed into `userData/models` after its size and checksum match. A model that
+is already serving is never stopped or replaced by an install, and deleting one
+requires a confirmation. This batch also shortens the emulator tile caption to
+**`[ Retro ]`**, because `[ Emulator ]` did not fit a 58 px card.
+
 ## What was new in 0.8.4
 
 Services became a working platform. Steam's session cookies are promoted so a

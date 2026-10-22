@@ -55,6 +55,7 @@ import {
   searchEngine,
 } from '../lib/search-engines';
 import { ColorPicker } from '../components/ColorPicker';
+import { ModelManager } from '../components/ModelManager';
 import { SettingsBlock } from '../components/SettingsBlock';
 import { ThemeGallery } from '../components/ThemeGallery';
 import { Icon, ThemeMark, type ThemeMarkKind } from '../components/ui';
@@ -620,7 +621,7 @@ export function Settings({
     }
   }
 
-  async function configureModel(patch: { ctxSize?: number; gpuLayers?: number }) {
+  async function configureModel(patch: { path?: string; ctxSize?: number; gpuLayers?: number }) {
     if (!window.kryvex) return;
     try {
       setModel(await window.kryvex.modelConfigure(patch));
@@ -1413,9 +1414,15 @@ export function Settings({
           ) : null}
           <p className="shield-note">
             {t(
-              'Models are yours to source: Hugging Face GGUF builds, Ollama’s library, or LM Studio’s catalogue. Kryvex never uploads or redistributes them.',
+              'You can keep sourcing GGUF builds yourself — Hugging Face, Ollama’s library, LM Studio’s catalogue. Kryvex never uploads or redistributes them.',
             )}
           </p>
+
+          <ModelManager
+            isElectron={isElectron}
+            runtimeReady={Boolean(model?.binaryFound)}
+            onUse={path => void configureModel({ path })}
+          />
         </div>
       </SettingsBlock>
 

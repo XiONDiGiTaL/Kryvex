@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { LanguageSetting, ResolvedLanguage } from '../types';
 import { featureCopy } from './i18n-extras';
 import { toolsCopy } from './i18n-tools';
+import { modelsCopy } from './i18n-models';
 
 export const LANGUAGES: ReadonlyArray<{ id: LanguageSetting; label: string }> = [
   { id: 'system', label: 'System language' },
@@ -2821,6 +2822,7 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           // every language block above.
           ...featureCopy[language],
           ...toolsCopy[language],
+          ...modelsCopy[language],
         };
   return {
     language,

@@ -1107,3 +1107,37 @@ installed binary read `[ Retro ]` on `x532` with `scrollWidth === clientWidth ==
 captured earlier from the locally built Setup (five pages, exit 0). An in-app
 `0.8.4 → 0.8.5` update was **not** exercised, because this machine was already
 running 0.8.5.
+
+## Reviewed model downloads — 2026-10-22
+
+Built after the 0.8.5 tag, on `feature/vexium-model-manager`. The starter model
+was approved first; nothing was fetched before that.
+
+| Check | Result | Detail |
+| --- | --- | --- |
+| `npm run typecheck` | exit 0 | Renderer and `electron/`, strict |
+| `npx vitest run` | exit 0, **407/407** in 41 files | Adds `tests/model-rules.test.ts` (17 tests) |
+| `npm run build` | exit 0 | Renderer and main rebuilt |
+| `npm run audit:i18n` | clean | 31 renderer files |
+| `node scripts/check-release-record.cjs` | PASS | 0.8.5 record unchanged |
+
+**Built-app run.** The built Electron app was driven through CDP with an
+isolated `KRYVEX_USER_DATA`. Before any click the panel showed the pinned facts
+(`1,117,320,736` B and the full SHA-256) and **Download** was the only action;
+`models/` did not exist yet. After the click the progress bar read
+`Downloading 264 MiB of 1.04 GiB` with `aria-valuenow="24"`. The transfer
+finished at exactly `1,117,320,736` bytes; hashing that file locally produced
+`6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e`, and the
+only file in `models/` was the `.gguf` (no `.part` left).
+
+**Use, delete, regression.** **Use this model** pointed `modelStatus().path` at
+the installed file while leaving the phase `stopped` (no `llama-server` here).
+The first delete attempt failed: the guard compared the *selected* path, so a
+model that was merely configured was treated as running. The guard now checks
+the runtime phase, and the retest removed the file, emptied
+`kryvex-models.json` and reported “The model file was deleted.” Screenshot:
+`screenshots/vexium-model-manager.png`.
+
+**Not run:** a real `llama-server` start against the downloaded file (no runtime
+installed on this machine), a cancelled mid-transfer, a forced hash mismatch
+(covered by unit tests), and a transfer on a slow or dropping connection.
