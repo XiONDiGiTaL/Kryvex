@@ -161,6 +161,28 @@ async function main() {
     );
     check(clicked, 'analyze button is present');
 
+    // The walk runs on a worker thread, so the main process must still answer
+    // cheap IPC while it is busy. A scan that blocked the main thread would
+    // show up as a slow health reply here, long before the scan finishes.
+    const during = await client.evaluate(
+      `(async () => {
+         const button = document.querySelector('.disk-analyzer button');
+         const scanning = /Scanning/.test(button?.textContent || '');
+         const started = performance.now();
+         const health = await window.kryvex.diskHealth();
+         return {
+           scanning,
+           available: !!health && health.available === true,
+           ms: Math.round(performance.now() - started),
+         };
+       })()`,
+    );
+    check(during.scanning, 'the drive walk is still running when IPC is probed');
+    check(
+      during.available && during.ms < 1500,
+      `main process answers IPC during a scan (${during.ms} ms)`,
+    );
+
     await waitFor(
       client.evaluate,
       `document.querySelectorAll('.disk-list .disk-check').length > 0`,
@@ -187,6 +209,33 @@ async function main() {
     });
     lines.push('PASS screenshot screenshots/verify-disk-pulse.png');
     console.log('PASS screenshot screenshots/verify-disk-pulse.png');
+
+    // Stopping a scan must reach the worker, end the pending IPC call and leave
+    // the main process healthy. A leaked worker would keep the scan state stuck.
+    const restarted = await client.evaluate(
+      `(() => { const b = [...document.querySelectorAll('.disk-analyzer button')].find(n => /Analyze/.test(n.textContent)); if (!b) return false; b.click(); return true; })()`,
+    );
+    check(restarted, 'a second scan can be started');
+    await waitFor(
+      client.evaluate,
+      `/Scanning/.test(document.querySelector('.disk-analyzer button')?.textContent || '')`,
+      5_000,
+      'scanning state',
+    );
+    const stopped = await client.evaluate(
+      `(() => { const b = [...document.querySelectorAll('.disk-actions button')].find(n => /Stop scan/.test(n.textContent)); if (!b) return false; b.click(); return true; })()`,
+    );
+    check(stopped, 'the running scan can be stopped');
+    await waitFor(
+      client.evaluate,
+      `!/Scanning/.test(document.querySelector('.disk-analyzer button')?.textContent || '')`,
+      20_000,
+      'stopped scan',
+    );
+    const afterStop = await client.evaluate(
+      `(async () => { const h = await window.kryvex.diskHealth(); return !!h && h.available === true; })()`,
+    );
+    check(afterStop, 'main process answers after the scan worker is torn down');
   } finally {
     try {
       client?.close();

@@ -20,9 +20,11 @@ is not a web module: the view talks to the main process over the existing
   cache, thumbnail/icon caches, the default Chrome and Edge caches, and the
   Windows Error Reporting queue. Only categories whose roots exist are shown as
   available; the rest say `NOT FOUND`.
-- **Background scanning.** The scan is asynchronous, cancellable (`Stop scan`),
-  and yields between directories, so the rest of the app keeps working while it
-  runs. A second scan is refused while one is in flight.
+- **Background scanning.** Every scan runs in its own worker thread
+  (`electron/disk-scan-worker.ts`): the main process spawns one per scan and
+  terminates it when it settles or is stopped. The walk therefore cannot block
+  the window, IPC or another service even on a full drive; the UI can cancel it
+  with `Stop scan`, and a second scan is refused while one is in flight.
 
 ## Safety model
 
@@ -74,7 +76,7 @@ adaptation:
 | [CleanManager](https://github.com/patrickleehua/CleanManager) | MIT | Category checklist and "see before you delete" flow; no code copied verbatim. |
 | [SquirrelDisk](https://github.com/adileo/squirreldisk) | AGPL-3.0 | Analyzer/tree-map idea only; no code, because AGPL would relicense Kryvex. |
 
-The analyzer is a folder-size walker in Kryvex's own main process, not a port of
+The analyzer is a folder-size walker in Kryvex's own worker thread, not a port of
 any of them. See [ATTRIBUTION.md](ATTRIBUTION.md).
 
 ## Verification
@@ -84,10 +86,20 @@ any of them. See [ATTRIBUTION.md](ATTRIBUTION.md).
 - `tests/disk-service.test.ts` — a real fixture under `%TEMP%`: old files in the
   root and a subdirectory are removed, a fresh file survives, the root survives,
   and a path or unknown id is refused.
+- `tests/disk-scan.test.ts` — the body the worker runs, against a fixture:
+  targets are sized with the age filter applied, missing caches report as
+  unavailable, an already-aborted signal returns cancelled with no sizes, and
+  drive health reads real numbers.
 - `npm run verify:disk` (build, then `scripts/verify-disk-pulse.cjs`) — launches
   the real app in a disposable profile, opens `#/disk`, accepts the disclaimer,
   reads real drive numbers, runs a scan and checks the categories, sizes and
-  that the clean action arms. It never presses Clean.
+  that the clean action arms. It also probes IPC while the scan is still
+  running (the main process must answer immediately) and stops a second scan to
+  prove the worker is torn down. It never presses Clean.
+- Packaged layout — a worker entry inside a real `app.asar` was spawned with
+  Electron 44 and returned a scan payload, so the compiled worker (and the
+  `disk-scan`/`disk-rules` modules it requires) load from the archive without
+  needing `asarUnpack`.
 - `npm run typecheck`, `npm test`, `node scripts/audit-i18n.cjs` and
   `npm run build` are clean.
 

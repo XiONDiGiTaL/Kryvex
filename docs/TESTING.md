@@ -1282,17 +1282,22 @@ drive.
 | Check | Result | Detail |
 | --- | --- | --- |
 | `npm run typecheck` | exit 0 | Renderer and main |
-| `npm test` | exit 0, **463/463** | 47 files, including the 19 new disk tests |
+| `npm test` | exit 0, **466/466** | 48 files, including the 22 disk tests |
 | `node scripts/audit-i18n.cjs` | clean | 35 renderer files |
 | `npm run build` | exit 0 | Renderer bundle and main process |
-| `node scripts/verify-disk-pulse.cjs` | PASS, **9 assertions** | Real app, disposable profile |
+| `node scripts/verify-disk-pulse.cjs` | PASS, **12 assertions** | Real app, disposable profile |
 
 **Real-app run.** A fresh profile opened `#/disk`; the theme gallery was closed,
 the disclaimer appeared before any scan and was accepted, the health panel read
 `97% FULL` with `29 GB` free and `902 GB` used of `931 GB`, and Analyze listed
 seven cleanup categories with the real `%TEMP%` size (`14 MB`, 20 files). The
 clean button armed only after the scan and was not pressed. The analyzer drew
-eight drive folders, largest first (`Users` 11 GB). Capture:
+eight drive folders, largest first (`Users` 11 GB).
+
+Scans run in a worker thread, and the harness proves it from the outside: while
+the drive walk was still running, a `kryvex:disk:health` call from the renderer
+answered in **0 ms**, and a second scan was started and stopped again so the
+worker teardown path is exercised. Capture:
 `screenshots/verify-disk-pulse.png`.
 
 `tests/disk-rules.test.ts` covers containment (`Temp-evil` is outside `Temp`),
@@ -1300,3 +1305,6 @@ drive roots, protected subtrees, traversal, the 24-hour filter, target lookup an
 size formatting. `tests/disk-service.test.ts` runs the real cleaner against a
 fixture: old files in the root and a subdirectory are removed, a fresh file and
 the root survive, and a path or unknown id is refused before any unlink.
+`tests/disk-scan.test.ts` covers the scan body the worker thread runs: target
+sizing with the age filter, unavailable caches, an aborted signal returning
+cancelled with zero sizes, and real `statfs` health.
