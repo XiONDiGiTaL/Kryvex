@@ -12,6 +12,7 @@ import type {
 import { makeId } from '../lib/services';
 import { extensionMessage, useI18n } from '../lib/i18n';
 import { chromeWebStoreExtensionId, chromeWebStoreTitle } from '../lib/chrome-store';
+import { openExternalUrl } from '../lib/external';
 import { hostOf, isHttpUrl, resolveAddress } from '../lib/url';
 import { DEFAULT_ZOOM, canZoom, stepZoom } from '../lib/zoom';
 import { Icon, Modal, ServiceIcon, ThemeMark, type ThemeMarkKind } from '../components/ui';
@@ -887,7 +888,7 @@ export function Browser({
           className="icon-btn"
           onClick={() => {
             if (!active?.url) return;
-            void window.kryvex?.openExternal(active.url);
+            openExternalUrl(active.url);
             onToast(t('Opened in your default browser.'), 'info');
           }}
           disabled={!active?.url}
@@ -1280,7 +1281,7 @@ export function Browser({
                 <button
                   className="btn secondary"
                   onClick={() => {
-                    void window.kryvex?.openExternal(active.url);
+                    openExternalUrl(active.url);
                   }}
                 >
                   {t('Open externally')}

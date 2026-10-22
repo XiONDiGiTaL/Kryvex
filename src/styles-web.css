@@ -1,0 +1,74 @@
+/* ------------------------------------------------------------ web / PWA --- */
+
+.install-prompt {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--status-height) + 14px);
+  z-index: 68;
+  width: min(440px, calc(100vw - 24px));
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  box-shadow: 0 18px 55px color-mix(in srgb, var(--bg) 68%, transparent);
+  backdrop-filter: blur(20px) saturate(1.12);
+}
+
+.install-prompt-mark {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+.install-prompt-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.install-prompt-copy strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.install-prompt-copy span {
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.install-prompt-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+@media (max-width: 760px) {
+  .install-prompt {
+    left: 10px;
+    right: 10px;
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    align-items: flex-start;
+  }
+
+  .install-prompt-copy span {
+    font-size: 9.5px;
+  }
+
+  .install-prompt-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

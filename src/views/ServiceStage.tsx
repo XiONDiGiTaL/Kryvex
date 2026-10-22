@@ -3,6 +3,7 @@ import type { Service } from '../types';
 import { CATEGORIES, partitionFor } from '../lib/services';
 import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
+import { openExternalUrl } from '../lib/external';
 import { isGoogleHost, isGoogleSignInBlock } from '../lib/signin';
 import {
   isValidOneTimeCode,
@@ -350,7 +351,7 @@ function ServiceFrame({
           <button
             className="btn secondary small"
             onClick={() => {
-              void window.kryvex?.openExternal(service.url);
+              openExternalUrl(service.url);
               onToast(t('Opened in your default browser.'), 'info');
             }}
           >
@@ -452,14 +453,19 @@ function ServiceFrame({
             <h2>{service.name}</h2>
             <p>
               {t(
-                'Service webviews render inside the Electron shell, where Kryvex can give this module its own persistent session. This browser preview only shows the app surface.',
+                'The web build opens each service in its own browser tab. The desktop app embeds it with a persistent session, notifications and sign-in popups.',
               )}
             </p>
             <div className="fallback-meta mono">
               <span>{t('PARTITION {partition}', { partition: partitionFor(service.id) })}</span>
               <span>{service.url}</span>
             </div>
-            <a className="btn secondary" href={service.url} target="_blank" rel="noreferrer">
+            <a
+              className="btn secondary"
+              href={service.url}
+              target={`kryvex-${service.id}`}
+              rel="noreferrer"
+            >
               {t('Open in this browser')}
             </a>
           </div>
@@ -507,7 +513,7 @@ function ServiceFrame({
               </button>
               <button
                 className="btn secondary small"
-                onClick={() => void window.kryvex?.openExternal(service.url)}
+                onClick={() => openExternalUrl(service.url)}
               >
                 <Icon name="external" size={12} /> {t('Open in my browser')}
               </button>
@@ -536,7 +542,7 @@ function ServiceFrame({
               <button
                 className="btn secondary"
                 onClick={() => {
-                  void window.kryvex?.openExternal(service.url);
+                  openExternalUrl(service.url);
                 }}
               >
                 {t('Open externally')}

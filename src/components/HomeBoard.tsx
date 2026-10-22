@@ -9,6 +9,7 @@ import {
   type WeatherKind,
 } from '../lib/weather';
 import { Icon } from './ui';
+import { weatherAtWeb, weatherLookupWeb } from '../lib/weather-web';
 
 function greeting(hour: number): string {
   if (hour < 5) return 'Still up?';
@@ -87,12 +88,10 @@ function WeatherGlyph({
 
 export function HomeBoard({
   home,
-  isElectron,
   onUpdate,
   onOpenSettings,
 }: {
   home: HomeSettings;
-  isElectron: boolean;
   onUpdate: (patch: Partial<HomeSettings>) => void;
   onOpenSettings: () => void;
 }) {
@@ -116,10 +115,12 @@ export function HomeBoard({
   }, [home.city]);
 
   const fetchAtPoint = useCallback(async () => {
-    if (!window.kryvex || home.latitude === null || home.longitude === null) return;
+    if (home.latitude === null || home.longitude === null) return;
     setWeatherBusy(true);
     try {
-      const result = (await window.kryvex.weatherAt(home.latitude, home.longitude, home.unit)) as WeatherResult;
+      const result = window.kryvex
+        ? ((await window.kryvex.weatherAt(home.latitude, home.longitude, home.unit)) as WeatherResult)
+        : await weatherAtWeb(home.latitude, home.longitude, home.unit);
       setWeather(result.ok ? result : null);
       setWeatherError(result.ok ? null : result.error ?? 'unavailable');
     } catch {
@@ -142,11 +143,13 @@ export function HomeBoard({
   async function lookUpCity(event?: FormEvent) {
     event?.preventDefault();
     const city = cityDraft.trim();
-    if (!city || !window.kryvex) return;
+    if (!city) return;
     setWeatherBusy(true);
     setWeatherError(null);
     try {
-      const result = (await window.kryvex.weatherLookup(city, home.unit)) as WeatherResult;
+      const result = window.kryvex
+        ? ((await window.kryvex.weatherLookup(city, home.unit)) as WeatherResult)
+        : await weatherLookupWeb(city, home.unit);
       if (!result.ok) {
         setWeather(null);
         setWeatherError(result.error ?? 'unavailable');
@@ -169,10 +172,12 @@ export function HomeBoard({
 
   async function changeUnit(unit: 'c' | 'f') {
     onUpdate({ unit });
-    if (!window.kryvex || home.latitude === null || home.longitude === null) return;
+    if (home.latitude === null || home.longitude === null) return;
     setWeatherBusy(true);
     try {
-      const result = (await window.kryvex.weatherAt(home.latitude, home.longitude, unit)) as WeatherResult;
+      const result = window.kryvex
+        ? ((await window.kryvex.weatherAt(home.latitude, home.longitude, unit)) as WeatherResult)
+        : await weatherAtWeb(home.latitude, home.longitude, unit);
       if (result.ok) {
         setWeather(result);
         setWeatherError(null);
@@ -306,8 +311,6 @@ export function HomeBoard({
                       ? t('That city could not be found.')
                       : t('Weather is unavailable right now.')}
                 </span>
-              ) : !isElectron ? (
-                <span className="home-weather-detail">{t('Weather needs the desktop app.')}</span>
               ) : null}
             </div>
             <form className="home-weather-form" onSubmit={event => void lookUpCity(event)}>

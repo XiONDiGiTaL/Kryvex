@@ -60,6 +60,11 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Collapse sidebar': 'Contraer barra lateral',
     'LOCAL SHELL': 'SHELL LOCAL',
     'WEB PREVIEW': 'VISTA WEB',
+    'Install Kryvex': 'Instalar Kryvex',
+    'Keep the workspace on your home screen. It opens without browser chrome and caches the shell for offline use.':
+      'Ten el espacio de trabajo en tu pantalla de inicio. Se abre sin la interfaz del navegador y guarda la interfaz para usarla sin conexión.',
+    'Install': 'Instalar',
+    'Not now': 'Ahora no',
     'DONKEY EDITION': 'EDICIÓN DONKEY',
     'ELEMENT x529 / Kx': 'ELEMENTO x529 / Kx',
     '{count} SERVICES': '{count} SERVICIOS',
@@ -171,8 +176,8 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Code sent to {service}.': 'Código enviado a {service}.',
     'Edit service': 'Editar servicio',
     'Remove service': 'Quitar servicio',
-    'Service webviews render inside the Electron shell, where Kryvex can give this module its own persistent session. This browser preview only shows the app surface.':
-      'Las webviews de servicios se muestran dentro del shell de Electron, donde Kryvex puede dar a este módulo su propia sesión persistente. Esta vista web solo muestra la superficie de la app.',
+    'The web build opens each service in its own browser tab. The desktop app embeds it with a persistent session, notifications and sign-in popups.':
+      'La versión web abre cada servicio en su propia pestaña del navegador. La aplicación de escritorio lo integra con una sesión persistente, notificaciones y ventanas de inicio de sesión.',
     'PARTITION {partition}': 'PARTICIÓN {partition}',
     'Open in this browser': 'Abrir en este navegador',
     'Navigated to {host}': 'Navegado a {host}',
@@ -470,6 +475,11 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Collapse sidebar': 'Seitenleiste einklappen',
     'LOCAL SHELL': 'LOKALE SHELL',
     'WEB PREVIEW': 'WEB-VORSCHAU',
+    'Install Kryvex': 'Kryvex installieren',
+    'Keep the workspace on your home screen. It opens without browser chrome and caches the shell for offline use.':
+      'Behalte den Arbeitsbereich auf dem Startbildschirm. Er öffnet ohne Browserleiste und speichert die Oberfläche für die Offline-Nutzung.',
+    'Install': 'Installieren',
+    'Not now': 'Nicht jetzt',
     'DONKEY EDITION': 'DONKEY EDITION',
     'ELEMENT x529 / Kx': 'ELEMENT x529 / Kx',
     '{count} SERVICES': '{count} DIENSTE',
@@ -581,8 +591,8 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Code sent to {service}.': 'Code an {service} gesendet.',
     'Edit service': 'Dienst bearbeiten',
     'Remove service': 'Dienst entfernen',
-    'Service webviews render inside the Electron shell, where Kryvex can give this module its own persistent session. This browser preview only shows the app surface.':
-      'Service-Webviews werden in der Electron-Shell gerendert, wo Kryvex diesem Modul eine eigene persistente Sitzung geben kann. Diese Browser-Vorschau zeigt nur die App-Oberfläche.',
+    'The web build opens each service in its own browser tab. The desktop app embeds it with a persistent session, notifications and sign-in popups.':
+      'Die Web-Version öffnet jeden Dienst in einem eigenen Browser-Tab. Die Desktop-App bettet ihn mit einer dauerhaften Sitzung, Benachrichtigungen und Anmeldefenstern ein.',
     'PARTITION {partition}': 'PARTITION {partition}',
     'Open in this browser': 'In diesem Browser öffnen',
     'Navigated to {host}': 'Navigiert zu {host}',
@@ -874,6 +884,11 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Collapse sidebar': 'Réduire la barre latérale',
     'LOCAL SHELL': 'SHELL LOCAL',
     'WEB PREVIEW': 'APERÇU WEB',
+    'Install Kryvex': 'Installer Kryvex',
+    'Keep the workspace on your home screen. It opens without browser chrome and caches the shell for offline use.':
+      'Gardez l’espace de travail sur votre écran d’accueil. Il s’ouvre sans l’interface du navigateur et met la coque en cache pour une utilisation hors ligne.',
+    'Install': 'Installer',
+    'Not now': 'Plus tard',
     'DONKEY EDITION': 'ÉDITION DONKEY',
     'ELEMENT x529 / Kx': 'ÉLÉMENT x529 / Kx',
     '{count} SERVICES': '{count} SERVICES',
@@ -985,8 +1000,8 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Code sent to {service}.': 'Code envoyé à {service}.',
     'Edit service': 'Modifier le service',
     'Remove service': 'Supprimer le service',
-    'Service webviews render inside the Electron shell, where Kryvex can give this module its own persistent session. This browser preview only shows the app surface.':
-      'Les webviews de service sont rendues dans le shell Electron, où Kryvex peut donner à ce module sa propre session persistante. Cet aperçu web ne montre que la surface de l’application.',
+    'The web build opens each service in its own browser tab. The desktop app embeds it with a persistent session, notifications and sign-in popups.':
+      'La version web ouvre chaque service dans son propre onglet. L’application de bureau l’intègre avec une session persistante, des notifications et des fenêtres de connexion.',
     'PARTITION {partition}': 'PARTITION {partition}',
     'Open in this browser': 'Ouvrir dans ce navigateur',
     'Navigated to {host}': 'Navigation vers {host}',

@@ -159,6 +159,28 @@ in [docs/RELEASE_0.8.4.md](docs/RELEASE_0.8.4.md); earlier releases are in
 SmartScreen may show **Unknown publisher**. Only continue if you built the
 artifact yourself or downloaded it from a release you trust.
 
+## Kryvex Web (non-Electron)
+
+The same renderer also builds as a browser client and an installable PWA:
+
+```bash
+pnpm build:web
+python -m http.server 4173 -d dist-web
+```
+
+The web client keeps the workspace, service registry, themes, Home board and
+weather, tasks, wallpaper, command palette, bookmarks/history UI, Vexium's
+offline answers and search fallback, and the 8-bit emulator (when the EmulatorJS
+CDN is reachable). State lives in `localStorage`; the shell caches itself for
+offline use after the first visit. Services open in their own browser tabs, and
+the panels that need Electron — embedded persistent sessions, Shield,
+extensions, downloads/torrents, VPN, local models, screen share — say so
+instead of failing silently.
+
+On an Android phone, open the HTTPS (or `localhost`) build in Chrome and use
+**Install app**. See [docs/WEB.md](docs/WEB.md) for the build, hosting, USB
+fallback and the full feature-parity table.
+
 ## What's new in 0.8.4
 
 Services became a working platform. Steam's session cookies are promoted so a

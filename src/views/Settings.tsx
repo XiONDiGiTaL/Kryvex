@@ -40,6 +40,7 @@ import {
   type ThemeFamily,
 } from '../lib/themes';
 import { extensionMessage, LANGUAGES, languageLabel, useI18n } from '../lib/i18n';
+import { openExternalUrl } from '../lib/external';
 import {
   ASSISTANT_PROVIDER_URL,
   MODEL_SOURCES,
@@ -1316,7 +1317,7 @@ export function Settings({
               </button>
               <button
                 className="btn ghost small"
-                onClick={() => void window.kryvex?.openExternal(MODEL_SOURCES.huggingface)}
+                onClick={() => openExternalUrl(MODEL_SOURCES.huggingface)}
               >
                 <Icon name="external" size={12} /> {t('Get models')}
               </button>
@@ -1336,7 +1337,7 @@ export function Settings({
                 )}{' '}
                 <button
                   className="link"
-                  onClick={() => void window.kryvex?.openExternal(MODEL_SOURCES.runtime)}
+                  onClick={() => openExternalUrl(MODEL_SOURCES.runtime)}
                 >
                   {t('Download llama.cpp')} <Icon name="external" size={11} />
                 </button>
@@ -1724,7 +1725,7 @@ export function Settings({
               <button
                 className="link"
                 onClick={() =>
-                  void window.kryvex?.openExternal('https://github.com/gorhill/uBlock')
+                  openExternalUrl('https://github.com/gorhill/uBlock')
                 }
               >
                 uBlock Origin <Icon name="external" size={12} />
@@ -1732,14 +1733,14 @@ export function Settings({
               <button
                 className="link"
                 onClick={() =>
-                  void window.kryvex?.openExternal('https://github.com/ghostery/adblocker')
+                  openExternalUrl('https://github.com/ghostery/adblocker')
                 }
               >
                 Ghostery Adblocker <Icon name="external" size={12} />
               </button>
               <button
                 className="link"
-                onClick={() => void window.kryvex?.openExternal('https://easylist.to/')}
+                onClick={() => openExternalUrl('https://easylist.to/')}
               >
                 EasyList <Icon name="external" size={12} />
               </button>
@@ -1843,7 +1844,7 @@ export function Settings({
           <button
             className="link"
             onClick={() =>
-              void window.kryvex?.openExternal('https://chromewebstore.google.com/')
+              openExternalUrl('https://chromewebstore.google.com/')
             }
           >
             {t('Open the Chrome Web Store')} <Icon name="external" size={12} />
@@ -2793,7 +2794,7 @@ export function Settings({
             </button>
             <button
               className="link"
-              onClick={() => void window.kryvex?.openExternal('https://github.com/OpenVPN/openvpn')}
+              onClick={() => openExternalUrl('https://github.com/OpenVPN/openvpn')}
             >
               {t('OpenVPN project')} <Icon name="external" size={11} />
             </button>
@@ -2913,7 +2914,7 @@ export function Settings({
           <button
             className="btn secondary"
             onClick={() => {
-              void window.kryvex?.openExternal('https://github.com/XiONDiGiTaL/Kryvex');
+              openExternalUrl('https://github.com/XiONDiGiTaL/Kryvex');
               onToast(t('Opening the repository.'), 'info');
             }}
           >

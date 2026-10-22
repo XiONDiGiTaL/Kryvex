@@ -74,7 +74,6 @@ export function Home({
       {state.settings.home.showBoard ? (
         <HomeBoard
           home={state.settings.home}
-          isElectron={isElectron}
           onUpdate={onUpdateHome}
           onOpenSettings={() => onNavigate('settings')}
         />

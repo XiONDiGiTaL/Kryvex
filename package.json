@@ -21,6 +21,7 @@
     "start": "electron .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json",
     "test": "vitest run",
+    "build:web": "vite build --outDir dist-web && node scripts/check-web-build.cjs",
     "capture": "node scripts/capture.mjs",
     "audit:i18n": "node scripts/audit-i18n.cjs",
     "package:dir": "pnpm build && electron-builder --dir",

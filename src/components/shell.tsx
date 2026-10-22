@@ -121,7 +121,7 @@ export function Header({
         </span>
         <span className={`shell-badge ${isElectron ? 'is-live' : ''}`}>
           <span className="status-dot" />
-          {isElectron ? t('Desktop') : t('Preview')}
+          {isElectron ? t('Desktop') : t('Web')}
         </span>
         {isElectron ? <div className="window-controls-space" aria-hidden="true" /> : null}
       </div>
@@ -276,7 +276,7 @@ export function StatusBar({
       <span className="status-sep" aria-hidden="true">
         ·
       </span>
-      <span className="mono">v{appInfo?.version ?? '0.7.0'}</span>
+      <span className="mono">v{appInfo?.version ?? __APP_VERSION__}</span>
     </footer>
   );
 }

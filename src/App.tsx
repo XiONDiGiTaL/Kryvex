@@ -45,6 +45,7 @@ import { Home } from './views/Home';
 import { Services } from './views/Services';
 import { Emulator } from './views/Emulator';
 import { ResourcePanel } from './components/ResourceMonitor';
+import { InstallPrompt } from './components/InstallPrompt';
 import { useResourceSnapshot } from './lib/resources';
 import { ServiceStage } from './views/ServiceStage';
 import { Assistant } from './views/Assistant';
@@ -252,6 +253,17 @@ export default function App() {
         } catch {
           /* info is decorative; ignore */
         }
+      } else {
+        // The PWA has no Electron bridge, but the status bar and Settings still
+        // need an honest identity rather than the desktop fallback.
+        setInfo({
+          version: __APP_VERSION__,
+          platform: 'web',
+          electron: '',
+          chrome: navigator.userAgent.match(/Chrome\/([\d.]+)/)?.[1] ?? '',
+          node: '',
+          packaged: false,
+        });
       }
     })();
   }, []);
@@ -1162,6 +1174,8 @@ export default function App() {
           }}
         />
       ) : null}
+
+      <InstallPrompt />
 
       {emulatorPrompt ? (
         <Modal

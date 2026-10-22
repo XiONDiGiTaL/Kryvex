@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AssistantDelta, AssistantMessage, PersistedState } from '../types';
 import { useI18n } from '../lib/i18n';
+import { openExternalUrl } from '../lib/external';
 import {
   ASSISTANT_SUGGESTIONS,
   MODEL_SOURCES,
@@ -240,7 +241,7 @@ export function Assistant({
             </button>
             <button
               className="btn ghost small"
-              onClick={() => void window.kryvex?.openExternal(MODEL_SOURCES.huggingface)}
+              onClick={() => openExternalUrl(MODEL_SOURCES.huggingface)}
             >
               <Icon name="external" size={13} /> {t('Get a model')}
             </button>

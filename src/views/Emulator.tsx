@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import type { EmulatorSettings, EmulatorSystem } from '../types';
 import { useT } from '../lib/i18n';
+import { openExternalUrl } from '../lib/external';
 import {
   ROM_ACCEPT,
   ROM_SYSTEMS,
@@ -416,7 +417,7 @@ export function Emulator({
             </p>
             <button
               className="link"
-              onClick={() => void window.kryvex?.openExternal('https://emulatorjs.org/docs/faq/')}
+              onClick={() => openExternalUrl('https://emulatorjs.org/docs/faq/')}
             >
               {t('EmulatorJS support notes')} <Icon name="external" size={11} />
             </button>
