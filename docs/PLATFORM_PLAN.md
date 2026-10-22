@@ -195,3 +195,46 @@ The legal text is a starting point for the distributor, not legal advice.
    process (see [ASSISTANT.md](ASSISTANT.md)).
 5. In-app legal viewer and a one-click "delete all local data" flow.
 6. Optional emulator compound behind the disclaimer.
+
+## 11. Android (deferred, with a path)
+
+A direct APK port of the Electron build is not possible. Electron 44 has no
+Android runtime, and the parts that make Kryvex a workspace are exactly the
+parts Android cannot reuse: the main process, the preload bridge, `<webview>`
+partitions, the filesystem and torrent runtime, the OpenVPN child process and
+the local-model runner. A WebView around `dist/` would boot the shell, but the
+service and browser routes would show their own "available in the Electron app"
+fallbacks; it would not be Kryvex.
+
+A real mobile client is a separate build with a smaller native core:
+
+- **Phase 1 — service launcher.** A Kotlin app (minSdk 26, targetSdk 35) with a
+  home grid, add/edit service, and one active WebView per service. Use AndroidX
+  WebKit's `WebViewAssetLoader` for the local shell, `CookieManager` with
+  `flush()` for persistence, Chrome Custom Tabs for OAuth that a service refuses
+  to frame, and `DownloadManager` for downloads. Keep the desktop's URL, colour
+  and catalogue rules in a shared JSON file so the two clients do not drift.
+- **Phase 2 — session model.** Android's WebView cookie jar is shared across
+  WebViews in one process. True per-service isolation needs a separate process
+  or a separate profile per service, and that choice must be made before the UI
+  promises isolation. This is the hardest parity gap, not the styling.
+- **Phase 3 — shell features.** Request interception for the Shield, a
+  user-configured OpenAI-compatible client for Vexium (Android would need an
+  explicit LAN address, not the desktop's loopback-only rule), EmulatorJS in a
+  WebView for the optional emulator, `VpnService` with a native OpenVPN engine
+  (Android 10+ will not execute the desktop's user-supplied binary), and a
+  smaller Home board built from Android's own battery, network and storage
+  APIs. Rooms and WebTorrent stay desktop-only until their native transports
+  are designed.
+
+The reusable renderer pieces are the React components and styles, the catalogue,
+the store sanitisers, i18n and the one-time-code field detection. The Electron
+main process is not reusable.
+
+Status: **no APK has been produced.** This machine has JDK 19, `adb` and no
+Android SDK or attached device (`adb devices` is empty), and `android.jar` is
+absent. A build needs Android SDK 35, build-tools and a device or emulator to
+verify the WebView and cookie behaviour; a successful Gradle build alone would
+not prove a service can sign in. The next concrete step is a `mobile/android`
+Phase 1 project and a CI job that uploads a debug APK, followed by a real device
+pass on the S23 Ultra.
