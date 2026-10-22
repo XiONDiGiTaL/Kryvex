@@ -161,10 +161,11 @@ no stray instance.
 
 - The artifacts are **unsigned**; Windows SmartScreen may warn about an unknown
   publisher.
-- The pilot install in `C:\Kryvex` was replaced from the locally built installer
-  earlier the same day and reports the same `0.8.5`, so it will not be offered
-  an update to the published build; running the published Setup once picks up
-  the `[ Retro ]` caption. Nothing else differs between the two builds.
+- The pilot install in `C:\Kryvex` came from the locally built installer, so it
+  reports the same `0.8.5` and the updater rightly offers nothing. The published
+  Setup was installed over it with `/S`, which replaced the files: the binary
+  still reports `0.8.5.0`, Windows still lists **Kryvex 0.8.5**, and the tile
+  now reads `[ Retro ]`.
 - Lexium bundles no speech weights and no translation service. A transcript
   needs a Whisper-compatible server you run, and translation needs a
   LibreTranslate server or the keyless fallback. OCR is the only tab that works

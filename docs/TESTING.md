@@ -1099,7 +1099,11 @@ On `#/services` the emulator tile read `x532` / `8-bit` / `[ Retro ]` with
 46` and 7 px type — no ellipsis in the shipped build. Capture:
 `screenshots/release-0.8.5-published-tile.png`.
 
-**Not repeated:** the published Setup was not installed by this pass because the
-pilot `C:\Kryvex` install was running and already reports 0.8.5; the installer's
-own wizard was captured from the locally built 0.8.5 Setup earlier (five pages,
-exit 0). An in-app 0.8.4 → 0.8.5 update was therefore not exercised here.
+**Published Setup installed.** With the pilot app stopped, the downloaded Setup
+ran with `/S` against the existing per-user install; `C:\Kryvex\Kryvex.exe`
+reports `0.8.5.0`, Windows still lists **Kryvex 0.8.5**, and a CDP probe of the
+installed binary read `[ Retro ]` on `x532` with `scrollWidth === clientWidth ===
+46` (`screenshots/release-0.8.5-installed-tile.png`). The wizard itself was
+captured earlier from the locally built Setup (five pages, exit 0). An in-app
+`0.8.4 → 0.8.5` update was **not** exercised, because this machine was already
+running 0.8.5.
