@@ -1146,7 +1146,8 @@ installed on this machine), a cancelled mid-transfer, a forced hash mismatch
 
 The service transport moved out of the workspace and into the status bar: a
 compact strip at rest, with the full island revealed on hover or when pinned.
-This is a follow-up to the published 0.8.6 build, not a new version.
+This ships in 0.8.7 together with Disk pulse; it was written on `main` after
+the 0.8.6 tag.
 
 | Check | Result | Detail |
 | --- | --- | --- |

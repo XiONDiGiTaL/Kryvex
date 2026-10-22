@@ -86,7 +86,7 @@ away.
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
   support ride on the same tokens.
 
-> Status: **working desktop prototype (0.8.6, packaged and published)**. The app boots, modules load, service apps stay running with their
+> Status: **working desktop prototype (0.8.7, packaged and published)**. The app boots, modules load, service apps stay running with their
 > sessions, native notifications and unread badges work, auth popups complete
 > inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
@@ -108,10 +108,10 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.8.6-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.8.6-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.8.7-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.8.7-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.8.6** artifacts are built from this tree by the tag-triggered workflow
+The **0.8.7** artifacts are built from this tree by the tag-triggered workflow
 and published on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
 Each release is built from the complete source tree by the tag-triggered
@@ -145,9 +145,10 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The **0.8.6** Setup and Portable EXEs are built from this tree. Artifact
+The **0.8.7** Setup and Portable EXEs are built from this tree. Artifact
 checksums, verification steps and limitations are recorded in
-[docs/RELEASE_0.8.6.md](docs/RELEASE_0.8.6.md); earlier releases are in
+[docs/RELEASE_0.8.7.md](docs/RELEASE_0.8.7.md); earlier releases are in
+[docs/RELEASE_0.8.6.md](docs/RELEASE_0.8.6.md),
 [docs/RELEASE_0.8.5.md](docs/RELEASE_0.8.5.md),
 [docs/RELEASE_0.8.4.md](docs/RELEASE_0.8.4.md),
 [docs/RELEASE_0.8.3.md](docs/RELEASE_0.8.3.md),
@@ -211,7 +212,42 @@ The catalogue also gained Twitch, TikTok, Facebook, SoundCloud and Vimeo
 presets. TikTok, Twitch and Facebook default to **Start muted**, so an
 autoplaying feed cannot make noise until you unmute the module.
 
-## What's new in 0.8.6
+## What's new in 0.8.7
+
+**Disk pulse** is the fourth secret service (`#/disk`, element x533): a local
+disk analyzer with a guarded cleaner. It reads free and used space for the
+drive that holds your profile and draws it as a heart-rate trace that beats
+faster as the drive fills, sizes the drive's top-level folders as proportional
+bars, and lists seven cleanup categories with real sizes — user temp older than
+a day, crash dumps, the legacy Windows internet cache, thumbnail and icon
+caches, Chrome caches, Edge caches and the Windows Error Reporting queue.
+Nothing leaves the machine.
+
+The cleaner is gated twice: a one-time disclaimer before the first scan, then a
+modal naming the exact categories and bytes plus a typed `CLEAN` for every run.
+The renderer only ever sends *target ids* — the roots live in the main process
+and every file is re-checked before `unlink`: it must sit strictly below its
+target root, must not be a drive root, and must not be inside Windows,
+System32, WinSxS, Program Files, ProgramData, Desktop, Documents, Downloads or
+the SSH/GPG key folders. Symlinks and junctions are never followed, temp ignores
+anything touched in the last 24 hours, and files in use are skipped and
+reported. Nothing that needs an administrator is offered, so the tool never asks
+for elevation. Details: [docs/DISK_PULSE.md](docs/DISK_PULSE.md).
+
+The scan itself runs in a **worker thread**, not the main process. A full-drive
+walk now cannot compete with the window, IPC or another service: each scan gets
+one worker that is terminated when it settles or when **Stop scan** is pressed,
+and the UI keeps answering while it runs — a health call answered in 0 ms
+mid-walk in the release harness.
+
+The **service transport moved into the status bar**. Pinned services that are
+playing audio raise a compact strip by the status bar instead of a floating
+dock; it fades while you work, comes back at the bottom edge, and expands into
+the full island on hover or when pinned.
+
+Everything in 0.8.6 is included.
+
+## What was new in 0.8.6
 
 The browser became a browser you can live in rather than a page with tabs. A
 **home button** on the left returns to a designed start page — not a blank tab —
