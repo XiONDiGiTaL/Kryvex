@@ -1,7 +1,8 @@
 # Kryvex — Project Status
 
 **Product:** Kryvex Desktop 0.8.4 — a modular Electron workspace where web apps
-become isolated, themed service apps: mounted once, kept running, with native
+become isolated, themed service apps, plus Kryvex Web, an installable PWA built
+from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
 sessions and per-service session clearing. It also has rooms with presence,
 chat and screen share, Vexium talking to a local model over loopback, a
@@ -102,7 +103,9 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
   `package:win`, writes `SHA256SUMS.txt` and publishes the release, and it now
   refuses a tag whose release record carries no installer wizard capture
-  (`pnpm release:check`). The 0.7.0
+  (`pnpm release:check`). CI also runs `pnpm build:web`, which checks the PWA
+  manifest, service worker and install icons before a web build is handed to a
+  phone. The 0.7.0
   unpacked build completes all twenty-seven capture routes, including Rooms, the
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
