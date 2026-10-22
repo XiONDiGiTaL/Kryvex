@@ -1018,3 +1018,57 @@ Not verified by this run, and not claimed:
 - The wizard runs with elevation only when the chosen directory needs it; a
   protected install path was not staged.
 
+## In-house tools and the 0.8.5 build — 2026-10-22
+
+This pass added Lexium, the media player and one periodic-table tile for the
+three secret services, then packaged and installed the result. Run on Windows
+with Node 24.19.0, pnpm 10.34.7 (via a temporary shim; pnpm is not on `PATH`
+here), electron-builder 26.15.3 and Electron 44.2.0 from `X:\Veyra`.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `npm run typecheck` | exit 0 | Renderer and `electron/` in strict mode |
+| `npx vitest run` | exit 0, **390/390** in 40 files | Adds `tests/lexium.test.ts`; store sanitisation for the two new settings blocks; the weather-coordinate guard |
+| `npm run build` | exit 0 | 922.93 kB JS, 141.60 kB CSS |
+| `npm run audit:i18n` | clean | 30 renderer files, including the new tool panels |
+| `npx electron-builder --publish never` | exit 0 | `Kryvex-Setup-0.8.5-x64.exe` (120,540,823 B) and `Kryvex-Portable-0.8.5-x64.exe` (120,303,620 B), both `ProductVersion 0.8.5`; built before the caption change, so the published EXEs come from the tag workflow instead |
+| `node scripts/check-release-record.cjs` | PASS | 11 checks, 5 wizard pages |
+| `pnpm verify:self-update --installer … --no-app --wizard --archive --version 0.8.5` | PASS | Five pages, install page 21,668 ms, exit 0, archived under `docs/media/releases/0.8.5-wizard/` |
+
+**Installed-build probe.** A CDP harness launched `C:\Kryvex\Kryvex.exe` (the
+installer's output, not the source tree) with `KRYVEX_USER_DATA` and `APPDATA`
+pointed at a disposable profile. It reported
+`{version: "0.8.5", electron: "44.2.0", chrome: "152.0.7977.76", node:
+"24.20.0", packaged: true}`, dismissed the first-run sheet, and read the three
+secret-service marks as `x530 Lx`, `x531 Mx` and `x532 8-bit`. `#/lexium` and
+`#/player` rendered their own pages.
+
+The first installed build failed its own screenshot: a 3× zoom of the Services
+row showed the emulator caption rendered as `[ Emulato…`, an ellipsis on the one
+tile the release was about. Shrinking a caption longer than ten characters kept
+the whole word, but the release review asked for a shorter label instead, so the
+caption is now `[ Retro ]` and the accessible name stays **Emulator**. Measured
+in the built renderer through the same CDP harness: caption box 46.16 px inside
+a 58 px tile, `scrollWidth === clientWidth === 46`, 7 px type, and
+`aria-label="Emulator · element x532 · 8-bit"`.
+
+**Not executed:** no real Whisper or LibreTranslate server was running for this
+pass, so Lexium's tabs were rendered but not driven end to end here (the earlier
+0.8.5 work exercised transcription against a local-whisper-compatible test
+server and OCR against a generated image). The emulator, Rooms screen share,
+torrents, VPN, Steam sign-in and the shield were not re-run; this batch changes
+no code in those paths. The packaged close path was not re-checked against this
+build beyond the wizard's own exit code.
+
+**Known console message.** With CDP attached, the shell logs
+`Electron sandboxed_renderer.bundle.js script failed to run` /
+`Cannot destructure property 'preloadScripts' of 'binding.startupData'`.
+Nothing fails to render, `window.kryvex` works, and no preload, webview or
+sandbox file changed in this batch. It is recorded here as an observation, not
+as a passing check.
+
+**Build-machine quirk.** `pnpm run package:win` fails on this machine because
+electron-builder detects pnpm from the lock file and cannot run it. Packaging
+used a temporary pnpm shim on `PATH` plus
+`--config.electronDist=<pre-extracted Electron 44.2.0>`, which also avoids an
+`EPERM` rename of `release/win-unpacked.tmp` seen three times on this drive.

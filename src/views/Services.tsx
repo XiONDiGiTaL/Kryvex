@@ -5,6 +5,7 @@ import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
 import { EmptyState, Icon, ServiceIcon } from '../components/ui';
 import { ServiceQuickMenu } from '../components/ServiceQuickMenu';
+import { ElementMark } from '../components/ElementMark';
 
 export function Services({
   state,
@@ -14,7 +15,7 @@ export function Services({
   onTogglePin,
   onDelete,
   onUpdateService,
-  onSecretEmulator,
+  onSecretTool,
 }: {
   state: PersistedState;
   onOpen: (service: Service) => void;
@@ -23,7 +24,7 @@ export function Services({
   onTogglePin: (service: Service) => void;
   onDelete: (service: Service) => void;
   onUpdateService: (service: Service, patch: Partial<Service>) => void;
-  onSecretEmulator: () => void;
+  onSecretTool: (tool: 'emulator' | 'lexium' | 'player') => void;
 }) {
   const t = useT();
   const [query, setQuery] = useState('');
@@ -219,30 +220,54 @@ export function Services({
         </div>
       )}
 
-      <section className="secret-service" aria-labelledby="secret-emulator-title">
+      <section className="secret-service" aria-labelledby="secret-services-title">
         <div className="section-head">
-          <h2 id="secret-emulator-title">{t('Secret service')}</h2>
+          <h2 id="secret-services-title">{t('Secret services')}</h2>
           <span className="mono muted-label">{t('BUILT IN · LOCAL FILES')}</span>
         </div>
-        <button className="secret-card" onClick={onSecretEmulator}>
-          <span className="secret-card-screen" aria-hidden="true">
-            <span className="secret-pixel" />
-            <span className="secret-pixel" />
-            <span className="secret-pixel" />
-            <span className="secret-pixel" />
-            <span className="secret-pixel" />
-            <span className="secret-pixel" />
-            <span className="secret-pixel" />
-            <span className="secret-pixel" />
-            <span className="secret-pixel" />
-          </span>
-          <span className="secret-card-copy">
-            <span className="mono secret-card-kicker">{t('8-BIT MODE')}</span>
-            <strong>{t('Secret emulator')}</strong>
-            <span>{t('Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket and Virtual Boy files you already own.')}</span>
-          </span>
-          <Icon name="forward" size={16} />
-        </button>
+        <div className="secret-grid">
+          <button className="secret-card is-tool" onClick={() => onSecretTool('lexium')}>
+            <ElementMark tool="lexium" size={58} />
+            <span className="secret-card-copy">
+              <span className="mono secret-card-kicker">{t('x530 / LANGUAGE')}</span>
+              <strong>{t('Lexium')}</strong>
+              <span>
+                {t(
+                  'Transcribe recordings, translate chats both ways and read text out of photos — on servers you choose.',
+                )}
+              </span>
+            </span>
+            <Icon name="forward" size={16} />
+          </button>
+
+          <button className="secret-card is-tool" onClick={() => onSecretTool('player')}>
+            <ElementMark tool="player" size={58} />
+            <span className="secret-card-copy">
+              <span className="mono secret-card-kicker">{t('x531 / MEDIA')}</span>
+              <strong>{t('Media player')}</strong>
+              <span>
+                {t(
+                  'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.',
+                )}
+              </span>
+            </span>
+            <Icon name="forward" size={16} />
+          </button>
+
+          <button className="secret-card is-tool" onClick={() => onSecretTool('emulator')}>
+            <ElementMark tool="emulator" size={58} />
+            <span className="secret-card-copy">
+              <span className="mono secret-card-kicker">{t('8-BIT MODE')}</span>
+              <strong>{t('Secret emulator')}</strong>
+              <span>
+                {t(
+                  'Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket and Virtual Boy files you already own.',
+                )}
+              </span>
+            </span>
+            <Icon name="forward" size={16} />
+          </button>
+        </div>
       </section>
 
       <p className="footnote mono">

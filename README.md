@@ -86,7 +86,7 @@ away.
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
   support ride on the same tokens.
 
-> Status: **working desktop prototype (0.8.4, packaged and published)**. The app boots, modules load, service apps stay running with their
+> Status: **working desktop prototype (0.8.5, packaged and installed)**. The app boots, modules load, service apps stay running with their
 > sessions, native notifications and unread badges work, auth popups complete
 > inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
@@ -108,14 +108,15 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.8.4-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.8.4-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.8.5-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.8.5-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.8.4** artifacts are built from the complete source tree by the
-tag-triggered workflow and published on the
+The **0.8.5** artifacts are built from this tree and installed locally; the
+newest **published** build is 0.8.4 on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
-`SHA256SUMS.txt` covers the two 0.8.4 artifacts, and the in-app updater relies
-on it.
+Each release is built from the complete source tree by the tag-triggered
+workflow, and `SHA256SUMS.txt` covers its two artifacts, which the in-app
+updater requires.
 ### Updates
 
 Kryvex can update itself from this repository's public releases. **Settings →
@@ -144,9 +145,10 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The **0.8.4** Setup and Portable EXEs are built from this tree by the release
-workflow. Artifact checksums, verification steps and limitations are recorded
-in [docs/RELEASE_0.8.4.md](docs/RELEASE_0.8.4.md); earlier releases are in
+The **0.8.5** Setup and Portable EXEs are built from this tree. Artifact
+checksums, verification steps and limitations are recorded in
+[docs/RELEASE_0.8.5.md](docs/RELEASE_0.8.5.md); earlier releases are in
+[docs/RELEASE_0.8.4.md](docs/RELEASE_0.8.4.md),
 [docs/RELEASE_0.8.3.md](docs/RELEASE_0.8.3.md),
 [docs/RELEASE_0.8.2.md](docs/RELEASE_0.8.2.md),
 [docs/RELEASE_0.8.1.md](docs/RELEASE_0.8.1.md),
@@ -172,18 +174,57 @@ python -m http.server 4173 -d dist-web
 
 The web client keeps the workspace, service registry, themes, Home board and
 weather, tasks, wallpaper, command palette, bookmarks/history UI, Vexium's
-offline answers and search fallback, and the 8-bit emulator (when the EmulatorJS
-CDN is reachable). State lives in `localStorage`; the shell caches itself for
-offline use after the first visit. Services open in their own browser tabs, and
-the panels that need Electron — embedded persistent sessions, Shield,
-extensions, downloads/torrents, VPN, local models, screen share — say so
-instead of failing silently.
+offline answers and search fallback, the 8-bit emulator (when the EmulatorJS
+CDN is reachable), Lexium's translation and image reading, and the media player
+for local files and direct links. Transcription needs the speech engine to be
+reachable from that device; see [docs/LEXIUM.md](docs/LEXIUM.md). State lives in
+`localStorage`; the shell caches itself for offline use after the first visit.
+Services open in their own browser tabs, and the panels that need Electron —
+embedded persistent sessions, Shield, extensions, downloads/torrents, VPN, local
+models, screen share — say so instead of failing silently.
 
 On an Android phone, open the HTTPS (or `localhost`) build in Chrome and use
 **Install app**. See [docs/WEB.md](docs/WEB.md) for the build, hosting, USB
 fallback and the full feature-parity table.
 
-## What's new in 0.8.4
+## In-house tools — Lexium and the player
+
+Services → **Secret services** now holds three element tiles besides the
+emulator: two tools built into Kryvex rather than embedded from the web.
+
+**Lexium (Lx · x530)** transcribes imported recordings, translates text in both
+directions and reads text out of images. Audio is decoded in the renderer to
+16 kHz mono WAV and sent to a Whisper server you run; translation goes to a
+LibreTranslate server with a labelled keyless fallback; OCR runs in the page
+through Tesseract. Nothing is stored after you leave the page. Setup, formats,
+limits and failure modes: [docs/LEXIUM.md](docs/LEXIUM.md).
+
+**Media player (Mx · x531)** queues local audio and video or direct media
+links, with repeat, shuffle, seek and volume, and a transport bar that docks
+above the status bar while you work elsewhere. Platform pages (YouTube,
+Spotify, Twitch, SoundCloud, Vimeo) are recognised and opened in their own
+module instead of pretending an `<audio>` tag can play them. Details:
+[docs/PLAYER.md](docs/PLAYER.md).
+
+The catalogue also gained Twitch, TikTok, Facebook, SoundCloud and Vimeo
+presets. TikTok, Twitch and Facebook default to **Start muted**, so an
+autoplaying feed cannot make noise until you unmute the module.
+
+## What's new in 0.8.5
+
+Two in-house tools joined the secret services, and all three of those services
+now share one periodic-table tile. **Lexium (x530)** transcribes recordings,
+translates in both directions and reads text out of images using servers you
+point it at; **the media player (x531)** queues local files and direct links,
+keeps playing while you work in another view, and docks its transport above the
+status bar. The emulator is now **x532 / “8-bit”**, with its old pixel screen
+faded into the tile as a watermark behind the symbol. Five presets arrived —
+Twitch, TikTok, Facebook, SoundCloud and Vimeo — and the autoplaying feeds start
+muted. Leaving the player page no longer pauses the track, and an unset weather
+location no longer reads as 0,0 and reports Null Island weather as local.
+Everything in 0.8.4 is included.
+
+## What was new in 0.8.4
 
 Services became a working platform. Steam's session cookies are promoted so a
 Steam module stays signed in across restarts, and a one-time-code strip can
@@ -446,8 +487,10 @@ faster; the same actions remain available on screen.
 | **Resource monitor** | CPU, system memory, the Chromium GPU process and per-service/per-process usage, in the sidebar or a full view. Samples only while visible. |
 | **VPN** | Start and stop an OpenVPN tunnel from your own binary and profile, with DNS, proxy, extra flags and connect-on-launch. Dangerous helper flags are refused. |
 | **Search engines** | Worldwide, Chinese, Korean, Czech, Vietnamese and international engines shared by the address bar, Settings and Vexium. |
+| **Lexium** | Secret in-house language tool: Whisper transcription for imported MP3/WAV/M4A/OGG/FLAC/WebM/MP4 with timed segments and `.txt`/`.srt` export, LibreTranslate translation with automatic detection and a labelled public fallback, and Tesseract OCR that hands recognized text straight to the translator. Audio is decoded and resampled to 16 kHz mono WAV locally. |
+| **Media player** | Secret in-house player for local files and direct links, with a persistent queue, repeat off/all/one, shuffle, seek, volume, video stage and a docked transport bar. Platform URLs are classified and handed to their own module. |
 | **8-bit emulator** | EmulatorJS cores for NES, SNES, Game Boy/Color, GBA, Master System, Game Gear, Genesis, 32X, SG-1000, WonderSwan, Atari 2600/7800/Lynx, PC Engine, Neo Geo Pocket and Virtual Boy. Local ROMs only. |
-| **Service catalogue** | 26 presets across communication (Discord, Steam, Messenger, WhatsApp, Telegram, Instagram, Gmail, X), work (GitHub, Linear, Notion, Figma, Trello), AI (ChatGPT, Claude, Gemini, Copilot, Perplexity, Hugging Face, Freebuff), resources (FMHY, Ollama, Internet Archive) and media (Spotify, YouTube, Reddit), with brand marks and honest notes about embedding limits. Sources read while building the shell stay out of the catalogue. |
+| **Service catalogue** | 31 presets across communication (Discord, Steam, Messenger, WhatsApp, Telegram, Instagram, Gmail, X, Facebook), work (GitHub, Linear, Notion, Figma, Trello), AI (ChatGPT, Claude, Gemini, Copilot, Perplexity, Hugging Face, Freebuff), resources (FMHY, Ollama, Internet Archive) and media (Spotify, YouTube, Twitch, TikTok, SoundCloud, Vimeo, Reddit), with brand marks and honest notes about embedding limits. Presets can start a module muted, which TikTok, Twitch and Facebook use so their autoplaying feeds stay quiet. |
 | **Brand icons** | Built-in CC0 Simple Icons paths for known services. Unknown services request their own `/favicon.ico` directly, then fall back to a letter tile. No third-party favicon service. |
 | **Isolated sessions** | One persistent partition per service; disposable in-memory partitions per browser tab, cleared on close. Cookies and sign-in stay inside the module. Opened services stay mounted, so a view change never reloads them. |
 | **Service apps** | Keep-alive webview, native notifications, unread badges, sandboxed OAuth popups on the same session, a persistent Steam session, an in-service one-time-code relay for Steam Guard, other sign-in codes and split one-character boxes, per-service session clearing, reload, open externally, edit, remove, loading bar and an error state with retry. A Chrome-shaped user agent replaces Electron's. |
@@ -470,7 +513,7 @@ faster; the same actions remain available on screen.
 | **Command palette** | Fuzzy-ish filter over navigation, actions, services and themes; arrow keys, `Enter`, `Esc`. Optional — every action also has a visible button. |
 | **Persistence** | Debounced writes with an atomic temp-file rename, 1 MB cap, defensive sanitisation on every load. Reset restores starters. |
 | **Security** | Sandboxed renderer, context isolation, fixed IPC bridge, sender checks on every IPC call, hardened webviews, partition allowlist, http(s)-only navigation, prompt-only microphone/camera access, denied device permissions, display capture granted to the shell only while a Rooms source pick is armed, externalised popups, GPC, referrer trimming, no-pings, no DNS prefetch, WebRTC public-interface policy, HTTPS upgrades with a one-time fallback, tracking-parameter stripping and per-site fingerprint farbling. |
-| **Quality** | 359 unit tests, strict TypeScript across renderer and main, production build, packaged-app run, real screenshots from the running window, and harnesses for restart persistence, download history and location, torrent restore, find-in-page, zoom, the updater, the theme gallery (first-run flow, family previews, persistence), a layout sweep that fails on clipped content across ten window sizes, and two-instance Rooms (presence, chat, screen share). |
+| **Quality** | 390 unit tests, strict TypeScript across renderer and main, production build, packaged-app run, real screenshots from the running window, and harnesses for restart persistence, download history and location, torrent restore, find-in-page, zoom, the updater, the theme gallery (first-run flow, family previews, persistence), a layout sweep that fails on clipped content across ten window sizes, and two-instance Rooms (presence, chat, screen share). |
 
 ## Screenshots
 

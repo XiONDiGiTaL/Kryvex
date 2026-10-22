@@ -37,10 +37,19 @@ export function sanitizeCity(raw: unknown): string | null {
   return value;
 }
 
+function coordinate(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 export function sanitizePoint(latitude: unknown, longitude: unknown): { latitude: number; longitude: number } | null {
-  const lat = Number(latitude);
-  const lon = Number(longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  // Number(null) is 0: without this guard an unset location would ask for the
+  // weather at 0,0 and call it local.
+  const lat = coordinate(latitude);
+  const lon = coordinate(longitude);
+  if (lat === null || lon === null) return null;
   if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
   return { latitude: Math.round(lat * 10000) / 10000, longitude: Math.round(lon * 10000) / 10000 };
 }

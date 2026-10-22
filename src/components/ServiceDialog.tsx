@@ -21,6 +21,7 @@ export function ServiceDialog({
   const [color, setColor] = useState(initial?.color ?? SERVICE_COLORS[0]);
   const [pinned, setPinned] = useState(initial?.pinned ?? true);
   const [icon, setIcon] = useState<string | undefined>(initial?.icon);
+  const [muted, setMuted] = useState(initial?.muted === true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const previewLetter = useMemo(() => letterFor(name || initial?.name || 'K'), [name, initial?.name]);
@@ -39,6 +40,7 @@ export function ServiceDialog({
     setColor(preset.color);
     setIcon(preset.icon);
     setPinned(true);
+    setMuted(preset.muted === true);
     setErrors({});
   }
 
@@ -54,7 +56,7 @@ export function ServiceDialog({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    const result = validateServiceInput({ name, url, category, color, pinned, icon });
+    const result = validateServiceInput({ name, url, category, color, pinned, icon, muted });
     if (!result.ok || !result.service) {
       setErrors(result.errors);
       return;
@@ -201,6 +203,11 @@ export function ServiceDialog({
         <label className="checkbox-row">
           <input type="checkbox" checked={pinned} onChange={event => setPinned(event.target.checked)} />
           <span>{t('Pin to the sidebar')}</span>
+        </label>
+
+        <label className="checkbox-row">
+          <input type="checkbox" checked={muted} onChange={event => setMuted(event.target.checked)} />
+          <span>{t('Start muted (no autoplay sound)')}</span>
         </label>
 
         <p className="permission-note">

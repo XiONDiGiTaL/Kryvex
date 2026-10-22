@@ -34,7 +34,21 @@ type IconName =
   | 'image'
   | 'spark'
   | 'users'
-  | 'warning';
+  | 'warning'
+  | 'play'
+  | 'pause'
+  | 'next'
+  | 'prev'
+  | 'repeat'
+  | 'repeat-one'
+  | 'shuffle'
+  | 'volume'
+  | 'mute'
+  | 'mic'
+  | 'language'
+  | 'copy'
+  | 'upload'
+  | 'music';
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -206,6 +220,102 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 4.4 21 19.6H3z" />
       <path d="M12 9.6v4.6" />
       <circle cx="12" cy="17" r="0.9" />
+    </>
+  ),
+  play: <path d="M8 5.4v13.2L19 12 8 5.4Z" fill="currentColor" stroke="none" />,
+  pause: (
+    <>
+      <rect x="7" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none" />
+      <rect x="13.4" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none" />
+    </>
+  ),
+  next: (
+    <>
+      <path d="M6 5.6v12.8L15 12 6 5.6Z" fill="currentColor" stroke="none" />
+      <path d="M18.4 5v14" />
+    </>
+  ),
+  prev: (
+    <>
+      <path d="M18 5.6v12.8L9 12l9-6.4Z" fill="currentColor" stroke="none" />
+      <path d="M5.6 5v14" />
+    </>
+  ),
+  repeat: (
+    <>
+      <path d="M4 9.4A4.4 4.4 0 0 1 8.4 5h9.2" />
+      <path d="m15 2.6 2.6 2.4L15 7.4" />
+      <path d="M20 14.6A4.4 4.4 0 0 1 15.6 19H6.4" />
+      <path d="m9 21.4-2.6-2.4L9 16.6" />
+    </>
+  ),
+  'repeat-one': (
+    <>
+      <path d="M4 9.4A4.4 4.4 0 0 1 8.4 5h9.2" />
+      <path d="m15 2.6 2.6 2.4L15 7.4" />
+      <path d="M20 14.6A4.4 4.4 0 0 1 15.6 19H6.4" />
+      <path d="m9 21.4-2.6-2.4L9 16.6" />
+      <path d="M12 9.6v5" />
+      <path d="m10.8 10.6 1.2-.9" />
+    </>
+  ),
+  shuffle: (
+    <>
+      <path d="M3.5 6.5h3.1c1.6 0 2.6.8 3.6 2.1l3.6 4.8c1 1.3 2 2.1 3.6 2.1h3.1" />
+      <path d="m18 2.9 3 3.6-3 3.6" />
+      <path d="M3.5 17.5h3.1c1.6 0 2.6-.8 3.6-2.1l.8-1.1" />
+      <path d="m14 10.6.8-1.1c1-1.3 2-2.1 3.6-2.1h2.1" />
+      <path d="m18 13.9 3 3.6-3 3.6" />
+    </>
+  ),
+  volume: (
+    <>
+      <path d="M4 9.4h3.3L12 5.6v12.8L7.3 14.6H4z" />
+      <path d="M15.4 9.2a4 4 0 0 1 0 5.6" />
+      <path d="M17.8 6.6a7.4 7.4 0 0 1 0 10.8" />
+    </>
+  ),
+  mute: (
+    <>
+      <path d="M4 9.4h3.3L12 5.6v12.8L7.3 14.6H4z" />
+      <path d="m16 9.6 4.4 4.8" />
+      <path d="m20.4 9.6-4.4 4.8" />
+    </>
+  ),
+  mic: (
+    <>
+      <rect x="9.2" y="3" width="5.6" height="10.4" rx="2.8" />
+      <path d="M5.6 11.4a6.4 6.4 0 0 0 12.8 0" />
+      <path d="M12 17.8V21" />
+      <path d="M9 21h6" />
+    </>
+  ),
+  language: (
+    <>
+      <path d="m3.4 19 4.8-13 4.8 13" />
+      <path d="M5.4 14.2h5.6" />
+      <path d="M15 19h5.6" />
+      <path d="M17.8 19c0-3.1 1-5.6 2.8-7.4" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="8.4" y="8.4" width="11.2" height="11.2" rx="2.2" />
+      <path d="M15.6 8.4V6.2A2.2 2.2 0 0 0 13.4 4H6.2A2.2 2.2 0 0 0 4 6.2v7.2a2.2 2.2 0 0 0 2.2 2.2h2.2" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M12 16V4.6" />
+      <path d="m7.4 9.2 4.6-4.6 4.6 4.6" />
+      <path d="M4.5 16.4v1.8A2.3 2.3 0 0 0 6.8 20.5h10.4a2.3 2.3 0 0 0 2.3-2.3v-1.8" />
+    </>
+  ),
+  music: (
+    <>
+      <path d="M9 18.2V6.4l9-2v11.4" />
+      <circle cx="6.6" cy="18.4" r="2.4" />
+      <circle cx="15.6" cy="16.6" r="2.4" />
     </>
   ),
 };

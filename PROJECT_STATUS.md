@@ -1,6 +1,6 @@
 # Kryvex — Project Status
 
-**Product:** Kryvex Desktop 0.8.4 — a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.8.5 — a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -79,7 +79,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   farbling and EasyList Cookie. Remaining: per-site privacy exceptions,
   persisted per-module scopes, Safe Browsing equivalent, `pnpm audit`,
   packaged-app integrity checks, renderer CSP, macOS/Linux validation.
-- [ ] **M8 — Testing (partial).** 219/219 unit tests, strict typecheck, build and
+- [ ] **M8 — Testing (partial).** 390/390 unit tests, strict typecheck, build and
   twenty-four-capture pass; live Sohbet probe passed. Two-instance Rooms
   (`pnpm verify:rooms`) proves presence, chat and a 2560×1440 screen share
   between separate profiles. The new service-engine
@@ -98,8 +98,9 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   Remaining: broader e2e UI
   coverage, backup/restore,  measured performance comparison (`docs/PERFORMANCE.md` still holds no
   numbers).
-- [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0**, **0.8.0**, **0.8.1**, **0.8.2**, **0.8.3**
-  and **0.8.4** Setup and Portable EXEs are built by GitHub Actions on their `v*` tags; the
+- [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0**, **0.8.0**, **0.8.1**, **0.8.2**, **0.8.3**,
+  **0.8.4** and **0.8.5** Setup and Portable EXEs are built by GitHub Actions on their `v*` tags
+  (**0.8.5** is also built and installed locally, before its tag); the
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
   `package:win`, writes `SHA256SUMS.txt` and publishes the release, and it now
   refuses a tag whose release record carries no installer wizard capture
@@ -111,13 +112,13 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   code signing and an interactive-wizard pass.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
   secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.4
-  releases published. Each release carries the Setup and Portable EXEs plus
+  releases published, with 0.8.5 packaged and installed but not yet tagged. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it.
 - [ ] **M11 — Final review.** README with real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.4
-  release records are in place. Outstanding: engineering report and a signed
-  public release.
+  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.5
+  release records are in place. Outstanding: engineering report and
+  a signed public release.
 
 ## Fixed (2026-10-21, error dialog on close)
 

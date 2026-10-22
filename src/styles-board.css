@@ -777,33 +777,6 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent);
 }
 
-.secret-card-screen {
-  display: grid;
-  grid-template-columns: repeat(3, 12px);
-  grid-template-rows: repeat(3, 12px);
-  gap: 3px;
-  padding: 9px;
-  flex: none;
-  border: 2px solid var(--accent);
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bg) 80%, transparent);
-}
-
-.secret-pixel {
-  background: var(--accent);
-  opacity: 0.25;
-  border-radius: 1px;
-}
-
-.secret-pixel:nth-child(2),
-.secret-pixel:nth-child(4),
-.secret-pixel:nth-child(5),
-.secret-pixel:nth-child(6),
-.secret-pixel:nth-child(8) {
-  opacity: 1;
-}
-
 .secret-card-copy {
   display: flex;
   flex-direction: column;

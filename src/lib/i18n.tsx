@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { LanguageSetting, ResolvedLanguage } from '../types';
 import { featureCopy } from './i18n-extras';
+import { toolsCopy } from './i18n-tools';
 
 export const LANGUAGES: ReadonlyArray<{ id: LanguageSetting; label: string }> = [
   { id: 'system', label: 'System language' },
@@ -2819,6 +2820,7 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           // Newest feature copy wins: a key added here is defined once, not in
           // every language block above.
           ...featureCopy[language],
+          ...toolsCopy[language],
         };
   return {
     language,

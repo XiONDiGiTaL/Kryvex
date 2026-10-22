@@ -1,6 +1,8 @@
 import type {
   EmulatorSettings,
   HomeSettings,
+  LexiumSettings,
+  PlayerSettings,
   ResourceSettings,
   SearchRegion,
   VpnSettings,
@@ -42,4 +44,26 @@ export const DEFAULT_EMULATOR: EmulatorSettings = {
   scale: 3,
   gamepad: true,
   crt: true,
+};
+
+/**
+ * Lexium defaults point at the two local servers from its own setup guide: the
+ * local-whisper app on 8000 and LibreTranslate on 5000. Nothing is contacted
+ * until the user asks for a transcript or a translation.
+ */
+export const DEFAULT_LEXIUM: LexiumSettings = {
+  engine: 'local-whisper',
+  baseUrl: 'http://localhost:8000',
+  model: 'base',
+  language: 'auto',
+  target: 'en',
+  translateUrl: 'http://localhost:5000',
+  apiKey: '',
+  ocrLanguage: 'eng',
+};
+
+export const DEFAULT_PLAYER: PlayerSettings = {
+  volume: 0.8,
+  repeat: 'off',
+  shuffle: false,
 };

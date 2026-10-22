@@ -92,6 +92,10 @@ phone must be connected and USB debugging enabled.
 | Vexium | Offline app answers and search fallback; a local model needs the desktop app |
 | Languages (en/es/de/fr) | Yes |
 | 8-bit emulator | Yes, if the EmulatorJS CDN is reachable |
+| Lexium translation | Yes: LibreTranslate if reachable, otherwise the labelled MyMemory fallback |
+| Lexium OCR | Yes, if the Tesseract CDN is reachable the first time |
+| Lexium transcription | Yes, when a Whisper engine is reachable from that device; an HTTPS page cannot call a plain `http://` engine on the LAN |
+| Media player | Yes: local audio/video, direct media links, repeat/shuffle, docked transport bar |
 | Offline shell | Yes, after the first visit |
 | Install to home screen | Yes, on HTTPS/localhost |
 
@@ -105,6 +109,7 @@ phone must be connected and USB debugging enabled.
 | VPN | The desktop app starts an OpenVPN process you provide. |
 | Local models | Vexium's Ollama/LM Studio/GGUF path talks to loopback from the main process; the web client does not proxy it. |
 | Rooms screen share | Display capture is granted to the desktop shell. |
+| Platform playback in the player | YouTube, Spotify, Twitch, SoundCloud and Vimeo are pages, not media files; they open in their own tab. |
 | Updates and default browser | Windows integration, not a web API. |
 
 The web client says **Web** in the header and shows a desktop-only note where a

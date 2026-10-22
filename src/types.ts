@@ -13,7 +13,16 @@ export type {
   EngineInfo,
 } from '../electron/chromium-rules';
 
-export type ViewId = 'home' | 'services' | 'browser' | 'assistant' | 'rooms' | 'settings' | 'emulator';
+export type ViewId =
+  | 'home'
+  | 'services'
+  | 'browser'
+  | 'assistant'
+  | 'rooms'
+  | 'settings'
+  | 'emulator'
+  | 'lexium'
+  | 'player';
 
 export type ServiceCategory =
   | 'communication'
@@ -377,6 +386,37 @@ export interface EmulatorSettings {
   crt: boolean;
 }
 
+export type LexiumEngine = 'local-whisper' | 'whisper-cpp' | 'openai';
+
+/** Lexium: the in-house translator, transcriber and OCR reader. */
+export interface LexiumSettings {
+  /** Which speech-to-text server the Transcribe tab talks to. */
+  engine: LexiumEngine;
+  /** Loopback (or LAN) base URL of that server; nothing is sent to Kryvex. */
+  baseUrl: string;
+  /** Model name for local-whisper/OpenAI-compatible servers; whisper.cpp picks its model at launch. */
+  model: string;
+  /** Spoken language, or 'auto' to let the engine detect it. */
+  language: string;
+  /** Translation target used by every tab. */
+  target: string;
+  /** LibreTranslate-compatible base URL. */
+  translateUrl: string;
+  /** Optional key for a hosted LibreTranslate instance. Stored locally only. */
+  apiKey: string;
+  /** Tesseract language pack used by the image reader. */
+  ocrLanguage: string;
+}
+
+export type RepeatMode = 'off' | 'all' | 'one';
+
+/** Media player preferences; the queue itself stays in memory. */
+export interface PlayerSettings {
+  volume: number;
+  repeat: RepeatMode;
+  shuffle: boolean;
+}
+
 export interface Settings {
   themeId: string;
   /** False only on a fresh install, until the first-run theme gallery is closed. */
@@ -412,6 +452,10 @@ export interface Settings {
   vpn: VpnSettings;
   /** Secret 8-bit emulator service preferences. */
   emulator: EmulatorSettings;
+  /** Secret translator/transcriber preferences. */
+  lexium: LexiumSettings;
+  /** Secret media player preferences. */
+  player: PlayerSettings;
 }
 
 export interface BrowserTab {

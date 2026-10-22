@@ -10,6 +10,8 @@ export interface ServicePreset {
   /** Optional: unknown brands fall back to the site favicon, then a letter. */
   icon?: BrandIconKey;
   note: string;
+  /** Start the module muted — feeds and autoplaying videos must not make noise. */
+  muted?: boolean;
 }
 
 /**
@@ -142,6 +144,54 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     color: '#FB7185',
     icon: 'youtube',
     note: 'Watch pages and subscriptions.',
+  },
+  {
+    id: 'twitch',
+    name: 'Twitch',
+    url: 'https://www.twitch.tv',
+    category: 'media',
+    color: '#A78BFA',
+    icon: 'twitch',
+    muted: true,
+    note: 'Live channels in their own session. Starts muted so a stream never surprises you.',
+  },
+  {
+    id: 'tiktok',
+    name: 'TikTok',
+    url: 'https://www.tiktok.com',
+    category: 'media',
+    color: '#2DD4BF',
+    icon: 'tiktok',
+    muted: true,
+    note: 'Autoplaying feed. The module starts muted, and the header mute keeps it quiet while you browse.',
+  },
+  {
+    id: 'soundcloud',
+    name: 'SoundCloud',
+    url: 'https://soundcloud.com',
+    category: 'media',
+    color: '#FBBF24',
+    icon: 'soundcloud',
+    note: 'Tracks, sets and your feed in a persistent session.',
+  },
+  {
+    id: 'vimeo',
+    name: 'Vimeo',
+    url: 'https://vimeo.com',
+    category: 'media',
+    color: '#38BDF8',
+    icon: 'vimeo',
+    note: 'Videos and showcases without the recommendation feed.',
+  },
+  {
+    id: 'facebook',
+    name: 'Facebook',
+    url: 'https://www.facebook.com',
+    category: 'communication',
+    color: '#60A5FA',
+    icon: 'facebook',
+    muted: true,
+    note: 'Feed and Messenger. Starts muted because the video feed autoplays.',
   },
   {
     id: 'reddit',

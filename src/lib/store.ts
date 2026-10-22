@@ -11,7 +11,10 @@ import type {
   EmulatorSettings,
   HomeNote,
   HomeSettings,
+  LexiumSettings,
   PartySettings,
+  PlayerSettings,
+  RepeatMode,
   ResourceSettings,
   SearchRegion,
   Settings,
@@ -33,9 +36,13 @@ import {
 import {
   DEFAULT_EMULATOR,
   DEFAULT_HOME,
+  DEFAULT_LEXIUM,
+  DEFAULT_PLAYER,
   DEFAULT_RESOURCES,
   DEFAULT_VPN,
 } from './defaults';
+import { cleanLanguage, cleanOcrLanguage, normalizeBaseUrl } from './lexium';
+import { clampVolume } from './player';
 import { isSearchEngine, isSearchRegion } from './search-engines';
 import { isEmulatorSystem } from './emulator';
 import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
@@ -212,15 +219,32 @@ function sanitizeNotes(raw: unknown): HomeNote[] {
   return notes;
 }
 
+function coordinate(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 /** Home board values are deliberately small: a widget, not a second app. */
 export function sanitizeHome(raw: unknown): HomeSettings {
   const base = DEFAULT_HOME;
   if (!isRecord(raw)) return { ...base, notes: [] };
-  const latitude = Number(raw.latitude);
-  const longitude = Number(raw.longitude);
+  // `Number(null)` is 0, which would silently turn an unset location into Null
+  // Island and show its weather as "local". Only a value the user actually
+  // saved may become a coordinate; an empty field stays unset.
+  const latitude = coordinate(raw.latitude);
+  const longitude = coordinate(raw.longitude);
+  const city = cleanText(raw.city, 80);
+  const place = cleanText(raw.place, 80);
+  // Builds before this guard stored `0,0` whenever the location was unset,
+  // because `Number(null)` is 0. With no city or place name that point can only
+  // be that old default, so read it as unset instead of Null Island weather.
+  const inheritedDefault = !city && !place && latitude === 0 && longitude === 0;
   const hasPoint =
-    Number.isFinite(latitude) &&
-    Number.isFinite(longitude) &&
+    latitude !== null &&
+    longitude !== null &&
+    !inheritedDefault &&
     Math.abs(latitude) <= 90 &&
     Math.abs(longitude) <= 180;
   return {
@@ -235,8 +259,8 @@ export function sanitizeHome(raw: unknown): HomeSettings {
           ? base.showGuide
           : raw.showMomentum === true
         : raw.showGuide === true,
-    city: cleanText(raw.city, 80),
-    place: cleanText(raw.place, 80),
+    city,
+    place,
     latitude: hasPoint ? latitude : null,
     longitude: hasPoint ? longitude : null,
     unit: raw.unit === 'f' ? 'f' : 'c',
@@ -277,6 +301,38 @@ export function sanitizeEmulator(raw: unknown): EmulatorSettings {
     scale: Number.isFinite(scale) ? Math.min(5, Math.max(1, Math.round(scale))) : base.scale,
     gamepad: raw.gamepad === undefined ? base.gamepad : raw.gamepad === true,
     crt: raw.crt === undefined ? base.crt : raw.crt === true,
+  };
+}
+
+const LEXIUM_ENGINES = ['local-whisper', 'whisper-cpp', 'openai'] as const;
+const REPEAT_MODES: RepeatMode[] = ['off', 'all', 'one'];
+
+/** Lexium keeps addresses, not secrets: the key is optional and local. */
+export function sanitizeLexium(raw: unknown): LexiumSettings {
+  const base = DEFAULT_LEXIUM;
+  if (!isRecord(raw)) return { ...base };
+  const engine = LEXIUM_ENGINES.includes(raw.engine as (typeof LEXIUM_ENGINES)[number])
+    ? (raw.engine as LexiumSettings['engine'])
+    : base.engine;
+  return {
+    engine,
+    baseUrl: normalizeBaseUrl(raw.baseUrl) || (raw.baseUrl === '' ? '' : base.baseUrl),
+    model: cleanText(raw.model, 48) || base.model,
+    language: cleanLanguage(raw.language, 'auto'),
+    target: cleanLanguage(raw.target, 'en') || base.target,
+    translateUrl: normalizeBaseUrl(raw.translateUrl) || (raw.translateUrl === '' ? '' : base.translateUrl),
+    apiKey: cleanText(raw.apiKey, 160),
+    ocrLanguage: cleanOcrLanguage(raw.ocrLanguage),
+  };
+}
+
+export function sanitizePlayer(raw: unknown): PlayerSettings {
+  const base = DEFAULT_PLAYER;
+  if (!isRecord(raw)) return { ...base };
+  return {
+    volume: clampVolume(Number(raw.volume)),
+    repeat: REPEAT_MODES.includes(raw.repeat as RepeatMode) ? (raw.repeat as RepeatMode) : base.repeat,
+    shuffle: raw.shuffle === true,
   };
 }
 
@@ -326,6 +382,8 @@ function sanitizeSettings(raw: unknown): Settings {
     resources: sanitizeResources(raw.resources),
     vpn: sanitizeVpn(raw.vpn),
     emulator: sanitizeEmulator(raw.emulator),
+    lexium: sanitizeLexium(raw.lexium),
+    player: sanitizePlayer(raw.player),
   };
 }
 

@@ -44,6 +44,10 @@ import { ThemeGallery } from './components/ThemeGallery';
 import { Home } from './views/Home';
 import { Services } from './views/Services';
 import { Emulator } from './views/Emulator';
+import { Lexium } from './views/Lexium';
+import { Player } from './views/Player';
+import { PlayerProvider } from './components/PlayerProvider';
+import { PlayerBar } from './components/PlayerBar';
 import { ResourcePanel } from './components/ResourceMonitor';
 import { InstallPrompt } from './components/InstallPrompt';
 import { useResourceSnapshot } from './lib/resources';
@@ -75,7 +79,9 @@ function parseHash(hash: string): Route {
     head === 'assistant' ||
     head === 'rooms' ||
     head === 'settings' ||
-    head === 'emulator'
+    head === 'emulator' ||
+    head === 'lexium' ||
+    head === 'player'
       ? head
       : 'home';
   return { view, query, key: raw };
@@ -528,6 +534,18 @@ export default function App() {
     );
   }, []);
 
+  const updateLexium = useCallback((patch: Partial<SettingsModel['lexium']>) => {
+    setState(current =>
+      updateSettings(current, { lexium: { ...current.settings.lexium, ...patch } }),
+    );
+  }, []);
+
+  const updatePlayer = useCallback((patch: Partial<SettingsModel['player']>) => {
+    setState(current =>
+      updateSettings(current, { player: { ...current.settings.player, ...patch } }),
+    );
+  }, []);
+
   const updateHome = useCallback((patch: Partial<SettingsModel['home']>) => {
     setState(current => updateSettings(current, { home: { ...current.settings.home, ...patch } }));
   }, []);
@@ -835,6 +853,10 @@ export default function App() {
         return t('Settings');
       case 'emulator':
         return t('Secret emulator');
+      case 'lexium':
+        return 'Lexium';
+      case 'player':
+        return t('Media player');
       default:
         return t('Home');
     }
@@ -859,6 +881,7 @@ export default function App() {
 
   return (
     <I18nProvider value={i18n}>
+    <PlayerProvider settings={state.settings.player} onUpdate={updatePlayer}>
     <div
       className={`app ${isElectron ? 'is-electron' : 'is-web'} ${
         state.settings.showStatusBar ? '' : 'no-status'
@@ -974,7 +997,10 @@ export default function App() {
             }}
             onDelete={deleteService}
             onUpdateService={updateServiceFlags}
-            onSecretEmulator={() => setEmulatorPrompt(true)}
+            onSecretTool={tool => {
+              if (tool === 'emulator') setEmulatorPrompt(true);
+              else navigate(tool);
+            }}
           />
         ) : route.view === 'assistant' ? (
           <Assistant
@@ -996,6 +1022,19 @@ export default function App() {
             settings={state.settings.emulator}
             onUpdate={updateEmulator}
             onBack={() => navigate('services')}
+            onToast={pushToast}
+          />
+        ) : route.view === 'lexium' ? (
+          <Lexium
+            settings={state.settings.lexium}
+            onUpdate={updateLexium}
+            onBack={() => navigate('services')}
+            onToast={pushToast}
+          />
+        ) : route.view === 'player' ? (
+          <Player
+            onBack={() => navigate('services')}
+            onOpenLink={openExternalTab}
             onToast={pushToast}
           />
         ) : route.view === 'rooms' ? (
@@ -1217,8 +1256,11 @@ export default function App() {
         </Modal>
       ) : null}
 
+      <PlayerBar onExpand={() => navigate('player')} />
+
       <ToastHost toasts={toasts} />
     </div>
+    </PlayerProvider>
     </I18nProvider>
   );
 }

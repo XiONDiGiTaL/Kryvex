@@ -24,6 +24,13 @@ describe('weather-rules', () => {
     expect(sanitizePoint('north', 0)).toBeNull();
   });
 
+  it('treats an unset location as unset rather than 0,0', () => {
+    expect(sanitizePoint(null, null)).toBeNull();
+    expect(sanitizePoint(undefined, undefined)).toBeNull();
+    expect(sanitizePoint('', '')).toBeNull();
+    expect(sanitizePoint(null, 0)).toBeNull();
+  });
+
   it('builds keyless Open-Meteo requests', () => {
     const geo = new URL(geocodeUrl('New York'));
     expect(geo.origin).toBe('https://geocoding-api.open-meteo.com');

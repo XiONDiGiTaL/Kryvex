@@ -9,6 +9,7 @@ import {
   removeBookmark,
   removeHistory,
   removeService,
+  sanitizeHome,
   sanitizeState,
   togglePin,
   updateService,
@@ -48,6 +49,24 @@ describe('sanitizeState', () => {
       ],
     });
     expect(state.services.map(service => service.id)).toEqual(['s-a']);
+  });
+
+  it('keeps an unset weather location unset', () => {
+    // Number(null) is 0: saving the board with no location must not pin the
+    // user to Null Island and present its weather as local.
+    expect(sanitizeHome({}).latitude).toBeNull();
+    expect(sanitizeHome({ latitude: null, longitude: null }).latitude).toBeNull();
+    expect(sanitizeHome({ latitude: '', longitude: '' }).longitude).toBeNull();
+    expect(sanitizeHome({ latitude: '51.5', longitude: '-0.12' }).latitude).toBe(51.5);
+    expect(sanitizeHome({ latitude: 0, longitude: 0 }).longitude).toBeNull();
+  });
+
+  it('heals the old 0,0 default that builds saved for an unset location', () => {
+    expect(sanitizeHome({ city: '', place: '', latitude: 0, longitude: 0 }).latitude).toBeNull();
+    // A named place keeps its coordinates, including one at the equator.
+    expect(
+      sanitizeHome({ city: 'Quito', place: 'Quito', latitude: 0, longitude: -78.5 }).latitude,
+    ).toBe(0);
   });
 
   it('keeps an intentionally empty service list empty', () => {

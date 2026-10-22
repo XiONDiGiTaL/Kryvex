@@ -6,6 +6,8 @@ import { DEFAULT_ICE_SERVERS, DEFAULT_TRACKERS } from './party-rules';
 import {
   DEFAULT_EMULATOR,
   DEFAULT_HOME,
+  DEFAULT_LEXIUM,
+  DEFAULT_PLAYER,
   DEFAULT_RESOURCES,
   DEFAULT_SEARCH_REGION,
   DEFAULT_VPN,
@@ -60,6 +62,8 @@ export interface ServiceInput {
   pinned?: boolean;
   letter?: string;
   icon?: string;
+  /** Silent until the user unmutes; useful for autoplaying feeds. */
+  muted?: boolean;
 }
 
 export interface ServiceResult {
@@ -107,6 +111,7 @@ export function validateServiceInput(input: ServiceInput): ServiceResult {
       color: input.color,
       letter,
       pinned: Boolean(input.pinned),
+      muted: input.muted === true,
       createdAt: Date.now(),
       ...(icon ? { icon: icon as Service['icon'] } : {}),
     },
@@ -199,6 +204,8 @@ export function starterState(): PersistedState {
       resources: { ...DEFAULT_RESOURCES },
       vpn: { ...DEFAULT_VPN },
       emulator: { ...DEFAULT_EMULATOR },
+      lexium: { ...DEFAULT_LEXIUM },
+      player: { ...DEFAULT_PLAYER },
     },
     recent: [],
     browser: { tabs: [], activeTabId: null },
