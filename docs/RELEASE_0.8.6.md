@@ -60,16 +60,18 @@ session fixes.
 
 ## Artifacts
 
-Built by the tag-triggered workflow and attached to the published, stable
+Built by the tag-triggered workflow (run
+[39790930314](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/39790930314),
+commit `f363745`) and attached to the published, stable
 [v0.8.6 release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.6):
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.8.6-x64.exe` | pending workflow | pending workflow |
-| `Kryvex-Portable-0.8.6-x64.exe` | pending workflow | pending workflow |
+| `Kryvex-Setup-0.8.6-x64.exe` | 120,482,947 B (114.90 MiB) | `5eb83690fb88b32efdaaa241b5c07f6716a63083b832b85de1331a41276726ad` |
+| `Kryvex-Portable-0.8.6-x64.exe` | 120,245,815 B (114.67 MiB) | `23cb563e7589d2ecdb96064fd435f12a270fa9db392cdace2d56d6d7641bdf03` |
 
-`SHA256SUMS.txt` carries both digests. The updater ignores a release whose
-installer has no matching entry. Both EXEs are **unsigned**.
+`SHA256SUMS.txt` (189 B) carries both digests. The updater ignores a release
+whose installer has no matching entry. Both EXEs are **unsigned**.
 
 ## Install
 
@@ -98,6 +100,17 @@ installer has no matching entry. Both EXEs are **unsigned**.
   `--config.electronDist=node_modules/electron/dist` — produced both 0.8.6
   EXEs. The Setup reports `ProductVersion 0.8.6`; the installed pilot binary
   now reports `0.8.6.0` after the wizard run.
+- **Published artifacts.** The release workflow passed every step (tag/version
+  check, release record, install, typecheck, 444 tests, the one-time-code relay,
+  packaging, checksums) and published a stable, non-draft release with the
+  Setup, Portable and `SHA256SUMS.txt` assets. Both EXEs were downloaded from
+  `releases/download/v0.8.6/`, and their sizes and SHA-256 digests match the
+  published checksum file.
+- **Published build exercised, not just hashed.** The published Portable EXE
+  was launched with `--remote-debugging-port` and an isolated profile:
+  `window.kryvex.appInfo()` returned `{version: "0.8.6", electron: "44.2.0",
+  chrome: "152.0.7977.76", node: "24.20.0", packaged: true}`, and `#/browser`
+  rendered the start page with its four cards.
 - `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer
   release/Kryvex-Setup-0.8.6-x64.exe --version 0.8.6` — PASS: five pages
   captured, the install page ran for 19,601 ms, the installer exited 0, and the

@@ -1,6 +1,6 @@
 # Kryvex — Project Status
 
-**Product:** Kryvex Desktop 0.8.5 — a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.8.6 — a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -103,9 +103,10 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   coverage, backup/restore,  measured performance comparison (`docs/PERFORMANCE.md` still holds no
   numbers).
 - [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0**, **0.8.0**, **0.8.1**, **0.8.2**, **0.8.3**,
-  **0.8.4** and **0.8.5** Setup and Portable EXEs are built by GitHub Actions on their `v*` tags
-  (**0.8.5** was also built and installed locally before its tag, and both
-  published EXEs were re-downloaded and hash-verified afterwards); the
+  **0.8.4**, **0.8.5** and **0.8.6** Setup and Portable EXEs are built by GitHub Actions on their `v*` tags
+  (**0.8.5** and **0.8.6** were also built and installed locally before their
+  tags, and their published EXEs were re-downloaded and hash-verified
+  afterwards); the
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
   `package:win`, writes `SHA256SUMS.txt` and publishes the release, and it now
   refuses a tag whose release record carries no installer wizard capture
@@ -116,12 +117,12 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.5
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.6
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it.
 - [ ] **M11 — Final review.** README with real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.5
+  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.6
   release records are in place. Outstanding: engineering report and
   a signed public release.
 
@@ -610,8 +611,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
 ## Next concrete action
 
-0.8.4 is published from the `v0.8.4` tag with the Setup, Portable and checksum
-assets, so installed 0.8.3 builds pick up the platform batch through **Settings
-→ Updates**. Next: code signing, a mobile/PWA client, and the compound manifest
-and permission sheet described in `docs/PLATFORM_PLAN.md` before adding any
-branded add-on.
+0.8.6 is published from the `v0.8.6` tag with the Setup, Portable and checksum
+assets, so installed 0.8.5 builds pick up the start page, private tabs and
+service pass through **Settings → Updates**. Next: code signing, the PWA client
+on Android (no APK), and the compound manifest and permission sheet described
+in `docs/PLATFORM_PLAN.md` before adding any branded add-on.
