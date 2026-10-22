@@ -86,7 +86,7 @@ away.
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
   support ride on the same tokens.
 
-> Status: **working desktop prototype (0.8.3, packaged and published)**. The app boots, modules load, service apps stay running with their
+> Status: **working desktop prototype (0.8.4, packaged and published)**. The app boots, modules load, service apps stay running with their
 > sessions, native notifications and unread badges work, auth popups complete
 > inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
@@ -108,13 +108,13 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.8.3-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.8.3-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.8.4-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.8.4-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.8.3** artifacts are built from the complete source tree by the
+The **0.8.4** artifacts are built from the complete source tree by the
 tag-triggered workflow and published on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
-`SHA256SUMS.txt` covers the two 0.8.3 artifacts, and the in-app updater relies
+`SHA256SUMS.txt` covers the two 0.8.4 artifacts, and the in-app updater relies
 on it.
 ### Updates
 
@@ -144,10 +144,10 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The **0.8.3** Setup and Portable EXEs are built from this tree by the release
-workflow, and the unpacked build completes every capture route. Artifact
-checksums, verification steps and limitations are recorded in
-[docs/RELEASE_0.8.3.md](docs/RELEASE_0.8.3.md); earlier releases are in
+The **0.8.4** Setup and Portable EXEs are built from this tree by the release
+workflow. Artifact checksums, verification steps and limitations are recorded
+in [docs/RELEASE_0.8.4.md](docs/RELEASE_0.8.4.md); earlier releases are in
+[docs/RELEASE_0.8.3.md](docs/RELEASE_0.8.3.md),
 [docs/RELEASE_0.8.2.md](docs/RELEASE_0.8.2.md),
 [docs/RELEASE_0.8.1.md](docs/RELEASE_0.8.1.md),
 [docs/RELEASE_0.8.0.md](docs/RELEASE_0.8.0.md),
@@ -159,7 +159,21 @@ checksums, verification steps and limitations are recorded in
 SmartScreen may show **Unknown publisher**. Only continue if you built the
 artifact yourself or downloaded it from a release you trust.
 
-## What's new in 0.8.3
+## What's new in 0.8.4
+
+Services became a working platform. Steam's session cookies are promoted so a
+Steam module stays signed in across restarts, and a one-time-code strip can
+relay Steam Guard and other sign-in codes into a single field or a row of
+one-character boxes. Home gained a clock, weather, sticky tasks, a guide and a
+live resource monitor; Settings gained an OpenVPN control panel and a search
+engine catalogue grouped by region. Vexium answers app questions offline and
+falls back to search when no local model is loaded, and Services → Secret
+emulator runs 8-bit ROMs you already own through EmulatorJS. Settings were
+reorganized into collapsible blocks, and every new panel is translated into
+English, Spanish, German and French. CI and the release workflow now run the
+one-time-code relay harness. Everything in 0.8.3 is included.
+
+## What was new in 0.8.3
 
 A page's `window.open` used to leave Kryvex for the system browser, so a Google
 or Microsoft sign-in finished in another application and the page that started
@@ -403,11 +417,16 @@ faster; the same actions remain available on screen.
 | Area | What works today |
 | --- | --- |
 | **Module registry** | Add, edit, remove and pin services. Name, URL, category, colour, glyph and brand-icon validation. Search, category filters, recents, starter catalogue, duplicate-safe IDs. |
-| **Vexium** | Chat with a local Ollama or LM Studio runtime over its OpenAI-compatible API. Probe and model list, streamed replies, Stop, runtime/address/model settings. Loopback http only; prompts stay in the session and no key or weights are stored. |
+| **Vexium** | Chat with a local Ollama or LM Studio runtime over its OpenAI-compatible API, or a GGUF file Kryvex starts locally. Offline app answers and a search fallback when no model is loaded, streamed replies, Stop, runtime/address/model settings. Loopback http only; prompts stay in the session and no key or weights are stored. |
+| **Home board** | Greeting and clock, opt-in Open-Meteo weather with a ten-minute cache and °C/°F, sticky tasks and a guide. Widgets hide independently. |
+| **Resource monitor** | CPU, system memory, the Chromium GPU process and per-service/per-process usage, in the sidebar or a full view. Samples only while visible. |
+| **VPN** | Start and stop an OpenVPN tunnel from your own binary and profile, with DNS, proxy, extra flags and connect-on-launch. Dangerous helper flags are refused. |
+| **Search engines** | Worldwide, Chinese, Korean, Czech, Vietnamese and international engines shared by the address bar, Settings and Vexium. |
+| **8-bit emulator** | EmulatorJS cores for NES, SNES, Game Boy/Color, GBA, Master System, Game Gear, Genesis, 32X, SG-1000, WonderSwan, Atari 2600/7800/Lynx, PC Engine, Neo Geo Pocket and Virtual Boy. Local ROMs only. |
 | **Service catalogue** | 26 presets across communication (Discord, Steam, Messenger, WhatsApp, Telegram, Instagram, Gmail, X), work (GitHub, Linear, Notion, Figma, Trello), AI (ChatGPT, Claude, Gemini, Copilot, Perplexity, Hugging Face, Freebuff), resources (FMHY, Ollama, Internet Archive) and media (Spotify, YouTube, Reddit), with brand marks and honest notes about embedding limits. Sources read while building the shell stay out of the catalogue. |
 | **Brand icons** | Built-in CC0 Simple Icons paths for known services. Unknown services request their own `/favicon.ico` directly, then fall back to a letter tile. No third-party favicon service. |
 | **Isolated sessions** | One persistent partition per service; disposable in-memory partitions per browser tab, cleared on close. Cookies and sign-in stay inside the module. Opened services stay mounted, so a view change never reloads them. |
-| **Service apps** | Keep-alive webview, native notifications, unread badges, sandboxed OAuth popups on the same session, an in-service one-time-code relay for Steam Guard, other sign-in codes and split one-character boxes, per-service session clearing, reload, open externally, edit, remove, loading bar and an error state with retry. A Chrome-shaped user agent replaces Electron's. |
+| **Service apps** | Keep-alive webview, native notifications, unread badges, sandboxed OAuth popups on the same session, a persistent Steam session, an in-service one-time-code relay for Steam Guard, other sign-in codes and split one-character boxes, per-service session clearing, reload, open externally, edit, remove, loading bar and an error state with retry. A Chrome-shaped user agent replaces Electron's. |
 | **Browser** | Tabs that reopen after a restart, back / forward / reload, address bar with host-or-search resolution, per-tab in-memory session, find-in-page (`Ctrl F`), page zoom (`Ctrl +` / `Ctrl -` / `Ctrl 0`), bookmarks bar, system-browser handoff, direct URL deep links. |
 | **Browser library** | Downloads, history and bookmarks in a side panel. Live download progress, pause/resume, cancel, show in folder, remove and delete-file actions; searchable history with clear/remove; full bookmark list. |
 | **Downloads** | Chromium downloads are observed in the main process across services and browser tabs, saved to the folder chosen in **Settings → Data** (Downloads by default) with collision-safe names, and exposed only as tracked display records. Finished history is written to `userData/kryvex-downloads.json`, so the library survives a restart; a download interrupted by quitting is shown as interrupted. |
@@ -427,7 +446,7 @@ faster; the same actions remain available on screen.
 | **Command palette** | Fuzzy-ish filter over navigation, actions, services and themes; arrow keys, `Enter`, `Esc`. Optional — every action also has a visible button. |
 | **Persistence** | Debounced writes with an atomic temp-file rename, 1 MB cap, defensive sanitisation on every load. Reset restores starters. |
 | **Security** | Sandboxed renderer, context isolation, fixed IPC bridge, sender checks on every IPC call, hardened webviews, partition allowlist, http(s)-only navigation, prompt-only microphone/camera access, denied device permissions, display capture granted to the shell only while a Rooms source pick is armed, externalised popups, GPC, referrer trimming, no-pings, no DNS prefetch, WebRTC public-interface policy, HTTPS upgrades with a one-time fallback, tracking-parameter stripping and per-site fingerprint farbling. |
-| **Quality** | 219 unit tests, strict TypeScript across renderer and main, production build, packaged-app run, real screenshots from the running window, and harnesses for restart persistence, download history and location, torrent restore, find-in-page, zoom, the updater, the theme gallery (first-run flow, family previews, persistence), a layout sweep that fails on clipped content across ten window sizes, and two-instance Rooms (presence, chat, screen share). |
+| **Quality** | 354 unit tests, strict TypeScript across renderer and main, production build, packaged-app run, real screenshots from the running window, and harnesses for restart persistence, download history and location, torrent restore, find-in-page, zoom, the updater, the theme gallery (first-run flow, family previews, persistence), a layout sweep that fails on clipped content across ten window sizes, and two-instance Rooms (presence, chat, screen share). |
 
 ## Screenshots
 

@@ -684,7 +684,13 @@ async function stopNewApps(before) {
   }
 
   if (flag('archive')) {
-    const archived = archiveCapture(release.version);
+    // A local installer can be captured before its release exists, which is how
+    // a tag carries a wizard capture the workflow can check. --version names
+    // that release; otherwise the installer's own version or the live feed.
+    const archiveVersion = (option('version') || report.installerVersion || release.version)
+      .replace(/^v/, '')
+      .replace(/^(\d+\.\d+\.\d+)\.0$/, '$1');
+    const archived = archiveCapture(archiveVersion);
     if (archived) {
       report.archive = path.relative(root, archived).split(path.sep).join('/');
       console.log(`archived: ${report.archive}`);
