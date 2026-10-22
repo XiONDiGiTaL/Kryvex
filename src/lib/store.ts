@@ -2,6 +2,7 @@ import type {
   Bookmark,
   BrowserTab,
   Density,
+  DiskSettings,
   HistoryEntry,
   LanguageSetting,
   PersistedState,
@@ -34,6 +35,7 @@ import {
   sanitizeTrackers,
 } from './party-rules';
 import {
+  DEFAULT_DISK,
   DEFAULT_EMULATOR,
   DEFAULT_HOME,
   DEFAULT_LEXIUM,
@@ -333,6 +335,15 @@ export function sanitizeLexium(raw: unknown): LexiumSettings {
   };
 }
 
+export function sanitizeDisk(raw: unknown): DiskSettings {
+  if (!isRecord(raw)) return { ...DEFAULT_DISK };
+  const accepted = Number(raw.disclaimerAcceptedAt);
+  return {
+    disclaimerAcceptedAt:
+      Number.isFinite(accepted) && accepted > 0 && accepted <= Date.now() ? accepted : 0,
+  };
+}
+
 export function sanitizePlayer(raw: unknown): PlayerSettings {
   const base = DEFAULT_PLAYER;
   if (!isRecord(raw)) return { ...base };
@@ -391,6 +402,7 @@ function sanitizeSettings(raw: unknown): Settings {
     emulator: sanitizeEmulator(raw.emulator),
     lexium: sanitizeLexium(raw.lexium),
     player: sanitizePlayer(raw.player),
+    disk: sanitizeDisk(raw.disk),
   };
 }
 

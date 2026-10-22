@@ -49,6 +49,7 @@ import { Services } from './views/Services';
 import { Emulator } from './views/Emulator';
 import { Lexium } from './views/Lexium';
 import { Player } from './views/Player';
+import { DiskPulse } from './views/DiskPulse';
 import { PlayerProvider } from './components/PlayerProvider';
 import { PlayerBar } from './components/PlayerBar';
 import { ResourcePanel } from './components/ResourceMonitor';
@@ -87,7 +88,8 @@ function parseHash(hash: string): Route {
     head === 'settings' ||
     head === 'emulator' ||
     head === 'lexium' ||
-    head === 'player'
+    head === 'player' ||
+    head === 'disk'
       ? head
       : 'home';
   return { view, query, key: raw };
@@ -560,6 +562,12 @@ export default function App() {
     );
   }, []);
 
+  const updateDisk = useCallback((patch: Partial<SettingsModel['disk']>) => {
+    setState(current =>
+      updateSettings(current, { disk: { ...current.settings.disk, ...patch } }),
+    );
+  }, []);
+
   const updateHome = useCallback((patch: Partial<SettingsModel['home']>) => {
     setState(current => updateSettings(current, { home: { ...current.settings.home, ...patch } }));
   }, []);
@@ -882,6 +890,8 @@ export default function App() {
         return 'Lexium';
       case 'player':
         return t('Media player');
+      case 'disk':
+        return t('Disk pulse');
       default:
         return t('Home');
     }
@@ -1066,6 +1076,13 @@ export default function App() {
           <Player
             onBack={() => navigate('services')}
             onOpenLink={openExternalTab}
+            onToast={pushToast}
+          />
+        ) : route.view === 'disk' ? (
+          <DiskPulse
+            settings={state.settings.disk}
+            onUpdate={updateDisk}
+            onBack={() => navigate('services')}
             onToast={pushToast}
           />
         ) : route.view === 'rooms' ? (

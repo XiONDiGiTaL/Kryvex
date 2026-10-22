@@ -1272,3 +1272,31 @@ permalink GUIDs, the 12-item cap, cross-feed deduplication, OPML import and
 persisted-feed sanitisation. `tests/rss-rules.test.ts` covers the main-process
 URL allowlist. `tests/store.test.ts` covers private-tab removal on load and the
 feed add/remove reducers.
+
+## Disk pulse — 2026-10-22
+
+The secret storage tool: analyzer, guarded cleaner and its verification harness.
+Read-only in the harness; deletion is proven against a fixture, not the user's
+drive.
+
+| Check | Result | Detail |
+| --- | --- | --- |
+| `npm run typecheck` | exit 0 | Renderer and main |
+| `npm test` | exit 0, **463/463** | 47 files, including the 19 new disk tests |
+| `node scripts/audit-i18n.cjs` | clean | 35 renderer files |
+| `npm run build` | exit 0 | Renderer bundle and main process |
+| `node scripts/verify-disk-pulse.cjs` | PASS, **9 assertions** | Real app, disposable profile |
+
+**Real-app run.** A fresh profile opened `#/disk`; the theme gallery was closed,
+the disclaimer appeared before any scan and was accepted, the health panel read
+`97% FULL` with `29 GB` free and `902 GB` used of `931 GB`, and Analyze listed
+seven cleanup categories with the real `%TEMP%` size (`14 MB`, 20 files). The
+clean button armed only after the scan and was not pressed. The analyzer drew
+eight drive folders, largest first (`Users` 11 GB). Capture:
+`screenshots/verify-disk-pulse.png`.
+
+`tests/disk-rules.test.ts` covers containment (`Temp-evil` is outside `Temp`),
+drive roots, protected subtrees, traversal, the 24-hour filter, target lookup and
+size formatting. `tests/disk-service.test.ts` runs the real cleaner against a
+fixture: old files in the root and a subdirectory are removed, a fresh file and
+the root survive, and a path or unknown id is refused before any unlink.

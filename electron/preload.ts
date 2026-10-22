@@ -315,6 +315,10 @@ const api = {
   modelsDownload: (id: string): Promise<unknown> => ipcRenderer.invoke('kryvex:models:download', id),
   modelsCancel: (id: string): Promise<boolean> => ipcRenderer.invoke('kryvex:models:cancel', id),
   modelsDelete: (id: string): Promise<unknown> => ipcRenderer.invoke('kryvex:models:delete', id),
+  diskHealth: (): Promise<unknown> => ipcRenderer.invoke('kryvex:disk:health'),
+  diskScan: (): Promise<unknown> => ipcRenderer.invoke('kryvex:disk:scan'),
+  diskClean: (ids: string[]): Promise<unknown> => ipcRenderer.invoke('kryvex:disk:clean', ids),
+  diskCancel: (): Promise<boolean> => ipcRenderer.invoke('kryvex:disk:cancel'),
   onModelProgress: (listener: (event: unknown) => void): (() => void) => {
     const wrapped = (_event: IpcRendererEvent, payload: unknown) => listener(payload);
     ipcRenderer.on('kryvex:models:progress', wrapped);

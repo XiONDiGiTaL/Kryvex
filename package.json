@@ -50,6 +50,7 @@
     "verify:shield-filters": "pnpm build && electron scripts/verify-shield-filters.cjs",
     "verify:service-ux": "pnpm build && node scripts/verify-service-ux.cjs",
     "verify:model": "pnpm build && electron scripts/verify-local-model.cjs",
+    "verify:disk": "pnpm build && node scripts/verify-disk-pulse.cjs",
     "verify:party-close": "pnpm build && node scripts/verify-party-close.cjs",
     "verify:guards": "pnpm build && node scripts/verify-window-guards.cjs",
     "audit:lifecycle": "node scripts/audit-lifecycle.cjs"

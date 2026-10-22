@@ -1,5 +1,23 @@
 # Third-party attribution
 
+## Disk cleanup reference projects
+
+Disk pulse was designed after reviewing three open projects. Their code was
+not incorporated, because only one of the three licences permits it:
+
+- **Cleanmgr+** — https://github.com/builtbybel/CleanmgrPlus — custom EULA that
+  forbids modification and derivative works. No code or text was adapted.
+- **CleanManager** — https://github.com/patrickleehua/CleanManager — MIT,
+  Copyright (c) 2026 patrickleehua. Its category checklist and
+  see-before-you-delete flow informed the UI; no source files were copied.
+- **SquirrelDisk** — https://github.com/adileo/squirreldisk — AGPL-3.0.
+  Its analyzer presentation informed the concept only; incorporating AGPL code
+  would relicense Kryvex, so none was used.
+
+Kryvex's implementation is independent: the scanner, rules and cleaner are
+written for this app and covered by Kryvex's own tests.
+
+
 Kryvex is MIT-licensed, but it depends on data and libraries written by other
 people. This file records those contributions explicitly. Kryvex claims no
 authorship of, affiliation with, or endorsement by any project listed here.

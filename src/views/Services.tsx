@@ -24,7 +24,7 @@ export function Services({
   onTogglePin: (service: Service) => void;
   onDelete: (service: Service) => void;
   onUpdateService: (service: Service, patch: Partial<Service>) => void;
-  onSecretTool: (tool: 'emulator' | 'lexium' | 'player') => void;
+  onSecretTool: (tool: 'emulator' | 'lexium' | 'player' | 'disk') => void;
 }) {
   const t = useT();
   const [query, setQuery] = useState('');
@@ -262,6 +262,20 @@ export function Services({
               <span>
                 {t(
                   'Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket and Virtual Boy files you already own.',
+                )}
+              </span>
+            </span>
+            <Icon name="forward" size={16} />
+          </button>
+
+          <button className="secret-card is-tool" onClick={() => onSecretTool('disk')}>
+            <ElementMark tool="disk" size={58} />
+            <span className="secret-card-copy">
+              <span className="mono secret-card-kicker">{t('x533 / STORAGE')}</span>
+              <strong>{t('Disk pulse')}</strong>
+              <span>
+                {t(
+                  'Map what fills the drive, read its health as a pulse, then clear caches and temp files behind a typed confirmation.',
                 )}
               </span>
             </span>

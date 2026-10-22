@@ -21,6 +21,7 @@ import {
   trackChromiumGuest,
 } from './chromium';
 import { defaultBrowser } from './default-browser';
+import { diskService } from './disk-service';
 import { downloads } from './downloads';
 import { extensions } from './extensions';
 import { configurePrivacySwitches, hardenSession } from './hardening';
@@ -468,6 +469,31 @@ function registerIpc(): void {
   );
   ipcMain.handle('kryvex:models:delete', (event, id: unknown) =>
     isShellSender(event) ? modelManager.remove(id) : { ok: false, error: 'not-in-catalogue' },
+  );
+  // Disk pulse: the renderer sends target ids only. Roots, age filters and
+  // protected paths stay in disk-rules and are re-read for every clean.
+  ipcMain.handle('kryvex:disk:health', (event) =>
+    isShellSender(event) ? diskService.health() : null,
+  );
+  ipcMain.handle('kryvex:disk:scan', (event) =>
+    isShellSender(event) ? diskService.scan() : null,
+  );
+  ipcMain.handle('kryvex:disk:clean', (event, ids: unknown) =>
+    isShellSender(event)
+      ? diskService.clean(ids)
+      : {
+          ok: false,
+          freedBytes: 0,
+          removedFiles: 0,
+          skipped: 0,
+          targets: [],
+          errors: [],
+          cancelled: false,
+          message: 'not-shell',
+        },
+  );
+  ipcMain.handle('kryvex:disk:cancel', (event) =>
+    isShellSender(event) ? diskService.cancel() : false,
   );
   ipcMain.handle('kryvex:wallpaper:load', (event) =>
     isShellSender(event) ? readWallpaper(app.getPath('userData')) : null,

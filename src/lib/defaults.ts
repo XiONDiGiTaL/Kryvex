@@ -1,4 +1,5 @@
 import type {
+  DiskSettings,
   EmulatorSettings,
   HomeSettings,
   LexiumSettings,
@@ -66,4 +67,8 @@ export const DEFAULT_PLAYER: PlayerSettings = {
   volume: 0.8,
   repeat: 'off',
   shuffle: false,
+};
+
+export const DEFAULT_DISK: DiskSettings = {
+  disclaimerAcceptedAt: 0,
 };

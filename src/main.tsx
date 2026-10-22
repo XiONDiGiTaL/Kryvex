@@ -4,6 +4,7 @@ import App from './App';
 import './styles.css';
 import './styles-board.css';
 import './styles-tools.css';
+import './styles-disk.css';
 import './styles-emulator.css';
 import './styles-mobile.css';
 import './styles-web.css';

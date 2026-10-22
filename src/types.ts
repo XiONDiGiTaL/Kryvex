@@ -27,7 +27,8 @@ export type ViewId =
   | 'settings'
   | 'emulator'
   | 'lexium'
-  | 'player';
+  | 'player'
+  | 'disk';
 
 export type ServiceCategory =
   | 'communication'
@@ -518,6 +519,13 @@ export interface Settings {
   lexium: LexiumSettings;
   /** Secret media player preferences. */
   player: PlayerSettings;
+  /** Secret storage tool: the disclaimer is accepted once, not per visit. */
+  disk: DiskSettings;
+}
+
+export interface DiskSettings {
+  /** 0 until the user accepts the cleanup disclaimer. */
+  disclaimerAcceptedAt: number;
 }
 
 export interface BrowserTab {
