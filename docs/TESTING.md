@@ -1141,3 +1141,104 @@ the runtime phase, and the retest removed the file, emptied
 **Not run:** a real `llama-server` start against the downloaded file (no runtime
 installed on this machine), a cancelled mid-transfer, a forced hash mismatch
 (covered by unit tests), and a transfer on a slow or dropping connection.
+
+## Service surfaces — 2026-10-22
+
+Built from the 0.8.5 tree on `main`, after the resource, pinned-menu, parked
+frame, media-dock, shield-bundle and icon changes. Nothing was released.
+
+| Check | Result | Detail |
+| --- | --- | --- |
+| `npx tsc --noEmit -p tsconfig.json` | exit 0 | Renderer |
+| `npx tsc --noEmit -p tsconfig.electron.json` | exit 0 | Main process |
+| `npx vitest run` | exit 0, **421/421** in 42 files | Adds `media-rules` and the YouTube pruning test |
+| `npx vite build` + `tsc -p tsconfig.electron.json` | exit 0 | 951 kB renderer bundle |
+| `node scripts/audit-i18n.cjs` | clean | 33 renderer files |
+| `node scripts/check-release-record.cjs` | PASS | 0.8.5 record unchanged |
+| `node scripts/verify-service-ux.cjs` | PASS | 26 assertions |
+| `npx electron scripts/verify-shield-filters.cjs` | PASS | 123,258 network filters; client installed in a real guest |
+
+**Real-app run.** The UX harness launched the built app with an isolated profile
+and a local `audio` page. It right-clicked the pinned rail and found all seven
+actions in a themed menu (`borderRadius` non-zero, panel background not
+transparent). Activity showed `THIS APP ONLY`, Kryvex CPU and Kryvex memory;
+outside-click and `Escape` both closed it, and the sidebar's own **×** removed
+the compact block. Opening the local service produced a dock titled
+`Tone Lab Theme`; the dock's Pause reached the guest (`audio.paused === true`)
+and Play resumed it. Navigating Home left the frame `display: flex`, the guest
+reported `document.visibilityState === "visible"`, and the audio kept playing
+with the dock still visible. Captures:
+`screenshots/verify-service-context-menu.png`,
+`screenshots/verify-resource-panel.png`,
+`screenshots/verify-service-media-dock.png`,
+`screenshots/verify-media-dock-home.png`.
+
+**Not run, plainly.** A real YouTube or Spotify page was not played in this
+batch, so the site-specific selectors and the ad-pruning client were exercised
+against a synthetic player response and a real Chromium guest, not a live
+account. A full installer/portable artifact was not produced: the first
+`electron-builder --dir` attempts failed on this machine with `EPERM` renaming
+`win-unpacked.tmp`, and the builder could not find `pnpm` on PATH. With a
+temporary `corepack pnpm` shim and `--config.npmRebuild=false`, the directory
+build succeeded; its `Kryvex.exe` carried the Kx icon
+(`screenshots/packaged-exe-icon.png`), and `resources/icons/kryvex.ico` was
+present in the package. The installed `C:\Kryvex\Kryvex.exe` 0.8.5 also still
+carries that icon (`screenshots/installed-exe-icon.png`). The package was not
+signed or released.
+
+## Windows notification identity — 2026-10-22
+
+A toast click opened Electron's default welcome page. Windows resolves a toast
+through the Start Menu shortcut whose AppUserModelID matches the notifier. The
+installed app and the source checkout were both using `net.xiondigital.kryvex`,
+while Electron's unpackaged `Electron.lnk` pointed at the bare `electron.exe`.
+That shortcut therefore competed with `Kryvex.lnk` for the installed app's
+toasts; selecting it launched Electron with no app path.
+
+The packaged identity now stays on `net.xiondigital.kryvex`; a source run uses
+`net.xiondigital.kryvex.dev`. `Notification.handleActivation` is registered so
+an Action Center click restores and focuses the window.
+
+| Check | Result | Detail |
+| --- | --- | --- |
+| `npx tsc --noEmit -p tsconfig.json` | exit 0 | Renderer |
+| `npx tsc --noEmit -p tsconfig.electron.json` | exit 0 | Main process |
+| `npx vitest run` | exit 0, **423/423** in 43 files | Adds `notifications.test.ts` for the identity split |
+| `npx vite build` + `tsc -p tsconfig.electron.json` | exit 0 | Renderer bundle rebuilt |
+| Built app launched with an isolated profile | pass | A guest renderer reported `--app-user-model-id=net.xiondigital.kryvex.dev` |
+| Running `C:\Kryvex\Kryvex.exe` | observed | Its renderer reported `--app-user-model-id=net.xiondigital.kryvex`, so the installed shortcut keeps its own identity |
+| Packaged-AUMID toast, clicked | pass | Windows resolved it to `Kryvex.lnk`, brought the installed window to the foreground (`foreground=Kryvex`), and started no Electron process |
+
+A source run's cold toast click can still open Electron's welcome page: Electron
+creates `Electron.lnk` with the bare executable as its target, and changing that
+requires an installed executable. The packaged app is the supported path for
+click-to-relaunch. The installed 0.8.5 binary was not replaced, so the packaged
+side of this change was checked from the running process identity, the shortcut
+layout and a clicked toast, not from a newly installed build.
+
+## Browser start page, private tabs and feeds — 2026-10-22
+
+`scripts/verify-browser-start.cjs` drives the built Electron app with an
+isolated profile and a local fixture server. It does not inspect source or call
+the parser directly; every check below happened through the rendered page.
+
+| Check | Result | Detail |
+| --- | --- | --- |
+| Start page cards | pass | Shield, field guide, feeds and quick-launch cards all present |
+| Home button position | pass | First control in `.browser-toolbar`, labelled `Home` |
+| RSS through the visible form | pass | The fixture story appeared after typing the URL and pressing Add feed |
+| OPML through the file input | pass | Two feed chips, Atom story appeared |
+| Options menu | pass | New tab, New private tab, Home, library entries, Close private tabs, Shield settings |
+| Private tab marking | pass | `.tab.is-private` and `.browser-start.is-private` |
+| Private history | pass | `/article` never reached persisted history |
+| Private session | pass | No private tab in `kryvex-state.json` |
+| Ordinary history | pass | The same `/article` was persisted from an ordinary tab |
+| Close private tabs | pass | Menu action removed every `.tab.is-private` |
+| Feed errors | pass | No unavailable-feed note after both fixtures loaded |
+| Screenshots | pass | `screenshots/browser-start.png`, `screenshots/browser-private.png`, captured by Electron `Page.captureScreenshot` (no overlay) |
+
+`tests/rss.test.ts` covers RSS 2.0, Atom, CDATA, entities, relative item URLs,
+permalink GUIDs, the 12-item cap, cross-feed deduplication, OPML import and
+persisted-feed sanitisation. `tests/rss-rules.test.ts` covers the main-process
+URL allowlist. `tests/store.test.ts` covers private-tab removal on load and the
+feed add/remove reducers.

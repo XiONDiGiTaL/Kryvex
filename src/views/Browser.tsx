@@ -7,6 +7,7 @@ import type {
   HistoryEntry,
   PersistedState,
   PopupTabInfo,
+  RssFeed,
   TorrentRecord,
 } from '../types';
 import { makeId } from '../lib/services';
@@ -15,7 +16,8 @@ import { chromeWebStoreExtensionId, chromeWebStoreTitle } from '../lib/chrome-st
 import { openExternalUrl } from '../lib/external';
 import { hostOf, isHttpUrl, resolveAddress } from '../lib/url';
 import { DEFAULT_ZOOM, canZoom, stepZoom } from '../lib/zoom';
-import { Icon, Modal, ServiceIcon, ThemeMark, type ThemeMarkKind } from '../components/ui';
+import { Icon, Modal, type ThemeMarkKind } from '../components/ui';
+import { BrowserStart } from '../components/BrowserStart';
 import {
   Webview,
   type FindResult,
@@ -127,6 +129,9 @@ export function Browser({
   isElectron,
   engineRevision = 0,
   mark = 'kx',
+  feeds,
+  onAddFeeds,
+  onRemoveFeed,
   onAddBookmark,
   onRemoveBookmark,
   onAddHistory,
@@ -146,6 +151,9 @@ export function Browser({
   /** Remounts every page so changed engine preferences are attached. */
   engineRevision?: number;
   mark?: ThemeMarkKind;
+  feeds: RssFeed[];
+  onAddFeeds: (feeds: RssFeed[]) => void;
+  onRemoveFeed: (id: string) => void;
   onAddBookmark: (bookmark: Bookmark) => void;
   onRemoveBookmark: (id: string) => void;
   onAddHistory: (entry: HistoryEntry) => void;
@@ -185,11 +193,14 @@ export function Browser({
   const [browserBusy, setBrowserBusy] = useState(false);
   const [storeBusy, setStoreBusy] = useState(false);
   const [historyQuery, setHistoryQuery] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [findQuery, setFindQuery] = useState('');
   const [findResult, setFindResult] = useState<FindResult>({ matches: 0, activeMatch: 0 });
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const findInput = useRef<HTMLInputElement | null>(null);
+  const addressInput = useRef<HTMLInputElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const controllers = useRef(new Map<string, WebviewElement | null>());
   const openedInitial = useRef(false);
@@ -324,10 +335,39 @@ export function Browser({
   }, [findOpen]);
 
   useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('mousedown', close);
+    window.addEventListener('keydown', escape);
+    return () => {
+      window.removeEventListener('mousedown', close);
+      window.removeEventListener('keydown', escape);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const mod = event.ctrlKey || event.metaKey;
       if (!mod) return;
       const key = event.key.toLowerCase();
+      if (key === 't' && !event.shiftKey) {
+        event.preventDefault();
+        newTab();
+      }
+      if (key === 'n' && event.shiftKey) {
+        event.preventDefault();
+        newTab(true);
+      }
+      if (key === 'l') {
+        event.preventDefault();
+        addressInput.current?.focus();
+        addressInput.current?.select();
+      }
       if (key === 'f' && active?.url) {
         event.preventDefault();
         setFindOpen(true);
@@ -453,6 +493,7 @@ export function Browser({
   const finishedDownloads = downloads.filter(finished).length;
   const storeId = active?.url ? chromeWebStoreExtensionId(active.url) : null;
   const storeName = active?.title ? chromeWebStoreTitle(active.title) : t('Chrome Web Store');
+  const privateCount = tabs.filter(tab => tab.private).length;
 
   async function installStoreExtension() {
     if (!window.kryvex || !storeId) return;
@@ -507,10 +548,55 @@ export function Browser({
     navigateTo(url);
   }
 
-  function newTab() {
+  function newTab(privateTab = false) {
     const id = makeId('t');
-    setTabs(current => [...current, { id, url: '', title: t('New tab') }]);
+    setTabs(current => [
+      ...current,
+      {
+        id,
+        url: '',
+        title: privateTab ? t('New private tab') : t('New tab'),
+        ...(privateTab ? { private: true } : {}),
+      },
+    ]);
     setActiveTabId(id);
+  }
+
+  /**
+   * Home returns the current tab to the start page instead of opening a
+   * second tab. The page's own session stays alive until the tab is closed,
+   * but the start page is a renderer view, so there is no web history entry
+   * behind it to go back to.
+   */
+  function goHome() {
+    if (!active) {
+      newTab();
+      return;
+    }
+    updateActive({
+      url: '',
+      title: active.private ? t('New private tab') : t('New tab'),
+    });
+    setAddress('');
+    setStatus({ loading: false, canGoBack: false, canGoForward: false, error: null });
+    setFindOpen(false);
+    setMenuOpen(false);
+  }
+
+  function closePrivateTabs() {
+    const privateIds = tabs.filter(tab => tab.private).map(tab => tab.id);
+    if (privateIds.length === 0) return;
+    const remaining = tabs.filter(tab => !tab.private);
+    setTabs(remaining);
+    if (activeTabId && privateIds.includes(activeTabId)) {
+      setActiveTabId(remaining[remaining.length - 1]?.id ?? null);
+    }
+    for (const id of privateIds) {
+      controllers.current.delete(id);
+      window.setTimeout(() => void window.kryvex?.browserClearTab(`browser-${id}`), 250);
+    }
+    setMenuOpen(false);
+    onToast(t('Private tabs closed. Their session data is gone.'), 'info');
   }
 
   function closeTab(id: string) {
@@ -728,17 +814,16 @@ export function Browser({
     onToast(t(result.message), result.ok ? (deleteData ? 'warning' : 'info') : 'danger');
   }
 
-  const defaultText = !browserStatus
-    ? t('Checking Windows Default Apps…')
-    : browserStatus.isDefault
-      ? t('Kryvex handles http and https links from Windows.')
-      : browserStatus.detail ?? t('Windows will ask you to confirm.');
-
   return (
     <section className="view browser-view">
       <div className="tab-strip" role="tablist" aria-label={t('Browser tabs')}>
         {tabs.map(tab => (
-          <div key={tab.id} className={`tab ${tab.id === activeTabId ? 'is-active' : ''}`}>
+          <div
+            key={tab.id}
+            className={`tab ${tab.id === activeTabId ? 'is-active' : ''} ${
+              tab.private ? 'is-private' : ''
+            }`}
+          >
             <button
               role="tab"
               aria-selected={tab.id === activeTabId}
@@ -746,8 +831,16 @@ export function Browser({
               onClick={() => setActiveTabId(tab.id)}
               title={tab.url || tab.title}
             >
-              <span className="tab-dot" aria-hidden="true" />
-              <span className="tab-title">{tab.title || t('New tab')}</span>
+              {tab.private ? (
+                <span className="tab-private-mark" aria-hidden="true">
+                  <Icon name="incognito" size={11} />
+                </span>
+              ) : (
+                <span className="tab-dot" aria-hidden="true" />
+              )}
+              <span className="tab-title">
+                {tab.title || t(tab.private ? 'New private tab' : 'New tab')}
+              </span>
             </button>
             <button
               className="tab-close"
@@ -785,7 +878,12 @@ export function Browser({
             </button>
           </div>
         ))}
-        <button className="new-tab-btn" onClick={newTab} aria-label={t('New tab')} title={t('New tab')}>
+        <button
+          className="new-tab-btn"
+          onClick={() => newTab()}
+          aria-label={t('New tab')}
+          title={t('New tab')}
+        >
           <Icon name="plus" size={15} />
         </button>
 
@@ -820,6 +918,14 @@ export function Browser({
       </div>
 
       <div className="browser-toolbar">
+        <button
+          className="icon-btn"
+          onClick={goHome}
+          aria-label={t('Home')}
+          title={t('Home')}
+        >
+          <Icon name="home" size={16} />
+        </button>
         <button
           className="icon-btn"
           disabled={!status.canGoBack}
@@ -866,9 +972,14 @@ export function Browser({
         >
           <Icon name="globe" size={14} />
           <input
+            ref={addressInput}
             value={address}
             onChange={event => setAddress(event.target.value)}
-            placeholder={t('Search or enter an address')}
+            placeholder={
+              active?.private
+                ? t('Search privately or enter an address')
+                : t('Search or enter an address')
+            }
             spellCheck={false}
             aria-label={t('Address bar')}
           />
@@ -972,6 +1083,103 @@ export function Browser({
           >
             <Icon name="bookmark" size={15} />
           </button>
+        </div>
+
+        <div className="browser-menu-wrap" ref={menuRef}>
+          <button
+            className={`icon-btn ${menuOpen ? 'is-on' : ''}`}
+            onClick={() => setMenuOpen(open => !open)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label={t('Browser options')}
+            title={t('Browser options')}
+          >
+            <Icon name="menu" size={16} />
+          </button>
+          {menuOpen ? (
+            <div className="browser-menu" role="menu" aria-label={t('Browser options')}>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  newTab();
+                }}
+              >
+                <Icon name="plus" size={14} />
+                <span>{t('New tab')}</span>
+                <kbd>Ctrl T</kbd>
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  newTab(true);
+                }}
+              >
+                <Icon name="incognito" size={14} />
+                <span>{t('New private tab')}</span>
+                <kbd>Ctrl ⇧ N</kbd>
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  goHome();
+                }}
+              >
+                <Icon name="home" size={14} />
+                <span>{t('Home')}</span>
+              </button>
+              <div className="browser-menu-rule" role="separator" />
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setPanel('downloads');
+                }}
+              >
+                <Icon name="download" size={14} />
+                <span>{t('Downloads')}</span>
+                <span className="mono browser-menu-count">{downloads.length}</span>
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setPanel('history');
+                }}
+              >
+                <Icon name="history" size={14} />
+                <span>{t('History')}</span>
+                <span className="mono browser-menu-count">{state.history.length}</span>
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setPanel('bookmarks');
+                }}
+              >
+                <Icon name="bookmark" size={14} />
+                <span>{t('Bookmarks')}</span>
+                <span className="mono browser-menu-count">{state.bookmarks.length}</span>
+              </button>
+              <div className="browser-menu-rule" role="separator" />
+              <button
+                role="menuitem"
+                disabled={privateCount === 0}
+                onClick={closePrivateTabs}
+              >
+                <Icon name="lock" size={14} />
+                <span>{t('Close private tabs')}</span>
+                <span className="mono browser-menu-count">{privateCount}</span>
+              </button>
+              <a role="menuitem" href="#/settings" onClick={() => setMenuOpen(false)}>
+                <Icon name="shield" size={14} />
+                <span>{t('Shield settings')}</span>
+              </a>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1092,93 +1300,24 @@ export function Browser({
           ) : null}
 
           {!activePopup && (!active || active.url === '') ? (
-            <div className="browser-start">
-              <ThemeMark mark={mark} size={64} variant="tile" />
-              <h2>{active ? t('Where to?') : t('No tabs open')}</h2>
-              <p>
-                {t(
-                  'Search the web, open one of your modules, or start from a bookmark. Downloads and history stay in the library beside the page.',
-                )}
-              </p>
-              <form
-                className="start-search"
-                onSubmit={event => {
-                  event.preventDefault();
-                  if (!startQuery.trim()) return;
-                  go(startQuery);
-                  setStartQuery('');
-                }}
-              >
-                <Icon name="search" size={15} />
-                <input
-                  autoFocus
-                  value={startQuery}
-                  onChange={event => setStartQuery(event.target.value)}
-                  placeholder={t('Search with {engine}', { engine: state.settings.searchEngine })}
-                  aria-label={t('Search the web')}
-                />
-                <button type="submit" className="btn secondary small">
-                  {t('Go')}
-                </button>
-              </form>
-
-              <div className="start-links">
-                {state.services.slice(0, 6).map(service => (
-                  <button key={service.id} className="start-link" onClick={() => go(service.url)}>
-                    <ServiceIcon service={service} size={22} />
-                    <span>{service.name}</span>
-                    <span className="mono">{hostOf(service.url)}</span>
-                  </button>
-                ))}
-              </div>
-
-              {state.bookmarks.length > 0 ? (
-                <div className="start-links">
-                  {state.bookmarks.slice(0, 4).map(bookmark => (
-                    <button
-                      key={bookmark.id}
-                      className="start-link"
-                      onClick={() => navigateTo(bookmark.url, bookmark.title)}
-                    >
-                      <Icon name="bookmark" size={16} />
-                      <span>{bookmark.title}</span>
-                      <span className="mono">{hostOf(bookmark.url)}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-
-              {isElectron ? (
-                <div className="default-browser-card">
-                  <span className="default-browser-mark">
-                    <Icon name="globe" size={18} />
-                  </span>
-                  <div className="default-browser-copy">
-                    <strong>{t('Make Kryvex your default browser')}</strong>
-                    <p>{defaultText}</p>
-                  </div>
-                  <div className="default-browser-actions">
-                    <button
-                      className="btn secondary small"
-                      disabled={browserBusy || Boolean(browserStatus?.isDefault) || !browserStatus?.canRegister}
-                      onClick={() => void makeDefault()}
-                    >
-                      <Icon name={browserStatus?.isDefault ? 'check' : 'globe'} size={13} />
-                      {browserStatus?.isDefault
-                        ? t('Default browser')
-                        : browserBusy
-                          ? t('Opening…')
-                          : t('Set as default')}
-                    </button>
-                    {browserStatus && !browserStatus.isDefault && browserStatus.supported ? (
-                      <button className="link" onClick={() => void openDefaultSettings()}>
-                        {t('Windows settings')}
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-            </div>
+            <BrowserStart
+              state={state}
+              isElectron={isElectron}
+              privateTab={Boolean(active?.private)}
+              mark={mark}
+              startQuery={startQuery}
+              onStartQuery={setStartQuery}
+              onSearch={go}
+              onOpen={navigateTo}
+              feeds={feeds}
+              onAddFeeds={onAddFeeds}
+              onRemoveFeed={onRemoveFeed}
+              browserStatus={browserStatus}
+              browserBusy={browserBusy}
+              onMakeDefault={() => void makeDefault()}
+              onOpenDefaultSettings={() => void openDefaultSettings()}
+              onToast={onToast}
+            />
           ) : null}
 
           {!isElectron && active?.url ? (
@@ -1250,7 +1389,8 @@ export function Browser({
                         );
                         if (tab.id === activeTabId) {
                           setAddress(url);
-                          recordVisit(url);
+                          // Private tabs keep no trace in Kryvex history.
+                          if (!tab.private) recordVisit(url);
                         }
                       }}
                       onTitle={title => {

@@ -16,6 +16,7 @@ type IconName =
   | 'external'
   | 'trash'
   | 'reload'
+  | 'bell'
   | 'back'
   | 'forward'
   | 'close'
@@ -48,7 +49,10 @@ type IconName =
   | 'language'
   | 'copy'
   | 'upload'
-  | 'music';
+  | 'music'
+  | 'incognito'
+  | 'rss'
+  | 'menu';
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -119,6 +123,12 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M20 12a8 8 0 1 1-2.6-5.9" />
       <path d="M20 4.5V10h-5.4" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M18 15.6H6l1.4-2.3V9.1a4.6 4.6 0 0 1 9.2 0v4.2l1.4 2.3Z" />
+      <path d="M9.8 18.4a2.2 2.2 0 0 0 4.4 0" />
     </>
   ),
   back: <path d="M15 5.5 8.5 12l6.5 6.5" />,
@@ -309,6 +319,29 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 16V4.6" />
       <path d="m7.4 9.2 4.6-4.6 4.6 4.6" />
       <path d="M4.5 16.4v1.8A2.3 2.3 0 0 0 6.8 20.5h10.4a2.3 2.3 0 0 0 2.3-2.3v-1.8" />
+    </>
+  ),
+  incognito: (
+    <>
+      <path d="M4.2 10.5 6 6.3h12l1.8 4.2" />
+      <path d="M3 10.5h18" />
+      <path d="M7.2 10.5a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Z" />
+      <path d="M16.8 10.5a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Z" />
+      <path d="M10.5 13.8h3" />
+    </>
+  ),
+  rss: (
+    <>
+      <path d="M5 18.5h.01" />
+      <path d="M5 13.2a5.8 5.8 0 0 1 5.8 5.8" />
+      <path d="M5 7.4a11.6 11.6 0 0 1 11.6 11.6" />
+    </>
+  ),
+  menu: (
+    <>
+      <circle cx="6" cy="12" r="1.2" />
+      <circle cx="12" cy="12" r="1.2" />
+      <circle cx="18" cy="12" r="1.2" />
     </>
   ),
   music: (

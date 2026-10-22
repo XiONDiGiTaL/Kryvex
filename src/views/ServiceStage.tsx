@@ -156,6 +156,18 @@ function ServiceFrame({
     setCurrentUrl(service.url);
   }, [service.url]);
 
+  // A parked frame is transparent, not display:none, so the browser no longer
+  // removes focus for us. Drop it explicitly or keystrokes could keep landing
+  // in a service that is no longer in front.
+  useEffect(() => {
+    if (active) return;
+    try {
+      controller.current?.blur();
+    } catch {
+      /* the guest may not be attached yet */
+    }
+  }, [active]);
+
   useEffect(() => {
     if (!isElectron || status.loading) return;
     const element = controller.current;
@@ -285,9 +297,12 @@ function ServiceFrame({
 
   return (
     <div
-      className={`service-frame ${active ? 'is-active' : ''}`}
+      className={`service-frame ${active ? 'is-active' : ''} ${
+        !active && pauseWhenInactive ? 'is-parked' : ''
+      }`}
       data-service={service.id}
       aria-hidden={!active}
+      inert={!active}
     >
       <header className="service-toolbar">
         <button className="icon-btn" onClick={onBack} aria-label={t('Back to services')} title={t('Back')}>

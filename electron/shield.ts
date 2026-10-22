@@ -12,7 +12,10 @@ import {
   scriptletCode as buildScriptletCode,
   scriptletSource,
   scriptletsFor,
+  SHIELD_BUNDLE_VERSION,
   YOUTUBE_FILTERS,
+  isYouTubeUrl,
+  youtubeAdCode,
 } from './shield-rules';
 import { webPrivacy, type PrivacyOptions } from './web-privacy';
 
@@ -80,6 +83,8 @@ interface ShieldConfig {
   customScriptlets: boolean;
   /** Curated YouTube bundle: ads, sponsored cards, recommendation shelves. */
   youtube: boolean;
+  /** Version of the curated bundle compiled into the cached engine. */
+  bundleVersion: number;
 }
 
 const DEFAULT_CONFIG: ShieldConfig = {
@@ -95,6 +100,7 @@ const DEFAULT_CONFIG: ShieldConfig = {
   customEnabled: true,
   customScriptlets: true,
   youtube: true,
+  bundleVersion: 0,
 };
 
 function configPath(): string {
@@ -130,6 +136,7 @@ function readConfig(): ShieldConfig {
       customEnabled: raw.customEnabled !== false,
       customScriptlets: raw.customScriptlets !== false,
       youtube: raw.youtube !== false,
+      bundleVersion: Number.isFinite(raw.bundleVersion) ? Number(raw.bundleVersion) : 0,
     };
   } catch {
     return { ...DEFAULT_CONFIG };
@@ -274,13 +281,19 @@ class Shield {
    * matches the editor's trust switch: no scriptlets while it is off.
    */
   scriptletCode(rawUrl: unknown): string {
-    if (!this.config.enabled || !this.config.customScriptlets) return '';
+    if (!this.config.enabled) return '';
     if (typeof rawUrl !== 'string') return '';
     const source = scriptletSource(
       this.config.customEnabled ? this.config.customFilters : '',
       this.config.youtube,
     );
-    return buildScriptletCode(scriptletsFor(source, rawUrl));
+    // User scriptlets obey the trust switch; the curated YouTube client is
+    // Kryvex's own code and stays available even when that switch is off.
+    const custom = this.config.customScriptlets
+      ? buildScriptletCode(scriptletsFor(source, rawUrl))
+      : '';
+    const youtube = this.config.youtube && isYouTubeUrl(rawUrl) ? youtubeAdCode() : '';
+    return [custom, youtube].filter(Boolean).join('\n');
   }
 
   init(): void {
@@ -335,6 +348,16 @@ class Shield {
 
   async start(): Promise<void> {
     if (!this.config.enabled) return;
+    // A new curated bundle must reach an engine that was cached before it. The
+    // source text is kept precisely so this rebuild is offline and instant;
+    // if that file is missing (an older profile), refresh online instead.
+    if (this.blocker && this.config.bundleVersion !== SHIELD_BUNDLE_VERSION) {
+      this.rebuild();
+      if (this.config.bundleVersion !== SHIELD_BUNDLE_VERSION) {
+        await this.refresh().catch(() => undefined);
+      }
+      return;
+    }
     const stale =
       !this.config.updatedAt ||
       Date.now() - this.config.updatedAt > REFRESH_AFTER_MS ||
@@ -421,6 +444,7 @@ class Shield {
     try {
       this.install(base);
       this.phase = 'ready';
+      writeConfig(this.config);
       return this.status();
     } catch (error) {
       this.error = `Custom filters could not be compiled: ${
@@ -456,6 +480,7 @@ class Shield {
     next.on('request-blocked', () => {
       this.blocked += 1;
     });
+    this.config.bundleVersion = SHIELD_BUNDLE_VERSION;
     this.config.filterCount = this.countFilters();
     if (this.config.enabled) {
       for (const ses of this.sessions) this.attach(ses);

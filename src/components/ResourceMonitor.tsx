@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { ResourceSnapshot, Service } from '../types';
 import { formatCpu, formatMB } from '../lib/resources';
 import { useT } from '../lib/i18n';
@@ -8,37 +9,62 @@ function bar(value: number, max: number): string {
   return `${percent.toFixed(1)}%`;
 }
 
+/**
+ * Compact sidebar block. It reports Kryvex's own footprint, never the
+ * machine-wide numbers: a user who wants those has Task Manager, and mixing the
+ * two made a 26 GB system total look like the app's memory.
+ */
 export function SidebarResources({
   snapshot,
   services,
+  onHide,
 }: {
   snapshot: ResourceSnapshot;
   services: Service[];
+  onHide?: () => void;
 }) {
   const t = useT();
-  const memoryMax = snapshot.memoryTotalMB || 1;
   const top = snapshot.services.slice(0, 3);
   return (
     <div className="sidebar-resources" aria-label={t('Resource usage')}>
       <div className="sidebar-heading">
         <span>{t('RESOURCES')}</span>
-        <span className="sidebar-mono">LIVE</span>
-      </div>
-      <div className="sidebar-meter">
-        <div className="sidebar-meter-head">
-          <span>{t('CPU')}</span>
-          <b className="mono">{formatCpu(snapshot.cpu)}</b>
-        </div>        <span className="sidebar-meter-track">
-          <span style={{ width: bar(snapshot.cpu, 100) }} />
+        <span className="sidebar-resources-actions">
+          <span className="sidebar-mono">LIVE</span>
+          {onHide ? (
+            <button
+              className="sidebar-resources-hide"
+              onClick={onHide}
+              title={t('Hide resources')}
+              aria-label={t('Hide resources')}
+            >
+              <Icon name="close" size={11} />
+            </button>
+          ) : null}
         </span>
       </div>
       <div className="sidebar-meter">
         <div className="sidebar-meter-head">
-          <span>{t('Memory')}</span>
-          <b className="mono">{Math.round((snapshot.memoryUsedMB / memoryMax) * 100)}%</b>
+          <span>{t('Kryvex CPU')}</span>
+          <b className="mono">{formatCpu(snapshot.appCpuShare)}</b>
         </div>
         <span className="sidebar-meter-track">
-          <span style={{ width: bar(snapshot.memoryUsedMB, memoryMax) }} />
+          <span style={{ width: bar(snapshot.appCpuShare, 100) }} />
+        </span>
+      </div>
+      <div className="sidebar-meter">
+        <div className="sidebar-meter-head">
+          <span>{t('Kryvex memory')}</span>
+          <b className="mono">{formatMB(snapshot.appMemoryMB)}</b>
+        </div>
+        <span className="sidebar-meter-track">
+          <span style={{ width: bar(snapshot.memoryShare, 100) }} />
+        </span>
+        <span className="sidebar-meter-note mono">
+          {t('{share}% of {total} RAM', {
+            share: snapshot.memoryShare.toFixed(1),
+            total: formatMB(snapshot.memoryTotalMB),
+          })}
         </span>
       </div>
       <div className="sidebar-meter">
@@ -47,7 +73,7 @@ export function SidebarResources({
           <b className="mono">{formatMB(snapshot.gpuMemoryMB)}</b>
         </div>
         <span className="sidebar-meter-track">
-          <span style={{ width: bar(snapshot.gpuMemoryMB, memoryMax) }} />
+          <span style={{ width: bar(snapshot.gpuMemoryMB, Math.max(1, snapshot.appMemoryMB)) }} />
         </span>
       </div>
       {top.length > 0 ? (
@@ -92,9 +118,43 @@ export function ResourcePanel({
   onOpenSettings: () => void;
 }) {
   const t = useT();
+  const panel = useRef<HTMLElement | null>(null);
+
+  // A floating panel must be dismissible the two ways people expect: Escape
+  // and a click anywhere outside it. The header button remains a toggle.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    const onPointer = (event: PointerEvent) => {
+      const node = event.target as Node | null;
+      if (!node) return;
+      if (panel.current?.contains(node)) return;
+      // The header button is a toggle, not an outside click: leave the close
+      // to its own handler so one press does not close and immediately reopen.
+      if ((node as Element).closest?.('.header-tool.is-resources')) return;
+      onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    // `pointerdown` fires before the panel's own buttons react, so a click on
+    // Close still reaches its handler; the containment check above keeps the
+    // panel itself open.
+    document.addEventListener('pointerdown', onPointer, true);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer, true);
+    };
+  }, [onClose]);
+
   const memoryMax = snapshot?.memoryTotalMB || 1;
   return (
-    <aside className="resource-panel" role="dialog" aria-modal="false" aria-label={t('Resource manager')}>
+    <aside
+      ref={panel}
+      className="resource-panel"
+      role="dialog"
+      aria-modal="false"
+      aria-label={t('Resource manager')}
+    >
       <header className="resource-panel-head">
         <div>
           <span className="mono">{t('KRYVEX / PROCESS ACTIVITY')}</span>
@@ -116,27 +176,40 @@ export function ResourcePanel({
         <p className="resource-empty">{t('Reading process metrics…')}</p>
       ) : (
         <>
+          <p className="resource-scope mono">{t('THIS APP ONLY')}</p>
           <div className="resource-totals">
             <div>
-              <span className="mono">{t('CPU')}</span>
-              <strong>{formatCpu(snapshot.cpu)}</strong>
+              <span className="mono">{t('KRYVEX CPU')}</span>
+              <strong>{formatCpu(snapshot.appCpuShare)}</strong>
               <span className="resource-track">
-                <span style={{ width: bar(snapshot.cpu, 100) }} />
+                <span style={{ width: bar(snapshot.appCpuShare, 100) }} />
               </span>
+              <em className="mono">
+                {t('{count} threads', { count: snapshot.cpuCores })}
+              </em>
             </div>
             <div>
-              <span className="mono">{t('MEMORY')}</span>
-              <strong>{formatMB(snapshot.memoryUsedMB)}</strong>
+              <span className="mono">{t('KRYVEX MEMORY')}</span>
+              <strong>{formatMB(snapshot.appMemoryMB)}</strong>
               <span className="resource-track">
-                <span style={{ width: bar(snapshot.memoryUsedMB, memoryMax) }} />
+                <span style={{ width: bar(snapshot.memoryShare, 100) }} />
               </span>
-              <em className="mono">{t('of {total}', { total: formatMB(snapshot.memoryTotalMB) })}</em>
+              <em className="mono">
+                {t('{share}% of {total} RAM', {
+                  share: snapshot.memoryShare.toFixed(1),
+                  total: formatMB(snapshot.memoryTotalMB),
+                })}
+              </em>
             </div>
             <div>
               <span className="mono">{t('GPU PROCESS')}</span>
               <strong>{formatCpu(snapshot.gpuCpu)}</strong>
               <span className="resource-track">
-                <span style={{ width: bar(snapshot.gpuCpu, 100) }} />
+                <span
+                  style={{
+                    width: bar(snapshot.gpuMemoryMB, Math.max(1, snapshot.appMemoryMB)),
+                  }}
+                />
               </span>
               <em className="mono">{formatMB(snapshot.gpuMemoryMB)}</em>
             </div>
@@ -174,7 +247,9 @@ export function ResourcePanel({
           </div>
 
           <div className="resource-processes">
-            <span className="mono resource-subhead">{t('PROCESSES')}</span>
+            <span className="mono resource-subhead">
+              {t('PROCESSES')} · {snapshot.processCount}
+            </span>
             <ul>
               {snapshot.processes.slice(0, 12).map(process => {
                 const service = process.serviceId
@@ -197,9 +272,10 @@ export function ResourcePanel({
 
           <p className="resource-note">
             {t(
-              'Kryvex processes only. GPU is the Chromium GPU process; Windows does not expose total GPU utilization to Electron.',
+              'Only processes that belong to Kryvex are counted. GPU is Chromium’s GPU process; Windows does not expose total GPU utilisation to Electron.',
             )}
           </p>
+          <span className="resource-ram mono">{t('INSTALLED RAM')}: {formatMB(memoryMax)}</span>
         </>
       )}
     </aside>

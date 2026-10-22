@@ -33,12 +33,23 @@ export interface ResourceServiceUsage {
 
 export interface ResourceSnapshot {
   capturedAt: number;
+  /** Whole-machine CPU, kept for diagnostics but not shown in the panel. */
   cpu: number;
+  /** Whole-machine memory in use, kept for diagnostics. */
   memoryUsedMB: number;
   memoryTotalMB: number;
+  /** Sum of Kryvex's own process CPU, as Chromium reports it (one core = 100%). */
+  appCpu: number;
+  /** Kryvex's CPU as a share of the whole machine, comparable to Task Manager. */
+  appCpuShare: number;
+  /** Logical processors, so a per-core percentage can be read honestly. */
+  cpuCores: number;
   appMemoryMB: number;
+  /** Kryvex's memory as a percentage of installed RAM. */
+  memoryShare: number;
   gpuCpu: number;
   gpuMemoryMB: number;
+  processCount: number;
   processes: ResourceProcess[];
   services: ResourceServiceUsage[];
 }
@@ -82,7 +93,12 @@ export function summarize(
   metrics: RawMetric[],
   guests: RawGuest[],
   services: ServiceIdentity[],
-  system: { cpu: number; memoryUsedMB: number; memoryTotalMB: number },
+  system: {
+    cpu: number;
+    memoryUsedMB: number;
+    memoryTotalMB: number;
+    cpuCores?: number;
+  },
 ): ResourceSnapshot {
   const guestService = new Map<number, string>();
   for (const guest of guests) {
@@ -118,16 +134,24 @@ export function summarize(
   }
 
   const appMemoryMB = processes.reduce((total, process) => total + process.memoryMB, 0);
+  const appCpu = processes.reduce((total, process) => total + process.cpu, 0);
   const gpu = processes.filter(process => process.type === 'GPU');
+  const cores = Math.max(1, Math.round(system.cpuCores ?? 1));
+  const memoryTotal = Math.max(0, system.memoryTotalMB);
 
   return {
     capturedAt: Date.now(),
     cpu: Math.max(0, Math.min(100 * 64, round(system.cpu))),
     memoryUsedMB: Math.max(0, round(system.memoryUsedMB)),
-    memoryTotalMB: Math.max(0, round(system.memoryTotalMB)),
+    memoryTotalMB: round(memoryTotal),
+    appCpu: round(appCpu),
+    appCpuShare: Math.max(0, Math.min(100, round(appCpu / cores))),
+    cpuCores: cores,
     appMemoryMB: round(appMemoryMB),
+    memoryShare: memoryTotal > 0 ? Math.max(0, Math.min(100, round((appMemoryMB / memoryTotal) * 100))) : 0,
     gpuCpu: round(gpu.reduce((total, process) => total + process.cpu, 0)),
     gpuMemoryMB: round(gpu.reduce((total, process) => total + process.memoryMB, 0)),
+    processCount: processes.length,
     processes: processes.sort((a, b) => b.cpu - a.cpu || b.memoryMB - a.memoryMB),
     services: [...byService.values()]
       .map(entry => ({

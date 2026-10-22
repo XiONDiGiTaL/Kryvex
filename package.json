@@ -1,7 +1,7 @@
 {
   "name": "kryvex",
   "productName": "Kryvex",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "A modular desktop workspace that brings independent web services, a browser and shared tools into one engineered surface.",
   "license": "MIT",
   "author": {
@@ -35,6 +35,7 @@
     "verify:torrents": "pnpm build && node scripts/verify-torrents.cjs",
     "verify:torrent-restore-ui": "pnpm build && node scripts/verify-torrent-restore-ui.cjs",
     "verify:browser": "pnpm build && node scripts/verify-browser-tools.cjs",
+    "verify:browser-start": "pnpm build && node scripts/verify-browser-start.cjs",
     "verify:popups": "pnpm build && node scripts/verify-popup-tabs.cjs",
     "verify:services": "pnpm build && node scripts/verify-service-engine.cjs",
     "verify:otp": "pnpm build && node scripts/verify-one-time-code.cjs",
@@ -47,6 +48,7 @@
     "verify:wallpaper": "pnpm build && node scripts/verify-wallpaper-ui.cjs",
     "verify:identity": "pnpm build && electron scripts/verify-browser-identity.cjs",
     "verify:shield-filters": "pnpm build && electron scripts/verify-shield-filters.cjs",
+    "verify:service-ux": "pnpm build && node scripts/verify-service-ux.cjs",
     "verify:model": "pnpm build && electron scripts/verify-local-model.cjs",
     "verify:party-close": "pnpm build && node scripts/verify-party-close.cjs",
     "verify:guards": "pnpm build && node scripts/verify-window-guards.cjs",
@@ -55,6 +57,7 @@
   "build": {
     "appId": "net.xiondigital.kryvex",
     "productName": "Kryvex",
+    "icon": "brand/icons/kryvex.ico",
     "artifactName": "Kryvex-${version}-${arch}.${ext}",
     "directories": {
       "output": "release",

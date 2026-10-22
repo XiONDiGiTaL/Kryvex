@@ -14,6 +14,14 @@ export const MAX_CUSTOM_BYTES = 64 * 1024;
 export const MAX_CUSTOM_LINES = 2_000;
 
 /**
+ * Bumped whenever the curated bundle or its injected page code changes. A
+ * cached engine built before the bump is not silently reused: the shield
+ * rebuilds it from the cached list download (or refreshes online), so a saved
+ * `youtube: true` really means the current rules are installed.
+ */
+export const SHIELD_BUNDLE_VERSION = 2;
+
+/**
  * uBlock Origin's "YouTube" starter set, kept verbatim as a curated bundle the
  * user can switch on. It hides ad slots, sponsored feed cards and recommendation
  * shelves, neutralises the "ad blocker detected" popup config, and blocks the
@@ -31,10 +39,32 @@ export const YOUTUBE_FILTERS = [
   '! =========================',
   'www.youtube.com##ytd-display-ad-renderer',
   'www.youtube.com##ytd-promoted-sparkles-web-renderer',
+  'www.youtube.com##ytd-promoted-video-renderer',
   'www.youtube.com##ytd-ad-slot-renderer',
   'www.youtube.com##ytd-in-feed-ad-layout-renderer',
+  'www.youtube.com##ytd-banner-promo-renderer',
+  'www.youtube.com##ytd-statement-banner-renderer',
+  'www.youtube.com###masthead-ad',
   '',
   'www.youtube.com##ytd-video-renderer:has(span:has-text(/Sponsored/i))',
+  '',
+  '! =========================',
+  '! Player overlays and companion ads',
+  '! =========================',
+  'www.youtube.com##.ytp-ad-overlay-container',
+  'www.youtube.com##.ytp-ad-overlay-slot',
+  'www.youtube.com##.ytp-ad-image-overlay',
+  'www.youtube.com##.ytp-ad-text-overlay',
+  'www.youtube.com##.ytp-ad-progress-list',
+  'www.youtube.com##.ytp-featured-product',
+  'www.youtube.com##.ytp-suggested-action',
+  'www.youtube.com##.ytp-ad-player-overlay-layout',
+  'www.youtube.com##ytd-action-companion-ad-renderer',
+  'www.youtube.com##ytd-companion-slot-renderer',
+  'www.youtube.com##ytd-player-legacy-desktop-watch-ads-renderer',
+  'www.youtube.com##ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"]',
+  'www.youtube.com###player-ads',
+  'www.youtube.com##tp-yt-paper-dialog:has(ytd-enforcement-message-view-model)',
   '',
   '! =========================',
   '! Feed Clutter / Recommendation Noise',
@@ -53,8 +83,12 @@ export const YOUTUBE_FILTERS = [
   '! Network-level (safe minimal set)',
   '! =========================',
   '||youtube.com/pagead/',
+  '||youtube.com/api/stats/ads',
+  '||youtube.com/get_midroll_info',
+  '||youtube.com/ptracking',
   '||doubleclick.net^$domain=www.youtube.com',
   '||googlesyndication.com^$domain=www.youtube.com',
+  '||googleads.g.doubleclick.net^$domain=www.youtube.com',
 ].join('\n');
 
 /** Filters that inject or rewrite page machinery; uBO calls these trusted. */
@@ -291,6 +325,106 @@ export function scriptletValue(raw: string): string {
  * vendors create their config objects after first paint; it stops after 15s or
  * as soon as every path exists.
  */
+/** The curated player code is only ever injected into YouTube's own hosts. */
+export function isYouTubeUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return (
+      host === 'youtube.com' ||
+      host.endsWith('.youtube.com') ||
+      host === 'youtube-nocookie.com' ||
+      host.endsWith('.youtube-nocookie.com')
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * YouTube stitched ads into the player response, where a URL blocklist cannot
+ * see them. This code removes the ad payload before YouTube's player reads it
+ * and skips anything that still starts. It edits only the ad keys, never the
+ * video stream, so playback and quality selection are untouched.
+ *
+ * Runs once per page. The fetch wrapper is marked so a second injection (a
+ * navigation within the same document) cannot stack another wrapper.
+ */
+export function youtubeAdCode(): string {
+  return `(() => {
+  if (window.__kryvexYouTubeAds) return 'already';
+  window.__kryvexYouTubeAds = 'running';
+  const AD_KEYS = ['adPlacements', 'playerAds', 'adSlots', 'adBreakHeartbeatParams'];
+  const prune = data => {
+    if (!data || typeof data !== 'object') return false;
+    let changed = false;
+    for (const key of AD_KEYS) {
+      if (key in data) {
+        try { delete data[key]; changed = true; } catch (error) { /* frozen payload */ }
+      }
+    }
+    if (data.playerResponse) changed = prune(data.playerResponse) || changed;
+    return changed;
+  };
+  const pruneWindow = () => {
+    try {
+      if (window.ytInitialPlayerResponse) prune(window.ytInitialPlayerResponse);
+    } catch (error) { /* not on a watch page */ }
+    try {
+      const args = window.ytplayer && ytplayer.config && ytplayer.config.args;
+      if (args && typeof args.player_response === 'string') {
+        const data = JSON.parse(args.player_response);
+        if (prune(data)) args.player_response = JSON.stringify(data);
+      }
+    } catch (error) { /* malformed config */ }
+  };
+  const wrapFetch = () => {
+    if (typeof window.fetch !== 'function' || window.fetch.__kryvexYouTubeAds) return;
+    const original = window.fetch.bind(window);
+    const wrapped = async (input, init) => {
+      const response = await original(input, init);
+      try {
+        const url = typeof input === 'string' ? input : input && input.url;
+        if (typeof url === 'string' && url.includes('/youtubei/v1/player')) {
+          const data = await response.clone().json();
+          if (prune(data)) {
+            return new Response(JSON.stringify(data), {
+              status: response.status,
+              statusText: response.statusText,
+              headers: response.headers,
+            });
+          }
+        }
+      } catch (error) { /* a non-JSON response passes through */ }
+      return response;
+    };
+    wrapped.__kryvexYouTubeAds = true;
+    window.fetch = wrapped;
+  };
+  const skip = () => {
+    const button = document.querySelector(
+      '.ytp-ad-skip-button, .ytp-skip-ad-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button-slot button',
+    );
+    if (button && typeof button.click === 'function') button.click();
+    const ad = document.querySelector('.ad-showing video, .ytp-ad-player-overlay video');
+    if (ad && Number.isFinite(ad.duration) && Number.isFinite(ad.currentTime)) {
+      if (ad.duration > 0 && ad.currentTime < ad.duration - 0.4) {
+        try { ad.currentTime = ad.duration; } catch (error) { /* seek refused */ }
+      }
+    }
+    const surface = document.querySelector('.ytp-ad-overlay-container, #player-ads');
+    if (surface) surface.style.display = 'none';
+    pruneWindow();
+    return true;
+  };
+  wrapFetch();
+  skip();
+  // The player swaps its response on every navigation; a 500 ms sweep is cheap
+  // and catches both the overlay controls and the next stitched ad.
+  setInterval(skip, 500);
+  return 'applied';
+})();`;
+}
+
 export function scriptletCode(rules: ScriptletRule[]): string {
   if (rules.length === 0) return '';
   const assignments = rules

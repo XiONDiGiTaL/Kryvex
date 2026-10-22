@@ -158,6 +158,17 @@ async function main() {
   if (scriptlet !== 'ran') return fail(`the scriptlet did not run (got "${scriptlet}")`);
   log('custom scriptlet ran in the page');
 
+  // The YouTube client is generated code that runs in a page, not just a
+  // string. Execute it in the guest so a syntax or API mistake fails here.
+  const youtubeRuntime = await guest.executeJavaScript(
+    `(() => { ${shield.scriptletCode('https://www.youtube.com/')}
+      return String(window.__kryvexYouTubeAds); })()`,
+  );
+  if (youtubeRuntime !== 'running') {
+    return fail(`the YouTube client did not install (got "${youtubeRuntime}")`);
+  }
+  log('YouTube ad client installed in a real guest');
+
   // The blocking engine also handles subresources.
   await guest.executeJavaScript(
     `new Promise(resolve => { const img = new Image(); img.src = '${origin}/pixel.png?cache=' + Math.random();

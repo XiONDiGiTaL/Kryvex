@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   MAX_CUSTOM_BYTES,
   MAX_CUSTOM_LINES,
+  SHIELD_BUNDLE_VERSION,
   YOUTUBE_FILTERS,
   activeCustomLines,
   composeFilterSource,
   customLineCount,
   isPrivilegedFilter,
+  isYouTubeUrl,
   sanitizeCustomFilters,
+  youtubeAdCode,
 } from '../electron/shield-rules';
 
 const YOUTUBE_SAMPLE = [
@@ -141,7 +144,12 @@ describe('YOUTUBE_FILTERS', () => {
       'ytd-ad-slot-renderer',
       'Sponsored',
       'ytd-shelf-renderer',
+      'ytp-ad-overlay-container',
+      'ytd-companion-slot-renderer',
+      'ytd-enforcement-message-view-model',
       '||youtube.com/pagead/',
+      '||youtube.com/api/stats/ads',
+      '||youtube.com/get_midroll_info',
     ]) {
       expect(YOUTUBE_FILTERS).toContain(needle);
     }
@@ -149,5 +157,70 @@ describe('YOUTUBE_FILTERS', () => {
     for (const rule of networkRules) {
       expect(rule.includes('youtube.com') || rule.includes('$domain=www.youtube.com')).toBe(true);
     }
+  });
+
+  it('carries a bundle version so a stale compiled engine is rebuilt', () => {
+    expect(SHIELD_BUNDLE_VERSION).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('isYouTubeUrl', () => {
+  it('matches only YouTube hosts and their subdomains', () => {
+    expect(isYouTubeUrl('https://www.youtube.com/watch?v=1')).toBe(true);
+    expect(isYouTubeUrl('https://music.youtube.com/')).toBe(true);
+    expect(isYouTubeUrl('https://www.youtube-nocookie.com/embed/x')).toBe(true);
+    expect(isYouTubeUrl('https://notyoutube.com/')).toBe(false);
+    expect(isYouTubeUrl('https://youtube.com.evil.test/')).toBe(false);
+    expect(isYouTubeUrl('not a url')).toBe(false);
+  });
+});
+
+describe('youtubeAdCode', () => {
+  it('prunes stitched ad payloads and skips an ad that still starts', () => {
+    const code = youtubeAdCode();
+    expect(code).toContain('adPlacements');
+    expect(code).toContain('playerAds');
+    expect(code).toContain('/youtubei/v1/player');
+    expect(code).toContain('ytp-ad-skip-button');
+    expect(code).toContain('__kryvexYouTubeAds');
+    // It must never touch the media stream or replace the video element.
+    expect(code).not.toContain('video.src =');
+  });
+
+  it('is valid JavaScript that runs without a DOM', () => {
+    const factory = new Function(`return ${youtubeAdCode()}`);
+    expect(typeof factory).toBe('function');
+  });
+
+  it('strips ad slots from a stitched player response and leaves video data alone', async () => {
+    const payload = {
+      adPlacements: [{ adSlot: 1 }],
+      playerAds: [{ playerLegacyDesktopWatchAdsRenderer: {} }],
+      playerResponse: { adSlots: [{ id: 1 }], videoDetails: { videoId: 'abc' } },
+      videoDetails: { videoId: 'abc' },
+    };
+    const window = {
+      fetch: async () =>
+        new Response(JSON.stringify(payload), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    } as Record<string, unknown> & { fetch: (input?: string) => Promise<Response> };
+    const document = { querySelector: () => null };
+    const run = new Function(
+      'window',
+      'document',
+      'setInterval',
+      `return ${youtubeAdCode()}`,
+    );
+    run(window, document, () => 0);
+    expect(window.__kryvexYouTubeAds).toBe('running');
+    const response = await window.fetch('https://www.youtube.com/youtubei/v1/player?key=1');
+    const data = await response.json();
+    expect(data.adPlacements).toBeUndefined();
+    expect(data.playerAds).toBeUndefined();
+    expect(data.playerResponse.adSlots).toBeUndefined();
+    expect(data.videoDetails).toEqual({ videoId: 'abc' });
+    expect(data.playerResponse.videoDetails).toEqual({ videoId: 'abc' });
   });
 });

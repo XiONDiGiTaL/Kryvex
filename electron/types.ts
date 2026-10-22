@@ -27,6 +27,27 @@ export interface ShieldStatus {
   error?: string;
 }
 
+/** What one service guest is playing, as its own Media Session reports it. */
+export interface ServiceMediaState {
+  /** Electron webContents id; the only handle the shell can control. */
+  id: number;
+  /** The persistent service partition that owns the page. */
+  partition: string;
+  url: string;
+  title: string;
+  artist: string;
+  artwork: string;
+  playing: boolean;
+  position: number;
+  duration: number;
+  updatedAt: number;
+}
+
+/** A guest was closed or navigated away: remove its row from the dock. */
+export type ServiceMediaEvent =
+  | ({ removed: false } & ServiceMediaState)
+  | { removed: true; id: number; partition: string };
+
 export type LocalModelPhase = 'idle' | 'starting' | 'running' | 'stopped' | 'error';
 
 /** A GGUF file the user chose, plus the llama.cpp server serving it. */

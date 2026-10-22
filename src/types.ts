@@ -5,7 +5,12 @@ import type {
 // sanitizer, defined next to the Electron wiring and shared with the UI.
 import type { ChromiumSettings, EngineInfo } from '../electron/chromium-rules';
 import type { PopupTabInfo, PopupTabRect } from '../electron/types';
-export type { PopupTabInfo, PopupTabRect } from '../electron/types';
+export type {
+  PopupTabInfo,
+  PopupTabRect,
+  ServiceMediaEvent,
+  ServiceMediaState,
+} from '../electron/types';
 export type {
   ChromiumColorScheme,
   ChromiumSettings,
@@ -519,6 +524,30 @@ export interface BrowserTab {
   id: string;
   url: string;
   title: string;
+  /** Private tabs are memory-only: no history, no saved session. */
+  private?: boolean;
+}
+
+export interface RssFeed {
+  id: string;
+  title: string;
+  url: string;
+  addedAt: number;
+}
+
+export interface RssItem {
+  id: string;
+  title: string;
+  url: string;
+  summary: string;
+  publishedAt: number | null;
+}
+
+export interface RssFetchResult {
+  ok: boolean;
+  text: string;
+  url: string;
+  error?: 'invalid-url' | 'unavailable' | 'too-large' | 'not-feed';
 }
 
 export interface BrowserSession {
@@ -534,6 +563,8 @@ export interface PersistedState {
   settings: Settings;
   recent: string[];
   browser: BrowserSession;
+  /** Feeds shown on the browser start page. */
+  feeds: RssFeed[];
 }
 
 export interface AppInfo {
@@ -645,6 +676,7 @@ export interface KryvexBridge {
   saveState: (state: unknown) => Promise<boolean>;
   openExternal: (url: string) => Promise<boolean>;
   appInfo: () => Promise<AppInfo | null>;
+  rssFetch: (url: string) => Promise<RssFetchResult>;
   shieldStatus: () => Promise<ShieldStatus>;
   shieldSetEnabled: (enabled: boolean) => Promise<ShieldStatus>;
   shieldUpdate: () => Promise<ShieldStatus>;
@@ -712,6 +744,12 @@ export interface KryvexBridge {
   resourcesSample: (
     services: Array<{ id: string; url: string }>,
   ) => Promise<ResourceSnapshot | null>;
+  /** Media playing in service guests, plus one remote control per track. */
+  mediaList: () => Promise<import('../electron/types').ServiceMediaState[]>;
+  mediaControl: (id: number, action: 'play' | 'pause' | 'next' | 'previous') => Promise<boolean>;
+  onMediaChanged: (
+    listener: (event: import('../electron/types').ServiceMediaEvent) => void,
+  ) => () => void;
   vpnStatus: () => Promise<VpnStatus>;
   vpnConfigure: (settings: unknown) => Promise<VpnStatus>;
   vpnChooseBinary: () => Promise<VpnStatus>;
@@ -801,12 +839,18 @@ export interface ResourceServiceUsage {
 
 export interface ResourceSnapshot {
   capturedAt: number;
+  /** Whole-machine CPU, kept for diagnostics; the panel shows appCpuShare. */
   cpu: number;
   memoryUsedMB: number;
   memoryTotalMB: number;
+  appCpu: number;
+  appCpuShare: number;
+  cpuCores: number;
   appMemoryMB: number;
+  memoryShare: number;
   gpuCpu: number;
   gpuMemoryMB: number;
+  processCount: number;
   processes: ResourceProcess[];
   services: ResourceServiceUsage[];
 }

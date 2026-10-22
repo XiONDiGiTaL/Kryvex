@@ -1,0 +1,447 @@
+/* eslint-disable no-console */
+/**
+ * End-to-end check for the four surfaces added with 0.8.6:
+ *
+ *   - the resource panel reports Kryvex's own footprint and closes three ways;
+ *   - the pinned rail opens a themed right-click menu;
+ *   - a service page that plays audio produces a dock and accepts transport;
+ *   - parking the service (navigating Home) does not stop its audio.
+ *
+ * It drives the real app in a disposable profile against a local media page, so
+ * it needs no account and no network. Run after `pnpm build`:
+ *
+ *   node scripts/verify-service-ux.cjs
+ */
+const { spawn } = require('node:child_process');
+const fs = require('node:fs');
+const http = require('node:http');
+const os = require('node:os');
+const path = require('node:path');
+const electron = require('electron');
+
+const root = path.resolve(__dirname, '..');
+const shots = path.join(root, 'screenshots');
+const PORT = 9381;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const children = [];
+
+function wavTone() {
+  const rate = 8000;
+  const seconds = 1;
+  const samples = rate * seconds;
+  const data = Buffer.alloc(samples);
+  for (let i = 0; i < samples; i += 1) {
+    data[i] = 128 + Math.round(18 * Math.sin((2 * Math.PI * 440 * i) / rate));
+  }
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + data.length, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(rate, 24);
+  header.writeUInt32LE(rate, 28);
+  header.writeUInt16LE(1, 32);
+  header.writeUInt16LE(8, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(data.length, 40);
+  return Buffer.concat([header, data]);
+}
+
+const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>Tone Lab Theme</title>
+<style>body{font:16px system-ui;background:#111;color:#eee;padding:40px}</style></head>
+<body><h1>Tone Lab</h1><p>A local media page for the Kryvex dock check.</p>
+<audio id="tone" loop autoplay src="/tone.wav"></audio>
+<script>
+  const audio = document.getElementById('tone');
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: 'Tone Lab Theme',
+      artist: 'Kryvex Verify',
+    });
+  } catch (error) {}
+  const start = () => audio.play().catch(() => setTimeout(start, 250));
+  start();
+</script></body></html>`;
+
+const TONE = wavTone();
+
+async function serve() {
+  const server = http.createServer((request, response) => {
+    if (request.url === '/tone.wav') {
+      response.writeHead(200, { 'content-type': 'audio/wav', 'content-length': TONE.length });
+      response.end(TONE);
+      return;
+    }
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(PAGE);
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  return server;
+}
+
+async function target(port) {
+  for (let attempt = 0; attempt < 160; attempt += 1) {
+    try {
+      const list = await fetch(`http://127.0.0.1:${port}/json/list`).then(r => r.json());
+      const page = list.find(item => item.type === 'page' && item.webSocketDebuggerUrl);
+      if (page) return page;
+    } catch {
+      /* not listening yet */
+    }
+    await sleep(250);
+  }
+  throw new Error(`DevTools endpoint ${port} did not appear.`);
+}
+
+async function connect(url) {
+  const socket = new WebSocket(url);
+  const pending = new Map();
+  let sequence = 0;
+  await new Promise((resolve, reject) => {
+    socket.addEventListener('open', resolve, { once: true });
+    socket.addEventListener('error', reject, { once: true });
+  });
+  socket.addEventListener('message', event => {
+    const message = JSON.parse(event.data);
+    if (!message.id || !pending.has(message.id)) return;
+    const { resolve, reject } = pending.get(message.id);
+    pending.delete(message.id);
+    if (message.error) reject(new Error(message.error.message));
+    else resolve(message.result);
+  });
+  const send = (method, params = {}) => {
+    sequence += 1;
+    const id = sequence;
+    return new Promise((resolve, reject) => {
+      pending.set(id, { resolve, reject });
+      socket.send(JSON.stringify({ id, method, params }));
+    });
+  };
+  const evaluate = async expression => {
+    const result = await send('Runtime.evaluate', {
+      expression,
+      awaitPromise: true,
+      returnByValue: true,
+      userGesture: true,
+    });
+    if (result.exceptionDetails) {
+      throw new Error(result.exceptionDetails.exception?.description || 'evaluate failed');
+    }
+    return result.result.value;
+  };
+  await send('Runtime.enable');
+  await send('Page.enable');
+  return { evaluate, send, close: () => socket.close() };
+}
+
+async function waitFor(evaluate, expression, timeout = 8000, label = expression) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (await evaluate(expression)) return true;
+    await sleep(160);
+  }
+  throw new Error(`Timed out waiting for ${label}`);
+}
+
+async function shot(client, name) {
+  fs.mkdirSync(shots, { recursive: true });
+  const result = await client.send('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(shots, `${name}.png`), Buffer.from(result.data, 'base64'));
+}
+
+function launch(profile) {
+  const port = 9333;
+  const child = spawn(electron, ['.', `--remote-debugging-port=${port}`], {
+    cwd: root,
+    env: {
+      ...process.env,
+      KRYVEX_USER_DATA: path.join(profile, 'Kryvex'),
+      APPDATA: profile,
+      LOCALAPPDATA: path.join(profile, 'local'),
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  child.stderr.on('data', data => {
+    const text = String(data);
+    if (!text.includes('wgc_capturer')) process.stderr.write(text);
+  });
+  children.push(child);
+  return port;
+}
+
+async function stop() {
+  for (const child of children) {
+    if (child.exitCode === null) child.kill();
+  }
+  await sleep(700);
+  for (const child of children) {
+    if (child.exitCode === null) child.kill('SIGKILL');
+  }
+}
+
+const lines = [];
+function check(condition, message) {
+  if (!condition) throw new Error(message);
+  lines.push(`PASS ${message}`);
+  console.log(`PASS ${message}`);
+}
+
+async function main() {
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'kryvex-ux-'));
+  const server = await serve();
+  const origin = `http://127.0.0.1:${server.address().port}/`;
+  const userData = path.join(profile, 'Kryvex');
+  fs.mkdirSync(userData, { recursive: true });
+  fs.writeFileSync(
+    path.join(userData, 'kryvex-state.json'),
+    JSON.stringify({
+      version: 1,
+      services: [
+        {
+          id: 's-tone',
+          name: 'Tone Lab',
+          url: origin,
+          category: 'other',
+          color: '#5aa9e6',
+          letter: 'T',
+          pinned: true,
+          createdAt: 1,
+          persistence: 'keep',
+        },
+        {
+          id: 's-pause',
+          name: 'Pause Lab',
+          url: `${origin}pause`,
+          category: 'other',
+          color: '#2dd4bf',
+          letter: 'P',
+          pinned: true,
+          createdAt: 2,
+          persistence: 'pause',
+        },
+      ],
+      bookmarks: [],
+      history: [],
+      recent: [],
+      browser: { tabs: [], activeTabId: null },
+      settings: {
+        themeGallerySeen: true,
+        resources: { enabled: true, sidebar: true },
+      },
+    }),
+  );
+
+  const port = launch(profile);
+  const page = await target(port);
+  const client = await connect(page.webSocketDebuggerUrl);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.pinned-item'))`, 12000, 'the shell');
+
+  // 1. Pinned right-click menu.
+  await client.evaluate(`(() => {
+    const el = document.querySelector('.pinned-item');
+    el.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true, cancelable: true, clientX: 150, clientY: 260,
+    }));
+    return true;
+  })()`);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.service-context'))`, 3000, 'the service menu');
+  const menu = await client.evaluate(`(() => {
+    const node = document.querySelector('.service-context');
+    const style = getComputedStyle(node);
+    return {
+      text: node.innerText,
+      background: style.backgroundColor,
+      radius: style.borderRadius,
+      items: node.querySelectorAll('[role="menuitem"]').length,
+    };
+  })()`);
+  for (const label of ['Edit', 'Remove', 'Mute sound', 'Notifications', 'Keep running', 'Unpin']) {
+    check(menu.text.includes(label), `menu offers ${label}`);
+  }
+  check(menu.items >= 7, `menu has ${menu.items} actions`);
+  check(menu.radius !== '0px' && menu.background !== 'rgba(0, 0, 0, 0)', 'menu is themed, not a native popup');
+  await shot(client, 'verify-service-context-menu');
+
+  await client.evaluate(
+    `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true;`,
+  );
+  await waitFor(client.evaluate, `!document.querySelector('.service-context')`, 2500, 'Escape to close the menu');
+
+  // 2. Activity panel: app-only numbers and three ways out.
+  await client.evaluate(`document.querySelector('.header-tool.is-resources').click(); true;`);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.resource-panel'))`, 3000, 'the resource panel');
+  await waitFor(
+    client.evaluate,
+    `Boolean(document.querySelector('.resource-totals strong'))`,
+    5000,
+    'a resource sample',
+  );
+  const panel = await client.evaluate(`(() => {
+    const node = document.querySelector('.resource-panel');
+    return {
+      text: node.innerText,
+      cards: [...node.querySelectorAll('.resource-totals > div')].map(item => item.innerText),
+      scope: node.querySelector('.resource-scope')?.textContent,
+    };
+  })()`);
+  check(panel.scope === 'THIS APP ONLY', 'panel labels its scope');
+  check(/KRYVEX CPU/.test(panel.text), 'panel shows Kryvex CPU');
+  check(/KRYVEX MEMORY/.test(panel.text), 'panel shows Kryvex memory');
+  check(!/MEMORY\s*\n?\s*26\.|26\.2 GB/.test(panel.text), 'panel does not present system memory as the app total');
+  await shot(client, 'verify-resource-panel');
+
+  await client.evaluate(
+    `document.querySelector('.app-main').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); true;`,
+  );
+  await waitFor(client.evaluate, `!document.querySelector('.resource-panel')`, 2500, 'outside click to close the panel');
+  await client.evaluate(`document.querySelector('.header-tool.is-resources').click(); true;`);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.resource-panel'))`, 3000, 'the panel again');
+  await client.evaluate(
+    `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true;`,
+  );
+  await waitFor(client.evaluate, `!document.querySelector('.resource-panel')`, 2500, 'Escape to close the panel');
+
+  const hideButton = await client.evaluate(
+    `Boolean(document.querySelector('.sidebar-resources-hide'))`,
+  );
+  check(hideButton, 'sidebar resource block has a hide control');
+  await client.evaluate(`document.querySelector('.sidebar-resources-hide').click(); true;`);
+  await waitFor(client.evaluate, `!document.querySelector('.sidebar-resources')`, 2500, 'the sidebar block to hide');
+
+  // 3. Media dock from a real service guest.
+  await client.evaluate(`document.querySelector('.pinned-item').click(); true;`);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.service-frame.is-active webview'))`, 8000, 'the service guest');
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.media-dock'))`, 12000, 'the media dock');
+  const dock = await client.evaluate(`(() => {
+    const node = document.querySelector('.media-dock');
+    return {
+      text: node.innerText,
+      buttons: [...node.querySelectorAll('button')].map(button => button.getAttribute('aria-label')),
+    };
+  })()`);
+  check(/Tone Lab Theme/.test(dock.text), 'dock shows the page title');
+  check(dock.buttons.includes('Pause'), 'dock offers pause while playing');
+  check(dock.buttons.includes('Next track'), 'dock offers next');
+  await shot(client, 'verify-service-media-dock');
+
+  await client.evaluate(
+    `document.querySelector('.media-dock button[aria-label="Pause"]').click(); true;`,
+  );
+  await waitFor(
+    client.evaluate,
+    `Boolean(document.querySelector('.media-dock button[aria-label="Play"]'))`,
+    5000,
+    'the dock to show Play after pausing',
+  );
+  const paused = await client.evaluate(
+    `document.querySelector('.service-frame.is-active webview').executeJavaScript('document.getElementById("tone").paused')`,
+  );
+  check(paused === true, 'pause in the dock reached the guest page');
+
+  await client.evaluate(
+    `document.querySelector('.media-dock button[aria-label="Play"]').click(); true;`,
+  );
+  await waitFor(
+    client.evaluate,
+    `Boolean(document.querySelector('.media-dock button[aria-label="Pause"]'))`,
+    5000,
+    'the dock to show Pause after resuming',
+  );
+
+  // 4. Parking the service must not stop it.
+  await client.evaluate(
+    `document.querySelectorAll('.nav-item')[0].click(); true;`,
+  );
+  await sleep(1600);
+  const parked = await client.evaluate(`(() => {
+    const frame = document.querySelector('.service-frame');
+    const webview = document.querySelector('.service-frame webview');
+    const style = frame ? getComputedStyle(frame) : null;
+    return {
+      hash: location.hash,
+      display: style?.display,
+      opacity: style?.opacity,
+      dock: Boolean(document.querySelector('.media-dock')),
+    };
+  })()`);
+  check(parked.hash.startsWith('#/home'), 'navigated away from the service');
+  check(parked.display === 'flex', 'the parked guest stays rendered');
+  check(parked.dock, 'the dock follows playback into another view');
+  const stillPlaying = await client.evaluate(
+    `document.querySelector('.service-frame webview').executeJavaScript('!document.getElementById("tone").paused')`,
+  );
+  check(stillPlaying === true, 'audio keeps playing while the service is parked');
+  // Sample for two seconds: Chromium recomputes visibility after a route
+  // change, and one early read can catch the transition.
+  const visibilitySamples = [];
+  for (let index = 0; index < 8; index += 1) {
+    visibilitySamples.push(
+      await client.evaluate(
+        `document.querySelector('.service-frame webview').executeJavaScript('document.visibilityState')`,
+      ),
+    );
+    await sleep(250);
+  }
+  check(
+    visibilitySamples.filter(value => value === 'visible').length >= 7,
+    `a parked guest stays visible to the page (${visibilitySamples.join(', ')})`,
+  );
+  await shot(client, 'verify-media-dock-home');
+
+  // A module that opts into pause-when-hidden is the one exception: it may
+  // leave layout, and its media must actually stop.
+  await client.evaluate(`document.querySelectorAll('.pinned-item')[1].click(); true;`);
+  await waitFor(
+    client.evaluate,
+    `Boolean(document.querySelector('.service-frame.is-active[data-service="s-pause"]'))`,
+    8000,
+    'the pause-mode service',
+  );
+  const pauseFrame = await client.evaluate(`(() => {
+    const frame = document.querySelector('.service-frame[data-service="s-pause"]');
+    const style = getComputedStyle(frame);
+    return { display: style.display, opacity: style.opacity };
+  })()`);
+  check(
+    pauseFrame.display === 'flex' && pauseFrame.opacity === '1',
+    'a pause-mode service is visible while it is active',
+  );
+  await client.evaluate(`document.querySelectorAll('.nav-item')[0].click(); true;`);
+  await sleep(900);
+  const pauseParked = await client.evaluate(`(() => {
+    const frame = document.querySelector('.service-frame[data-service="s-pause"]');
+    return frame ? getComputedStyle(frame).display : 'missing';
+  })()`);
+  check(pauseParked === 'none', 'a pause-mode service leaves layout when parked');
+  const pauseStopped = await client.evaluate(
+    `document.querySelector('.service-frame[data-service="s-pause"] webview').executeJavaScript('document.getElementById("tone").paused')`,
+  );
+  check(pauseStopped === true, 'its audio pauses while it is parked');
+
+  server.close();
+  client.close();
+  console.log('PASS service UX (menu, resources, dock, parked playback)');
+  return { profile, lines };
+}
+
+let exitCode = 0;
+main()
+  .catch(error => {
+    exitCode = 1;
+    console.error(`FAIL ${error && error.stack ? error.stack : error}`);
+  })
+  .finally(async () => {
+    await stop();
+    try {
+      fs.writeFileSync(
+        path.join(root, '.tmp-service-ux.log'),
+        `${lines.join('\n')}\n${exitCode === 0 ? 'PASS' : 'FAIL'}\n`,
+      );
+    } catch {
+      /* convenience only */
+    }
+    process.exit(exitCode);
+  });

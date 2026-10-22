@@ -110,7 +110,8 @@ supervisor yet.
   browser: {
     tabs: BrowserTab[],     // max 20, http(s) or an empty new tab
     activeTabId: string | null
-  }
+  },
+  feeds: RssFeed[]        // start-page reader, max 12, http(s) only
 }
 ```
 
@@ -120,8 +121,9 @@ Persistence rules:
 - Written to `userData/kryvex-state.json` through a temp file + rename.
 - 1 MB cap; oversized or malformed payloads are rejected.
 - `sanitizeState` drops unsafe ids, non-http URLs, unknown themes, duplicate
-  services/history/bookmarks/tabs and orphaned recents, and repairs an active
-  tab id that does not match a saved tab. An empty service list stays empty.
+  services/history/bookmarks/tabs/feeds and orphaned recents, and repairs an
+  active tab id that does not match a saved tab. An empty service list stays
+  empty. Private tabs are never persisted, so a restart cannot reopen one.
 - Web preview falls back to `localStorage`.
 - The wallpaper image is stored apart from the state: one WebP under
   `userData/wallpaper/` on desktop, `kryvex.wallpaper.v1` in localStorage in
@@ -152,6 +154,14 @@ engine from `userData/kryvex-shield-engine.bin`, or downloads the six lists
 serialises a new one. It attaches to the default session and every partition
 discovered through `web-contents-created`. Toggling off disables each session;
 refreshing detaches the old engine first.
+
+The curated YouTube bundle is versioned (`SHIELD_BUNDLE_VERSION`). A cached
+engine built before the current bundle is rebuilt from
+`kryvex-shield-source.txt` on launch, or refreshed online when that cache is
+missing, so a saved `youtube: true` cannot point at pre-bundle rules. On YouTube
+hosts the shield also injects a small client that removes stitched ad payloads
+from `youtubei/v1/player` and skips an ad that still starts; the client is not
+injected on any other host. See [SERVICE_UX.md](SERVICE_UX.md).
 
 Electron permits only one `onBeforeRequest` listener per session, so
 `electron/web-privacy.ts` installs the single listener after Ghostery enables
@@ -280,6 +290,55 @@ in persisted state, added on `did-navigate` and sanitised on load. Bookmarks
 remain in the same state file. The browser also accepts
 `#/browser?url=<http(s)>` to open a page in a tab.
 
+## Browser start page and private tabs
+
+The home button at the left of the browser toolbar returns the active tab to
+`BrowserStart`, the default start page. It is a renderer view rather than a
+remote home URL, so it has no web history entry behind it. The page is built
+from four cards in the app's own type, radius and token language:
+
+- **Shield / live** — session request count, compiled filter count, HTTPS
+  upgrades, stripped tracking parameters, list count and update date. It polls
+  the existing `kryvex:shield:status` bridge every 15 seconds while visible.
+- **Field guide** — the browser shortcuts and session model that are actually
+  implemented, not aspirational copy.
+- **Feeds / local reader** — add an RSS or Atom URL, or import an OPML export,
+  and read the merged stories here. Feeds live in `PersistedState.feeds`.
+- **Workspace / quick launch** — pinned modules and bookmarks open in the tab.
+
+Private tabs are created from the browser options menu (`New private tab`) or
+`Ctrl+Shift+N`. They are marked with the mask in the tab strip and get their own
+start-page variant. A private tab never writes to Kryvex history and is filtered
+out of the saved browser session, so reopening the app cannot restore it.
+Downloads still reach disk (as in Chromium), and every browser tab already uses
+an in-memory partition, so a private tab is not granted a *weaker* isolation
+claim than an ordinary one. **Close private tabs** in the menu drops the live
+controllers and clears their partitions immediately; it is disabled when none
+are open.
+
+### Feed fetching and parsing
+
+`src/lib/rss.ts` is a tolerant RSS 2.0 / Atom parser: CDATA, named and numeric
+entities, Atom `rel="alternate"` links, relative item URLs, permalink GUIDs,
+missing channel titles and undated items. It drops items without an http(s)
+link, caps each feed at 12 items and never injects feed markup into the page —
+titles and summaries are stripped to text. `mergeFeedItems` deduplicates stories
+syndicated by two feeds and sorts newest first. OPML import reads every
+`<outline xmlUrl=…>` and deduplicates by URL; feeds are persisted only after
+`normalizeFeedUrl` and `sanitizeFeeds` accept them.
+
+The network request happens in the main process (`electron/rss.ts`), so the
+renderer is not subject to CORS. `feedRequestUrl` accepts only http(s), rejects
+credentials, a hostname without a domain and input over 2048 characters. The
+fetch has a 10-second timeout, follows redirects, sends a generic Kryvex user
+agent, and rejects a declared or actual body over 2 MB. A response that is not
+shaped like RSS/Atom/RDF is reported instead of being parsed. The renderer only
+receives text; no filesystem path or cookie crosses the bridge.
+
+The web preview has no main process, so it falls back to `fetch` and may be
+blocked by a feed's CORS policy; the UI reports that feed as unavailable rather
+than failing the page.
+
 Open tabs are part of persisted state (`browser.tabs` / `browser.activeTabId`,
 validated down to twenty tabs). Tabs reopen by URL after a restart; page content
 is not cached, and browser tab partitions stay in-memory, so a restored tab
@@ -353,6 +412,9 @@ renderer mounted. Kryvex never changes the system default silently.
 | `kryvex:shield:enabled` | renderer → main | boolean + shell sender only |
 | `kryvex:shield:update` | renderer → main | shell sender only |
 | `kryvex:shield:option` | renderer → main | option name + boolean + shell sender |
+| `kryvex:media:list` | renderer → main | shell sender; sanitized guest media states |
+| `kryvex:media:control` | renderer → main | shell sender, tracked guest id + one of `play/pause/next/previous` |
+| `kryvex:resources:sample` | renderer → main | shell sender; Kryvex process metrics only |
 | `kryvex:farbling:seed` | webview preload → main (sync) | webview sender, http(s) site key, in-memory HMAC seed |
 | `kryvex:extensions:list` | renderer → main | read-only records |
 | `kryvex:extensions:install` | renderer → main | shell sender, native file dialog |

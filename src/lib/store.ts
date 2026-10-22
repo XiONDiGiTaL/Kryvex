@@ -49,6 +49,7 @@ import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
 import { themeGallerySeenValue } from './theme-gallery';
 import { isThemeId, sanitizeCustomTheme } from './themes';
 import { hostOf, isHttpUrl } from './url';
+import { sanitizeFeeds } from './rss';
 
 const VIEWS: ViewId[] = ['home', 'services', 'browser', 'assistant', 'settings'];
 const DENSITIES: Density[] = ['comfortable', 'compact'];
@@ -141,11 +142,17 @@ function sanitizeTab(raw: unknown): BrowserTab | null {
   return { id, url, title: title || (url ? hostOf(url) : 'New tab') };
 }
 
+/** Private tabs never survive a restart; only ordinary tabs are persisted. */
+function isPrivateTab(raw: unknown): boolean {
+  return isRecord(raw) && raw.private === true;
+}
+
 function sanitizeBrowser(raw: unknown): PersistedState['browser'] {
   const source = isRecord(raw) ? raw : {};
   const tabs: BrowserTab[] = [];
   const seen = new Set<string>();
   for (const item of Array.isArray(source.tabs) ? source.tabs : []) {
+    if (isPrivateTab(item)) continue;
     const tab = sanitizeTab(item);
     if (tab && !seen.has(tab.id) && tabs.length < MAX_TABS) {
       seen.add(tab.id);
@@ -440,6 +447,7 @@ export function sanitizeState(raw: unknown): PersistedState {
     settings: sanitizeSettings(raw.settings),
     recent,
     browser: sanitizeBrowser(raw.browser),
+    feeds: sanitizeFeeds(raw.feeds),
   };
 }
 
@@ -484,6 +492,26 @@ export function markOpened(state: PersistedState, id: string): PersistedState {
     ),
     recent: [id, ...state.recent.filter(item => item !== id)].slice(0, MAX_RECENT),
   };
+}
+
+/**
+ * Feeds are matched by URL, so importing the same OPML twice is a no-op.
+ * The first entry wins and the list stays inside the persisted limit.
+ */
+export function addFeeds(state: PersistedState, incoming: PersistedState['feeds']): PersistedState {
+  const known = new Set(state.feeds.map(feed => feed.url));
+  const next = [...state.feeds];
+  for (const feed of incoming) {
+    if (known.has(feed.url)) continue;
+    known.add(feed.url);
+    next.push(feed);
+    if (next.length >= 12) break;
+  }
+  return next.length === state.feeds.length ? state : { ...state, feeds: next };
+}
+
+export function removeFeed(state: PersistedState, id: string): PersistedState {
+  return { ...state, feeds: state.feeds.filter(feed => feed.id !== id) };
 }
 
 export function addBookmark(state: PersistedState, bookmark: Bookmark): PersistedState {

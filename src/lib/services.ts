@@ -209,5 +209,6 @@ export function starterState(): PersistedState {
     },
     recent: [],
     browser: { tabs: [], activeTabId: null },
+    feeds: [],
   };
 }

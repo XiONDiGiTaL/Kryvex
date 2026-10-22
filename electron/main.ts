@@ -3,6 +3,7 @@ import {
   BrowserWindow,
   dialog,
   ipcMain,
+  nativeImage,
   screen,
   session,
   shell,
@@ -25,10 +26,13 @@ import { extensions } from './extensions';
 import { configurePrivacySwitches, hardenSession } from './hardening';
 import { ensureBrowserIdentity } from './identity';
 import { localModel } from './local-model';
+import { media } from './media';
 import { modelManager } from './model-download';
+import { notifications } from './notifications';
 import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
 import { permissions } from './permissions';
 import { popupTabs } from './popup-tabs';
+import { fetchFeed } from './rss';
 import { resources } from './resources';
 import { vpn } from './vpn';
 import { weather } from './weather';
@@ -60,14 +64,14 @@ const CAPTURE = process.env.KRYVEX_CAPTURE === '1';
 const STATE_FILE = 'kryvex-state.json';
 const MAX_STATE_BYTES = 1024 * 1024;
 const ALLOWED_PROTOCOLS = new Set(['http:', 'https:']);
-const APP_ID = 'net.xiondigital.kryvex';
 const BROWSER_PARTITION = /^browser-[a-z0-9-]{1,64}$/i;
 
-// Windows groups taskbar entries and notifications by AppUserModelID. Setting
-// it (and the process name) keeps Kryvex from presenting as the generic
-// Electron host in the shell; packaged builds also carry the branded exe icon.
+// Windows groups taskbar entries and notifications by AppUserModelID. The
+// packaged app uses the installer's shortcut identity; a source run gets a
+// separate one so it cannot claim the installed shortcut (Electron's
+// development shortcut targets the bare executable).
 app.setName('Kryvex');
-if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
+notifications.configure();
 
 // Service modules must look like a normal Chromium browser. Electron's
 // default agent advertises "Electron/x", which several web clients treat as an
@@ -291,6 +295,12 @@ function createWindow(): BrowserWindow {
     ? path.join(process.resourcesPath, 'icons', iconFile)
     : path.join(__dirname, '..', 'brand', 'icons', iconFile);
 
+  // Windows groups taskbar buttons by AppUserModelID, but the *image* it draws
+  // comes from the window/exe icon. Keep both explicit: a dev run points at
+  // electron.exe, so the window icon is the only thing that carries Kryvex's
+  // mark until the installer's branded exe takes over.
+  const brandIcon = nativeImage.createFromPath(iconPath);
+
   const win = new BrowserWindow({
     width: size.width,
     height: size.height,
@@ -316,6 +326,8 @@ function createWindow(): BrowserWindow {
       backgroundThrottling: false,
     },
   });
+
+  if (!brandIcon.isEmpty()) win.setIcon(brandIcon);
 
   win.once('ready-to-show', () => {
     win.show();
@@ -347,6 +359,7 @@ function createWindow(): BrowserWindow {
     trackChromiumGuest(contents);
     serviceSessions.applyTo(contents);
     serviceSessions.observeGuest(contents);
+    media.track(contents);
     // A parked service frame stays mounted but hidden, and Chromium throttles
     // timers in a hidden page. A chat client that misses one heartbeat shows
     // "connecting" minutes later, which reads as a disconnect. Turning guest
@@ -464,6 +477,9 @@ function registerIpc(): void {
   );
   ipcMain.handle('kryvex:wallpaper:clear', (event) =>
     isShellSender(event) ? clearWallpaper(app.getPath('userData')) : false,
+  );
+  ipcMain.handle('kryvex:rss:fetch', (event, url: unknown) =>
+    isShellSender(event) ? fetchFeed(url) : { ok: false, text: '', url: '', error: 'unavailable' },
   );
   ipcMain.handle('kryvex:shield:status', (event) =>
     isShellSender(event) ? shield.status() : { ...shield.status(), enabled: false },
@@ -680,6 +696,12 @@ function registerIpc(): void {
   );
   ipcMain.handle('kryvex:resources:sample', (event, services: unknown) =>
     isShellSender(event) ? resources.sample(services) : null,
+  );
+  ipcMain.handle('kryvex:media:list', (event) =>
+    isShellSender(event) ? media.list() : [],
+  );
+  ipcMain.handle('kryvex:media:control', (event, id: unknown, action: unknown) =>
+    isShellSender(event) ? media.control(id, action) : false,
   );
   ipcMain.handle('kryvex:vpn:status', (event) => (isShellSender(event) ? vpn.status() : null));
   ipcMain.handle('kryvex:vpn:configure', (event, settings: unknown) =>
@@ -965,8 +987,12 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on('second-instance', (_event, argv) => {
+    // A Windows toast activation can start the registered shortcut again. The
+    // lock rejects the duplicate process, so bring the running window forward
+    // instead of leaving the click looking ignored.
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
+      if (!mainWindow.isVisible()) mainWindow.show();
       mainWindow.focus();
     }
     for (const url of defaultBrowser.acceptArgv(argv)) defaultBrowser.queueUrl(url);
@@ -996,8 +1022,12 @@ if (!gotLock) {
     partyInit();
     registerIpc();
     updater.init();
+    // Register the Windows activation hook before the first toast can appear.
+    notifications.init();
 
     mainWindow = createWindow();
+    notifications.attachWindow(mainWindow);
+    media.attachWindow(mainWindow);
     partyAttachWindow(mainWindow);
     extensions.attachWindow(mainWindow);
     updater.attachWindow(mainWindow);
@@ -1024,10 +1054,11 @@ if (!gotLock) {
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         mainWindow = createWindow();
-      partyAttachWindow(mainWindow);
-      updater.attachWindow(mainWindow);
-      modelManager.attachWindow(mainWindow);
-    assistant.attachWindow(mainWindow);
+        notifications.attachWindow(mainWindow);
+        partyAttachWindow(mainWindow);
+        updater.attachWindow(mainWindow);
+        modelManager.attachWindow(mainWindow);
+        assistant.attachWindow(mainWindow);
       }
     });
   });

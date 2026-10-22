@@ -6,6 +6,7 @@ import type {
   HistoryEntry,
   PermissionPrompt,
   PersistedState,
+  RssFeed,
   Service,
   Settings as SettingsModel,
   Toast,
@@ -17,12 +18,14 @@ import type {
 import { applyBaseTokens, applyTheme, getTheme, isThemeId } from './lib/themes';
 import {
   addBookmark as addBookmarkToState,
+  addFeeds as addFeedsToState,
   addHistory as addHistoryToState,
   addService as addServiceToState,
   clearHistory as clearHistoryFromState,
   markOpened,
   newState,
   removeBookmark as removeBookmarkFromState,
+  removeFeed as removeFeedFromState,
   removeHistory as removeHistoryFromState,
   removeService,
   togglePin,
@@ -49,8 +52,11 @@ import { Player } from './views/Player';
 import { PlayerProvider } from './components/PlayerProvider';
 import { PlayerBar } from './components/PlayerBar';
 import { ResourcePanel } from './components/ResourceMonitor';
+import { ServiceContextMenu, type ServiceMenuPoint } from './components/ServiceContextMenu';
+import { ServiceMediaDock } from './components/ServiceMediaDock';
 import { InstallPrompt } from './components/InstallPrompt';
 import { useResourceSnapshot } from './lib/resources';
+import { useServiceMedia } from './lib/media';
 import { ServiceStage } from './views/ServiceStage';
 import { Assistant } from './views/Assistant';
 import { Rooms } from './views/Rooms';
@@ -118,6 +124,10 @@ export default function App() {
   const [wallpaper, setWallpaper] = useState<WallpaperImage | null>(null);
   const [reloadTokens, setReloadTokens] = useState<Record<string, number>>({});
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [serviceMenu, setServiceMenu] = useState<{
+    service: Service;
+    point: ServiceMenuPoint;
+  } | null>(null);
   const [emulatorPrompt, setEmulatorPrompt] = useState(false);
   // Bumped after an engine change: a <webview> keeps the preferences it
   // attached with, so every guest is remounted to pick up the new ones.
@@ -325,7 +335,11 @@ export default function App() {
   useEffect(() => {
     if (!ready) return;
     setState(current => {
-      const nextTabs = tabs.map(({ id, url, title }) => ({ id, url, title }));
+      // Private tabs are deliberately session-only: reopening Kryvex must not
+      // restore what an incognito window was looking at.
+      const nextTabs = tabs
+        .filter(tab => !tab.private)
+        .map(({ id, url, title }) => ({ id, url, title }));
       const nextActiveId = nextTabs.some(tab => tab.id === activeTabId)
         ? activeTabId
         : (nextTabs[0]?.id ?? null);
@@ -699,6 +713,14 @@ export default function App() {
     setState(current => addHistoryToState(current, entry));
   }, []);
 
+  const addFeeds = useCallback((feeds: RssFeed[]) => {
+    setState(current => addFeedsToState(current, feeds));
+  }, []);
+
+  const removeFeed = useCallback((id: string) => {
+    setState(current => removeFeedFromState(current, id));
+  }, []);
+
   const removeHistoryEntry = useCallback((id: string) => {
     setState(current => removeHistoryFromState(current, id));
   }, []);
@@ -783,6 +805,9 @@ export default function App() {
     state.settings.resources.enabled &&
     (resourcesOpen || (state.settings.resources.sidebar && !state.settings.sidebarCollapsed));
   const resources = useResourceSnapshot(state.services, resourceWatch);
+  // Media state is pushed from the main process, so this costs nothing until a
+  // service page actually plays something.
+  const serviceMedia = useServiceMedia(isElectron);
 
   // Update state lives in the main process; the shell only renders it and
   // forwards explicit user actions. Announce a new version once per session.
@@ -929,6 +954,12 @@ export default function App() {
         onAdd={() => setDialog({ mode: 'new' })}
         resources={resources}
         showResources={state.settings.resources.sidebar && !state.settings.sidebarCollapsed}
+        onHideResources={() =>
+          updateSettingsPatch({
+            resources: { ...state.settings.resources, sidebar: false },
+          })
+        }
+        onServiceMenu={(service, point) => setServiceMenu({ service, point })}
       />
 
       <main className={`app-main ${activeService ? 'is-service' : ''}`}>
@@ -1059,6 +1090,9 @@ export default function App() {
             isElectron={isElectron}
             engineRevision={engineRevision}
             mark={themeMark}
+            feeds={state.feeds}
+            onAddFeeds={addFeeds}
+            onRemoveFeed={removeFeed}
             onAddBookmark={addBookmark}
             onRemoveBookmark={removeBookmark}
             onAddHistory={addHistoryEntry}
@@ -1201,6 +1235,24 @@ export default function App() {
         />
       ) : null}
 
+      {serviceMenu ? (
+        <ServiceContextMenu
+          service={serviceMenu.service}
+          point={serviceMenu.point}
+          notificationsGloballyOn={state.settings.serviceNotifications}
+          onClose={() => setServiceMenu(null)}
+          onOpen={() => openService(serviceMenu.service)}
+          onEdit={() => setDialog({ mode: 'edit', service: serviceMenu.service })}
+          onRemove={() => deleteService(serviceMenu.service)}
+          onChange={patch => {
+            updateServiceFlags(serviceMenu.service, patch);
+            setServiceMenu(current =>
+              current ? { ...current, service: { ...current.service, ...patch } } : current,
+            );
+          }}
+        />
+      ) : null}
+
       {resourcesOpen ? (
         <ResourcePanel
           snapshot={resources}
@@ -1211,6 +1263,15 @@ export default function App() {
             setResourcesOpen(false);
             navigate('settings?section=resources');
           }}
+        />
+      ) : null}
+
+      {serviceMedia.entries.length > 0 ? (
+        <ServiceMediaDock
+          entries={serviceMedia.entries}
+          services={state.services}
+          onOpenService={openService}
+          onControl={serviceMedia.control}
         />
       ) : null}
 

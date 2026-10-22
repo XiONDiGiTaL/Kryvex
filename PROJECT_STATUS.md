@@ -66,8 +66,12 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   download-location picker shared by downloads and new torrents, and an engine
   panel for hardware acceleration, smooth scrolling, JavaScript, images,
   WebGL, the PDF viewer, autoplay, hidden-page throttling, spellcheck, the
-  preferred colour scheme and default zoom. Per-site zoom memory is Chromium's
-  own map; it is reported read-only.
+  preferred colour scheme and default zoom. A home button returns to a designed
+  start page with live shield counters, a field guide, module/bookmark launch,
+  and an RSS/Atom reader with OPML import; private tabs write no history and
+  never enter the saved session; an options menu gathers tab, library, private
+  and shield actions. Per-site zoom memory is Chromium's own map; it is
+  reported read-only.
 - [ ] **M7 — Security (baseline shipped).** Sandboxed renderer, context
   isolation, a narrowed typed IPC bridge, hardened webviews, partition
   allowlist, http(s)-only navigation, an explicit per-origin mic/camera prompt
@@ -79,7 +83,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   farbling and EasyList Cookie. Remaining: per-site privacy exceptions,
   persisted per-module scopes, Safe Browsing equivalent, `pnpm audit`,
   packaged-app integrity checks, renderer CSP, macOS/Linux validation.
-- [ ] **M8 — Testing (partial).** 390/390 unit tests, strict typecheck, build and
+- [ ] **M8 — Testing (partial).** 444/444 unit tests, strict typecheck, build and
   twenty-four-capture pass; live Sohbet probe passed. Two-instance Rooms
   (`pnpm verify:rooms`) proves presence, chat and a 2560×1440 screen share
   between separate profiles. The new service-engine
@@ -93,8 +97,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   row in the built UI, and find/zoom are automated through
   `pnpm verify:restart`, `pnpm verify:downloads`, `pnpm verify:location-ui`,
   `pnpm verify:torrents`, `pnpm verify:torrent-restore-ui` and
-  `pnpm verify:browser`, `pnpm verify:chromium`, `pnpm verify:updater` and
-  `pnpm verify:rooms`.
+  `pnpm verify:browser`, `pnpm verify:chromium`, `pnpm verify:updater`,
+  `pnpm verify:browser-start` and `pnpm verify:rooms`.
   Remaining: broader e2e UI
   coverage, backup/restore,  measured performance comparison (`docs/PERFORMANCE.md` still holds no
   numbers).

@@ -89,9 +89,9 @@ export function Header({
           ) : null}
           {onResources ? (
             <button
-              className={`header-tool ${resourcesOpen ? 'is-active' : ''}`}
+              className={`header-tool is-resources ${resourcesOpen ? 'is-active' : ''}`}
               onClick={onResources}
-              title={t('Open the resource manager')}
+              title={resourcesOpen ? t('Hide the resource manager') : t('Open the resource manager')}
               aria-pressed={resourcesOpen}
             >
               <Icon name="monitor" size={14} />
@@ -140,6 +140,8 @@ export function Sidebar({
   onAdd,
   resources = null,
   showResources = false,
+  onHideResources,
+  onServiceMenu,
 }: {
   state: PersistedState;
   routeView: ViewId;
@@ -151,6 +153,9 @@ export function Sidebar({
   onAdd: () => void;
   resources?: ResourceSnapshot | null;
   showResources?: boolean;
+  onHideResources?: () => void;
+  /** Right-click on a pinned service opens the themed service menu. */
+  onServiceMenu?: (service: Service, point: { x: number; y: number }) => void;
 }) {
   const t = useT();
   const pinned = state.services.filter(service => service.pinned);
@@ -190,7 +195,13 @@ export function Sidebar({
                 <button
                   className="pinned-item"
                   onClick={() => onOpenService(service)}
+                  onContextMenu={event => {
+                    if (!onServiceMenu) return;
+                    event.preventDefault();
+                    onServiceMenu(service, { x: event.clientX, y: event.clientY });
+                  }}
                   title={service.name}
+                  aria-haspopup={onServiceMenu ? 'menu' : undefined}
                 >
                   <ServiceIcon service={service} size={22} />
                   <span className="pinned-name">{service.name}</span>
@@ -207,7 +218,11 @@ export function Sidebar({
       </div>
 
       {showResources && resources ? (
-        <SidebarResources snapshot={resources} services={state.services} />
+        <SidebarResources
+          snapshot={resources}
+          services={state.services}
+          onHide={onHideResources}
+        />
       ) : null}
 
       <div className="sidebar-foot">

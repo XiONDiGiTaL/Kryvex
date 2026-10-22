@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   addBookmark,
+  addFeeds,
   addHistory,
   addService,
   clearHistory,
   markOpened,
   newState,
   removeBookmark,
+  removeFeed,
   removeHistory,
   removeService,
   sanitizeHome,
@@ -174,6 +176,35 @@ describe('sanitizeState', () => {
     expect(state.browser.activeTabId).toBe('t-1');
   });
 
+  it('never restores private tabs', () => {
+    const state = sanitizeState({
+      browser: {
+        tabs: [
+          { id: 't-1', url: 'https://example.com', title: 'Example', private: true },
+          { id: 't-2', url: 'https://example.org', title: 'Ordinary' },
+        ],
+        activeTabId: 't-1',
+      },
+    });
+    expect(state.browser.tabs).toEqual([
+      { id: 't-2', url: 'https://example.org', title: 'Ordinary' },
+    ]);
+    expect(state.browser.activeTabId).toBe('t-2');
+  });
+
+  it('restores valid start-page feeds and drops the rest', () => {
+    const state = sanitizeState({
+      feeds: [
+        { id: 'f-1', title: 'Example', url: 'https://example.com/rss', addedAt: 1 },
+        { id: 'f-1', title: 'Duplicate', url: 'https://example.org/rss' },
+        { id: 'f-2', title: 'Bad', url: 'javascript:alert(1)' },
+      ],
+    });
+    expect(state.feeds).toEqual([
+      { id: 'f-1', title: 'Example', url: 'https://example.com/rss', addedAt: 1 },
+    ]);
+  });
+
   it('caps restored browser tabs at twenty', () => {
     const tabs = Array.from({ length: 25 }, (_, index) => ({
       id: `t-${index}`,
@@ -201,6 +232,24 @@ describe('sanitizeState', () => {
 });
 
 describe('operations', () => {
+  it('adds feeds by URL and removes them without touching the rest', () => {
+    const base = newState();
+    const added = addFeeds(base, [
+      { id: 'f-1', title: 'One', url: 'https://example.com/rss', addedAt: 1 },
+      { id: 'f-2', title: 'Two', url: 'https://example.org/rss', addedAt: 2 },
+    ]);
+    expect(added.feeds.map(feed => feed.id)).toEqual(['f-1', 'f-2']);
+    expect(base.feeds).toEqual([]);
+
+    const again = addFeeds(added, [
+      { id: 'f-3', title: 'Same URL', url: 'https://example.com/rss', addedAt: 3 },
+    ]);
+    expect(again).toBe(added);
+
+    const removed = removeFeed(added, 'f-1');
+    expect(removed.feeds.map(feed => feed.id)).toEqual(['f-2']);
+  });
+
   it('adds, updates and removes a service immutably', () => {
     const base = newState();
     const service = makeService({ id: 's-new' });

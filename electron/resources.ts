@@ -77,6 +77,7 @@ class ResourceSampler {
       cpu: sampleSystemCpu(),
       memoryUsedMB: Math.max(0, (total - free) / (1024 * 1024)),
       memoryTotalMB: total / (1024 * 1024),
+      cpuCores: os.cpus().length,
     });
   }
 }

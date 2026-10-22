@@ -86,7 +86,7 @@ away.
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
   support ride on the same tokens.
 
-> Status: **working desktop prototype (0.8.5, packaged and published)**. The app boots, modules load, service apps stay running with their
+> Status: **working desktop prototype (0.8.6, packaged and published)**. The app boots, modules load, service apps stay running with their
 > sessions, native notifications and unread badges work, auth popups complete
 > inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
@@ -108,10 +108,10 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.8.5-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.8.5-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.8.6-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.8.6-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.8.5** artifacts are built from this tree by the tag-triggered workflow
+The **0.8.6** artifacts are built from this tree by the tag-triggered workflow
 and published on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
 Each release is built from the complete source tree by the tag-triggered
@@ -145,9 +145,10 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The **0.8.5** Setup and Portable EXEs are built from this tree. Artifact
+The **0.8.6** Setup and Portable EXEs are built from this tree. Artifact
 checksums, verification steps and limitations are recorded in
-[docs/RELEASE_0.8.5.md](docs/RELEASE_0.8.5.md); earlier releases are in
+[docs/RELEASE_0.8.6.md](docs/RELEASE_0.8.6.md); earlier releases are in
+[docs/RELEASE_0.8.5.md](docs/RELEASE_0.8.5.md),
 [docs/RELEASE_0.8.4.md](docs/RELEASE_0.8.4.md),
 [docs/RELEASE_0.8.3.md](docs/RELEASE_0.8.3.md),
 [docs/RELEASE_0.8.2.md](docs/RELEASE_0.8.2.md),
@@ -210,7 +211,42 @@ The catalogue also gained Twitch, TikTok, Facebook, SoundCloud and Vimeo
 presets. TikTok, Twitch and Facebook default to **Start muted**, so an
 autoplaying feed cannot make noise until you unmute the module.
 
-## What's new in 0.8.5
+## What's new in 0.8.6
+
+The browser became a browser you can live in rather than a page with tabs. A
+**home button** on the left returns to a designed start page — not a blank tab —
+with a field guide, live Shield counters (requests blocked, filters compiled,
+HTTPS upgrades, tracking parameters stripped), quick launch for modules and
+bookmarks, and an **RSS/Atom reader**. Add a feed by URL or import the OPML file
+your current reader exports; the desktop process fetches only the feeds you add,
+caps the response at 2 MB, and the parser strips feed markup to text. Stories
+merge newest-first and duplicate links are shown once. The start page, private
+tabs and options menu are translated into English, Spanish, German and French.
+
+**Private tabs** are in the browser options menu and on `Ctrl+Shift+N`. They are
+marked with the mask in the tab strip, get a private start-page variant, never
+write to Kryvex history, and are excluded from the saved session, so reopening
+the app cannot restore one. **Close private tabs** clears them and their
+partitions from the same menu. All browser tabs already use in-memory
+partitions; private mode adds the no-history and no-restore guarantees.
+
+The **service surface** got its desktop pass. Activity now reports only Kryvex's
+own CPU and memory against installed RAM, and its panel closes on Escape, its
+close button or an outside click. Right-clicking a pinned service opens a themed
+menu for edit, remove, mute, notifications, background behaviour and unpin.
+Parked services are hidden with opacity instead of `display: none`, so YouTube,
+Spotify and Discord keep playing and connected; audio from them raises a
+transport dock above the status bar. The Shield gained a versioned YouTube
+bundle with stitched-ad pruning, and the packaged window sets the Kx icon
+explicitly. The Windows notification identity is split so a source run can no
+longer hijack the installed shortcut, and a toast click restores the window.
+**Settings → Vexium → Download models** can fetch one reviewed starter model
+with its publisher, revision, byte size, SHA-256, licence and memory estimate
+shown before the download starts. Details: [SERVICE_UX.md](docs/SERVICE_UX.md).
+
+Everything in 0.8.5 is included.
+
+## What was new in 0.8.5
 
 Two in-house tools joined the secret services, and all three of those services
 now share one periodic-table tile. **Lexium (x530)** transcribes recordings,
@@ -222,19 +258,6 @@ faded into the tile as a watermark behind the symbol. Five presets arrived —
 Twitch, TikTok, Facebook, SoundCloud and Vimeo — and the autoplaying feeds start
 muted. Leaving the player page no longer pauses the track, and an unset weather
 location no longer reads as 0,0 and reports Null Island weather as local.
-Everything in 0.8.4 is included.
-
-## In the next release
-
-**Settings → Vexium → Download models** can now fetch one reviewed starter
-model. The card shows the publisher, pinned revision, exact byte size, SHA-256,
-licence, quantisation and an estimated memory figure *before* anything is
-fetched; the download starts only when you press Download, reports bytes and
-percentage, can be cancelled, and is streamed to a `.part` file that is only
-renamed into `userData/models` after its size and checksum match. A model that
-is already serving is never stopped or replaced by an install, and deleting one
-requires a confirmation. This batch also shortens the emulator tile caption to
-**`[ Retro ]`**, because `[ Emulator ]` did not fit a 58 px card.
 
 ## What was new in 0.8.4
 
@@ -564,11 +587,19 @@ and controls. Closing Kryvex and reopening it later keeps the session alive.
 
 ### Browser
 
-![Browser with tabs and start page](screenshots/browser.png)
+![Browser with tabs and the designed start page](screenshots/browser-start.png)
 
-A real Chromium workspace: tabs, history navigation, address bar, bookmarks,
-and a start page that surfaces your modules. Each tab has its own in-memory
-Chromium session, cleared when the tab closes.
+A real Chromium workspace: tabs, history navigation, address bar, bookmarks, a
+home button and a designed start page. The start page carries live Shield
+counters, a field guide, your modules and bookmarks, and an RSS/Atom reader that
+accepts a feed URL or an OPML import. Each tab has its own in-memory Chromium
+session, cleared when the tab closes.
+
+![A private tab with its own start-page treatment](screenshots/browser-private.png)
+
+**Private tabs** open from the options menu or `Ctrl+Shift+N`, carry the mask in
+the tab strip, write no history and are never restored after a restart. Closing
+them from the same menu also clears their partitions.
 
 ### Browser library — downloads and history
 

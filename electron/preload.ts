@@ -148,6 +148,7 @@ const api = {
   loadState: (): Promise<unknown> => ipcRenderer.invoke('kryvex:state:load'),
   saveState: (state: unknown): Promise<boolean> => ipcRenderer.invoke('kryvex:state:save', state),
   openExternal: (url: string): Promise<boolean> => ipcRenderer.invoke('kryvex:open-external', url),
+  rssFetch: (url: string): Promise<unknown> => ipcRenderer.invoke('kryvex:rss:fetch', url),
   shieldStatus: (): Promise<unknown> => ipcRenderer.invoke('kryvex:shield:status'),
   shieldSetEnabled: (enabled: boolean): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:shield:enabled', enabled),
@@ -274,6 +275,16 @@ const api = {
     ipcRenderer.invoke('kryvex:weather:at', latitude, longitude, unit),
   resourcesSample: (services: Array<{ id: string; url: string }>): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:resources:sample', services),
+  mediaList: (): Promise<unknown> => ipcRenderer.invoke('kryvex:media:list'),
+  mediaControl: (
+    id: number,
+    action: 'play' | 'pause' | 'next' | 'previous',
+  ): Promise<boolean> => ipcRenderer.invoke('kryvex:media:control', id, action),
+  onMediaChanged: (listener: (event: unknown) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, payload: unknown) => listener(payload);
+    ipcRenderer.on('kryvex:media:changed', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:media:changed', wrapped);
+  },
   vpnStatus: (): Promise<unknown> => ipcRenderer.invoke('kryvex:vpn:status'),
   vpnConfigure: (settings: unknown): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:vpn:configure', settings),

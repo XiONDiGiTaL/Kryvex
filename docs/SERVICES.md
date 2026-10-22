@@ -7,8 +7,10 @@ where its limits are.
 ## The short version
 
 - An opened service is mounted once and **stays running** for the app session.
-  Switching to Home, the Browser or Settings hides the frame; it does not
-  destroy the guest.
+  Switching to Home, the Browser or Settings parks the frame with opacity, not
+  `display: none`, so Chromium still treats the page as visible; it does not
+  destroy the guest. Audio and the dock keep working in another view. See
+  [SERVICE_UX.md](SERVICE_UX.md).
 - Each service owns a persistent Chromium partition, `persist:svc-<id>`.
   Cookies, localStorage, IndexedDB, service workers and caches live there and
   survive restarts.
@@ -64,9 +66,18 @@ to those sessions, and only while **Settings → Service apps → Desktop
 notifications** is on. Browser-tab sessions stay denied, so a random page
 cannot raise an OS toast.
 
-Notification clicks are handled by Chromium and focus the Kryvex window. Unread
-counts are separate and come from the page title, not from the notification
-payload: Kryvex never inspects message content.
+Notification clicks are handled by Chromium; `Notification.handleActivation`
+also brings Kryvex forward when the click arrives from the Action Center or
+starts the app. Unread counts are separate and come from the page title, not
+from the notification payload: Kryvex never inspects message content.
+
+The packaged app owns the `net.xiondigital.kryvex` AppUserModelID, matching the
+installer's Start Menu shortcut. A source run uses
+`net.xiondigital.kryvex.dev` instead. Electron names its unpackaged shortcut
+`Electron.lnk` and points it at the bare executable, so sharing the packaged ID
+made Windows attribute installed toasts to that shortcut and open Electron's
+welcome page on click. The separate ID keeps the installed shortcut as the only
+owner of the packaged identity.
 
 A hidden frame still runs because its webview sets `backgroundThrottling=no`.
 That keeps the gateway, timers, audio and calls alive while the user is in

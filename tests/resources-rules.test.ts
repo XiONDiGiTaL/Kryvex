@@ -42,11 +42,18 @@ describe('resource attribution', () => {
         { id: 's-discord', url: 'https://discord.com' },
         { id: 's-example', url: 'https://example.com' },
       ],
-      { cpu: 19.2, memoryUsedMB: 8192, memoryTotalMB: 16384 },
+      { cpu: 19.2, memoryUsedMB: 8192, memoryTotalMB: 16384, cpuCores: 8 },
     );
 
     expect(snapshot.cpu).toBe(19.2);
     expect(snapshot.appMemoryMB).toBe(470.4);
+    // Kryvex's own CPU, both as the sum Chromium reports and as the share of
+    // the whole machine that Task Manager-style numbers use.
+    expect(snapshot.appCpu).toBe(18.5);
+    expect(snapshot.appCpuShare).toBe(2.3);
+    expect(snapshot.cpuCores).toBe(8);
+    expect(snapshot.memoryShare).toBe(2.9);
+    expect(snapshot.processCount).toBe(4);
     expect(snapshot.gpuCpu).toBe(3.2);
     expect(snapshot.gpuMemoryMB).toBe(60);
     expect(snapshot.services).toEqual([
@@ -68,6 +75,9 @@ describe('resource attribution', () => {
     );
     expect(snapshot.cpu).toBe(0);
     expect(snapshot.memoryUsedMB).toBe(0);
+    expect(snapshot.memoryShare).toBe(0);
+    expect(snapshot.appCpuShare).toBe(0);
+    expect(snapshot.cpuCores).toBe(1);
     expect(snapshot.processes[0]?.cpu).toBe(0);
     expect(snapshot.processes[0]?.memoryMB).toBe(0);
   });
