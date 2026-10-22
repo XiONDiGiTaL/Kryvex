@@ -81,11 +81,12 @@ installer has no matching entry.
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.8.4-x64.exe` | published size | in `SHA256SUMS.txt` |
-| `Kryvex-Portable-0.8.4-x64.exe` | published size | in `SHA256SUMS.txt` |
+| `Kryvex-Setup-0.8.4-x64.exe` | 120,323,288 B (114.8 MiB) | `6e0ab02f8705989735f4160aa2017caed69d2d34f882c61b23f15c8b9d4ca5d4` |
+| `Kryvex-Portable-0.8.4-x64.exe` | 120,086,161 B (114.5 MiB) | `84ec9344f2c5f7474b6215e50625ddc7538fd017224147cf17994b3965340642` |
 
-Both artifacts are unsigned. Windows SmartScreen may warn about an unknown
-publisher.
+Both downloaded copies hash to those values, have matching entries in
+`SHA256SUMS.txt`, and report `ProductVersion 0.8.4`. Both artifacts are
+unsigned; Windows SmartScreen may warn about an unknown publisher.
 
 ## Install
 
@@ -109,8 +110,9 @@ The Portable EXE runs without installation. Its state still lives in
   `ProductVersion 0.8.4`.
 - The wizard harness captured 5 pages from the 0.8.4 installer and the
   installer exited 0.
-- The tag workflow builds the same tree, runs typecheck, tests and the relay
-  harness, then publishes the release.
+- The tag workflow (run 39735862979, commit `caa16a0`) passed every step and
+  published a stable, non-draft release with the Setup, Portable and
+  `SHA256SUMS.txt` assets. The downloaded files verify with `sha256sum -c`.
 
 ## Wizard capture
 
