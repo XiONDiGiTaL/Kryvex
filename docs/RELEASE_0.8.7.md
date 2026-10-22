@@ -59,17 +59,18 @@ Download the installer, portable build and checksum list from the
 
 ## Artifacts
 
-Built locally with `electron-builder --publish never` from this tree, so the
-wizard could be captured before the tag:
+Built by the tag-triggered workflow (run
+[39874117024](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/39874117024),
+commit `f59a1d2`) and attached to the published, stable
+[v0.8.7 release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.7):
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.8.7-x64.exe` | 120,575,206 B (114.99 MiB) | `b08369150934aa24227c841cef35daa791e051f11b9ab8504562c46664f011f1` |
-| `Kryvex-Portable-0.8.7-x64.exe` | 120,337,993 B (114.76 MiB) | `fa298ebf9e0c27fa305d5400e51f5b318f173a093b3871f3d3896823c9a3cb61` |
+| `Kryvex-Setup-0.8.7-x64.exe` | 120,492,592 B (114.91 MiB) | `79653c01a0f93ba17f7b25b6446183037cc7a5d2c5b9f6a344775c0c40c96daa` |
+| `Kryvex-Portable-0.8.7-x64.exe` | 120,255,463 B (114.68 MiB) | `df5a59a3c87dec01668560b5782b06bef32f2dc38c9fc5405ddc06b1e054a67e` |
 
-Both EXEs are **unsigned**. The tag-triggered workflow rebuilds and publishes
-them; `SHA256SUMS.txt` covers both, and the updater ignores a release whose
-installer has no matching entry.
+`SHA256SUMS.txt` (189 B) carries both digests. The updater ignores a release
+whose installer has no matching entry. Both EXEs are **unsigned**.
 
 ## Install
 
@@ -100,7 +101,24 @@ installer has no matching entry.
   `tests/disk-service.test.ts` (the real cleaner on a fixture) and
   `tests/disk-scan.test.ts` (the worker body: sizing, the age filter, missing
   caches, an already-aborted signal).
-- Packaging and the published artifacts are recorded below.
+- Local `electron-builder --publish never` with `--config.electronDist=node_modules/electron/dist`
+  produced both 0.8.7 EXEs, which is what the wizard was captured against.
+- `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer
+  release/Kryvex-Setup-0.8.7-x64.exe --version 0.8.7` — PASS: four pages
+  captured, the install page ran for 23,091 ms, the installer exited 0, and the
+  capture was archived under `docs/media/releases/0.8.7-wizard/`. The installed
+  `C:\Kryvex\Kryvex.exe` reports `ProductVersion 0.8.7.0`.
+- **Published artifacts.** The release workflow passed every step (tag/version
+  check, release record, install, typecheck, 466 tests, the one-time-code relay,
+  packaging, checksums) and published a stable, non-draft release with the
+  Setup, Portable and `SHA256SUMS.txt` assets. Both EXEs were downloaded from
+  `releases/download/v0.8.7/` and `sha256sum -c SHA256SUMS.txt` verifies both.
+- **Published build exercised, not just hashed.** The published Portable EXE was
+  launched with `--remote-debugging-port` and an isolated profile:
+  `window.kryvex.appInfo()` returned `{version: "0.8.7", electron: "44.2.0",
+  chrome: "152.0.7977.76", node: "24.20.0", packaged: true}`, and `#/disk`
+  rendered Disk pulse with its disclaimer gate and the protected-folder list.
+- `node scripts/check-release-record.cjs` — PASS for 0.8.7.
 
 ## Wizard capture
 
