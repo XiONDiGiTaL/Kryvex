@@ -40,5 +40,8 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
+      - name: Build and check the web/PWA client
+        run: pnpm build:web
+
       - name: Verify the one-time-code relay
         uses: ./.github/actions/verify-one-time-code
