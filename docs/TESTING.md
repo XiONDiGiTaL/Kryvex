@@ -1142,6 +1142,36 @@ the runtime phase, and the retest removed the file, emptied
 installed on this machine), a cancelled mid-transfer, a forced hash mismatch
 (covered by unit tests), and a transfer on a slow or dropping connection.
 
+## Service media in the status bar — 2026-10-22
+
+The service transport moved out of the workspace and into the status bar: a
+compact strip at rest, with the full island revealed on hover or when pinned.
+This is a follow-up to the published 0.8.6 build, not a new version.
+
+| Check | Result | Detail |
+| --- | --- | --- |
+| `npm run typecheck` | exit 0 | Renderer and main |
+| `npm test` | exit 0, **444/444** | Existing suite, unchanged |
+| `node scripts/audit-i18n.cjs` | clean | 34 renderer files |
+| `npm run build` | exit 0 | Rebuilt before the harness |
+| `node scripts/verify-service-ux.cjs` | PASS, **39 assertions** | Includes the status-strip, idle-fade, edge-reveal and hover checks |
+
+**Real-app run.** The harness opened a local audio service. The transport
+rendered inside `.status-bar` as a 20 px strip, and no island existed while the
+page was in use. With the pointer over the service guest, the strip went idle
+(`.is-idle`, opacity 0, `pointer-events: none`) and left no island open; the
+guest swallows pointer moves, so this also proves the edge hold expires instead
+of waiting forever for a host event. Moving the pointer into the bottom 96 px
+brought the strip back to opacity 0.6. A real pointer move then opened the
+island, whose bottom sat at 869.5 px against a status-bar top of 876 px, and it
+stayed open while the pointer crossed the gap and moved over the panel. Moving
+into the sidebar closed it again. `Escape` closed the pinned island, and
+leaving the service kept the strip available on Home while the guest stayed
+visible and kept playing. Captures:
+`screenshots/verify-service-media-inline.png`,
+`screenshots/verify-service-media-dock.png`,
+`screenshots/verify-media-dock-home.png`.
+
 ## Service surfaces — 2026-10-22
 
 Built from the 0.8.5 tree on `main`, after the resource, pinned-menu, parked

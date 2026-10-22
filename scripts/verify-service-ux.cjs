@@ -311,21 +311,162 @@ async function main() {
   await client.evaluate(`document.querySelector('.sidebar-resources-hide').click(); true;`);
   await waitFor(client.evaluate, `!document.querySelector('.sidebar-resources')`, 2500, 'the sidebar block to hide');
 
-  // 3. Media dock from a real service guest.
+  // 3. Media dock from a real service guest. At rest it is part of the status
+  // bar; hovering opens the island only while the pointer is on the controls.
   await client.evaluate(`document.querySelector('.pinned-item').click(); true;`);
   await waitFor(client.evaluate, `Boolean(document.querySelector('.service-frame.is-active webview'))`, 8000, 'the service guest');
-  await waitFor(client.evaluate, `Boolean(document.querySelector('.media-dock'))`, 12000, 'the media dock');
+  await waitFor(
+    client.evaluate,
+    `Boolean(document.querySelector('.status-bar .media-dock-inline'))`,
+    12000,
+    'the inline media strip',
+  );
+  // Wake the strip from the edge before inspecting it, in case the page took
+  // long enough to load that the idle timer already ran.
+  const edgePoint = await client.evaluate(
+    `(() => ({ x: 8, y: window.innerHeight - 20 }))()`,
+  );
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mouseMoved',
+    x: edgePoint.x,
+    y: edgePoint.y,
+  });
+  await sleep(280);
+
+  const inline = await client.evaluate(`(() => {
+    const strip = document.querySelector('.media-dock-inline');
+    const bar = document.querySelector('.status-bar');
+    return {
+      text: strip.innerText,
+      insideBar: bar.contains(strip),
+      panel: Boolean(document.querySelector('.media-dock')),
+      height: strip.getBoundingClientRect().height,
+    };
+  })()`);
+  check(inline.insideBar, 'media controls live inside the status bar');
+  check(/Tone Lab Theme/.test(inline.text), 'the status strip shows the page title');
+  check(!inline.panel, 'the island stays closed while the workspace is in use');
+  check(inline.height <= 22, `the strip fits the status bar (${inline.height}px)`);
+  await shot(client, 'verify-service-media-inline');
+
+  // Leave the bottom edge and let the strip go idle.
+  // Move over the service guest, which swallows the pointer moves above it.
+  // The strip must still go idle instead of waiting forever for a host event.
+  const workspacePoint = await client.evaluate(`(() => {
+    const guest = document.querySelector('.service-frame.is-active webview');
+    const box = guest.getBoundingClientRect();
+    return {
+      x: Math.round(box.left + box.width / 2),
+      y: Math.round(box.top + box.height / 2),
+    };
+  })()`);
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mouseMoved',
+    x: workspacePoint.x,
+    y: workspacePoint.y,
+  });
+  await sleep(6000);
+  const idle = await client.evaluate(`(() => {
+    const slot = document.querySelector('.media-dock-slot');
+    const strip = document.querySelector('.media-dock-inline');
+    const style = getComputedStyle(strip);
+    return {
+      idle: slot.classList.contains('is-idle'),
+      opacity: Number(style.opacity),
+      pointerEvents: style.pointerEvents,
+      panel: Boolean(document.querySelector('.media-dock')),
+    };
+  })()`);
+  check(
+    idle.idle,
+    `the media strip fades after a few idle seconds (${JSON.stringify(idle)})`,
+  );
+  check(
+    idle.opacity < 0.05 && idle.pointerEvents === 'none',
+    `the faded strip stops taking clicks (opacity ${idle.opacity})`,
+  );
+  check(!idle.panel, 'idle does not leave the island open');
+
+  // Approaching the bottom edge must bring it back without a click.
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mouseMoved',
+    x: edgePoint.x,
+    y: edgePoint.y,
+  });
+  await sleep(420);
+  const revealed = await client.evaluate(`(() => {
+    const slot = document.querySelector('.media-dock-slot');
+    const strip = document.querySelector('.media-dock-inline');
+    return {
+      idle: slot.classList.contains('is-idle'),
+      opacity: Number(getComputedStyle(strip).opacity),
+    };
+  })()`);
+  check(
+    !revealed.idle && revealed.opacity > 0.4,
+    `approaching the bottom edge brings the strip back (opacity ${revealed.opacity})`,
+  );
+
+  const stripPoint = await client.evaluate(`(() => {
+    const box = document.querySelector('.media-dock-inline').getBoundingClientRect();
+    return { x: Math.round(box.left + box.width / 2), y: Math.round(box.top + box.height / 2) };
+  })()`);
+  await client.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: stripPoint.x, y: stripPoint.y });
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.media-dock'))`, 3000, 'hover to open the island');
+  await sleep(260);
   const dock = await client.evaluate(`(() => {
     const node = document.querySelector('.media-dock');
+    const bar = document.querySelector('.status-bar').getBoundingClientRect();
+    const box = node.getBoundingClientRect();
     return {
       text: node.innerText,
       buttons: [...node.querySelectorAll('button')].map(button => button.getAttribute('aria-label')),
+      boxBottom: box.bottom,
+      top: bar.top,
+      left: box.left,
+      slotLeft: document.querySelector('.media-dock-inline').getBoundingClientRect().left,
     };
   })()`);
-  check(/Tone Lab Theme/.test(dock.text), 'dock shows the page title');
-  check(dock.buttons.includes('Pause'), 'dock offers pause while playing');
-  check(dock.buttons.includes('Next track'), 'dock offers next');
+  check(/Tone Lab Theme/.test(dock.text), 'the island shows the page title');
+  check(dock.buttons.includes('Pause'), 'the island offers pause while playing');
+  check(dock.buttons.includes('Next track'), 'the island offers next');
+  check(
+    dock.boxBottom <= dock.top,
+    `the island opens above the status bar (${dock.boxBottom} <= ${dock.top})`,
+  );
+  check(dock.left >= dock.slotLeft - 2, 'the island is anchored to the media strip');
   await shot(client, 'verify-service-media-dock');
+
+  // Move a real pointer through the gap and into the island. Without the hover
+  // bridge the panel would unmount before the pointer reached it.
+  const points = await client.evaluate(`(() => {
+    const strip = document.querySelector('.media-dock-inline').getBoundingClientRect();
+    const island = document.querySelector('.media-dock').getBoundingClientRect();
+    return {
+      x: Math.round(strip.left + strip.width / 2),
+      gapY: Math.round(island.bottom + 4),
+      islandY: Math.round(island.top + island.height / 2),
+    };
+  })()`);
+  await client.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: points.x, y: points.gapY });
+  await sleep(180);
+  check(
+    await client.evaluate(`Boolean(document.querySelector('.media-dock'))`),
+    'hover survives the gap to the island',
+  );
+  await client.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: points.x, y: points.islandY });
+  await sleep(180);
+  check(
+    await client.evaluate(`Boolean(document.querySelector('.media-dock'))`),
+    'the island stays open under the pointer',
+  );
+  await client.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 110, y: 520 });
+  await waitFor(client.evaluate, `!document.querySelector('.media-dock')`, 2500, 'the island to close on real mouse leave');
+
+  await client.evaluate(
+    `document.querySelector('.media-dock-inline-btn[aria-label="Expand media controls"]').click(); true;`,
+  );
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.media-dock'))`, 3000, 'the pinned island');
 
   await client.evaluate(
     `document.querySelector('.media-dock button[aria-label="Pause"]').click(); true;`,
@@ -351,6 +492,11 @@ async function main() {
     'the dock to show Pause after resuming',
   );
 
+  await client.evaluate(
+    `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true;`,
+  );
+  await waitFor(client.evaluate, `!document.querySelector('.media-dock')`, 2500, 'Escape to close the pinned island');
+
   // 4. Parking the service must not stop it.
   await client.evaluate(
     `document.querySelectorAll('.nav-item')[0].click(); true;`,
@@ -364,12 +510,14 @@ async function main() {
       hash: location.hash,
       display: style?.display,
       opacity: style?.opacity,
-      dock: Boolean(document.querySelector('.media-dock')),
+      dock: Boolean(document.querySelector('.media-dock-inline')),
+      panel: Boolean(document.querySelector('.media-dock')),
     };
   })()`);
   check(parked.hash.startsWith('#/home'), 'navigated away from the service');
   check(parked.display === 'flex', 'the parked guest stays rendered');
-  check(parked.dock, 'the dock follows playback into another view');
+  check(parked.dock, 'the status strip follows playback into another view');
+  check(!parked.panel, 'the island is out of the way until it is needed');
   const stillPlaying = await client.evaluate(
     `document.querySelector('.service-frame webview').executeJavaScript('!document.getElementById("tone").paused')`,
   );
@@ -389,7 +537,16 @@ async function main() {
     visibilitySamples.filter(value => value === 'visible').length >= 7,
     `a parked guest stays visible to the page (${visibilitySamples.join(', ')})`,
   );
+  await client.evaluate(
+    `document.querySelector('.media-dock-inline').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); true;`,
+  );
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.media-dock'))`, 3000, 'the parked island');
   await shot(client, 'verify-media-dock-home');
+  await client.evaluate(`(() => {
+    const slot = document.querySelector('.media-dock-inline');
+    slot.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
+    return true;
+  })()`);
 
   // A module that opts into pause-when-hidden is the one exception: it may
   // leave layout, and its media must actually stop.

@@ -73,14 +73,31 @@ service guests, then samples the page's own `navigator.mediaSession.metadata`
 state to the shell: id, partition, URL, title, artist, HTTPS artwork, playing,
 position and duration. No audio leaves the page and there is no second decoder.
 
-The dock appears above the status bar on every view:
+The transport lives in the status bar on every view. At rest it is a
+low-contrast strip, so it never floats over the workspace:
 
-- artwork, service name, title and artist
-- previous / play-pause / next, sent into the guest with
-  `kryvex:media:control`
-- elapsed and total time, with a progress line
+- 16 px artwork, service name, title, elapsed / total time and a thin progress
+  line
+- play / pause, sent into the guest with `kryvex:media:control`
+- hovering the strip, or focusing it and pressing the chevron, opens the island
+  just above the bar
+- after about four seconds without pointer or keyboard activity the strip
+  fades out and stops taking clicks, so the bar is completely clear
+- moving the pointer within 96 px of the bottom edge brings it back; the strip
+  stays awake while the pointer moves along that edge and fades again once the
+  pointer stops or moves into a service guest
+- `Escape`, the island's close button, or moving the pointer away closes it;
+  the chevron pins it for touch and keyboard use
+
+The island adds the full set of controls:
+
+- previous / play-pause / next
 - source switcher when more than one service is playing
-- open the owning service, or collapse to a compact pill
+- open the owning service
+- artwork, title, artist and elapsed / total time
+
+When the status bar is hidden, the same dock falls back to a floating island
+above the bottom edge so playback stays reachable.
 
 Controls click the site's own button first (`.ytp-play-button`,
 `control-button-playpause`, SoundCloud's `.playControl`), because that keeps

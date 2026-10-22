@@ -600,6 +600,8 @@ kbd {
 /* ------------------------------------------------------------ status bar --- */
 
 .status-bar {
+  position: relative;
+  z-index: 30;
   grid-column: 1 / -1;
   height: var(--status-height);
   display: flex;
@@ -610,7 +612,9 @@ kbd {
   border-top: 1px solid var(--line-soft);
   font-size: 9px;
   color: var(--ink-faint);
-  overflow: hidden;
+  /* The service media island opens upward from the bar; clipping it here
+     would cut the popover off at the footer edge. */
+  overflow: visible;
 }
 
 .status-group {

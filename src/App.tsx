@@ -1133,6 +1133,9 @@ export default function App() {
           appInfo={info}
           isElectron={isElectron}
           mark={themeMark}
+          media={serviceMedia.entries}
+          onOpenMediaService={openService}
+          onMediaControl={serviceMedia.control}
         />
       ) : null}
 
@@ -1266,8 +1269,11 @@ export default function App() {
         />
       ) : null}
 
-      {serviceMedia.entries.length > 0 ? (
+      {/* The transport lives in the status bar. When that bar is hidden the
+          same dock falls back to a floating island so playback stays reachable. */}
+      {!state.settings.showStatusBar && serviceMedia.entries.length > 0 ? (
         <ServiceMediaDock
+          variant="floating"
           entries={serviceMedia.entries}
           services={state.services}
           onOpenService={openService}

@@ -1,8 +1,17 @@
-import type { AppInfo, PersistedState, ResourceSnapshot, Service, ViewId } from '../types';
+import type {
+  AppInfo,
+  PersistedState,
+  ResourceSnapshot,
+  Service,
+  ServiceMediaState,
+  ViewId,
+} from '../types';
 import { getTheme } from '../lib/themes';
 import { useT } from '../lib/i18n';
+import type { MediaAction } from '../lib/media';
 import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from './ui';
 import { SidebarResources } from './ResourceMonitor';
+import { ServiceMediaDock } from './ServiceMediaDock';
 
 const NAV: Array<{
   id: ViewId;
@@ -249,12 +258,18 @@ export function StatusBar({
   appInfo,
   isElectron,
   mark = 'kx',
+  media = [],
+  onOpenMediaService,
+  onMediaControl,
 }: {
   state: PersistedState;
   themeId: string;
   appInfo: AppInfo | null;
   isElectron: boolean;
   mark?: ThemeMarkKind;
+  media?: ServiceMediaState[];
+  onOpenMediaService: (service: Service) => void;
+  onMediaControl: (id: number, action: MediaAction) => Promise<boolean>;
 }) {
   const t = useT();
   const theme = getTheme(themeId);
@@ -278,7 +293,16 @@ export function StatusBar({
             ? t('XIØN EDITION / FULL POWER')
             : t('ELEMENT x529 / Kx')}
       </span>
-      <span className="status-grow" />
+      {media.length > 0 ? (
+        <ServiceMediaDock
+          entries={media}
+          services={state.services}
+          onOpenService={onOpenMediaService}
+          onControl={onMediaControl}
+        />
+      ) : (
+        <span className="status-grow" />
+      )}
       <span className="mono">{t('{count} SERVICES', { count: state.services.length })}</span>
       <span className="status-sep" aria-hidden="true">
         ·

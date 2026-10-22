@@ -676,41 +676,230 @@
 
 /* ------------------------------------------------------- service media --- */
 
+/* At rest the transport is a low-contrast strip in the status bar. Hovering or
+   pinning it opens the island above the bar, so the workspace is only covered
+   while the pointer is deliberately on the controls. */
+.media-dock-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.media-dock-inline {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  height: calc(var(--status-height) - 4px);
+  padding: 0 3px;
+  border-radius: 5px;
+  opacity: 0.6;
+  transition:
+    opacity 160ms var(--ease),
+    background 160ms var(--ease);
+}
+
+.media-dock-inline:hover,
+.media-dock-inline:focus-within,
+.media-dock-slot.is-open .media-dock-inline {
+  opacity: 1;
+  background: color-mix(in srgb, var(--line-soft) 55%, transparent);
+}
+
+/* Idle means the workspace has had the bar to itself for a few seconds. The
+   strip fades instead of vanishing, and stops taking clicks until the pointer
+   comes back near the bottom edge or focus lands inside it. */
+.media-dock-slot.is-idle .media-dock-inline {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 320ms var(--ease);
+}
+
+.media-dock-slot.is-idle .media-dock-inline:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Hovering must survive the gap between the bar and the island; without this
+   bridge the pointer leaves the strip before it reaches the panel. */
+.media-dock::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -10px;
+  height: 10px;
+}
+
+.media-dock-inline-art {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg) 50%, transparent);
+}
+
+.media-dock-inline-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-dock-inline-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.media-dock-inline-copy strong {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.media-dock-inline-copy:hover strong {
+  color: var(--accent-soft);
+}
+
+.media-dock-inline-kicker {
+  flex: none;
+  max-width: 34%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  color: var(--accent-soft);
+}
+
+.media-dock-inline-time {
+  flex: none;
+  font-size: 7.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.media-dock-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+.media-dock-inline-btn:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--line-soft);
+}
+
+.media-dock-inline-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.media-dock-inline-btn.is-primary {
+  color: var(--accent-soft);
+}
+
+.media-dock-inline-progress {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: 0;
+  height: 1px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--line-soft) 65%, transparent);
+}
+
+.media-dock-inline-progress > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+  transition: width 900ms linear;
+}
+
 .media-dock {
-  position: fixed;
-  left: 50%;
-  bottom: calc(var(--status-height) + 12px);
-  transform: translateX(-50%);
-  z-index: 44;
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 9px);
+  z-index: 46;
   display: flex;
   align-items: center;
   gap: 10px;
-  width: min(640px, calc(100vw - 250px));
+  width: min(620px, calc(100vw - 40px));
   padding: 8px 10px 9px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: color-mix(in srgb, var(--surface) 93%, transparent);
   backdrop-filter: blur(24px) saturate(1.15);
   box-shadow: 0 18px 50px color-mix(in srgb, var(--bg) 62%, transparent);
-  animation: dock-in 180ms var(--ease);
+  animation: dock-in 160ms var(--ease);
+  transform-origin: left bottom;
 }
 
 /* The local player's full-width bar owns the first row above the status bar;
    service playback stacks above it instead of overlapping it. */
 body[data-player-bar='1'] .media-dock {
-  bottom: calc(var(--status-height) + 76px);
+  bottom: calc(100% + 76px);
 }
 
-.media-dock.is-collapsed {
-  width: auto;
-  max-width: min(420px, calc(100vw - 32px));
-  padding-right: 8px;
+.media-dock.is-floating {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  width: min(620px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  animation: dock-float-in 180ms var(--ease);
+}
+
+body[data-player-bar='1'] .media-dock.is-floating {
+  bottom: 84px;
 }
 
 @keyframes dock-in {
   from {
     opacity: 0;
-    transform: translate(-50%, 8px);
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dock-float-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 7px);
   }
   to {
     opacity: 1;
@@ -858,13 +1047,36 @@ body[data-player-bar='1'] .media-dock {
   transform: rotate(-90deg);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .media-dock {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    bottom: calc(var(--status-height) + 9px);
+  }
+
+  body[data-player-bar='1'] .media-dock {
+    bottom: calc(var(--status-height) + 76px);
+  }
+
+  .media-dock-inline-kicker,
+  .media-dock-inline-time {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .media-dock.is-floating {
     left: 10px;
     right: 10px;
     width: auto;
     transform: none;
     animation: none;
+  }
+
+  body[data-player-bar='1'] .media-dock.is-floating {
+    bottom: 78px;
   }
 }
 
