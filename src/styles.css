@@ -1397,6 +1397,84 @@ kbd {
   background: var(--bg);
 }
 
+/* A site's sign-in-code prompt lives in the guest, but the code can always be
+   entered from this strip when the modal is scrolled away or will not take
+   focus. Steam, GitHub, Discord, Microsoft and generic OTP fields share it. */
+.one-time-code {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  flex: none;
+}
+
+.one-time-code-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--accent);
+  background: var(--accent-wash);
+  flex: none;
+}
+
+.one-time-code-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.one-time-code-copy strong {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.one-time-code-copy span {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.one-time-code-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.one-time-code-input {
+  width: 118px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.one-time-code-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+}
+
+.one-time-code-note {
+  flex-basis: 100%;
+  font-size: 10.5px;
+  color: var(--success, #34d399);
+}
+
+.one-time-code-note.is-error {
+  color: var(--danger);
+}
+
 .webview {
   border: 0;
   display: flex;
@@ -2018,6 +2096,154 @@ kbd {
   margin: 0 0 12px;
   font-size: 13px;
   font-weight: 600;
+}
+
+/* ---- collapsible settings sections ------------------------------------- */
+
+.settings-block.panel:has(> .settings-block-head) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.settings-block-head {
+  margin: 0 0 12px;
+}
+
+.settings-block-head .settings-block-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-block-toggle:hover .settings-block-title {
+  color: var(--accent);
+}
+
+.settings-block-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.settings-block-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: color var(--motion-fast) var(--ease);
+}
+
+.settings-block-meta {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-block-chevron {
+  display: inline-grid;
+  place-items: center;
+  color: var(--ink-faint);
+  transform: rotate(90deg);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+.settings-block-chevron.is-open {
+  transform: rotate(-90deg);
+}
+
+.settings-block-body[hidden] {
+  display: none !important;
+}
+
+.settings-block-body {
+  padding-top: 2px;
+}
+
+.settings-block.panel > .settings-block-body,
+.settings-block.panel > .settings-block-head {
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.settings-block.panel > .settings-block-head {
+  padding-top: 16px;
+  padding-bottom: 4px;
+  margin-bottom: 0;
+}
+
+.settings-block.panel.is-collapsed > .settings-block-head {
+  padding-bottom: 16px;
+}
+
+.settings-block.panel > .settings-block-body {
+  padding-bottom: 16px;
+}
+
+.settings-block.settings-subblock {
+  padding: 12px 0 0;
+}
+
+/* A nested fold sits inside an already-padded block. */
+.settings-subblock {
+  margin: 14px 0 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.settings-subblock .settings-block-head {
+  margin-bottom: 10px;
+}
+
+.settings-subblock .settings-block-toggle {
+  padding: 2px 0;
+}
+
+.settings-subblock .settings-block-title {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.settings-subblock.is-collapsed .settings-block-head {
+  margin-bottom: 0;
+}
+
+.settings-subblock + .settings-subblock {
+  margin-top: 12px;
+}
+
+/* The generated block header replaces the old .section-head spacing. */
+.settings-block-head + .settings-block-body .section-head {
+  margin-top: 2px;
+}
+
+.search-engine-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.search-engine-picker select {
+  min-width: 180px;
+  flex: 1 1 180px;
+}
+
+.search-engine-note {
+  font-size: 9px;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
 }
 
 .theme-grid {

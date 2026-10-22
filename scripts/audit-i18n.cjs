@@ -39,6 +39,8 @@ const TECHNICAL = [
   /^[a-z]+[A-Z]\w*$/,
   /^[\w-]+\.(json|gguf|crdownload|part|torrent|zip|dmg|exe|appimage)$/i,
   /^(Ctrl|Shift|Alt|Meta|Cmd|Super)\b/,
+  // OpenVPN/CLI flag examples are syntax, not copy.
+  /^--[a-z0-9-]+(\s+\S+)*$/i,
   /^(https?|magnet|file|kryvex|data):/i,
   /^(Kryvex|Vexium|Veyra|Vex|XiONDiGiTaL|GitHub|Google|Discord|YouTube|Wikipedia|DuckDuckGo|Bing|Electron|Chromium|Torrent|WebTorrent|GGUF|Llama|uBlock|Ghostery|AdGuard)\b/,
   /^[#./][\w./-]+$/,

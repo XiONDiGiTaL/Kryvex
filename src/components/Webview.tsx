@@ -13,6 +13,8 @@ export interface WebviewElement extends HTMLElement {
   stopFindInPage: (action: 'clearSelection' | 'keepSelection' | 'activateSelection') => void;
   getZoomFactor: () => number;
   setZoomFactor: (factor: number) => void;
+  setAudioMuted: (muted: boolean) => void;
+  isAudioMuted: () => boolean;
   executeJavaScript: (code: string) => Promise<unknown>;
 }
 
@@ -38,6 +40,10 @@ interface WebviewProps {
    * popup tab. Without it Electron refuses the popup before that policy runs.
    */
   allowPopups?: boolean;
+  /** Per-module mute switch: the page keeps its own audio state. */
+  muted?: boolean;
+  /** Pause media while another view is in front (service persistence). */
+  paused?: boolean;
   onNavigate?: (url: string) => void;
   onTitle?: (title: string) => void;
   onStatus?: (status: WebviewStatus) => void;
@@ -60,6 +66,8 @@ export function Webview({
   partition,
   controller,
   allowPopups = false,
+  muted = false,
+  paused = false,
   onNavigate,
   onTitle,
   onStatus,
@@ -87,12 +95,17 @@ export function Webview({
     el.addEventListener('dom-ready', attach, { once: true });
 
     const readStatus = (loading: boolean, error: string | null = null) => {
-      onStatus?.({
-        loading,
-        canGoBack: el.canGoBack(),
-        canGoForward: el.canGoForward(),
-        error,
-      });
+      // did-start-loading can arrive before dom-ready, and the guest methods
+      // throw until then. Reporting "no history" is accurate at that point.
+      let canGoBack = false;
+      let canGoForward = false;
+      try {
+        canGoBack = el.canGoBack();
+        canGoForward = el.canGoForward();
+      } catch {
+        /* guest not attached yet */
+      }
+      onStatus?.({ loading, canGoBack, canGoForward, error });
     };
 
     const onStart = () => readStatus(true);
@@ -117,12 +130,7 @@ export function Webview({
     const onFail = (event: Event) => {
       const detail = event as Event & { errorDescription?: string; isMainFrame?: boolean; validatedURL?: string };
       if (detail.isMainFrame === false) return;
-      onStatus?.({
-        loading: false,
-        canGoBack: el.canGoBack(),
-        canGoForward: el.canGoForward(),
-        error: detail.errorDescription ?? 'The page could not be loaded.',
-      });
+      readStatus(false, detail.errorDescription ?? 'The page could not be loaded.');
     };
 
     el.addEventListener('did-start-loading', onStart);
@@ -147,6 +155,55 @@ export function Webview({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A guest attaches its audio output later than the React element exists, so
+  // every policy is re-applied on dom-ready instead of only on prop changes.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const apply = () => {
+      try {
+        el.setAudioMuted(Boolean(muted) || Boolean(paused));
+      } catch {
+        /* the guest may be between navigations */
+      }
+      // A one-off pause misses the next autoplaying clip on a feed. Installing
+      // a capture-phase `play` guard keeps new media paused until the module is
+      // brought back to the front; it is removed when the view becomes active.
+      try {
+        void el
+          .executeJavaScript(
+            `(() => {
+               const KEY = '__kryvexMediaPaused';
+               if (${paused}) {
+                 window[KEY] = true;
+                 document.querySelectorAll('video, audio').forEach(media => media.pause());
+                 if (!window.__kryvexPauseGuard) {
+                   window.__kryvexPauseGuard = event => {
+                     if (event.target && typeof event.target.pause === 'function') event.target.pause();
+                   };
+                   document.addEventListener('play', window.__kryvexPauseGuard, true);
+                 }
+               } else if (window[KEY]) {
+                 window[KEY] = false;
+                 if (window.__kryvexPauseGuard) {
+                   document.removeEventListener('play', window.__kryvexPauseGuard, true);
+                   window.__kryvexPauseGuard = null;
+                 }
+               }
+               return true;
+             })()`,
+          )
+          .catch(() => undefined);
+      } catch {
+        // Electron throws synchronously if the guest has not attached yet;
+        // the dom-ready listener above runs this again once it has.
+      }
+    };
+    apply();
+    el.addEventListener('dom-ready', apply);
+    return () => el.removeEventListener('dom-ready', apply);
+  }, [muted, paused]);
 
   return createElement('webview', {
     ref: (node: WebviewElement | null) => {

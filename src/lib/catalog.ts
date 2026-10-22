@@ -54,6 +54,15 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     note: 'Browser client with voice and channel support.',
   },
   {
+    id: 'steam',
+    name: 'Steam',
+    url: 'https://steamcommunity.com/chat/',
+    category: 'communication',
+    color: '#60A5FA',
+    icon: 'steam',
+    note: 'Friends and group chat over the Steam web client. Sign in once with Steam Guard; Kryvex keeps the session signed in across restarts.',
+  },
+  {
     id: 'messenger',
     name: 'Messenger',
     url: 'https://www.messenger.com',

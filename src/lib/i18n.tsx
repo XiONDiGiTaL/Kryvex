@@ -150,6 +150,25 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Reload service': 'Recargar servicio',
     'Opened in your default browser.': 'Abierto en tu navegador predeterminado.',
     'Open externally': 'Abrir fuera',
+    'Steam Guard': 'Steam Guard',
+    'Enter the 5-character code from the Steam app or email.':
+      'Introduce el código de 5 caracteres de la app de Steam o del correo.',
+    'Steam Guard code': 'Código de Steam Guard',
+    'CODE': 'CÓDIGO',
+    'Submit to Steam': 'Enviar a Steam',
+    'Sending…': 'Enviando…',
+    'Use page field': 'Usar el campo de la página',
+    'Steam did not accept that code. Try the current one.':
+      'Steam no aceptó ese código. Prueba con el actual.',
+    'Code sent to Steam.': 'Código enviado a Steam.',
+    'Verification code': 'Código de verificación',
+    'Sign-in code': 'Código de inicio de sesión',
+    'Submit code': 'Enviar código',
+    'Enter the {count}-character code from your authenticator app or email.':
+      'Introduce el código de {count} caracteres de tu app de autenticación o del correo.',
+    'The code could not be sent. Try again or use the page field.':
+      'No se pudo enviar el código. Inténtalo de nuevo o usa el campo de la página.',
+    'Code sent to {service}.': 'Código enviado a {service}.',
     'Edit service': 'Editar servicio',
     'Remove service': 'Quitar servicio',
     'Service webviews render inside the Electron shell, where Kryvex can give this module its own persistent session. This browser preview only shows the app surface.':
@@ -541,6 +560,25 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Reload service': 'Dienst neu laden',
     'Opened in your default browser.': 'Im Standardbrowser geöffnet.',
     'Open externally': 'Extern öffnen',
+    'Steam Guard': 'Steam Guard',
+    'Enter the 5-character code from the Steam app or email.':
+      'Gib den 5-stelligen Code aus der Steam-App oder der E-Mail ein.',
+    'Steam Guard code': 'Steam-Guard-Code',
+    'CODE': 'CODE',
+    'Submit to Steam': 'An Steam senden',
+    'Sending…': 'Wird gesendet…',
+    'Use page field': 'Seitenfeld verwenden',
+    'Steam did not accept that code. Try the current one.':
+      'Steam hat diesen Code nicht akzeptiert. Versuche den aktuellen Code.',
+    'Code sent to Steam.': 'Code an Steam gesendet.',
+    'Verification code': 'Bestätigungscode',
+    'Sign-in code': 'Anmeldecode',
+    'Submit code': 'Code senden',
+    'Enter the {count}-character code from your authenticator app or email.':
+      'Gib den {count}-stelligen Code aus deiner Authenticator-App oder der E-Mail ein.',
+    'The code could not be sent. Try again or use the page field.':
+      'Der Code konnte nicht gesendet werden. Versuche es erneut oder verwende das Seitenfeld.',
+    'Code sent to {service}.': 'Code an {service} gesendet.',
     'Edit service': 'Dienst bearbeiten',
     'Remove service': 'Dienst entfernen',
     'Service webviews render inside the Electron shell, where Kryvex can give this module its own persistent session. This browser preview only shows the app surface.':
@@ -926,6 +964,25 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Reload service': 'Recharger le service',
     'Opened in your default browser.': 'Ouvert dans votre navigateur par défaut.',
     'Open externally': 'Ouvrir à l’extérieur',
+    'Steam Guard': 'Steam Guard',
+    'Enter the 5-character code from the Steam app or email.':
+      'Saisissez le code à 5 caractères de l’application Steam ou de l’e-mail.',
+    'Steam Guard code': 'Code Steam Guard',
+    'CODE': 'CODE',
+    'Submit to Steam': 'Envoyer à Steam',
+    'Sending…': 'Envoi…',
+    'Use page field': 'Utiliser le champ de la page',
+    'Steam did not accept that code. Try the current one.':
+      'Steam n’a pas accepté ce code. Essayez le code actuel.',
+    'Code sent to Steam.': 'Code envoyé à Steam.',
+    'Verification code': 'Code de vérification',
+    'Sign-in code': 'Code de connexion',
+    'Submit code': 'Envoyer le code',
+    'Enter the {count}-character code from your authenticator app or email.':
+      'Saisissez le code à {count} caractères de votre application d’authentification ou de l’e-mail.',
+    'The code could not be sent. Try again or use the page field.':
+      'Impossible d’envoyer le code. Réessayez ou utilisez le champ de la page.',
+    'Code sent to {service}.': 'Code envoyé à {service}.',
     'Edit service': 'Modifier le service',
     'Remove service': 'Supprimer le service',
     'Service webviews render inside the Electron shell, where Kryvex can give this module its own persistent session. This browser preview only shows the app surface.':

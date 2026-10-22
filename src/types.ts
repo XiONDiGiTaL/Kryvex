@@ -13,7 +13,7 @@ export type {
   EngineInfo,
 } from '../electron/chromium-rules';
 
-export type ViewId = 'home' | 'services' | 'browser' | 'assistant' | 'rooms' | 'settings';
+export type ViewId = 'home' | 'services' | 'browser' | 'assistant' | 'rooms' | 'settings' | 'emulator';
 
 export type ServiceCategory =
   | 'communication'
@@ -23,6 +23,8 @@ export type ServiceCategory =
   | 'resources'
   | 'media'
   | 'other';
+
+export type ServicePersistence = 'keep' | 'pause';
 
 export interface Service {
   id: string;
@@ -36,6 +38,12 @@ export interface Service {
   lastOpened?: number;
   /** Known brand glyph; unknown services fall back to their favicon, then the letter. */
   icon?: BrandIconKey;
+  /** Silences every page in this module without changing the page's own setting. */
+  muted?: boolean;
+  /** Desktop notifications for this module. Defaults to the global switch. */
+  notifications?: boolean;
+  /** Keep the session warm, or pause media and mute while another view is used. */
+  persistence?: ServicePersistence;
 }
 
 export interface Bookmark {
@@ -146,7 +154,29 @@ export interface DefaultBrowserStatus {
 }
 
 export type Density = 'comfortable' | 'compact';
-export type SearchEngine = 'duckduckgo' | 'google' | 'bing';
+export type SearchEngine =
+  | 'duckduckgo'
+  | 'google'
+  | 'bing'
+  | 'mojeek'
+  | 'kagi'
+  | 'swisscows'
+  | 'metager'
+  | 'searxng'
+  | 'dogpile'
+  | 'marginalia'
+  | 'yep'
+  | 'perplexity'
+  | 'you'
+  | 'baidu'
+  | 'naver'
+  | 'daum'
+  | 'seznam'
+  | 'coccoc'
+  | 'sogou'
+  | 'petal';
+/** A country filter for the regional engine list. */
+export type SearchRegion = 'global' | 'cn' | 'kr' | 'cz' | 'vn' | 'intl';
 export const LANGUAGE_SETTINGS = ['system', 'en', 'es', 'de', 'fr'] as const;
 export type LanguageSetting = (typeof LANGUAGE_SETTINGS)[number];
 export type ResolvedLanguage = Exclude<LanguageSetting, 'system'>;
@@ -272,6 +302,81 @@ export interface PartySource {
   thumbnail?: string;
 }
 
+export interface HomeNote {
+  id: string;
+  text: string;
+  done: boolean;
+  createdAt: number;
+}
+
+/** The Home board is an overlay, not a new start page: it sits over the theme. */
+export interface HomeSettings {
+  showBoard: boolean;
+  showWeather: boolean;
+  showTasks: boolean;
+  showGuide: boolean;
+  city: string;
+  /** Country or region label returned by geocoding, for the city chip. */
+  place: string;
+  latitude: number | null;
+  longitude: number | null;
+  unit: 'c' | 'f';
+  notes: HomeNote[];
+  /** The in-house board guide opens once; it stays available afterwards. */
+  guideSeen: boolean;
+}
+
+export interface ResourceSettings {
+  /** Show the floating resource panel button and poll the main process. */
+  enabled: boolean;
+  /** Show the compact CPU/Memory/GPU bars under the sidebar services. */
+  sidebar: boolean;
+}
+
+/** OpenVPN is user-supplied: Kryvex never downloads or bundles a binary. */
+export interface VpnSettings {
+  /** Draw the VPN status in the header and sidebar. */
+  enabled: boolean;
+  binaryPath: string;
+  configPath: string;
+  /** Passed as separate argv entries after validation, never through a shell. */
+  extraArgs: string;
+  /** Added as dhcp-option DNS entries when non-empty. */
+  dns: string;
+  /** http(s)/socks5 proxy passed to OpenVPN. */
+  proxy: string;
+  autoConnect: boolean;
+}
+
+export type EmulatorSystem =
+  | 'nes'
+  | 'snes'
+  | 'gb'
+  | 'gba'
+  | 'sms'
+  | 'gg'
+  | 'genesis'
+  | 'sega32x'
+  | 'sg1000'
+  | 'ws'
+  | 'wsc'
+  | 'atari2600'
+  | 'atari7800'
+  | 'lynx'
+  | 'pce'
+  | 'sgx'
+  | 'ngp'
+  | 'ngpc'
+  | 'vb';
+
+export interface EmulatorSettings {
+  system: EmulatorSystem;
+  scale: number;
+  gamepad: boolean;
+  /** Keep the CRT scanline treatment over the canvas. */
+  crt: boolean;
+}
+
 export interface Settings {
   themeId: string;
   /** False only on a fresh install, until the first-run theme gallery is closed. */
@@ -284,6 +389,8 @@ export interface Settings {
   sidebarCollapsed: boolean;
   showStatusBar: boolean;
   searchEngine: SearchEngine;
+  /** Narrows the engine picker to one region; global lists every engine. */
+  searchRegion: SearchRegion;
   confirmBeforeDelete: boolean;
   /** Desktop notifications from persistent service modules. */
   serviceNotifications: boolean;
@@ -297,6 +404,14 @@ export interface Settings {
   chromium: ChromiumSettings;
   /** Rooms identity and signaling configuration. */
   party: PartySettings;
+  /** Home overlay: weather, tasks and the board guide. */
+  home: HomeSettings;
+  /** In-house per-process resource monitor. */
+  resources: ResourceSettings;
+  /** User-supplied OpenVPN executor settings. */
+  vpn: VpnSettings;
+  /** Secret 8-bit emulator service preferences. */
+  emulator: EmulatorSettings;
 }
 
 export interface BrowserTab {
@@ -487,6 +602,21 @@ export interface KryvexBridge {
   onPopupClosed: (listener: (event: { id: string }) => void) => () => void;
   serviceClearSession: (partition: string) => Promise<boolean>;
   serviceSetNotifications: (enabled: boolean) => Promise<boolean>;
+  serviceSetPolicy: (
+    partition: string,
+    policy: { notifications: boolean; muted: boolean },
+  ) => Promise<boolean>;
+  weatherLookup: (city: string, unit: 'c' | 'f') => Promise<WeatherResult>;
+  weatherAt: (latitude: number, longitude: number, unit: 'c' | 'f') => Promise<WeatherResult>;
+  resourcesSample: (
+    services: Array<{ id: string; url: string }>,
+  ) => Promise<ResourceSnapshot | null>;
+  vpnStatus: () => Promise<VpnStatus>;
+  vpnConfigure: (settings: unknown) => Promise<VpnStatus>;
+  vpnChooseBinary: () => Promise<VpnStatus>;
+  vpnChooseConfig: () => Promise<VpnStatus>;
+  vpnConnect: () => Promise<VpnStatus>;
+  vpnDisconnect: () => Promise<VpnStatus>;
   assistantProbe: (baseUrl: string) => Promise<AssistantProbe>;
   assistantChat: (request: AssistantChatRequest) => Promise<AssistantChatResult>;
   assistantCancel: (requestId: string) => Promise<boolean>;
@@ -521,4 +651,70 @@ export interface Toast {
   id: string;
   message: string;
   tone: ToastTone;
+}
+
+/** Current conditions for one city; fetched by the main process. */
+export interface WeatherNow {
+  temperature: number;
+  apparent: number;
+  code: number;
+  wind: number;
+  isDay: boolean;
+  humidity: number;
+}
+
+export interface WeatherResult {
+  ok: boolean;
+  error?: 'offline' | 'not-found' | 'invalid' | 'unavailable';
+  place?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+  timezone?: string;
+  current?: WeatherNow;
+  fetchedAt?: number;
+}
+
+/** One OS process as reported by Electron's app metrics. */
+export interface ResourceProcess {
+  pid: number;
+  type: string;
+  label: string;
+  serviceId?: string;
+  cpu: number;
+  memoryMB: number;
+}
+
+export interface ResourceServiceUsage {
+  id: string;
+  cpu: number;
+  memoryMB: number;
+  processes: number;
+}
+
+export interface ResourceSnapshot {
+  capturedAt: number;
+  cpu: number;
+  memoryUsedMB: number;
+  memoryTotalMB: number;
+  appMemoryMB: number;
+  gpuCpu: number;
+  gpuMemoryMB: number;
+  processes: ResourceProcess[];
+  services: ResourceServiceUsage[];
+}
+
+export type VpnPhase = 'idle' | 'connecting' | 'connected' | 'error' | 'missing' | 'stopped';
+
+export interface VpnStatus {
+  phase: VpnPhase;
+  binaryFound: boolean;
+  configFound: boolean;
+  /** Paths echoed by the main process after a file dialog. */
+  binaryPath: string;
+  configPath: string;
+  detail: string;
+  /** Last lines of the OpenVPN process, credentials never included. */
+  log: string;
+  since: number | null;
 }

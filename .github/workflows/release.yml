@@ -45,6 +45,9 @@ jobs:
 
       - run: pnpm test
 
+      - name: Verify the one-time-code relay
+        uses: ./.github/actions/verify-one-time-code
+
       - run: pnpm package:win
 
       - name: Write checksums

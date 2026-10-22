@@ -34,7 +34,7 @@ import { clearWallpaper, importWallpaper, loadWallpaper } from './lib/wallpaper'
 import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
 import { makeId, partitionFor } from './lib/services';
 import { totalUnread, unreadFromTitle, windowTitle } from './lib/unread';
-import { hostOf } from './lib/url';
+import { hostOf, resolveAddress } from './lib/url';
 import { Header, Sidebar, StatusBar } from './components/shell';
 import { ServiceDialog } from './components/ServiceDialog';
 import { HelpDialog } from './components/HelpDialog';
@@ -43,6 +43,9 @@ import { EmptyState, Icon, Modal, ToastHost } from './components/ui';
 import { ThemeGallery } from './components/ThemeGallery';
 import { Home } from './views/Home';
 import { Services } from './views/Services';
+import { Emulator } from './views/Emulator';
+import { ResourcePanel } from './components/ResourceMonitor';
+import { useResourceSnapshot } from './lib/resources';
 import { ServiceStage } from './views/ServiceStage';
 import { Assistant } from './views/Assistant';
 import { Rooms } from './views/Rooms';
@@ -70,7 +73,8 @@ function parseHash(hash: string): Route {
     head === 'browser' ||
     head === 'assistant' ||
     head === 'rooms' ||
-    head === 'settings'
+    head === 'settings' ||
+    head === 'emulator'
       ? head
       : 'home';
   return { view, query, key: raw };
@@ -106,6 +110,8 @@ export default function App() {
   const [update, setUpdate] = useState<UpdateStatus | null>(null);
   const [wallpaper, setWallpaper] = useState<WallpaperImage | null>(null);
   const [reloadTokens, setReloadTokens] = useState<Record<string, number>>({});
+  const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [emulatorPrompt, setEmulatorPrompt] = useState(false);
   // Bumped after an engine change: a <webview> keeps the preferences it
   // attached with, so every guest is remounted to pick up the new ones.
   const [engineRevision, setEngineRevision] = useState(0);
@@ -388,6 +394,9 @@ export default function App() {
   }, [route.serviceId]);
 
   const handleServiceTitle = useCallback((service: Service, title: string) => {
+    // "Notifications off" also means no unread badge or taskbar nudge from
+    // this module; the site's own title still updates inside its frame.
+    if (service.notifications === false) return;
     const count = unreadFromTitle(title);
     const previous = unreadRef.current[service.id] ?? 0;
     if (previous === count) return;
@@ -477,6 +486,46 @@ export default function App() {
   const updateSettingsPatch = useCallback((patch: Partial<SettingsModel>) => {
     setState(current => updateSettings(current, patch));
   }, []);
+
+  const updateServiceFlags = useCallback((service: Service, patch: Partial<Service>) => {
+    const next = { ...service, ...patch };
+    setState(current => ({
+      ...current,
+      services: current.services.map(item =>
+        item.id === service.id ? { ...item, ...patch } : item,
+      ),
+    }));
+    if (patch.notifications === false) {
+      const cleared = { ...unreadRef.current, [service.id]: 0 };
+      unreadRef.current = cleared;
+      setUnread(cleared);
+    }
+    void window.kryvex
+      ?.serviceSetPolicy(partitionFor(service.id), {
+        notifications: next.notifications !== false,
+        muted: Boolean(next.muted),
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const updateEmulator = useCallback((patch: Partial<SettingsModel['emulator']>) => {
+    setState(current =>
+      updateSettings(current, {
+        emulator: { ...current.settings.emulator, ...patch },
+      }),
+    );
+  }, []);
+
+  const updateHome = useCallback((patch: Partial<SettingsModel['home']>) => {
+    setState(current => updateSettings(current, { home: { ...current.settings.home, ...patch } }));
+  }, []);
+
+  const toggleResources = useCallback(() => {
+    setResourcesOpen(value => !value);
+    if (!state.settings.resources.enabled) {
+      updateSettingsPatch({ resources: { ...state.settings.resources, enabled: true } });
+    }
+  }, [state.settings.resources, updateSettingsPatch]);
 
   const updateParty = useCallback(
     (patch: Partial<SettingsModel['party']>) => {
@@ -663,6 +712,48 @@ export default function App() {
       .catch(() => undefined);
   }, [isElectron, state.settings.serviceNotifications]);
 
+  // Per-module mute/notification policy. Muted audio is enforced in both the
+  // renderer (immediately) and the main process (for guests loaded later).
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    for (const service of state.services) {
+      void window.kryvex
+        .serviceSetPolicy(partitionFor(service.id), {
+          notifications: service.notifications !== false,
+          muted: Boolean(service.muted),
+        })
+        .catch(() => undefined);
+    }
+  }, [isElectron, state.services]);
+
+  // The main process needs the VPN profile before it can auto-connect.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    void window.kryvex.vpnConfigure(state.settings.vpn).catch(() => undefined);
+  }, [isElectron, state.settings.vpn]);
+
+  const vpnAutoConnected = useRef(false);
+  useEffect(() => {
+    if (!isElectron || !window.kryvex || vpnAutoConnected.current) return;
+    if (!state.settings.vpn.enabled || !state.settings.vpn.autoConnect) return;
+    if (!state.settings.vpn.binaryPath || !state.settings.vpn.configPath) return;
+    vpnAutoConnected.current = true;
+    void window.kryvex
+      .vpnConnect()
+      .then(status => {
+        const phase = (status as { phase?: string } | null)?.phase;
+        if (phase === 'error' || phase === 'missing') {
+          pushToast(t('The VPN profile could not start automatically.'), 'warning');
+        }
+      })
+      .catch(() => undefined);
+  }, [isElectron, pushToast, state.settings.vpn, t]);
+
+  const resourceWatch =
+    state.settings.resources.enabled &&
+    (resourcesOpen || (state.settings.resources.sidebar && !state.settings.sidebarCollapsed));
+  const resources = useResourceSnapshot(state.services, resourceWatch);
+
   // Update state lives in the main process; the shell only renders it and
   // forwards explicit user actions. Announce a new version once per session.
   useEffect(() => {
@@ -730,6 +821,8 @@ export default function App() {
         return t('Rooms');
       case 'settings':
         return t('Settings');
+      case 'emulator':
+        return t('Secret emulator');
       default:
         return t('Home');
     }
@@ -768,6 +861,8 @@ export default function App() {
         onAdd={() => setDialog({ mode: 'new' })}
         onSettings={() => navigate('settings')}
         onHelp={() => setHelpOpen(true)}
+        onResources={toggleResources}
+        resourcesOpen={resourcesOpen}
         onUpdate={() => {
           if (route.view === 'settings') {
             document.getElementById('updates')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -797,6 +892,8 @@ export default function App() {
         onNavigate={view => navigate(view)}
         onOpenService={openService}
         onAdd={() => setDialog({ mode: 'new' })}
+        resources={resources}
+        showResources={state.settings.resources.sidebar && !state.settings.sidebarCollapsed}
       />
 
       <main className={`app-main ${activeService ? 'is-service' : ''}`}>
@@ -815,6 +912,7 @@ export default function App() {
           onDelete={deleteService}
           onClearSession={clearServiceSession}
           onTitle={handleServiceTitle}
+          onUpdateService={updateServiceFlags}
           onToast={pushToast}
         />
 
@@ -845,6 +943,7 @@ export default function App() {
             onOpenService={openService}
             onAdd={() => setDialog({ mode: 'new' })}
             onNavigate={view => navigate(view)}
+            onUpdateHome={updateHome}
           />
         ) : route.view === 'services' ? (
           <Services
@@ -862,12 +961,30 @@ export default function App() {
               );
             }}
             onDelete={deleteService}
+            onUpdateService={updateServiceFlags}
+            onSecretEmulator={() => setEmulatorPrompt(true)}
           />
         ) : route.view === 'assistant' ? (
           <Assistant
             state={state}
             isElectron={isElectron}
             onOpenSettings={() => navigate('settings?section=assistant')}
+            onSearch={query =>
+              openExternalTab(
+                resolveAddress(
+                  query,
+                  state.settings.searchEngine,
+                  state.settings.searchRegion,
+                ),
+              )
+            }
+          />
+        ) : route.view === 'emulator' ? (
+          <Emulator
+            settings={state.settings.emulator}
+            onUpdate={updateEmulator}
+            onBack={() => navigate('services')}
+            onToast={pushToast}
           />
         ) : route.view === 'rooms' ? (
           <Rooms
@@ -914,6 +1031,7 @@ export default function App() {
             update={update}
             focusUpdates={route.query.get('section') === 'updates'}
             focusAssistant={route.query.get('section') === 'assistant'}
+            focusResources={route.query.get('section') === 'resources'}
             onCheckUpdate={() => void checkForUpdates()}
             onDownloadUpdate={() => void downloadUpdate()}
             onInstallUpdate={() => void installUpdate()}
@@ -1030,6 +1148,59 @@ export default function App() {
           }}
           onClose={() => updateSettingsPatch({ themeGallerySeen: true })}
         />
+      ) : null}
+
+      {resourcesOpen ? (
+        <ResourcePanel
+          snapshot={resources}
+          services={state.services}
+          isElectron={isElectron}
+          onClose={() => setResourcesOpen(false)}
+          onOpenSettings={() => {
+            setResourcesOpen(false);
+            navigate('settings?section=resources');
+          }}
+        />
+      ) : null}
+
+      {emulatorPrompt ? (
+        <Modal
+          title={t('Before you load a cartridge')}
+          subtitle={t('Secret emulator')}
+          width={520}
+          onClose={() => setEmulatorPrompt(false)}
+          footer={
+            <div className="modal-actions">
+              <button className="btn ghost" onClick={() => setEmulatorPrompt(false)}>
+                {t('Cancel')}
+              </button>
+              <button
+                className="btn primary"
+                onClick={() => {
+                  setEmulatorPrompt(false);
+                  navigate('emulator');
+                }}
+              >
+                <Icon name="check" size={14} />
+                {t('I understand')}
+              </button>
+            </div>
+          }
+        >
+          <div className="emulator-consent">
+            <Icon name="warning" size={20} />
+            <div>
+              <p>
+                {t(
+                  'Kryvex does not provide, host, link to or endorse ROMs, BIOS files or any copyrighted game data. The emulator only plays files you already have, and you are responsible for having the legal right to use them.',
+                )}
+              </p>
+              <p className="mono">
+                {t('No downloads · no catalogue · everything stays on this machine')}
+              </p>
+            </div>
+          </div>
+        </Modal>
       ) : null}
 
       <ToastHost toasts={toasts} />

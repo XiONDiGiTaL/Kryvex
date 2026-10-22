@@ -28,6 +28,9 @@ import { localModel } from './local-model';
 import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
 import { permissions } from './permissions';
 import { popupTabs } from './popup-tabs';
+import { resources } from './resources';
+import { vpn } from './vpn';
+import { weather } from './weather';
 import { isSafePartition } from './privacy';
 import { serviceSessions } from './service-sessions';
 import { stableUserAgent } from './user-agent';
@@ -341,6 +344,8 @@ function createWindow(): BrowserWindow {
 
   win.webContents.on('did-attach-webview', (_event, contents) => {
     trackChromiumGuest(contents);
+    serviceSessions.applyTo(contents);
+    serviceSessions.observeGuest(contents);
     // A parked service frame stays mounted but hidden, and Chromium throttles
     // timers in a hidden page. A chat client that misses one heartbeat shows
     // "connecting" minutes later, which reads as a disconnect. Turning guest
@@ -358,7 +363,7 @@ function createWindow(): BrowserWindow {
   win.webContents.on('will-attach-webview', (event, webPreferences, params) => {
     // Remember which sessions belong to service modules before the guest can
     // ask for notifications or open an auth popup.
-    serviceSessions.markPartition(params.partition);
+    serviceSessions.markPartition(params.partition, params.src);
     delete (webPreferences as { preload?: string }).preload;
     webPreferences.nodeIntegration = false;
     webPreferences.contextIsolation = true;
@@ -645,6 +650,35 @@ function registerIpc(): void {
     serviceSessions.setNotifications(enabled);
     return serviceSessions.notificationsEnabled();
   });
+  ipcMain.handle('kryvex:services:policy', (event, partition: unknown, policy: unknown) => {
+    if (!isShellSender(event)) return false;
+    return serviceSessions.setPolicy(partition, policy);
+  });
+  ipcMain.handle('kryvex:weather:lookup', (event, city: unknown, unit: unknown) =>
+    isShellSender(event) ? weather.lookup(city, unit) : { ok: false, error: 'invalid' },
+  );
+  ipcMain.handle('kryvex:weather:at', (event, latitude: unknown, longitude: unknown, unit: unknown) =>
+    isShellSender(event) ? weather.at(latitude, longitude, unit) : { ok: false, error: 'invalid' },
+  );
+  ipcMain.handle('kryvex:resources:sample', (event, services: unknown) =>
+    isShellSender(event) ? resources.sample(services) : null,
+  );
+  ipcMain.handle('kryvex:vpn:status', (event) => (isShellSender(event) ? vpn.status() : null));
+  ipcMain.handle('kryvex:vpn:configure', (event, settings: unknown) =>
+    isShellSender(event) ? vpn.configure(settings) : null,
+  );
+  ipcMain.handle('kryvex:vpn:choose-binary', (event) =>
+    isShellSender(event) ? vpn.chooseBinary(mainWindow) : null,
+  );
+  ipcMain.handle('kryvex:vpn:choose-config', (event) =>
+    isShellSender(event) ? vpn.chooseConfig(mainWindow) : null,
+  );
+  ipcMain.handle('kryvex:vpn:connect', (event) =>
+    isShellSender(event) ? vpn.connect() : null,
+  );
+  ipcMain.handle('kryvex:vpn:disconnect', (event) =>
+    isShellSender(event) ? vpn.disconnect() : null,
+  );
   ipcMain.on('kryvex:attention', (event, active: unknown) => {
     if (!isShellSender(event) || !mainWindow || mainWindow.isDestroyed()) return;
     mainWindow.flashFrame(Boolean(active));
@@ -765,6 +799,13 @@ async function runCapture(win: BrowserWindow): Promise<void> {
     },
     { name: 'settings', hash: '#/settings' },
     {
+      name: 'settings-themes',
+      hash: '#/settings',
+      click: '#themes .settings-block-toggle',
+      scroll: '#themes',
+      wait: 1100,
+    },
+    {
       name: 'settings-reds',
       hash: '#/settings',
       scroll: 'button[title="Crimson"]',
@@ -789,6 +830,27 @@ async function runCapture(win: BrowserWindow): Promise<void> {
       scroll: '.custom-theme-panel',
     },
     { name: 'theme-gallery', hash: '#/settings', scroll: '#theme-gallery', block: 'start' },
+    {
+      name: 'settings-home',
+      hash: '#/settings',
+      click: '#home-board .settings-block-toggle',
+      scroll: '#home-board',
+      wait: 1100,
+    },
+    {
+      name: 'settings-network',
+      hash: '#/settings',
+      click: '#network .settings-block-toggle',
+      scroll: '#network',
+      wait: 1100,
+    },
+    { name: 'emulator', hash: '#/emulator', wait: 1100 },
+    {
+      name: 'resources',
+      hash: '#/home',
+      click: '[title="Open the resource manager"]',
+      wait: 2600,
+    },
     { name: 'settings-updates', hash: '#/settings?section=updates', scroll: '#updates' },
     { name: 'settings-data', hash: '#/settings', scroll: '.download-location-copy' },
     { name: 'settings-shield', hash: '#/settings', scroll: '.shield-panel' },

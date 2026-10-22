@@ -52,6 +52,13 @@ describe('resolveAddress', () => {
     expect(resolveAddress('kryvex electron', 'bing')).toContain('bing.com/search');
   });
 
+  it('honours the regional engine list', () => {
+    expect(resolveAddress('kryvex', 'naver', 'kr')).toContain('search.naver.com');
+    expect(resolveAddress('kryvex', 'baidu', 'cn')).toContain('baidu.com/s');
+    // A global-only pick is ignored while a regional list is selected.
+    expect(resolveAddress('kryvex', 'google', 'kr')).toContain('duckduckgo.com');
+  });
+
   it('passes through explicit schemes untouched', () => {
     expect(resolveAddress('https://example.com/a b', 'google')).toBe('https://example.com/a b');
   });
@@ -64,5 +71,7 @@ describe('resolveAddress', () => {
 describe('searchUrl', () => {
   it('encodes the query', () => {
     expect(searchUrl('google', 'a & b')).toBe('https://www.google.com/search?q=a%20%26%20b');
+    expect(searchUrl('mojeek', 'a b')).toBe('https://www.mojeek.com/search?q=a%20b');
+    expect(searchUrl('searxng', 'a b')).toBe('https://searx.be/search?q=a%20b');
   });
 });

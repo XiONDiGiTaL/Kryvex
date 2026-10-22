@@ -111,6 +111,26 @@ describe('service catalogue', () => {
     }
   });
 
+  it('ships Steam as a persistent chat module, not an external launcher', () => {
+    const steam = SERVICE_PRESETS.find(preset => preset.id === 'steam');
+    expect(steam).toBeTruthy();
+    expect(steam?.url).toBe('https://steamcommunity.com/chat/');
+    expect(steam?.category).toBe('communication');
+    expect(steam?.icon).toBe('steam');
+    expect(Boolean(steam?.icon && steam.icon in BRAND_ICONS)).toBe(true);
+    // A preset becomes a normal service, so its sign-in lives in a persistent
+    // partition that survives restarts instead of a throwaway browser session.
+    const result = validateServiceInput({
+      name: steam!.name,
+      url: steam!.url,
+      category: steam!.category,
+      color: steam!.color,
+      icon: steam!.icon,
+    });
+    expect(result.ok).toBe(true);
+    expect(partitionFor(result.service!.id)).toMatch(/^persist:svc-/);
+  });
+
   it('lists AI assistants as links, not bundled clients', () => {
     const ids = SERVICE_PRESETS.map(preset => preset.id);
     for (const id of ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'fmhy']) {

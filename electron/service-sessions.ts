@@ -1,5 +1,10 @@
-import { session, type Session, type WebContents } from 'electron';
+import { session, webContents, type Cookie, type Session, type WebContents } from 'electron';
 import { isServicePartition } from './service-rules';
+import {
+  isSteamCookieDomain,
+  isSteamSessionUrl,
+  steamCookieExpiry,
+} from './steam-session-rules';
 
 /**
  * Owns the small amount of state that makes a service module feel installed
@@ -12,19 +17,173 @@ import { isServicePartition } from './service-rules';
  * The session object identity is stable per partition in the main process, so
  * recording it at webview attach time is enough to recognise it later.
  */
+export interface ServicePolicy {
+  notifications: boolean;
+  muted: boolean;
+}
+
+const DEFAULT_POLICY: ServicePolicy = { notifications: true, muted: false };
+
 class ServiceSessionManager {
   private services = new WeakSet<Session>();
   private partitions = new Set<string>();
+  private sessionPartition = new WeakMap<Session, string>();
+  private policies = new Map<string, ServicePolicy>();
   private notifications = true;
+  private cookieKeepAlive = new WeakSet<Session>();
 
-  /** Called from will-attach-webview with the guest's declared partition. */
-  markPartition(partition: unknown): void {
+  /**
+   * Called from will-attach-webview with the guest's declared partition and,
+   * when Electron has it, source. A Steam source arms cookie persistence
+   * immediately; observeGuest below covers the case where src arrives later.
+   */
+  markPartition(partition: unknown, src?: unknown): void {
     if (!isServicePartition(partition)) return;
     try {
-      this.services.add(session.fromPartition(partition));
+      const target = session.fromPartition(partition);
+      this.services.add(target);
+      this.sessionPartition.set(target, partition);
       this.partitions.add(partition);
+      if (isSteamSessionUrl(src)) this.keepSteamSignedIn(target);
     } catch {
       /* a partition that cannot be resolved simply gets no service grants */
+    }
+  }
+
+  /**
+   * A webview is often attached before its src attribute is read, so the
+   * service URL is not always available in will-attach-webview. Watching the
+   * guest's first real navigation is the reliable signal: by the time a Steam
+   * page loads, its partition is known and its login cookies can be kept.
+   */
+  observeGuest(contents: WebContents): void {
+    const partition = this.partitionFor(contents);
+    if (!partition) return;
+    const check = (url: string) => {
+      if (isSteamSessionUrl(url)) this.keepSteamSignedIn(contents.session);
+    };
+    try {
+      check(contents.getURL());
+    } catch {
+      /* the guest has not navigated yet */
+    }
+    contents.on('did-navigate', (_event, url) => check(url));
+    contents.on('did-navigate-in-page', (_event, url) => check(url));
+    contents.on('dom-ready', () => {
+      try {
+        check(contents.getURL());
+      } catch {
+        /* the guest is already gone */
+      }
+    });
+  }
+
+  /**
+   * Steam decides at login time whether an auth cookie is a session cookie.
+   * Electron does not write those to disk, so a restart signs the user out
+   * even though the service partition is persistent. Rewriting each Steam
+   * session cookie with a distant expiry keeps the module signed in; the
+   * browser still treats it as an ordinary auth cookie.
+   *
+   * The listener never re-triggers itself: the rewritten cookie is no longer a
+   * session cookie, so it is ignored on the way back through `changed`.
+   */
+  private keepSteamSignedIn(target: Session): void {
+    if (this.cookieKeepAlive.has(target)) return;
+    this.cookieKeepAlive.add(target);
+
+    target.cookies.on('changed', (_event, cookie, _cause, removed) => {
+      if (removed || !cookie.session || !isSteamCookieDomain(cookie.domain)) return;
+      void this.persistSteamCookie(target, cookie);
+    });
+
+    // A partition created before this fix may already hold session cookies.
+    void target.cookies
+      .get({})
+      .then(cookies => {
+        for (const cookie of cookies) {
+          if (cookie.session && isSteamCookieDomain(cookie.domain)) {
+            void this.persistSteamCookie(target, cookie);
+          }
+        }
+      })
+      .catch(() => undefined);
+  }
+
+  private async persistSteamCookie(target: Session, cookie: Cookie): Promise<void> {
+    const domain = cookie.domain;
+    if (!domain) return;
+    try {
+      const host = domain.replace(/^\./, '');
+      const scheme = cookie.secure ? 'https' : 'http';
+      await target.cookies.set({
+        // Passing the domain back would widen a host-only cookie to every
+        // subdomain, leaving two cookies with the same name. Omit it for
+        // host-only cookies so the replacement keeps the original scope.
+        ...(domain.startsWith('.') ? { domain } : {}),
+        url: `${scheme}://${host}${cookie.path || '/'}`,
+        name: cookie.name,
+        value: cookie.value,
+        path: cookie.path,
+        secure: cookie.secure,
+        httpOnly: cookie.httpOnly,
+        sameSite: cookie.sameSite,
+        expirationDate: steamCookieExpiry(Date.now()),
+      });
+    } catch {
+      /* a cookie the store rejects can still be used for this run */
+    }
+  }
+
+  partitionFor(contents: WebContents | null | undefined): string | null {
+    if (!contents) return null;
+    try {
+      return this.sessionPartition.get(contents.session) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  policyFor(partition: string | null): ServicePolicy {
+    if (!partition) return DEFAULT_POLICY;
+    return this.policies.get(partition) ?? DEFAULT_POLICY;
+  }
+
+  /**
+   * Per-module mute and notification switches. Muting is applied to every
+   * guest already attached to the partition; notifications are checked on the
+   * next permission request, so a page can never grant itself.
+   */
+  setPolicy(rawPartition: unknown, raw: unknown): boolean {
+    if (!isServicePartition(rawPartition)) return false;
+    if (!raw || typeof raw !== 'object') return false;
+    const source = raw as Record<string, unknown>;
+    const policy: ServicePolicy = {
+      notifications: source.notifications !== false,
+      muted: source.muted === true,
+    };
+    this.policies.set(rawPartition, policy);
+    try {
+      const target = session.fromPartition(rawPartition);
+      for (const contents of webContents.getAllWebContents()) {
+        if (contents.session === target) this.applyTo(contents);
+      }
+    } catch {
+      /* the partition may not exist yet; attach will apply it */
+    }
+    return true;
+  }
+
+  /** Called when a webview attaches, after its partition is marked. */
+  applyTo(contents: WebContents): void {
+    try {
+      if (contents.getType() !== 'webview') return;
+      const partition = this.partitionFor(contents);
+      if (!partition) return;
+      const policy = this.policyFor(partition);
+      if (contents.isAudioMuted() !== policy.muted) contents.setAudioMuted(policy.muted);
+    } catch {
+      /* a guest that is already gone needs nothing */
     }
   }
 
@@ -57,7 +216,8 @@ class ServiceSessionManager {
   allowsNotifications(contents: WebContents | null | undefined): boolean {
     if (!this.notifications || !contents) return false;
     try {
-      return contents.getType() === 'webview' && this.isServiceSession(contents.session);
+      if (contents.getType() !== 'webview' || !this.isServiceSession(contents.session)) return false;
+      return this.policyFor(this.partitionFor(contents)).notifications;
     } catch {
       return false;
     }

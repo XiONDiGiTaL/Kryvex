@@ -1,3 +1,6 @@
+import type { SearchEngine, SearchRegion } from '../types';
+import { enginesForRegion, searchUrl as engineUrl } from './search-engines';
+
 const HTTP = new Set(['http:', 'https:']);
 
 /** Accepts bare hosts ("notion.so") and returns a normalized https URL. */
@@ -44,22 +47,19 @@ export function hostOf(value: string): string {
   }
 }
 
-export function searchUrl(engine: 'duckduckgo' | 'google' | 'bing', query: string): string {
-  const q = encodeURIComponent(query.trim());
-  switch (engine) {
-    case 'google':
-      return `https://www.google.com/search?q=${q}`;
-    case 'bing':
-      return `https://www.bing.com/search?q=${q}`;
-    default:
-      return `https://duckduckgo.com/?q=${q}`;
-  }
+export function searchUrl(engine: SearchEngine, query: string): string {
+  return engineUrl(engine, query);
 }
 
-/** Turns the address bar value into a URL, searching when it is not a URL. */
+/**
+ * Turns the address bar value into a URL, searching when it is not a URL.
+ * A regional engine is only used while that region is selected; otherwise the
+ * privacy default keeps the address bar working after a region switch.
+ */
 export function resolveAddress(
   value: string,
-  engine: 'duckduckgo' | 'google' | 'bing',
+  engine: SearchEngine,
+  region: SearchRegion = 'global',
 ): string {
   const trimmed = value.trim();
   if (!trimmed) return 'about:blank';
@@ -72,5 +72,6 @@ export function resolveAddress(
       /* fall through to search */
     }
   }
-  return searchUrl(engine, trimmed);
+  const available = enginesForRegion(region).some(item => item.id === engine);
+  return searchUrl(available ? engine : 'duckduckgo', trimmed);
 }

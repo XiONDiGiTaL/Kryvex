@@ -1,0 +1,29 @@
+name: Verify one-time-code relay
+description: Run the relay end-to-end check and upload cache-trimmed diagnostics when it fails.
+
+runs:
+  using: composite
+  steps:
+    - name: Verify the one-time-code relay
+      id: otp
+      shell: pwsh
+      run: |
+        pnpm verify:otp 2>&1 | Tee-Object -FilePath .tmp-otp-verify.log -Encoding utf8
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+    - name: Trim Chromium caches from the failure profile
+      if: failure() && steps.otp.outcome == 'failure'
+      shell: pwsh
+      run: node "${{ github.action_path }}/trim-profile-caches.cjs" .tmp-otp-verify-profile
+
+    - name: Upload one-time-code failure artifacts
+      if: failure() && steps.otp.outcome == 'failure'
+      uses: actions/upload-artifact@v4
+      with:
+        name: one-time-code-failure-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+        path: |
+          .tmp-otp-verify.log
+          .tmp-otp-verify-profile
+        include-hidden-files: true
+        if-no-files-found: warn
+        retention-days: 7

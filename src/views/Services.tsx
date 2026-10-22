@@ -4,6 +4,7 @@ import { CATEGORIES, SERVICE_COLORS } from '../lib/services';
 import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
 import { EmptyState, Icon, ServiceIcon } from '../components/ui';
+import { ServiceQuickMenu } from '../components/ServiceQuickMenu';
 
 export function Services({
   state,
@@ -12,6 +13,8 @@ export function Services({
   onAdd,
   onTogglePin,
   onDelete,
+  onUpdateService,
+  onSecretEmulator,
 }: {
   state: PersistedState;
   onOpen: (service: Service) => void;
@@ -19,6 +22,8 @@ export function Services({
   onAdd: () => void;
   onTogglePin: (service: Service) => void;
   onDelete: (service: Service) => void;
+  onUpdateService: (service: Service, patch: Partial<Service>) => void;
+  onSecretEmulator: () => void;
 }) {
   const t = useT();
   const [query, setQuery] = useState('');
@@ -152,6 +157,11 @@ export function Services({
               <div className="service-card-head">
                 <ServiceIcon service={service} size={40} />
                 <div className="service-card-actions">
+                  <ServiceQuickMenu
+                    service={service}
+                    notificationsGloballyOn={state.settings.serviceNotifications}
+                    onChange={patch => onUpdateService(service, patch)}
+                  />
                   <button
                     className={`icon-btn ${service.pinned ? 'is-on' : ''}`}
                     onClick={event => {
@@ -208,6 +218,32 @@ export function Services({
           ))}
         </div>
       )}
+
+      <section className="secret-service" aria-labelledby="secret-emulator-title">
+        <div className="section-head">
+          <h2 id="secret-emulator-title">{t('Secret service')}</h2>
+          <span className="mono muted-label">{t('BUILT IN · LOCAL FILES')}</span>
+        </div>
+        <button className="secret-card" onClick={onSecretEmulator}>
+          <span className="secret-card-screen" aria-hidden="true">
+            <span className="secret-pixel" />
+            <span className="secret-pixel" />
+            <span className="secret-pixel" />
+            <span className="secret-pixel" />
+            <span className="secret-pixel" />
+            <span className="secret-pixel" />
+            <span className="secret-pixel" />
+            <span className="secret-pixel" />
+            <span className="secret-pixel" />
+          </span>
+          <span className="secret-card-copy">
+            <span className="mono secret-card-kicker">{t('8-BIT MODE')}</span>
+            <strong>{t('Secret emulator')}</strong>
+            <span>{t('Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket and Virtual Boy files you already own.')}</span>
+          </span>
+          <Icon name="forward" size={16} />
+        </button>
+      </section>
 
       <p className="footnote mono">
         {t('PALETTE {count} COLORS · MAX 100 MODULES · LOCAL PERSISTENCE', {

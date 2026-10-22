@@ -15,6 +15,7 @@ import type {
   ShieldStatus,
   UpdateStatus,
   ViewId,
+  VpnStatus,
   WallpaperFit,
   WallpaperImage,
   WallpaperSource,
@@ -46,7 +47,14 @@ import {
   useAssistantRuntime,
 } from '../lib/assistant';
 import { WALLPAPER_ACCEPT } from '../lib/wallpaper';
+import {
+  SEARCH_REGIONS,
+  engineGroups,
+  enginesForRegion,
+  searchEngine,
+} from '../lib/search-engines';
 import { ColorPicker } from '../components/ColorPicker';
+import { SettingsBlock } from '../components/SettingsBlock';
 import { ThemeGallery } from '../components/ThemeGallery';
 import { Icon, ThemeMark, type ThemeMarkKind } from '../components/ui';
 import { logoUrl } from '../assets';
@@ -104,6 +112,7 @@ export function Settings({
   update = null,
   focusUpdates = false,
   focusAssistant = false,
+  focusResources = false,
   onCheckUpdate,
   onDownloadUpdate,
   onInstallUpdate,
@@ -125,6 +134,7 @@ export function Settings({
   update?: UpdateStatus | null;
   focusUpdates?: boolean;
   focusAssistant?: boolean;
+  focusResources?: boolean;
   onCheckUpdate: () => void;
   onDownloadUpdate: () => void;
   onInstallUpdate: () => void;
@@ -143,10 +153,12 @@ export function Settings({
   const [engine, setEngine] = useState<EngineInfo | null>(null);
   const [model, setModel] = useState<LocalModelStatus | null>(null);
   const [modelBusy, setModelBusy] = useState(false);
+  const [vpnState, setVpnState] = useState<VpnStatus | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [customOpen, setCustomOpen] = useState(settings.themeId === CUSTOM_THEME_ID);
   const updatesRef = useRef<HTMLElement | null>(null);
   const assistantRef = useRef<HTMLElement | null>(null);
+  const resourcesRef = useRef<HTMLElement | null>(null);
   const runtime = useAssistantRuntime(settings.assistant);
 
   useEffect(() => {
@@ -158,6 +170,11 @@ export function Settings({
     if (!focusAssistant) return;
     assistantRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }, [focusAssistant]);
+
+  useEffect(() => {
+    if (!focusResources) return;
+    resourcesRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [focusResources]);
 
   useEffect(() => {
     if (settings.themeId === CUSTOM_THEME_ID) setCustomOpen(true);
@@ -190,6 +207,25 @@ export function Settings({
 
     void refresh();
     const timer = window.setInterval(refresh, 4000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [isElectron]);
+
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    let alive = true;
+    const poll = () => {
+      void window.kryvex!
+        .vpnStatus()
+        .then(next => {
+          if (alive && next) setVpnState(next as VpnStatus);
+        })
+        .catch(() => undefined);
+    };
+    poll();
+    const timer = window.setInterval(poll, 3000);
     return () => {
       alive = false;
       window.clearInterval(timer);
@@ -319,6 +355,49 @@ export function Settings({
         </button>
       </div>
     );
+  }
+
+  function patchVpn(patch: Partial<SettingsModel['vpn']>) {
+    onUpdate({ vpn: { ...settings.vpn, ...patch } });
+  }
+
+  async function vpnAction(kind: 'binary' | 'config' | 'connect' | 'disconnect') {
+    if (!window.kryvex || busy) return;
+    const busyKey = `vpn-${kind}`;
+    setBusy(busyKey);
+    try {
+      const next =
+        kind === 'binary'
+          ? await window.kryvex.vpnChooseBinary()
+          : kind === 'config'
+            ? await window.kryvex.vpnChooseConfig()
+            : kind === 'connect'
+              ? await window.kryvex.vpnConnect()
+              : await window.kryvex.vpnDisconnect();
+      if (next) {
+        const status = next as VpnStatus;
+        setVpnState(status);
+        if (kind === 'binary' || kind === 'config') {
+          // The dialog lives in the main process; mirror its choice into the
+          // workspace so the path survives a restart.
+          patchVpn({ binaryPath: status.binaryPath, configPath: status.configPath });
+        }
+        if (kind === 'connect') {
+          onToast(
+            status.phase === 'connected'
+              ? t('The VPN tunnel is up.')
+              : status.phase === 'connecting'
+                ? t('OpenVPN is connecting…')
+                : status.detail,
+            status.phase === 'connected' || status.phase === 'connecting' ? 'success' : 'warning',
+          );
+        }
+      }
+    } catch {
+      onToast(t('The VPN action could not be completed.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function makeDefaultBrowser() {
@@ -672,7 +751,6 @@ export function Settings({
     updateTitle = t('The update could not continue.');
     updateDetail = updateErrorCopy(update?.error);
   }
-  const shieldReady = shield?.phase === 'ready';
   const customPreview = buildCustomTheme(settings.customTheme);
   const engineChanged = (Object.keys(DEFAULT_CHROMIUM) as Array<keyof ChromiumSettings>).filter(
     key => settings.chromium[key] !== DEFAULT_CHROMIUM[key],
@@ -758,14 +836,11 @@ export function Settings({
         </div>
       </header>
 
-      <section className="settings-block">
-        <div className="section-head">
-          <h2>{t('Appearance')}</h2>
-          <span className="mono muted-label">
-            {THEMES.length + 1} {t('THEMES')}
-          </span>
-        </div>
-
+      <SettingsBlock
+        className="panel"
+        title={t('Appearance')}
+        defaultOpen
+      >
         <div className="setting-row">
           <div>
             <strong>{t('Language')}</strong>
@@ -783,7 +858,15 @@ export function Settings({
             ))}
           </select>
         </div>
+      </SettingsBlock>
 
+      <SettingsBlock
+        id="themes"
+        className="panel panel-wide theme-settings-panel"
+        icon="layers"
+        title={t('Themes')}
+        meta={`${THEMES.length + 1} ${t('THEMES')}`}
+      >
         <div className="theme-families">
           {([...THEME_FAMILIES, 'custom'] as ThemeFamily[]).map(family => {
             // Plugin themes sit in the same table as the catalogue: one chooser.
@@ -935,11 +1018,14 @@ export function Settings({
           </section>
         ) : null}
 
-        <section className="wallpaper-panel" id="wallpaper">
-          <div className="section-head">
-            <h3>{t('Wallpaper')}</h3>
-            <span className="mono muted-label">{wallpaperStatus}</span>
-          </div>
+        </SettingsBlock>
+
+        <SettingsBlock
+          id="wallpaper"
+          className="panel wallpaper-panel"
+          title={t('Wallpaper')}
+          meta={wallpaperStatus}
+        >
           <p className="wallpaper-copy">
             {wallpaperOn
               ? t(
@@ -1059,24 +1145,25 @@ export function Settings({
               </div>
             </>
           ) : null}
-        </section>
-      </section>
+        </SettingsBlock>
 
-      <section className="settings-block assistant-settings" id="assistant" ref={assistantRef}>
-        <div className="section-head">
-          <h2>
-            <Icon name="spark" size={16} /> Vexium
-          </h2>
-          <span className={`mono shield-state ${runtime.status === 'online' ? 'is-ready' : ''}`}>
-            {runtime.status === 'online'
-              ? t('ONLINE')
-              : runtime.status === 'checking'
-                ? t('CHECKING')
-                : runtime.status === 'unavailable'
-                  ? t('DESKTOP ONLY')
-                  : t('OFFLINE')}
-          </span>
-        </div>
+      <SettingsBlock
+        title="Vexium"
+        icon="spark"
+        className="assistant-settings panel"
+        id="assistant"
+        forceOpen={focusAssistant}
+        sectionRef={assistantRef}
+        meta={
+          runtime.status === 'online'
+            ? t('ONLINE')
+            : runtime.status === 'checking'
+              ? t('CHECKING')
+              : runtime.status === 'unavailable'
+                ? t('DESKTOP ONLY')
+                : t('OFFLINE')
+        }
+      >
         <p className="setting-copy">
           {t(
             'Connect a model server running on this machine. Kryvex sends prompts only to that loopback address, stores no key and ships no weights.',
@@ -1329,18 +1416,15 @@ export function Settings({
             )}
           </p>
         </div>
-      </section>
+      </SettingsBlock>
 
       <div className="settings-columns">
-        <section className="settings-block panel shield-panel">
-          <div className="section-head">
-            <h2>
-              <Icon name="shield" size={16} /> {t('Kryvex Shield')}
-            </h2>
-            <span className={`mono shield-state ${shieldReady ? 'is-ready' : ''}`}>
-              {isElectron ? t((shield?.phase ?? 'STARTING').toUpperCase()) : t('DESKTOP ONLY')}
-            </span>
-          </div>
+        <SettingsBlock
+          className="panel shield-panel"
+          title={t('Kryvex Shield')}
+          icon="shield"
+          meta={isElectron ? t((shield?.phase ?? 'STARTING').toUpperCase()) : t('DESKTOP ONLY')}
+        >
 
           <div className="setting-row">
             <div>
@@ -1661,15 +1745,13 @@ export function Settings({
               </button>
             </div>
           </div>
-        </section>
+        </SettingsBlock>
 
-        <section className="settings-block panel">
-          <div className="section-head">
-            <h2>{t('Extensions')}</h2>
-            <span className="mono muted-label">
-              {t('{count} INSTALLED', { count: extensions.length })}
-            </span>
-          </div>
+        <SettingsBlock
+          className="panel"
+          title={t('Extensions')}
+          meta={t('{count} INSTALLED', { count: extensions.length })}
+        >
 
           <p className="settings-copy">
             {t(
@@ -1766,21 +1848,20 @@ export function Settings({
           >
             {t('Open the Chrome Web Store')} <Icon name="external" size={12} />
           </button>
-        </section>
+        </SettingsBlock>
 
-        <section
-          className="settings-block panel panel-wide updates-panel"
+        <SettingsBlock
+          className="panel panel-wide updates-panel"
           id="updates"
-          ref={updatesRef}
+          sectionRef={updatesRef}
+          forceOpen={focusUpdates}
+          title={t('Updates')}
+          meta={
+            update
+              ? `v${update.currentVersion} · ${t('BUILD')} ${update.mode.toUpperCase()}`
+              : t('DESKTOP ONLY')
+          }
         >
-          <div className="section-head">
-            <h2>{t('Updates')}</h2>
-            <span className="mono muted-label">
-              {update
-                ? `v${update.currentVersion} · ${t('BUILD')} ${update.mode.toUpperCase()}`
-                : t('DESKTOP ONLY')}
-            </span>
-          </div>
 
           {isElectron ? (
             <>
@@ -1904,16 +1985,16 @@ export function Settings({
           ) : (
             <p className="shield-note">{t('Available in the Windows app.')}</p>
           )}
-        </section>
+        </SettingsBlock>
       </div>
 
-      <section className="settings-block panel panel-wide rooms-settings" id="rooms">
-        <div className="section-head">
-          <h2>
-            <Icon name="users" size={16} /> {t('Rooms')}
-          </h2>
-          <span className="mono muted-label">{t('PEER TO PEER')}</span>
-        </div>
+      <SettingsBlock
+        className="panel panel-wide rooms-settings"
+        id="rooms"
+        title={t('Rooms')}
+        icon="users"
+        meta={t('PEER TO PEER')}
+      >
         <p className="settings-copy">
           {t(
             'Rooms have no account and no Kryvex server. Chat, presence and shared screens travel directly between peers; only the WebRTC handshake uses the relays below.',
@@ -1998,11 +2079,10 @@ export function Settings({
             </em>
           </label>
         </div>
-      </section>
+      </SettingsBlock>
 
       <div className="settings-columns">
-        <section className="settings-block panel">
-          <h2>{t('Workspace')}</h2>
+        <SettingsBlock className="panel" title={t('Workspace')}>
 
           <div className="setting-row">
             <div>
@@ -2072,10 +2152,9 @@ export function Settings({
               <span />
             </button>
           </div>
-        </section>
+        </SettingsBlock>
 
-        <section className="settings-block panel browser-settings-panel">
-          <h2>{t('Browser')}</h2>
+        <SettingsBlock className="panel browser-settings-panel" title={t('Browser')}>
 
           <div className="setting-row">
             <div>
@@ -2116,22 +2195,56 @@ export function Settings({
             </div>
           </div>
 
-          <div className="setting-row">
+          <div className="setting-row column">
             <div>
               <strong>{t('Search engine')}</strong>
-              <p>{t('Used when the address bar is not a URL.')}</p>
+              <p>
+                {t('Used when the address bar is not a URL. Choose a region to narrow the list.')}
+              </p>
             </div>
-            <select
-              value={settings.searchEngine}
-              onChange={event =>
-                onUpdate({ searchEngine: event.target.value as SettingsModel['searchEngine'] })
-              }
-              aria-label={t('Search engine')}
-            >
-              <option value="duckduckgo">DuckDuckGo</option>
-              <option value="google">Google</option>
-              <option value="bing">Bing</option>
-            </select>
+            <div className="search-engine-picker">
+              <select
+                value={settings.searchRegion}
+                onChange={event => {
+                  const region = event.target.value as SettingsModel['searchRegion'];
+                  const available = enginesForRegion(region);
+                  const keep = available.some(engine => engine.id === settings.searchEngine);
+                  onUpdate({
+                    searchRegion: region,
+                    // A regional list narrows the picker; never leave a select
+                    // showing a value it cannot display.
+                    ...(keep ? {} : { searchEngine: available[0]?.id ?? 'duckduckgo' }),
+                  });
+                }}
+                aria-label={t('Search region')}
+              >
+                {SEARCH_REGIONS.map(region => (
+                  <option key={region.id} value={region.id}>
+                    {region.id === 'global' ? t(region.label) : `${t(region.label)} — ${t(region.hint)}`}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={settings.searchEngine}
+                onChange={event =>
+                  onUpdate({ searchEngine: event.target.value as SettingsModel['searchEngine'] })
+                }
+                aria-label={t('Search engine')}
+              >
+                {engineGroups(settings.searchRegion).map(group => (
+                  <optgroup key={group.label} label={t(group.label)}>
+                    {group.engines.map(engine => (
+                      <option key={engine.id} value={engine.id}>
+                        {engine.name} · {engine.host} — {t(engine.purpose)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <span className="mono search-engine-note">
+              {searchEngine(settings.searchEngine).host}
+            </span>
           </div>
 
           <div className="setting-row">
@@ -2162,9 +2275,15 @@ export function Settings({
             </div>
             <button
               className="btn secondary small"
-              onClick={() =>
-                document.getElementById('chromium')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-              }
+              onClick={() => {
+                const section = document.getElementById('chromium');
+                // The section folds by default now, so Configure has to open
+                // it as well as bring it into view.
+                if (section?.dataset.open === 'false') {
+                  section.querySelector<HTMLButtonElement>('.settings-block-toggle')?.click();
+                }
+                section?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+              }}
             >
               <Icon name="sliders" size={13} />
               {t('Configure')}
@@ -2182,17 +2301,15 @@ export function Settings({
             </div>
             <code className="mono code-line">persist:svc-* · browser-* (in-memory)</code>
           </div>
-        </section>
+        </SettingsBlock>
 
-        <section className="settings-block panel panel-wide engine-panel" id="chromium">
-          <div className="section-head">
-            <h2>
-              <Icon name="globe" size={16} /> {t('Chromium engine')}
-            </h2>
-            <span className="mono muted-label">
-              {engine ? `CHROMIUM ${engine.chrome.split('.')[0]}` : t('DESKTOP ONLY')}
-            </span>
-          </div>
+        <SettingsBlock
+          className="panel panel-wide engine-panel"
+          id="chromium"
+          title={t('Chromium engine')}
+          icon="globe"
+          meta={engine ? `CHROMIUM ${engine.chrome.split('.')[0]}` : t('DESKTOP ONLY')}
+        >
           <p className="settings-copy">
             {t(
               'These are the switches and page preferences of the embedded Chromium itself, applied to service apps and browser tabs alike.',
@@ -2344,10 +2461,12 @@ export function Settings({
               {t('Launch changes apply after a restart.')}
             </span>
           </div>
-        </section>
+        </SettingsBlock>
 
-        <section className="settings-block panel panel-wide services-settings-panel">
-          <h2>{t('Service apps')}</h2>
+        <SettingsBlock
+          className="panel panel-wide services-settings-panel"
+          title={t('Service apps')}
+        >
 
           <div className="setting-row">
             <div>
@@ -2396,9 +2515,297 @@ export function Settings({
               'Clear one service’s cookies and storage from the lock button in its toolbar. Removing a module never deletes its session; clearing is always explicit.',
             )}
           </p>
-        </section>
+        </SettingsBlock>
       </div>
 
+      <SettingsBlock
+        className="panel panel-wide home-settings-panel"
+        id="home-board"
+        title={t('Home board')}
+        icon="home"
+        meta={settings.home.showBoard ? t('ON') : t('OFF')}
+      >
+        <p className="settings-copy">
+          {t(
+            'A transparent overlay on Home: clock, local weather, sticky tasks and a short board guide. Every widget can be hidden independently.',
+          )}
+        </p>
+        <div className="setting-row">
+          <div>
+            <strong>{t('Show the Home board')}</strong>
+            <p>{t('Sits over the theme with a translucent pane instead of replacing it.')}</p>
+          </div>
+          <button
+            className={`switch ${settings.home.showBoard ? 'is-on' : ''}`}
+            role="switch"
+            aria-checked={settings.home.showBoard}
+            onClick={() => onUpdate({ home: { ...settings.home, showBoard: !settings.home.showBoard } })}
+          >
+            <span />
+          </button>
+        </div>
+        <div className="home-widget-toggles">
+          {(
+            [
+              ['showWeather', 'Weather'],
+              ['showTasks', 'Sticky tasks'],
+              ['showGuide', 'Board guide'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              className={`chip-btn ${settings.home[key] ? 'is-active' : ''}`}
+              aria-pressed={settings.home[key]}
+              disabled={!settings.home.showBoard}
+              onClick={() => onUpdate({ home: { ...settings.home, [key]: !settings.home[key] } })}
+            >
+              {t(label)}
+            </button>
+          ))}
+        </div>
+        <div className="setting-row">
+          <div>
+            <strong>{t('Temperature unit')}</strong>
+            <p>{t('The city itself is set on the weather card, where it can be checked.')}</p>
+          </div>
+          <div className="segmented" role="radiogroup" aria-label={t('Temperature unit')}>
+            {(['c', 'f'] as const).map(unit => (
+              <button
+                key={unit}
+                role="radio"
+                aria-checked={settings.home.unit === unit}
+                className={settings.home.unit === unit ? 'is-active' : ''}
+                onClick={() => onUpdate({ home: { ...settings.home, unit } })}
+              >
+                °{unit.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="shield-note">
+          {t(
+            'Weather is fetched by the main process from Open-Meteo with no key. Only the place you choose is sent: a city name on lookup, then its coordinates when the card refreshes. Tasks never leave this device.',
+          )}
+        </p>
+      </SettingsBlock>
+
+      <SettingsBlock
+        className="panel panel-wide resources-settings-panel"
+        id="resources"
+        title={t('Resource manager')}
+        icon="monitor"
+        forceOpen={focusResources}
+        sectionRef={resourcesRef}
+        meta={settings.resources.enabled ? t('LIVE') : t('OFF')}
+      >
+        <p className="settings-copy">
+          {t(
+            'Shows which service pages are using CPU and memory, plus the whole-app totals. Values come from Electron’s own process metrics, sampled only while the monitor is visible.',
+          )}
+        </p>
+        <div className="setting-row">
+          <div>
+            <strong>{t('Enable the resource manager')}</strong>
+            <p>{t('Adds an Activity button to the header and a detailed pop-up panel.')}</p>
+          </div>
+          <button
+            className={`switch ${settings.resources.enabled ? 'is-on' : ''}`}
+            role="switch"
+            aria-checked={settings.resources.enabled}
+            onClick={() =>
+              onUpdate({ resources: { ...settings.resources, enabled: !settings.resources.enabled } })
+            }
+          >
+            <span />
+          </button>
+        </div>
+        <div className="setting-row">
+          <div>
+            <strong>{t('Usage bars in the sidebar')}</strong>
+            <p>{t('CPU, memory and GPU-process bars under your pinned services.')}</p>
+          </div>
+          <button
+            className={`switch ${settings.resources.sidebar ? 'is-on' : ''}`}
+            role="switch"
+            aria-checked={settings.resources.sidebar}
+            disabled={!settings.resources.enabled}
+            onClick={() =>
+              onUpdate({ resources: { ...settings.resources, sidebar: !settings.resources.sidebar } })
+            }
+          >
+            <span />
+          </button>
+        </div>
+        <p className="shield-note">
+          {t(
+            'Windows does not expose total GPU utilization to Electron, so the GPU figure is the Chromium GPU process’s CPU and memory rather than a device-wide percentage.',
+          )}
+        </p>
+      </SettingsBlock>
+
+      <SettingsBlock
+        className="panel panel-wide network-panel"
+        id="network"
+        title={t('Network')}
+        icon="lock"
+        meta={
+          vpnState
+            ? t(
+                vpnState.phase === 'connected'
+                  ? 'VPN CONNECTED'
+                  : vpnState.phase === 'connecting'
+                    ? 'VPN CONNECTING'
+                    : vpnState.phase === 'error'
+                      ? 'VPN ERROR'
+                      : vpnState.phase === 'missing'
+                        ? 'VPN NOT SET UP'
+                        : 'VPN OFF',
+              )
+            : t('VPN OFF')
+        }
+      >
+        <p className="settings-copy">
+          {t(
+            'Point Kryvex at your own OpenVPN executable and .ovpn profile, then start and stop the tunnel here. Kryvex bundles no VPN binary or driver and never reroutes traffic silently.',
+          )}
+        </p>
+        <div className="setting-row">
+          <div>
+            <strong>{t('Use OpenVPN')}</strong>
+            <p>{t('Enables the controls below. The tunnel only starts when you press Connect.')}</p>
+          </div>
+          <button
+            className={`switch ${settings.vpn.enabled ? 'is-on' : ''}`}
+            role="switch"
+            aria-checked={settings.vpn.enabled}
+            onClick={() => {
+              const next = !settings.vpn.enabled;
+              patchVpn({ enabled: next });
+              // Turning the switch off is an explicit stop, not just a hidden
+              // control: an already-running tunnel must not outlive it.
+              if (
+                !next &&
+                (vpnState?.phase === 'connected' || vpnState?.phase === 'connecting')
+              ) {
+                void vpnAction('disconnect');
+              }
+            }}
+          >
+            <span />
+          </button>
+        </div>
+
+        <div className="vpn-grid">
+          <div className="vpn-field">
+            <span>{t('OpenVPN executable')}</span>
+            <code className="mono code-line" title={settings.vpn.binaryPath}>
+              {settings.vpn.binaryPath || t('Not chosen')}
+            </code>
+            <button
+              className="btn secondary small"
+              disabled={!isElectron || Boolean(busy)}
+              onClick={() => void vpnAction('binary')}
+            >
+              <Icon name="folder" size={13} /> {t('Choose executable')}
+            </button>
+          </div>
+          <div className="vpn-field">
+            <span>{t('OpenVPN profile')}</span>
+            <code className="mono code-line" title={settings.vpn.configPath}>
+              {settings.vpn.configPath || t('Not chosen')}
+            </code>
+            <button
+              className="btn secondary small"
+              disabled={!isElectron || Boolean(busy)}
+              onClick={() => void vpnAction('config')}
+            >
+              <Icon name="folder" size={13} /> {t('Choose profile')}
+            </button>
+          </div>
+          <label className="vpn-field">
+            <span>{t('Extra OpenVPN arguments')}</span>
+            <input
+              value={settings.vpn.extraArgs}
+              onChange={event => patchVpn({ extraArgs: event.target.value })}
+              placeholder="--proto udp --port 1194"
+              maxLength={500}
+            />
+            <em className="mono">{t('Flags that run another program are refused.')}</em>
+          </label>
+          <label className="vpn-field">
+            <span>{t('DNS servers')}</span>
+            <input
+              value={settings.vpn.dns}
+              onChange={event => patchVpn({ dns: event.target.value })}
+              placeholder="1.1.1.1, 9.9.9.9"
+              maxLength={200}
+            />
+            <em className="mono">{t('Passed to OpenVPN as --dhcp-option DNS entries.')}</em>
+          </label>
+          <label className="vpn-field">
+            <span>{t('Proxy')}</span>
+            <input
+              value={settings.vpn.proxy}
+              onChange={event => patchVpn({ proxy: event.target.value })}
+              placeholder="socks5://127.0.0.1:1080"
+              maxLength={300}
+            />
+            <em className="mono">{t('Optional http, https or socks5 proxy used by OpenVPN.')}</em>
+          </label>
+          <div className="vpn-field">
+            <span>{t('Connect on launch')}</span>
+            <button
+              className={`switch ${settings.vpn.autoConnect ? 'is-on' : ''}`}
+              role="switch"
+              aria-checked={settings.vpn.autoConnect}
+              disabled={!settings.vpn.enabled}
+              onClick={() => patchVpn({ autoConnect: !settings.vpn.autoConnect })}
+            >
+              <span />
+            </button>
+          </div>
+        </div>
+
+        <div className="vpn-actions">
+          <span className={`mono vpn-state is-${vpnState?.phase ?? 'idle'}`}>{vpnState?.detail ?? t('No tunnel is running.')}</span>
+          <div>
+            <button
+              className="btn primary small"
+              disabled={
+                !isElectron ||
+                !settings.vpn.enabled ||
+                !settings.vpn.binaryPath ||
+                !settings.vpn.configPath ||
+                Boolean(busy) ||
+                vpnState?.phase === 'connected' ||
+                vpnState?.phase === 'connecting'
+              }
+              onClick={() => void vpnAction('connect')}
+            >
+              {busy === 'vpn-connect' ? t('Connecting…') : t('Connect')}
+            </button>
+            <button
+              className="btn ghost small"
+              disabled={!isElectron || Boolean(busy) || !vpnState || vpnState.phase === 'idle'}
+              onClick={() => void vpnAction('disconnect')}
+            >
+              {t('Disconnect')}
+            </button>
+            <button
+              className="link"
+              onClick={() => void window.kryvex?.openExternal('https://github.com/OpenVPN/openvpn')}
+            >
+              {t('OpenVPN project')} <Icon name="external" size={11} />
+            </button>
+          </div>
+        </div>
+        {vpnState?.log ? <pre className="vpn-log mono">{vpnState.log}</pre> : null}
+        <p className="shield-note">
+          {t(
+            'A tunnel needs the OpenVPN TAP/TUN driver and, on Windows, usually administrator rights. Kryvex reports OpenVPN’s own output and stops the process when you disconnect or quit.',
+          )}
+        </p>
+      </SettingsBlock>
 
       <div className="settings-columns">
         <section className="settings-block panel">

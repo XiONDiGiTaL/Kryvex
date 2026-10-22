@@ -1,4 +1,5 @@
-import type { AppInfo, PersistedState, Service } from '../types';
+import type { AppInfo, HomeSettings, PersistedState, Service } from '../types';
+import { HomeBoard } from '../components/HomeBoard';
 import { getTheme } from '../lib/themes';
 import { CATEGORIES } from '../lib/services';
 import { useT } from '../lib/i18n';
@@ -29,6 +30,7 @@ export function Home({
   onOpenService,
   onAdd,
   onNavigate,
+  onUpdateHome,
 }: {
   state: PersistedState;
   themeId: string;
@@ -38,6 +40,7 @@ export function Home({
   onOpenService: (service: Service) => void;
   onAdd: () => void;
   onNavigate: (view: 'home' | 'services' | 'browser' | 'settings') => void;
+  onUpdateHome: (patch: Partial<HomeSettings>) => void;
 }) {
   const t = useT();
   const theme = getTheme(themeId);
@@ -67,6 +70,15 @@ export function Home({
           {t('Add service')}
         </button>
       </header>
+
+      {state.settings.home.showBoard ? (
+        <HomeBoard
+          home={state.settings.home}
+          isElectron={isElectron}
+          onUpdate={onUpdateHome}
+          onOpenSettings={() => onNavigate('settings')}
+        />
+      ) : null}
 
       <div className="hero-grid">
         <div className="hero-card">

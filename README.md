@@ -284,8 +284,8 @@ Kryvex now runs services like installed apps rather than browser pages.
   denied.
 - **Clear one session:** the lock button in a service toolbar deletes only that
   service's cookies, storage and cache, after confirmation.
-- **A real catalogue:** 25 presets across communication, work, AI and resources
-  — Discord, Messenger, WhatsApp, Telegram, Instagram, Gmail, ChatGPT, Claude,
+- **A real catalogue:** 26 presets across communication, work, AI and resources
+  — Discord, Steam, Messenger, WhatsApp, Telegram, Instagram, Gmail, ChatGPT, Claude,
   Gemini, Copilot, Perplexity, Hugging Face, Freebuff, Ollama, FMHY and more.
   Links read while building Kryvex are not shipped as presets.
 - **A periodic theme table:** the picker is a periodic-table grid with
@@ -404,10 +404,10 @@ faster; the same actions remain available on screen.
 | --- | --- |
 | **Module registry** | Add, edit, remove and pin services. Name, URL, category, colour, glyph and brand-icon validation. Search, category filters, recents, starter catalogue, duplicate-safe IDs. |
 | **Vexium** | Chat with a local Ollama or LM Studio runtime over its OpenAI-compatible API. Probe and model list, streamed replies, Stop, runtime/address/model settings. Loopback http only; prompts stay in the session and no key or weights are stored. |
-| **Service catalogue** | 25 presets across communication (Discord, Messenger, WhatsApp, Telegram, Instagram, Gmail, X), work (GitHub, Linear, Notion, Figma, Trello), AI (ChatGPT, Claude, Gemini, Copilot, Perplexity, Hugging Face, Freebuff), resources (FMHY, Ollama, Internet Archive) and media (Spotify, YouTube, Reddit), with brand marks and honest notes about embedding limits. Sources read while building the shell stay out of the catalogue. |
+| **Service catalogue** | 26 presets across communication (Discord, Steam, Messenger, WhatsApp, Telegram, Instagram, Gmail, X), work (GitHub, Linear, Notion, Figma, Trello), AI (ChatGPT, Claude, Gemini, Copilot, Perplexity, Hugging Face, Freebuff), resources (FMHY, Ollama, Internet Archive) and media (Spotify, YouTube, Reddit), with brand marks and honest notes about embedding limits. Sources read while building the shell stay out of the catalogue. |
 | **Brand icons** | Built-in CC0 Simple Icons paths for known services. Unknown services request their own `/favicon.ico` directly, then fall back to a letter tile. No third-party favicon service. |
 | **Isolated sessions** | One persistent partition per service; disposable in-memory partitions per browser tab, cleared on close. Cookies and sign-in stay inside the module. Opened services stay mounted, so a view change never reloads them. |
-| **Service apps** | Keep-alive webview, native notifications, unread badges, sandboxed OAuth popups on the same session, per-service session clearing, reload, open externally, edit, remove, loading bar and an error state with retry. A Chrome-shaped user agent replaces Electron's. |
+| **Service apps** | Keep-alive webview, native notifications, unread badges, sandboxed OAuth popups on the same session, an in-service one-time-code relay for Steam Guard, other sign-in codes and split one-character boxes, per-service session clearing, reload, open externally, edit, remove, loading bar and an error state with retry. A Chrome-shaped user agent replaces Electron's. |
 | **Browser** | Tabs that reopen after a restart, back / forward / reload, address bar with host-or-search resolution, per-tab in-memory session, find-in-page (`Ctrl F`), page zoom (`Ctrl +` / `Ctrl -` / `Ctrl 0`), bookmarks bar, system-browser handoff, direct URL deep links. |
 | **Browser library** | Downloads, history and bookmarks in a side panel. Live download progress, pause/resume, cancel, show in folder, remove and delete-file actions; searchable history with clear/remove; full bookmark list. |
 | **Downloads** | Chromium downloads are observed in the main process across services and browser tabs, saved to the folder chosen in **Settings → Data** (Downloads by default) with collision-safe names, and exposed only as tracked display records. Finished history is written to `userData/kryvex-downloads.json`, so the library survives a restart; a download interrupted by quitting is shown as interrupted. |

@@ -1,7 +1,8 @@
-import type { AppInfo, PersistedState, Service, ViewId } from '../types';
+import type { AppInfo, PersistedState, ResourceSnapshot, Service, ViewId } from '../types';
 import { getTheme } from '../lib/themes';
 import { useT } from '../lib/i18n';
 import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from './ui';
+import { SidebarResources } from './ResourceMonitor';
 
 const NAV: Array<{
   id: ViewId;
@@ -24,6 +25,8 @@ export function Header({
   onSettings,
   onHelp,
   onUpdate,
+  onResources,
+  resourcesOpen = false,
   update = null,
   isElectron,
   mark = 'kx',
@@ -35,6 +38,8 @@ export function Header({
   onSettings: () => void;
   onHelp: () => void;
   onUpdate?: () => void;
+  onResources?: () => void;
+  resourcesOpen?: boolean;
   update?: { available: boolean; ready: boolean; version?: string } | null;
   isElectron: boolean;
   mark?: ThemeMarkKind;
@@ -82,6 +87,17 @@ export function Header({
               <span className="update-dot" aria-hidden="true" />
             </button>
           ) : null}
+          {onResources ? (
+            <button
+              className={`header-tool ${resourcesOpen ? 'is-active' : ''}`}
+              onClick={onResources}
+              title={t('Open the resource manager')}
+              aria-pressed={resourcesOpen}
+            >
+              <Icon name="monitor" size={14} />
+              <span>{t('Activity')}</span>
+            </button>
+          ) : null}
           <button className="header-tool" onClick={onAdd} title={t('Add a service')}>
             <Icon name="plus" size={14} />
             <span>{t('Add')}</span>
@@ -122,6 +138,8 @@ export function Sidebar({
   onNavigate,
   onOpenService,
   onAdd,
+  resources = null,
+  showResources = false,
 }: {
   state: PersistedState;
   routeView: ViewId;
@@ -131,6 +149,8 @@ export function Sidebar({
   onNavigate: (view: ViewId) => void;
   onOpenService: (service: Service) => void;
   onAdd: () => void;
+  resources?: ResourceSnapshot | null;
+  showResources?: boolean;
 }) {
   const t = useT();
   const pinned = state.services.filter(service => service.pinned);
@@ -185,6 +205,10 @@ export function Sidebar({
           </ul>
         )}
       </div>
+
+      {showResources && resources ? (
+        <SidebarResources snapshot={resources} services={state.services} />
+      ) : null}
 
       <div className="sidebar-foot">
         <button className="add-service-btn" onClick={onAdd} title={t('Add a service')}>

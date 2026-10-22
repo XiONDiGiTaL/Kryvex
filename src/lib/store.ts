@@ -5,13 +5,18 @@ import type {
   HistoryEntry,
   LanguageSetting,
   PersistedState,
-  SearchEngine,
   Service,
   ServiceCategory,
   AssistantSettings,
+  EmulatorSettings,
+  HomeNote,
+  HomeSettings,
   PartySettings,
+  ResourceSettings,
+  SearchRegion,
   Settings,
   ViewId,
+  VpnSettings,
   WallpaperFit,
   WallpaperSettings,
 } from '../types';
@@ -25,6 +30,14 @@ import {
   sanitizeRecentRooms,
   sanitizeTrackers,
 } from './party-rules';
+import {
+  DEFAULT_EMULATOR,
+  DEFAULT_HOME,
+  DEFAULT_RESOURCES,
+  DEFAULT_VPN,
+} from './defaults';
+import { isSearchEngine, isSearchRegion } from './search-engines';
+import { isEmulatorSystem } from './emulator';
 import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
 import { themeGallerySeenValue } from './theme-gallery';
 import { isThemeId, sanitizeCustomTheme } from './themes';
@@ -33,7 +46,6 @@ import { hostOf, isHttpUrl } from './url';
 const VIEWS: ViewId[] = ['home', 'services', 'browser', 'assistant', 'settings'];
 const DENSITIES: Density[] = ['comfortable', 'compact'];
 const WALLPAPER_FITS: WallpaperFit[] = ['cover', 'contain', 'tile'];
-const ENGINES: SearchEngine[] = ['duckduckgo', 'google', 'bing'];
 const MAX_SERVICES = 100;
 const MAX_BOOKMARKS = 200;
 const MAX_HISTORY = 500;
@@ -78,6 +90,9 @@ function sanitizeService(raw: unknown): Service | null {
     createdAt: Number.isFinite(raw.createdAt) ? Number(raw.createdAt) : Date.now(),
     lastOpened: Number.isFinite(raw.lastOpened) ? Number(raw.lastOpened) : undefined,
     ...(icon ? { icon } : {}),
+    ...(raw.muted === true ? { muted: true } : {}),
+    ...(raw.notifications === false ? { notifications: false } : {}),
+    ...(raw.persistence === 'pause' ? { persistence: 'pause' as const } : {}),
   };
 }
 
@@ -176,6 +191,95 @@ export function sanitizeWallpaper(raw: unknown): WallpaperSettings {
   };
 }
 
+function cleanText(value: unknown, limit: number): string {
+  return typeof value === 'string' ? value.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, limit) : '';
+}
+
+function sanitizeNotes(raw: unknown): HomeNote[] {
+  if (!Array.isArray(raw)) return [];
+  const notes: HomeNote[] = [];
+  for (const item of raw.slice(0, 40)) {
+    if (!isRecord(item)) continue;
+    const text = cleanText(item.text, 160);
+    if (!text) continue;
+    notes.push({
+      id: typeof item.id === 'string' ? item.id.slice(0, 64) : `n-${notes.length + 1}`,
+      text,
+      done: item.done === true,
+      createdAt: Number.isFinite(item.createdAt) ? Number(item.createdAt) : Date.now(),
+    });
+  }
+  return notes;
+}
+
+/** Home board values are deliberately small: a widget, not a second app. */
+export function sanitizeHome(raw: unknown): HomeSettings {
+  const base = DEFAULT_HOME;
+  if (!isRecord(raw)) return { ...base, notes: [] };
+  const latitude = Number(raw.latitude);
+  const longitude = Number(raw.longitude);
+  const hasPoint =
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180;
+  return {
+    showBoard: raw.showBoard === undefined ? base.showBoard : raw.showBoard === true,
+    showWeather: raw.showWeather === undefined ? base.showWeather : raw.showWeather === true,
+    showTasks: raw.showTasks === undefined ? base.showTasks : raw.showTasks === true,
+    // `showMomentum`/`momentumSeen` were the old field names; keep reading
+    // them once so an existing workspace does not lose its board preference.
+    showGuide:
+      raw.showGuide === undefined
+        ? raw.showMomentum === undefined
+          ? base.showGuide
+          : raw.showMomentum === true
+        : raw.showGuide === true,
+    city: cleanText(raw.city, 80),
+    place: cleanText(raw.place, 80),
+    latitude: hasPoint ? latitude : null,
+    longitude: hasPoint ? longitude : null,
+    unit: raw.unit === 'f' ? 'f' : 'c',
+    notes: sanitizeNotes(raw.notes),
+    guideSeen: raw.guideSeen === true || raw.momentumSeen === true,
+  };
+}
+
+export function sanitizeResources(raw: unknown): ResourceSettings {
+  const base = DEFAULT_RESOURCES;
+  if (!isRecord(raw)) return { ...base };
+  return {
+    enabled: raw.enabled === true,
+    sidebar: raw.sidebar === undefined ? base.sidebar : raw.sidebar === true,
+  };
+}
+
+export function sanitizeVpn(raw: unknown): VpnSettings {
+  const base = DEFAULT_VPN;
+  if (!isRecord(raw)) return { ...base };
+  return {
+    enabled: raw.enabled === true,
+    binaryPath: cleanText(raw.binaryPath, 1024),
+    configPath: cleanText(raw.configPath, 1024),
+    extraArgs: cleanText(raw.extraArgs, 500),
+    dns: cleanText(raw.dns, 200),
+    proxy: cleanText(raw.proxy, 300),
+    autoConnect: raw.autoConnect === true,
+  };
+}
+
+export function sanitizeEmulator(raw: unknown): EmulatorSettings {
+  const base = DEFAULT_EMULATOR;
+  if (!isRecord(raw)) return { ...base };
+  const scale = Number(raw.scale);
+  return {
+    system: isEmulatorSystem(raw.system) ? raw.system : 'nes',
+    scale: Number.isFinite(scale) ? Math.min(5, Math.max(1, Math.round(scale))) : base.scale,
+    gamepad: raw.gamepad === undefined ? base.gamepad : raw.gamepad === true,
+    crt: raw.crt === undefined ? base.crt : raw.crt === true,
+  };
+}
+
 /** Room identity and relays. Empty lists fall back so Rooms always works. */
 export function sanitizeParty(raw: unknown): PartySettings {
   const base = starterState().settings.party;
@@ -206,9 +310,10 @@ function sanitizeSettings(raw: unknown): Settings {
       : base.language,
     sidebarCollapsed: Boolean(raw.sidebarCollapsed),
     showStatusBar: raw.showStatusBar === undefined ? true : Boolean(raw.showStatusBar),
-    searchEngine: ENGINES.includes(raw.searchEngine as SearchEngine)
-      ? (raw.searchEngine as SearchEngine)
-      : base.searchEngine,
+    searchEngine: isSearchEngine(raw.searchEngine) ? raw.searchEngine : base.searchEngine,
+    searchRegion: isSearchRegion(raw.searchRegion)
+      ? (raw.searchRegion as SearchRegion)
+      : base.searchRegion,
     confirmBeforeDelete: raw.confirmBeforeDelete === undefined ? true : Boolean(raw.confirmBeforeDelete),
     serviceNotifications:
       raw.serviceNotifications === undefined ? true : Boolean(raw.serviceNotifications),
@@ -217,6 +322,10 @@ function sanitizeSettings(raw: unknown): Settings {
     assistant: sanitizeAssistant(raw.assistant),
     chromium: sanitizeChromium(raw.chromium),
     party: sanitizeParty(raw.party),
+    home: sanitizeHome(raw.home),
+    resources: sanitizeResources(raw.resources),
+    vpn: sanitizeVpn(raw.vpn),
+    emulator: sanitizeEmulator(raw.emulator),
   };
 }
 

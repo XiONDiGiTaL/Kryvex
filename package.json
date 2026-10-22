@@ -36,6 +36,7 @@
     "verify:browser": "pnpm build && node scripts/verify-browser-tools.cjs",
     "verify:popups": "pnpm build && node scripts/verify-popup-tabs.cjs",
     "verify:services": "pnpm build && node scripts/verify-service-engine.cjs",
+    "verify:otp": "pnpm build && node scripts/verify-one-time-code.cjs",
     "verify:chromium": "pnpm build && node scripts/verify-chromium-settings.cjs",
     "verify:updater": "pnpm build && node scripts/verify-updater.cjs",
     "verify:self-update": "node scripts/verify-self-update.cjs",

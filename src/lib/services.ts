@@ -3,6 +3,13 @@ import { BRAND_ICONS } from './brand-icons';
 import { DEFAULT_CUSTOM_THEME } from './themes';
 import { DEFAULT_CHROMIUM } from './chromium';
 import { DEFAULT_ICE_SERVERS, DEFAULT_TRACKERS } from './party-rules';
+import {
+  DEFAULT_EMULATOR,
+  DEFAULT_HOME,
+  DEFAULT_RESOURCES,
+  DEFAULT_SEARCH_REGION,
+  DEFAULT_VPN,
+} from './defaults';
 import { normalizeUrl } from './url';
 
 export const CATEGORIES: ReadonlyArray<{ id: ServiceCategory; label: string }> = [
@@ -174,6 +181,7 @@ export function starterState(): PersistedState {
       sidebarCollapsed: false,
       showStatusBar: true,
       searchEngine: 'duckduckgo',
+      searchRegion: DEFAULT_SEARCH_REGION,
       confirmBeforeDelete: true,
       serviceNotifications: true,
       autoCheckUpdates: true,
@@ -187,6 +195,10 @@ export function starterState(): PersistedState {
         iceServers: [...DEFAULT_ICE_SERVERS],
         recentRooms: [],
       },
+      home: { ...DEFAULT_HOME, notes: [] },
+      resources: { ...DEFAULT_RESOURCES },
+      vpn: { ...DEFAULT_VPN },
+      emulator: { ...DEFAULT_EMULATOR },
     },
     recent: [],
     browser: { tabs: [], activeTabId: null },

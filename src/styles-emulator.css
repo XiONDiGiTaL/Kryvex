@@ -1,0 +1,546 @@
+/* -------------------------------------------------------------- emulator --- */
+
+.emulator-head {
+  align-items: flex-end;
+}
+
+.emulator-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.emulator-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--warning) 34%, var(--line));
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--warning) 7%, transparent);
+  color: var(--ink);
+}
+
+.emulator-disclaimer svg {
+  color: var(--warning);
+  flex: none;
+  margin-top: 1px;
+}
+
+.emulator-disclaimer p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.emulator-layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.8fr) minmax(0, 2.2fr) minmax(220px, 0.9fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.emulator-side,
+.emulator-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+
+.emulator-side-label {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
+}
+
+.emulator-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 10px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bg) 42%, transparent);
+  color: var(--ink);
+  text-align: center;
+}
+
+.emulator-slot:hover,
+.emulator-slot.is-over {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.emulator-slot strong {
+  font-size: 11px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+
+.emulator-slot > span:last-child {
+  font-size: 8px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.emulator-slot-mark {
+  display: grid;
+  grid-template-columns: repeat(3, 7px);
+  grid-template-rows: repeat(2, 7px);
+  gap: 3px;
+  padding: 7px;
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+}
+
+.emulator-slot-mark span {
+  background: var(--accent);
+  opacity: 0.55;
+}
+
+.emulator-formats {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+.emulator-system-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 268px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.emulator-system-note {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.emulator-system-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 10px;
+  text-align: left;
+}
+
+.emulator-system-list button .mono {
+  font-size: 8px;
+  color: var(--ink-faint);
+}
+
+.emulator-system-list button.is-active {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: var(--accent-wash);
+  color: var(--ink);
+}
+
+.emulator-bios {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.emulator-bios p {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.emulator-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.emulator-screen-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 2px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+  border-radius: 8px;
+  overflow: hidden;
+  background: #05070a;
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--bg) 62%, transparent),
+    0 20px 54px color-mix(in srgb, var(--bg) 66%, transparent);
+}
+
+.emulator-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.emulator-screen.has-crt .emulator-screen-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 2px,
+    color-mix(in srgb, #000 26%, transparent) 2px 4px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+
+.emulator-idle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 22px;
+  text-align: center;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 2px, rgb(0 0 0 / 0.22) 2px 4px),
+    radial-gradient(circle at 50% 42%, rgb(16 38 31 / 0.9), rgb(5 7 10 / 0.96) 72%);
+  color: #9be9c8;
+}
+
+.emulator-idle .mono {
+  font-size: 8px;
+  letter-spacing: 0.28em;
+  color: #f5d97a;
+}
+
+.emulator-idle strong {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.06em;
+}
+
+.emulator-idle p {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #5e8478;
+}
+
+.emulator-idle.is-error .mono,
+.emulator-idle.is-error strong {
+  color: #fb7185;
+}
+
+.emulator-chooser {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 2px, rgb(0 0 0 / 0.22) 2px 4px),
+    radial-gradient(circle at 50% 42%, rgb(16 38 31 / 0.94), rgb(5 7 10 / 0.98) 72%);
+  color: #9be9c8;
+}
+
+.emulator-chooser > .mono {
+  font-size: 8px;
+  letter-spacing: 0.24em;
+  color: #f5d97a;
+}
+
+.emulator-chooser strong {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.emulator-chooser p {
+  max-width: 44ch;
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #5e8478;
+}
+
+.emulator-chooser-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.emulator-chooser > .link {
+  color: #9be9c8;
+  font-size: 10px;
+}
+
+.emulator-screen-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+
+.emulator-screen-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.emulator-settings .setting-row.compact {
+  align-items: flex-start;
+}
+
+.emulator-settings .setting-row.compact > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emulator-settings .setting-row.compact strong {
+  font-size: 11px;
+}
+
+.emulator-settings .setting-row.compact em {
+  font-style: normal;
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+.emulator-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+
+.emulator-range input {
+  flex: 1;
+}
+
+.emulator-netplay {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.emulator-netplay p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.emulator-netplay input {
+  padding: 6px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.emulator-note {
+  margin: 0;
+  font-size: 8.5px;
+  line-height: 1.6;
+  color: var(--ink-faint);
+}
+
+.emulator-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.emulator-consent svg {
+  color: var(--warning);
+  flex: none;
+  margin-top: 2px;
+}
+
+.emulator-consent p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.emulator-consent p.mono {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 1100px) {
+  .emulator-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .emulator-side,
+  .emulator-settings {
+    order: 2;
+  }
+
+  .emulator-screen {
+    order: 1;
+  }
+}
+
+/* ------------------------------------------------------------------- vpn --- */
+
+.vpn-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.vpn-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.vpn-field input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.vpn-field code.code-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vpn-field em {
+  font-size: 8px;
+  font-style: normal;
+  color: var(--ink-faint);
+}
+
+.vpn-field > .switch {
+  align-self: flex-start;
+}
+
+.vpn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.vpn-actions > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.vpn-state {
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+.vpn-state.is-connected {
+  color: var(--success);
+}
+
+.vpn-state.is-error {
+  color: var(--danger);
+}
+
+.vpn-state.is-connecting {
+  color: var(--warning);
+}
+
+.vpn-log {
+  margin: 10px 0 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: 9px;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  background: var(--bg);
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  white-space: pre-wrap;
+}
+
+@media (max-width: 700px) {
+  .vpn-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* -------------------------------------------------------------- assistant --- */
+
+.assistant-greeting {
+  max-width: 62ch;
+}
+
+.assistant-get-model {
+  margin-top: 6px;
+}
+
+.assistant-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+  border-radius: 999px;
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-size: 10px;
+}
+
+.assistant-search:hover {
+  border-color: var(--accent);
+}

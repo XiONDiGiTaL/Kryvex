@@ -497,7 +497,11 @@ export function Browser({
   }
 
   function go(raw: string) {
-    const url = resolveAddress(raw, state.settings.searchEngine);
+    const url = resolveAddress(
+      raw,
+      state.settings.searchEngine,
+      state.settings.searchRegion,
+    );
     if (!url || url === 'about:blank') return;
     navigateTo(url);
   }

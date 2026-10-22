@@ -124,6 +124,21 @@ describe('makeI18n', () => {
     expect(makeI18n('en').t('THEME WASH')).toBe('THEME WASH');
   });
 
+  it('localizes the reusable one-time-code relay', () => {
+    expect(makeI18n('es').t('Verification code')).toBe('Código de verificación');
+    expect(makeI18n('de').t('Submit code')).toBe('Code senden');
+    expect(makeI18n('fr').t('Sign-in code')).toBe('Code de connexion');
+    expect(
+      makeI18n('de').t(
+        'Enter the {count}-character code from your authenticator app or email.',
+        { count: 6 },
+      ),
+    ).toContain('6-stelligen');
+    expect(
+      makeI18n('fr').t('Code sent to {service}.', { service: 'Discord' }),
+    ).toBe('Code envoyé à Discord.');
+  });
+
   it('localizes the system-language option label', () => {
     const { t } = makeI18n('de');
     expect(languageLabel('system', t)).toMatch(/^Systemsprache \([A-Z]{2}\)$/);

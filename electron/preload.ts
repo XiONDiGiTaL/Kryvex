@@ -264,6 +264,23 @@ const api = {
     ipcRenderer.invoke('kryvex:services:clear-session', partition),
   serviceSetNotifications: (enabled: boolean): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:services:notifications', enabled),
+  serviceSetPolicy: (
+    partition: string,
+    policy: { notifications: boolean; muted: boolean },
+  ): Promise<boolean> => ipcRenderer.invoke('kryvex:services:policy', partition, policy),
+  weatherLookup: (city: string, unit: 'c' | 'f'): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:weather:lookup', city, unit),
+  weatherAt: (latitude: number, longitude: number, unit: 'c' | 'f'): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:weather:at', latitude, longitude, unit),
+  resourcesSample: (services: Array<{ id: string; url: string }>): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:resources:sample', services),
+  vpnStatus: (): Promise<unknown> => ipcRenderer.invoke('kryvex:vpn:status'),
+  vpnConfigure: (settings: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:vpn:configure', settings),
+  vpnChooseBinary: (): Promise<unknown> => ipcRenderer.invoke('kryvex:vpn:choose-binary'),
+  vpnChooseConfig: (): Promise<unknown> => ipcRenderer.invoke('kryvex:vpn:choose-config'),
+  vpnConnect: (): Promise<unknown> => ipcRenderer.invoke('kryvex:vpn:connect'),
+  vpnDisconnect: (): Promise<unknown> => ipcRenderer.invoke('kryvex:vpn:disconnect'),
   assistantProbe: (baseUrl: string): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:assistant:probe', baseUrl),
   assistantChat: (request: unknown): Promise<unknown> =>
