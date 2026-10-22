@@ -161,7 +161,9 @@ artifact yourself or downloaded it from a release you trust.
 
 ## Kryvex Web (non-Electron)
 
-The same renderer also builds as a browser client and an installable PWA:
+The same renderer also builds as a browser client and an installable PWA.
+**[Open Kryvex Web](https://xiondigital.net/Kryvex/)** on a phone or desktop,
+then use **Install app** in Chrome to add it to the home screen.
 
 ```bash
 pnpm build:web

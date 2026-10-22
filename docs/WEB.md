@@ -15,6 +15,31 @@ and screen sharing. In the web client a service opens in its own browser tab;
 the desktop app is still the place for isolated sessions, notifications and
 sign-in popups.
 
+## Live deployment
+
+**[https://xiondigital.net/Kryvex/](https://xiondigital.net/Kryvex/)** is the
+current build, served by GitHub Pages from the `gh-pages` branch of
+`XiONDiGiTaL/Kryvex`. The branch contains only the built `dist-web/` files and a
+`.nojekyll` marker; it is force-pushed from a clean build, so it never carries
+source, secrets or caches.
+
+To publish a new build after changing the client:
+
+```bash
+pnpm build:web
+git worktree add --detach ../Veyra-pages origin/gh-pages
+git -C ../Veyra-pages rm -rf .
+cp -a dist-web/. ../Veyra-pages/
+touch ../Veyra-pages/.nojekyll
+git -C ../Veyra-pages add -A
+git -C ../Veyra-pages commit -m "Publish Kryvex Web"
+git -C ../Veyra-pages push origin HEAD:gh-pages
+```
+
+GitHub Pages serves the site over HTTPS, which is what makes the service worker
+and the install prompt available on a phone. The URL is under the same domain as
+the project's Pages site, so no extra host or DNS record is needed.
+
 ## Build
 
 ```bash
