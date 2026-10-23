@@ -124,10 +124,18 @@ a CI gate instead: `pnpm audit:deps` (`scripts/audit-deps.cjs`), run by both the
 CI and release workflows, executes `pnpm audit` over every scope — Electron is a
 dev dependency but ships as the shell — and fails the build on any high or
 critical advisory. Advisories that cannot be fixed and cannot be reached are
-listed inside the script with the reason they are carried; the run prints each
-exception and warns when one stops matching.
+listed inside the script with the reason they are carried and the date that
+reason must be re-checked by; the run prints each exception with its date and
+warns when one stops matching.
 It fails closed: when the audit cannot run, the build goes red instead of
 quietly passing.
+
+An exception is valid through its `reviewBy` date and lapses the day after: the
+gate then fails before the audit even runs, so a carve-out cannot outlive the
+reasoning behind it and the decision comes up again on a schedule rather than
+when someone remembers. A missing, malformed or impossible date fails the same
+way. Six months is the intended cadence — long enough not to nag, short enough
+that an unpatched advisory is revisited while it still matters.
 
 The gate is narrow by design. It only sees advisories that are already
 published, so a compromised or hijacked package version is still a supply-chain

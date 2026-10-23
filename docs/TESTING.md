@@ -1391,3 +1391,12 @@ exception printed, exit 1 with the exception removed, and exit 1 when `pnpm` is
 not on PATH, so a broken audit cannot report success. CI runs it before
 typecheck, and the release workflow runs it again after install so a tag cut
 days after `main` was last green is checked against the advisories of that day.
+
+Every exception carries a `reviewBy` date and the gate fails once it passes.
+Checked with copies of the script (no `pnpm` on PATH, to prove the policy check
+runs before the audit): `reviewBy` set to the previous day → exit 1,
+`STALE … was due for review on 2026-10-22 and is now 2026-10-23`; `reviewBy`
+deleted → exit 1, "needs a review date"; `2027-02-31` → exit 1 (it is not
+a calendared day, and `Date.parse` alone would have rolled it into March);
+`reviewBy` set to the current UTC day → PASS, so the date is inclusive. The
+shipped exception (`ip`, `2027-04-22`) passes and prints its review date.
