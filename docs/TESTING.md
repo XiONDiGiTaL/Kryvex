@@ -1,4 +1,4 @@
-# Testing record: Kryvex (0.3.0–0.8.0)
+# Testing record: Kryvex (0.3.0–0.8.8)
 
 All results below were produced on 2026-10-19 on Windows with Node 24.19.0,
 pnpm 12.3.4 and Electron 44.2.0. Commands were run from `X:\Veyra`; no test was
