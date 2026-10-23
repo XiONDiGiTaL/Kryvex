@@ -43,6 +43,12 @@ const ALLOWED = [
 
 const REVIEW_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** How many days before a review date the run starts saying so. */
+const WARN_DAYS = 14;
+
+/** Both dates are YYYY-MM-DD at UTC midnight, so days are a clean division. */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 function fail(message) {
   console.error(message);
   process.exit(1);
@@ -64,9 +70,27 @@ function isReviewDate(value) {
 }
 
 /**
+ * Says an exception is about to lapse, on the run rather than only on the day
+ * it turns red. Under Actions the line is also an annotation, so it lands on
+ * the run summary instead of scrolling past in the log.
+ */
+function warnExpiring(message) {
+  if (process.env.GITHUB_ACTIONS === 'true') console.log(`::warning::${message}`);
+  console.warn(`  EXPIRING     ${message}`);
+}
+
+/** "today", "tomorrow" or "in 9 days" — read by whoever has to act on it. */
+function due(days) {
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  return `in ${days} days`;
+}
+
+/**
  * Refuses to run with an exception that is stale, undated or unreadable.
  * Checked before the audit itself so a policy problem fails in a second and
- * never depends on what the registry happens to return.
+ * never depends on what the registry happens to return. One that is still
+ * valid but close to lapsing is warned about without failing the build.
  */
 function checkExceptions() {
   const now = today();
@@ -76,9 +100,20 @@ function checkExceptions() {
     const reviewBy = String(entry.reviewBy || '');
     if (!isReviewDate(reviewBy)) {
       problems.push(`${id} needs a review date: set reviewBy to a real YYYY-MM-DD.`);
-    } else if (reviewBy < now) {
+      continue;
+    }
+    if (reviewBy < now) {
       problems.push(
         `${id} (${entry.module}) was due for review on ${reviewBy} and is now ${now}.`,
+      );
+      continue;
+    }
+    const days = Math.round(
+      (Date.parse(`${reviewBy}T00:00:00Z`) - Date.parse(`${now}T00:00:00Z`)) / DAY_MS,
+    );
+    if (days <= WARN_DAYS) {
+      warnExpiring(
+        `${id} (${entry.module}) review is due ${due(days)}, on ${reviewBy}; re-check it in scripts/audit-deps.cjs before then.`,
       );
     }
   }

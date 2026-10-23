@@ -1400,3 +1400,12 @@ deleted → exit 1, "needs a review date"; `2027-02-31` → exit 1 (it is not
 a calendared day, and `Date.parse` alone would have rolled it into March);
 `reviewBy` set to the current UTC day → PASS, so the date is inclusive. The
 shipped exception (`ip`, `2027-04-22`) passes and prints its review date.
+
+The 14-day warning was checked at the boundary with copies of the script, each
+run with `GITHUB_ACTIONS=true`: `reviewBy` at +0, +1, +13 and +14 days → PASS
+with an `EXPIRING` line and a `::warning::` annotation ("due today", "due
+tomorrow", then "in N days"); +15 and +16 days → PASS with no warning, so the
+boundary is inclusive and silent beyond it. The same +3-day copy run without
+`GITHUB_ACTIONS` prints the `EXPIRING` line with no `::warning::` text, so a
+local run never shows annotation syntax. The shipped exception is 181 days out
+and prints no warning.

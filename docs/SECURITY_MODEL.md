@@ -137,6 +137,12 @@ when someone remembers. A missing, malformed or impossible date fails the same
 way. Six months is the intended cadence — long enough not to nag, short enough
 that an unpatched advisory is revisited while it still matters.
 
+The last 14 days are reported before the date arrives: the run prints an
+`EXPIRING` line with the days left, and under Actions also emits a workflow
+warning annotation so it appears on the run summary rather than only in the log.
+It does not fail the build — the deadline is the failure — so nobody meets the
+expiry for the first time on a red run they did not cause.
+
 The gate is narrow by design. It only sees advisories that are already
 published, so a compromised or hijacked package version is still a supply-chain
 risk it cannot detect.
