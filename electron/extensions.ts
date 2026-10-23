@@ -1,9 +1,9 @@
 import { app, dialog, net, type BrowserWindow, type Session } from 'electron';
-import extract from 'extract-zip';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { isAliveWindow } from './lifecycle';
+import { extractZip } from './zip-extract';
 import type { ExtensionRecord } from './types';
 
 interface StoredExtension {
@@ -265,11 +265,9 @@ class ExtensionManager {
       if (stat.isFile()) {
         fs.mkdirSync(temp, { recursive: true });
         const raw = fs.readFileSync(source);
-        const zipPath = path.join(temp, 'package.zip');
-        fs.writeFileSync(zipPath, lower.endsWith('.crx') ? unwrapCrx(raw) : raw);
         const unpackDir = path.join(temp, 'unpacked');
         fs.mkdirSync(unpackDir, { recursive: true });
-        await extract(zipPath, { dir: unpackDir });
+        extractZip(lower.endsWith('.crx') ? unwrapCrx(raw) : raw, unpackDir);
         extensionRoot = findExtensionRoot(unpackDir) ?? '';
         if (!extensionRoot) throw new Error('No manifest.json was found in the package.');
       } else {

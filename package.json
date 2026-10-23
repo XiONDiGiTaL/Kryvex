@@ -106,7 +106,6 @@
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.20.1",
     "@trystero-p2p/torrent": "0.26.0",
-    "extract-zip": "^2.0.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "webtorrent": "3.0.21"
@@ -116,7 +115,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "electron": "44.2.0",
+    "electron": "44.9.3",
     "electron-builder": "^26.15.3",
     "simple-icons": "^16.35.0",
     "typescript": "^7.0.2",

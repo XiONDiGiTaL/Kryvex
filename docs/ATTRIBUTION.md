@@ -124,8 +124,8 @@ Electron sessions; it does not audit, modify, or redistribute them. Firefox
 
 ## Runtime stack
 
-Electron, Chromium, Node.js, React, Vite, TypeScript, `extract-zip` and the
-transitive npm dependencies retain their own licenses. Their license texts are
+Electron, Chromium, Node.js, React, Vite, TypeScript and the transitive npm
+dependencies retain their own licenses. Their license texts are
 included in the packaged application under `node_modules`.
 
 ## Special Donkey Edition

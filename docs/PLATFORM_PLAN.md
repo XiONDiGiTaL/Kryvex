@@ -162,7 +162,7 @@ The checklist maps to Kryvex like this:
 | Cookie consent banner | Not needed for first-party cookies; the shield already hides many third-party banners. A fake banner would be dark-pattern theatre |
 | Form consents | No forms collect data. The only prompts are media permission and session clearing |
 | No unnecessary data collection | State is a local JSON file plus per-service Chromium partitions |
-| Audit third-party SDKs | Runtime dependencies are Electron, React, Ghostery's blocker, WebTorrent and `extract-zip`; no analytics SDK |
+| Audit third-party SDKs | Runtime dependencies are Electron, React, Ghostery's blocker and WebTorrent; extension packages are unpacked by an in-house reader; no analytics SDK |
 | Remove dark patterns | No fake urgency, no pre-checked marketing, no hidden toggles |
 | Remove hidden fees / fake reviews / unsupported claims | No commerce, no reviews, no benchmark claims |
 | Accessibility: alt text, contrast, keyboard | Icons are decorative or labelled; themes are contrast-checked; every action has a keyboard path |

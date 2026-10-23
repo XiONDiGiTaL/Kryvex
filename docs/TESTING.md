@@ -1334,3 +1334,51 @@ that build with an isolated profile and pressed the real buttons:
 The download landed in the isolated `%APPDATA%\Kryvex\updates` and was removed
 with the profile. Four Kryvex processes the installer relaunched were closed
 afterwards; no Kryvex or setup processes were left running.
+
+## Extension packages: `extract-zip` replaced — 2026-10-22
+
+Two Dependabot advisories landed against `extract-zip` 2.0.1, the direct
+dependency the extension installer used to unpack `.zip`/`.crx` packages, and
+neither has a patched release: GHSA-jmr9-qjv8-65gv (a symlink entry pointing
+outside the destination) and GHSA-7pqw-9j4j-h8q3 (a symlink entry followed by a
+file of the same name, writing through the link). Both need the archive to
+decide where bytes land, so [electron/zip-extract.ts](../electron/zip-extract.ts)
+reads the central directory itself and refuses symlinks, special file types,
+absolute and parent paths, backslash separators, names Windows folds together
+(trailing dot or space, `CON`, `NUL`), duplicate names and file/folder
+collisions before it writes anything; files are created with `wx`, the
+unpacked total is capped at 256 MB, and ZIP64, encryption and every method but
+stored/deflate fail with a message the install dialog can show.
+
+`tests/zip-extract.test.ts` covers 21 cases: intact bytes for stored and
+deflated entries, folder case preserved, the symlink-then-file chain from the
+advisory, ten hostile name shapes, case-folded duplicates, file/folder
+collisions, encryption, unknown methods, ZIP64, size mismatches, a deflate bomb,
+a non-ZIP buffer, an empty archive, an existing file at the target and a
+truncated archive.
+
+Checked against real packages from the Chrome Web Store, comparing every
+extracted file with Python's `zipfile` by SHA-256:
+
+| Package | Bytes | Files | Missing / extra / differing |
+| --- | --- | --- | --- |
+| uBlock Origin Lite 2026.1021.1354 | 9,170,770 | 929 | 0 / 0 / 0 |
+| Dark Reader 4.9.133 | 849,702 | 89 | 0 / 0 / 0 |
+| Bitwarden 2026.10.0 | 24,874,412 | 194 | 0 / 0 / 0 |
+
+The app's own path was then driven end to end with the compiled
+`dist-electron/extensions.js` and a stubbed Electron: `installFromWebStore`
+installed uBlock Origin Lite (2,390 ms), the record appeared under
+`<userData>/extensions/ext-…`, `manifest.json` unpacked, the folder was handed to
+`session.extensions.loadExtension`, and removal deleted it and emptied the
+records. A crafted CRX holding a symlink and a file beneath it was refused with
+"The package contains a symbolic link.", nothing was written for it, and the
+install list stayed unchanged.
+
+Electron moved 44.2.0 → 44.9.3 in the same change, which clears the four
+Electron advisories below 44.5.0. `pnpm audit --prod` afterwards reports one
+high, `ip` (GHSA-2p57-rm9w-gvfp), reached as
+`webtorrent > torrent-discovery > bittorrent-tracker > ip`; there is no patched
+version and `bittorrent-tracker` calls only `ip.toString` from the tracker
+*server* parser, which this app never runs, so the vulnerable `isPublic` path is
+never reached.

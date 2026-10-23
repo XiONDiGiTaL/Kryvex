@@ -8,13 +8,13 @@ vendored or rebranded.
 
 | Layer | Choice |
 | --- | --- |
-| Shell | Electron 44.2.0 (`contextIsolation`, `sandbox`, no Node in renderer) |
+| Shell | Electron 44.9.3 (`contextIsolation`, `sandbox`, no Node in renderer) |
 | Renderer | React 19 + TypeScript 7, bundled by Vite 8 |
 | State | Pure reducer-style helpers in `src/lib/store.ts`, persisted as JSON |
 | Styling | One stylesheet driven by CSS custom properties from `brand/tokens.json` |
 | Tests | Vitest, 219 unit tests over URL, services, catalogue, store, history, downloads and storage location, page zoom, themes, Windows browser registration, torrent rules and queue restore, media permissions, Rooms ids/invites/limits/presence, window-fit rules, Brave-style URL rules, release-version comparison, asset/checksum validation and update-state rules |
 | Shield | `@ghostery/adblocker` over downloaded uBO/EasyList lists, with a combined privacy rewrite pipeline |
-| Extensions | Electron `session.extensions` with a guarded ZIP/CRX/folder installer |
+| Extensions | Electron `session.extensions` with a guarded ZIP/CRX/folder installer (in-house archive reader that refuses links and escaping paths) |
 | Downloads | Chromium `will-download` events, main-process records, user-selected root, safe file lifecycle |
 | Torrents | WebTorrent 3 in the main process, magnet/.torrent input, selected download root, live peer stats, persisted paused queue |
 | Voice/video | Per-session permission broker; explicit microphone/camera prompt for webviews |
