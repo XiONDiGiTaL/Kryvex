@@ -41,6 +41,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # A tag can be cut days after main was last green, so the advisories are
+      # re-checked here rather than trusting the push that produced them.
+      - name: Dependency advisories
+        run: pnpm audit:deps
+
       - run: pnpm typecheck
 
       - run: pnpm test

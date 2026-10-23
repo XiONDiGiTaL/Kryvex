@@ -1389,4 +1389,5 @@ across every scope, fails on high and critical advisories, and carries the `ip`
 advisory above as its only exception. Checked on 2026-10-22 — PASS with the
 exception printed, exit 1 with the exception removed, and exit 1 when `pnpm` is
 not on PATH, so a broken audit cannot report success. CI runs it before
-typecheck.
+typecheck, and the release workflow runs it again after install so a tag cut
+days after `main` was last green is checked against the advisories of that day.

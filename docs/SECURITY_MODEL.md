@@ -120,11 +120,12 @@ switches in Settings. Brave source code is not copied; see
 ## Dependency advisories
 
 Dependabot alerts are disabled on the repository, so the lockfile is checked by
-a CI gate instead: `pnpm audit:deps` (`scripts/audit-deps.cjs`) runs `pnpm audit`
-over every scope — Electron is a dev dependency but ships as the shell — and
-fails the build on any high or critical advisory. Advisories that cannot be
-fixed and cannot be reached are listed inside the script with the reason they
-are carried; the run prints each exception and warns when one stops matching.
+a CI gate instead: `pnpm audit:deps` (`scripts/audit-deps.cjs`), run by both the
+CI and release workflows, executes `pnpm audit` over every scope — Electron is a
+dev dependency but ships as the shell — and fails the build on any high or
+critical advisory. Advisories that cannot be fixed and cannot be reached are
+listed inside the script with the reason they are carried; the run prints each
+exception and warns when one stops matching.
 It fails closed: when the audit cannot run, the build goes red instead of
 quietly passing.
 
