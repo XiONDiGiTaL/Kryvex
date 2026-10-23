@@ -48,18 +48,21 @@ Download the installer, portable build and checksum list from the
 
 ## Artifacts
 
-Built locally before the tag with `electron-builder --publish never
---config.electronDist=node_modules/electron/dist`:
+Built by the tag-triggered workflow (run
+[39938147031](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/39938147031),
+commit `36ed241`) and attached to the published, stable
+[v0.8.8 release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.8):
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.8.8-x64.exe` | 134,326,914 B (128.10 MiB) | `66d7eff545fbeac377dad29874307dcd776c7399e352d46ec423052a710dea98` |
-| `Kryvex-Portable-0.8.8-x64.exe` | 134,089,702 B (127.87 MiB) | `47d6103204d42980558f6e24fd8d2d4e9971e7ebf1688ca6703b34d50c087138` |
+| `Kryvex-Setup-0.8.8-x64.exe` | 134,238,819 B (128.02 MiB) | `c5067eef1d1bd1089f7bc1557a4d3d265a117584623aad61b44e2272cbe379f7` |
+| `Kryvex-Portable-0.8.8-x64.exe` | 134,001,676 B (127.79 MiB) | `c7437db316ea226e9a2fb41714709fda00cce98a29b833c91a7e7a014097d228` |
 
-`SHA256SUMS.txt` carries both digests. The updater ignores a release whose
-installer has no matching entry. Both EXEs are **unsigned**. The tag workflow
-rebuilds the artifacts on GitHub Actions; its published digests are recorded
-after the release run.
+`SHA256SUMS.txt` (189 B) carries both digests. The updater ignores a release
+whose installer has no matching entry. Both EXEs are **unsigned**. Both
+published EXEs were downloaded from `releases/download/v0.8.8/` and
+`sha256sum -c SHA256SUMS.txt` verifies both; each reports `ProductVersion
+0.8.8`.
 
 The packaged tree is about 467 MB, including 44 MB of runtime DLLs. The
 installer wizard reports **Space required: 465.6 MB**.
@@ -97,6 +100,10 @@ installer wizard reports **Space required: 465.6 MB**.
   PASS. The wizard showed four pages, the install page ran for 25,923 ms, the
   installer exited 0, and the installed `C:\Kryvex\Kryvex.exe` reports
   `ProductVersion 0.8.8.0`.
+- **Published artifacts.** The stable v0.8.8 release was published with the
+  Setup, Portable and `SHA256SUMS.txt` assets. Both EXEs were downloaded from
+  `releases/download/v0.8.8/`; `sha256sum -c SHA256SUMS.txt` verifies both, and
+  each reports `ProductVersion 0.8.8`.
 - `node scripts/check-release-record.cjs`: PASS for 0.8.8.
 
 ## Wizard capture

@@ -1665,4 +1665,5 @@ disposable profile.
 | Model run | Qwen2.5-1.5B from `X:\KryvexData\models` started on loopback, `/v1/models` answered, chat returned `{ok: true}`, stop returned `stopped` |
 | Wizard capture | 4 pages, install page 25,923 ms, installer exit 0, installed `C:\Kryvex\Kryvex.exe` reports 0.8.8.0 |
 | `check-release-record.cjs` | PASS |
+| Published artifacts | stable v0.8.8 release; both EXEs downloaded and `sha256sum -c SHA256SUMS.txt` passed; each reports `ProductVersion 0.8.8` |
 | `verify-service-ux.cjs` | PASS on rerun; dock volume and repeat reached the guest page (the first run hit a transient DOM race after the idle transition) |
