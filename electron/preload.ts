@@ -140,7 +140,7 @@ interface PermissionPrompt {
 
 /**
  * The only bridge between the sandboxed renderer and the main process. No
- * filesystem, no shell, no arbitrary IPC — a fixed list of typed operations.
+ * filesystem, no shell, no arbitrary IPC: a fixed list of typed operations.
  * Extension paths and filter-list URLs never cross this bridge.
  */
 const api = {
@@ -263,6 +263,8 @@ const api = {
   },
   serviceClearSession: (partition: string): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:services:clear-session', partition),
+  serviceStop: (partition: string): Promise<number> =>
+    ipcRenderer.invoke('kryvex:services:stop', partition),
   serviceSetNotifications: (enabled: boolean): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:services:notifications', enabled),
   serviceSetPolicy: (
@@ -280,6 +282,12 @@ const api = {
     id: number,
     action: 'play' | 'pause' | 'next' | 'previous',
   ): Promise<boolean> => ipcRenderer.invoke('kryvex:media:control', id, action),
+  mediaSetVolume: (volume: number): Promise<number> =>
+    ipcRenderer.invoke('kryvex:media:volume', volume),
+  mediaSetRepeat: (repeat: boolean): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:media:repeat', repeat),
+  spotifyAdGuard: (enabled: boolean): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:spotify:guard', enabled),
   onMediaChanged: (listener: (event: unknown) => void): (() => void) => {
     const wrapped = (_event: IpcRendererEvent, payload: unknown) => listener(payload);
     ipcRenderer.on('kryvex:media:changed', wrapped);

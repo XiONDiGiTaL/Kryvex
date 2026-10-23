@@ -153,8 +153,8 @@ async function waitFor(evaluate, expression, label) {
 }
 
 function check(name, ok, detail) {
-  if (!ok) throw new Error(`${name}${detail ? ` — ${detail}` : ''}`);
-  console.log(`PASS ${name}${detail ? ` — ${detail}` : ''}`);
+  if (!ok) throw new Error(`${name}${detail ? `: ${detail}` : ''}`);
+  console.log(`PASS ${name}${detail ? `: ${detail}` : ''}`);
 }
 
 async function stop() {

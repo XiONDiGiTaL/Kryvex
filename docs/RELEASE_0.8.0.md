@@ -1,4 +1,4 @@
-# Kryvex 0.8.0 — Windows release
+# Kryvex 0.8.0: Windows release
 
 Published 2026-10-21 from the `v0.8.0` tag (commit `be02c4d`). This release runs a
 GGUF model file you already have, presents a real Chrome identity to embedded
@@ -25,8 +25,8 @@ Download the installer, portable build and checksum list from the
   `getHighEntropyValues` and `Sec-CH-UA` headers on the wire, while farbling
   wrappers keep `Function.prototype.toString` reporting native code.
 - **My filters.** **Settings → Shield → My filters** accepts the uBlock Origin
-  syntax people already paste — `||ads.example.com^`, `example.com##.ad`,
-  `example.com##+js(…)` — and compiles it from the cached lists, so applying
+  syntax people already paste: `||ads.example.com^`, `example.com##.ad`,
+  `example.com##+js(…)`, and compiles it from the cached lists, so applying
   needs no download. Scriptlet rules are behind their own switch, the editor
   imports and exports plain text, and a YouTube preset bundles ad and feed
   blocking for one site only. See [ATTRIBUTION.md](ATTRIBUTION.md) for the
@@ -92,20 +92,20 @@ Run from the 0.8.0 working tree on Windows with Node 24.19.0, Electron 44.2.0
 and pnpm 12.3.4. `pnpm` is not on this shell's PATH, so the same entry points
 were run directly with npm, npx and node.
 
-- `npm run typecheck` — exit 0 for renderer and `electron/`.
-- `npx vitest run` — exit 0, **261/261** tests across 27 files.
-- `npm run build` — exit 0 for the renderer and main process.
-- `node scripts/verify-updater.cjs` — PASS: available release, rejected
+- `npm run typecheck`: exit 0 for renderer and `electron/`.
+- `npx vitest run`: exit 0, **261/261** tests across 27 files.
+- `npm run build`: exit 0 for the renderer and main process.
+- `node scripts/verify-updater.cjs`, PASS: available release, rejected
   checksum, verified download, `ready` UI, source mode refusing to install, a
   missing release reported, and the up-to-date branch rendering the verdict
   with the theme's success colour.
-- `npx electron scripts/verify-local-model.cjs` — PASS: a `.gguf` accepted, a
+- `npx electron scripts/verify-local-model.cjs`, PASS: a `.gguf` accepted, a
   non-GGUF path refused, the stand-in runtime started on loopback,
   `/v1/models` reported it, a reply streamed and the process stopped.
-- `node scripts/verify-service-engine.cjs` — PASS, including the cookie
+- `node scripts/verify-service-engine.cjs`: PASS, including the cookie
   surviving a restart and per-service clearing.
-- `node scripts/verify-restart.cjs` — PASS.
-- `npm run audit:i18n` — clean.
+- `node scripts/verify-restart.cjs`: PASS.
+- `npm run audit:i18n`, clean.
 - **The published artifacts, not just the tree:** the Portable EXE downloaded
   from the release launched in a disposable profile with no feed override,
   reported `mode: portable` and version `0.8.0`, and its launch check against

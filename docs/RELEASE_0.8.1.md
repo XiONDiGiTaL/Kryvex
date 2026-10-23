@@ -1,4 +1,4 @@
-# Kryvex 0.8.1 — Windows patch release
+# Kryvex 0.8.1: Windows patch release
 
 Published 2026-10-21 from the `v0.8.1` tag (commit `374f25e`). This is a
 one-fix patch: 0.7.x and 0.8.0 could show an error dialog when the app closed.
@@ -9,7 +9,7 @@ Download the installer, portable build and checksum list from the
 ## What changed
 
 - **Closing the app no longer raises a main-process error.** Closing 0.7.x or
-  0.8.0 could show **“A JavaScript error occurred in the main process —
+  0.8.0 could show **“A JavaScript error occurred in the main process:
   TypeError: Object has been destroyed”** before the window went away. The
   Rooms broker released its shell reference by comparing against
   `win.webContents` inside a `BrowserWindow` `closed` listener; the window is
@@ -61,13 +61,13 @@ The Portable EXE runs without installation. Its state still lives in
 
 ## Verification performed
 
-- `npm run typecheck` — exit 0 for renderer and `electron/`.
-- `npx vitest run` — exit 0, **261/261** tests across 27 files.
-- `npm run build` — exit 0.
-- `node scripts/verify-party-close.cjs` — PASS on the fixed handler, and FAIL
+- `npm run typecheck`: exit 0 for renderer and `electron/`.
+- `npx vitest run`: exit 0, **261/261** tests across 27 files.
+- `npm run build`: exit 0.
+- `node scripts/verify-party-close.cjs`: PASS on the fixed handler, and FAIL
   with `Object has been destroyed` when the old line was put back, so the guard
   was checked in both directions.
-- `node scripts/verify-updater.cjs` — PASS, including the up-to-date branch.
+- `node scripts/verify-updater.cjs`: PASS, including the up-to-date branch.
 - Published artifacts: the Setup and Portable EXEs hash to the entries in
   `SHA256SUMS.txt` and report `ProductVersion 0.8.1`.
 - The downloaded Portable EXE launched in a disposable profile with no feed

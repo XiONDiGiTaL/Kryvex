@@ -231,7 +231,7 @@ function record(where, detail) {
 
 (async () => {
   try {
-    // Phase 1 — every view at every size.
+    // Phase 1: every view at every size.
     const profileA = path.join(root, '.tmp-layout-a');
     const userDataA = seedProfile(profileA, { fresh: false });
     launch(profileA, PORT + 1);
@@ -261,7 +261,7 @@ function record(where, detail) {
     }
     cdpA.close();
 
-    // Phase 2 — the first-run sheet on a fresh profile.
+    // Phase 2: the first-run sheet on a fresh profile.
     const profileB = path.join(root, '.tmp-layout-b');
     seedProfile(profileB, { fresh: true });
     launch(profileB, PORT + 2);
@@ -293,7 +293,7 @@ function record(where, detail) {
       for (const failure of failures) console.error(`  ${failure}`);
       process.exitCode = 1;
     } else {
-      console.log('layout harness: PASS — no clipped content, no horizontal overflow');
+      console.log('layout harness: PASS, no clipped content, no horizontal overflow');
     }
   } catch (error) {
     console.error('layout harness: FAIL', error.stack || error);

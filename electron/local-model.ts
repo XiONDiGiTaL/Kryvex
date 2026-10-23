@@ -16,6 +16,7 @@ import {
   isScriptRuntime,
   logText,
   modelName,
+  runtimeDirs,
   serverBaseUrl,
   tailLog,
 } from './local-model-rules';
@@ -46,6 +47,28 @@ const DEFAULT_CONFIG: LocalModelConfig = {
 
 const STOP_GRACE_MS = 4_000;
 const HEALTH_TIMEOUT_MS = 2_000;
+
+interface RuntimeChoice {
+  binary: string;
+  bundled: boolean;
+  version: string;
+}
+
+/**
+ * Reads the release tag beside a bundled executable. A runtime the user chose
+ * or dropped into app data has no sidecar, so it is reported without a version
+ * rather than borrowing the bundled one.
+ */
+function bundledRuntimeVersion(binary: string): string {
+  try {
+    const raw = JSON.parse(
+      fs.readFileSync(path.join(path.dirname(binary), 'runtime.json'), 'utf8'),
+    ) as { release?: unknown };
+    return typeof raw.release === 'string' && /^b\d+$/.test(raw.release) ? raw.release : '';
+  } catch {
+    return '';
+  }
+}
 
 function configPath(): string {
   return path.join(app.getPath('userData'), 'kryvex-local-model.json');
@@ -112,15 +135,17 @@ class LocalModel {
   }
 
   status(): LocalModelStatus {
-    const binary = this.binaryPath();
+    const runtime = this.binaryPath();
     return {
       phase: this.phase,
       path: this.config.path,
       name: this.config.path ? modelName(this.config.path) : '',
       baseUrl: this.port ? serverBaseUrl(this.port) : '',
       port: this.port,
-      binary,
-      binaryFound: Boolean(binary && fs.existsSync(binary)),
+      binary: runtime.binary,
+      binaryFound: Boolean(runtime.binary && fs.existsSync(runtime.binary)),
+      bundled: runtime.bundled,
+      runtimeVersion: runtime.version,
       pid: this.child?.pid ?? null,
       startedAt: this.startedAt,
       ctxSize: this.config.ctxSize,
@@ -130,19 +155,43 @@ class LocalModel {
     };
   }
 
-  /** The runtime the app would launch: the user's choice, then bundled, then PATH. */
-  private binaryPath(): string {
-    if (this.config.binary && fs.existsSync(this.config.binary)) return this.config.binary;
-    const dirs = [path.join(app.getPath('userData'), 'bin')];
+  /**
+   * The runtime the app would launch: the user's choice, a binary dropped into
+   * app data, the runtime shipped in the installer, then a development checkout,
+   * and finally PATH.
+   */
+  private binaryPath(): RuntimeChoice {
+    if (this.config.binary && fs.existsSync(this.config.binary)) {
+      return { binary: path.normalize(this.config.binary), bundled: false, version: '' };
+    }
+    let resourcesDir: string | undefined;
     try {
-      dirs.push(path.join(process.resourcesPath, 'bin'));
+      resourcesDir = path.join(process.resourcesPath, 'bin');
     } catch {
       /* development runs have no resources path */
     }
-    for (const candidate of binaryCandidates(process.platform, dirs)) {
-      if (fs.existsSync(candidate)) return candidate;
+    const locations = runtimeDirs({
+      userDataDir: path.join(app.getPath('userData'), 'bin'),
+      resourcesDir,
+      appDir: app.getAppPath(),
+      packaged: app.isPackaged,
+    });
+    for (const location of locations) {
+      for (const candidate of binaryCandidates(process.platform, [location.dir])) {
+        if (fs.existsSync(candidate)) {
+          return {
+            binary: path.normalize(candidate),
+            bundled: location.bundled,
+            version: location.bundled ? bundledRuntimeVersion(candidate) : '',
+          };
+        }
+      }
     }
-    return process.platform === 'win32' ? 'llama-server.exe' : 'llama-server';
+    return {
+      binary: process.platform === 'win32' ? 'llama-server.exe' : 'llama-server',
+      bundled: false,
+      version: '',
+    };
   }
 
   /** Keeps the path, context or GPU choice the user last set. */
@@ -246,7 +295,7 @@ class LocalModel {
       this.error = 'No free loopback port was available.';
       return this.status();
     }
-    const binary = this.binaryPath();
+    const { binary } = this.binaryPath();
     const args = buildServerArgs({
       modelPath: this.config.path,
       port,

@@ -1,4 +1,4 @@
-# Lexium — x530
+# Lexium: x530
 
 Lexium is Kryvex's in-house language tool, opened from **Services → Secret
 services**. It is a real client for engines you run, not a wrapper around an AI
@@ -116,18 +116,18 @@ usually enough; a fully offline machine cannot run the reader.
 | Audio file | 150 MB, any decodable format |
 | Image file | 20 MB, PNG/JPEG/WebP/BMP/GIF |
 | Translation text | 20,000 characters |
-| Transcript history | None — the transcript lives in the page until you leave it |
+| Transcript history | None: the transcript lives in the page until you leave it |
 
-- **No answer / offline** — the engine is not running, the address is wrong, or
+- **No answer / offline**: the engine is not running, the address is wrong, or
   a browser blocked the request. A page served over **HTTPS cannot call a plain
   `http://` engine on your LAN**; only `http://localhost` is exempt. Run the
   client locally, put the engine behind HTTPS, or use a tunnel.
-- **HTTP 4xx/5xx** — the server answered but rejected the request. Check the
+- **HTTP 4xx/5xx**: the server answered but rejected the request. Check the
   engine path (`/transcribe`, `/inference`, `/v1/audio/transcriptions`) and the
   model name.
-- **Empty transcript** — the engine heard nothing usable. Check the language
+- **Empty transcript**: the engine heard nothing usable. Check the language
   setting and whether the recording actually has speech.
-- **Decode error** — the file is DRM-protected or uses a codec this Chromium
+- **Decode error**: the file is DRM-protected or uses a codec this Chromium
   build cannot decode. Export it as WAV or MP3 and retry.
 
 ## Privacy

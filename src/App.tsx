@@ -816,6 +816,58 @@ export default function App() {
   // Media state is pushed from the main process, so this costs nothing until a
   // service page actually plays something.
   const serviceMedia = useServiceMedia(isElectron);
+  const { setVolume: setServiceVolume, setRepeat: setServiceRepeat } = serviceMedia;
+
+  // Page media is a different engine from the local player, so its saved
+  // volume and loop are pushed to the main process whenever they change. The
+  // main process keeps them for guests that load later in this session.
+  useEffect(() => {
+    setServiceVolume(state.settings.player.serviceVolume);
+  }, [setServiceVolume, state.settings.player.serviceVolume]);
+
+  useEffect(() => {
+    setServiceRepeat(state.settings.player.serviceRepeat);
+  }, [setServiceRepeat, state.settings.player.serviceRepeat]);
+
+  // Spotify's ad guard is a main-process poll over service guests, so the
+  // saved switch is sent once per change and once at launch. Off is also sent,
+  // which stops any timer a previous toggle started.
+  useEffect(() => {
+    if (!isElectron) return;
+    void window.kryvex
+      ?.spotifyAdGuard(state.settings.player.spotifyAdGuard)
+      .catch(() => undefined);
+  }, [isElectron, state.settings.player.spotifyAdGuard]);
+
+  /**
+   * Force-closes one module. The main process ends its guests first, because a
+   * wedged renderer can outlive the React tree; removing the id afterwards
+   * drops the frame instead of leaving a dead surface behind.
+   */
+  const stopService = useCallback(
+    (service: Service) => {
+      void (async () => {
+        const stopped = await window.kryvex
+          ?.serviceStop(partitionFor(service.id))
+          .catch(() => 0);
+        setOpenIds(current => current.filter(id => id !== service.id));
+        setUnread(current => {
+          if (!(service.id in current)) return current;
+          const next = { ...current };
+          delete next[service.id];
+          return next;
+        });
+        if (route.serviceId === service.id) navigate('services');
+        pushToast(
+          stopped
+            ? t('{name} was force-closed.', { name: service.name })
+            : t('{name} is not running.', { name: service.name }),
+          'warning',
+        );
+      })();
+    },
+    [navigate, pushToast, route.serviceId, t],
+  );
 
   // Update state lives in the main process; the shell only renders it and
   // forwards explicit user actions. Announce a new version once per session.
@@ -1153,6 +1205,16 @@ export default function App() {
           media={serviceMedia.entries}
           onOpenMediaService={openService}
           onMediaControl={serviceMedia.control}
+          mediaVolume={state.settings.player.serviceVolume}
+          mediaRepeat={state.settings.player.serviceRepeat}
+          onMediaVolume={value => {
+            updatePlayer({ serviceVolume: value });
+            serviceMedia.setVolume(value);
+          }}
+          onMediaRepeat={repeat => {
+            updatePlayer({ serviceRepeat: repeat });
+            serviceMedia.setRepeat(repeat);
+          }}
         />
       ) : null}
 
@@ -1278,6 +1340,7 @@ export default function App() {
           snapshot={resources}
           services={state.services}
           isElectron={isElectron}
+          onStopService={stopService}
           onClose={() => setResourcesOpen(false)}
           onOpenSettings={() => {
             setResourcesOpen(false);
@@ -1295,6 +1358,16 @@ export default function App() {
           services={state.services}
           onOpenService={openService}
           onControl={serviceMedia.control}
+          volume={state.settings.player.serviceVolume}
+          repeat={state.settings.player.serviceRepeat}
+          onVolume={value => {
+            updatePlayer({ serviceVolume: value });
+            serviceMedia.setVolume(value);
+          }}
+          onRepeat={repeat => {
+            updatePlayer({ serviceRepeat: repeat });
+            serviceMedia.setRepeat(repeat);
+          }}
         />
       ) : null}
 

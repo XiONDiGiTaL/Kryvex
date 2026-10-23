@@ -115,7 +115,7 @@ export function Services({
           body={
             state.services.length === 0
               ? t(
-                  'Add a web app by URL — it gets its own persistent, isolated session and a permanent home here.',
+                  'Add a web app by URL: it gets its own persistent, isolated session and a permanent home here.',
                 )
               : t('Try another search term or switch back to the All filter.')
           }
@@ -233,7 +233,7 @@ export function Services({
               <strong>{t('Lexium')}</strong>
               <span>
                 {t(
-                  'Transcribe recordings, translate chats both ways and read text out of photos — on servers you choose.',
+                  'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.',
                 )}
               </span>
             </span>

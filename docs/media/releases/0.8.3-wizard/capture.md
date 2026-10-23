@@ -1,4 +1,4 @@
-# Wizard capture — Kryvex 0.8.3
+# Wizard capture: Kryvex 0.8.3
 
 Recorded 2026-10-21T11:00:05.224Z by `pnpm verify:self-update --wizard --archive`.
 
@@ -24,12 +24,12 @@ was alive.
 
 ## Checks from the run
 
-- PASS the live feed reports the installed version — up to date
-- PASS the installer used for the wizard run matches the published checksum — Kryvex-Setup-0.8.3-x64.exe 120292667 B
-- PASS the wizard showed more than one page — 4 pages: Choose Installation Options → Choose Install Location → Installing → Completing Kryvex Setup
-- PASS the installer exited 0 — exit code 0
-- PASS the wizard opened an install progress page — "Installing"
-- PASS the install page ran instead of being skipped — 20323 ms between "Installing" and "Completing Kryvex Setup"
-- PASS the wizard reached its finish page — "Completing Kryvex Setup"
-- PASS every page was photographed — 4/4 pages
-- PASS the binary still reports the installer version — 0.8.3.0
+- PASS the live feed reports the installed version: up to date
+- PASS the installer used for the wizard run matches the published checksum: Kryvex-Setup-0.8.3-x64.exe 120292667 B
+- PASS the wizard showed more than one page, 4 pages: Choose Installation Options → Choose Install Location → Installing → Completing Kryvex Setup
+- PASS the installer exited 0: exit code 0
+- PASS the wizard opened an install progress page: "Installing"
+- PASS the install page ran instead of being skipped: 20323 ms between "Installing" and "Completing Kryvex Setup"
+- PASS the wizard reached its finish page: "Completing Kryvex Setup"
+- PASS every page was photographed: 4/4 pages
+- PASS the binary still reports the installer version: 0.8.3.0

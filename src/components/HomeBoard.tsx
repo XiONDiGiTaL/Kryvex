@@ -1,6 +1,27 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import type { HomeSettings, WeatherResult } from '../types';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from 'react';
+import type {
+  HomeSettings,
+  HomeWidgetArea,
+  HomeWidgetId,
+  WeatherResult,
+} from '../types';
 import { useI18n } from '../lib/i18n';
+import {
+  HOME_WIDGETS,
+  HOME_WIDGET_FLAGS,
+  HOME_WIDGET_LABELS,
+  moveWidgetWithinArea,
+  nextWidgetArea,
+  widgetEnabled,
+  widgetsInArea,
+} from '../lib/home-widgets';
 import {
   formatTemperature,
   weatherKind,
@@ -191,10 +212,39 @@ export function HomeBoard({
     }
   }
 
+  function toggleWidget(id: HomeWidgetId) {
+    const flag = HOME_WIDGET_FLAGS[id];
+    onUpdate({ [flag]: !home[flag] } as Partial<HomeSettings>);
+  }
+
+  function moveWidget(id: HomeWidgetId, delta: -1 | 1) {
+    const area = home.widgetAreas[id];
+    onUpdate({
+      widgetOrder: moveWidgetWithinArea(home.widgetOrder, home.widgetAreas, area, id, delta),
+    });
+  }
+
+  function setWidgetArea(id: HomeWidgetId, area: HomeWidgetArea) {
+    onUpdate({ widgetAreas: { ...home.widgetAreas, [id]: area } });
+  }
+
   const kind = weather?.current ? weatherKind(weather.current.code) : 'cloud';
   const openNotes = useMemo(() => home.notes.filter(note => !note.done).length, [home.notes]);
   const clock = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   const date = now.toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' });
+
+  const columns: Record<HomeWidgetArea, HomeWidgetId[]> = {
+    main: widgetsInArea(home.widgetOrder, home.widgetAreas, 'main'),
+    side: widgetsInArea(home.widgetOrder, home.widgetAreas, 'side'),
+  };
+
+  /**
+   * A hidden widget stays out of the layout, with one exception: the wellness
+   * card is also the body of its details dialog, so an open dialog keeps it
+   * mounted even while the widget itself is switched off.
+   */
+  const shows = (id: HomeWidgetId) =>
+    widgetEnabled(home, id) || (id === 'wellness' && wellnessOpen);
 
   function addNote(event: FormEvent) {
     event.preventDefault();
@@ -209,8 +259,210 @@ export function HomeBoard({
     setNoteDraft('');
   }
 
+  function renderWidget(id: HomeWidgetId) {
+    if (id === 'weather') {
+      return (
+        <div className="home-weather">
+          <button
+            className={`home-weather-glyph ${weatherBusy ? 'is-busy' : ''}`}
+            onClick={() => void fetchAtPoint()}
+            disabled={weatherBusy || home.latitude === null}
+            title={t('Refresh conditions')}
+            aria-label={t('Refresh weather')}
+          >
+            <WeatherGlyph kind={kind} isDay={weather?.current?.isDay ?? true} size={46} />
+          </button>
+          <div className="home-weather-copy">
+            <div className="home-weather-line">
+              {weather?.current ? (
+                <>
+                  <strong className="home-temp">{formatTemperature(weather.current.temperature, home.unit)}</strong>
+                  <span>{t(weatherLabel(weather.current.code))}</span>
+                </>
+              ) : (
+                <strong className="home-temp">{weatherBusy ? '··' : 'n/a'}</strong>
+              )}
+              <div className="home-unit" role="group" aria-label={t('Temperature unit')}>
+                {(['c', 'f'] as const).map(unit => (
+                  <button
+                    key={unit}
+                    className={home.unit === unit ? 'is-active' : ''}
+                    aria-pressed={home.unit === unit}
+                    onClick={() => void changeUnit(unit)}
+                  >
+                    °{unit.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <span className="mono home-weather-place">
+              {weather?.ok
+                ? [weather.place, weather.country].filter(Boolean).join(', ') || home.place || t('Local conditions')
+                : home.place || t('Set a city for local conditions')}
+            </span>
+            {weather?.current ? (
+              <span className="mono home-weather-detail">
+                {t('Feels {temp}', {
+                  temp: formatTemperature(weather.current.apparent, home.unit),
+                })}
+                {' · '}
+                {t('Wind {wind}', { wind: windLabel(weather.current.wind, home.unit) })}
+                {' · '}
+                {t('Humidity {value}%', { value: weather.current.humidity })}
+              </span>
+            ) : weatherError ? (
+              <span className="home-weather-detail is-error">
+                {weatherError === 'offline'
+                  ? t('Weather is unreachable right now.')
+                  : weatherError === 'not-found'
+                    ? t('That city could not be found.')
+                    : t('Weather is unavailable right now.')}
+              </span>
+            ) : null}
+          </div>
+          <form className="home-weather-form" onSubmit={event => void lookUpCity(event)}>
+            <input
+              value={cityDraft}
+              onChange={event => setCityDraft(event.target.value)}
+              placeholder={t('City or town')}
+              aria-label={t('City for weather')}
+              maxLength={80}
+            />
+            <button type="submit" className="btn secondary small" disabled={weatherBusy || !cityDraft.trim()}>
+              {weatherBusy ? t('Checking…') : t('Update')}
+            </button>
+          </form>
+          <span className="mono home-weather-credit">
+            {t('Conditions by Open-Meteo · only the place you choose leaves this device')}
+          </span>
+        </div>
+      );
+    }
+
+    if (id === 'wellness') {
+      return (
+        <WellnessBoard
+          home={home}
+          open={wellnessOpen}
+          onOpen={() => setWellnessOpen(true)}
+          onClose={() => setWellnessOpen(false)}
+          onUpdate={onUpdate}
+        />
+      );
+    }
+
+    if (id === 'notes') {
+      return (
+        <div className="home-tasks">
+          <div className="home-tasks-head">
+            <span className="mono">{t('STICKY NOTES')}</span>
+            <span className="mono">{t('{count} OPEN', { count: openNotes })}</span>
+          </div>
+          {home.notes.length === 0 ? (
+            <p className="home-tasks-empty">{t('Pin a reminder for today. It stays on this machine.')}</p>
+          ) : (
+            <ul className="home-task-list">
+              {home.notes.map(note => (
+                <li key={note.id} className={note.done ? 'is-done' : ''}>
+                  <button
+                    className="home-task-check"
+                    aria-label={note.done ? t('Mark “{text}” open', { text: note.text }) : t('Mark “{text}” done', { text: note.text })}
+                    aria-pressed={note.done}
+                    onClick={() =>
+                      onUpdate({
+                        notes: home.notes.map(item =>
+                          item.id === note.id ? { ...item, done: !item.done } : item,
+                        ),
+                      })
+                    }
+                  >
+                    {note.done ? <Icon name="check" size={11} /> : null}
+                  </button>
+                  <span>{note.text}</span>
+                  <button
+                    className="home-task-remove"
+                    aria-label={t('Remove “{text}”', { text: note.text })}
+                    onClick={() => onUpdate({ notes: home.notes.filter(item => item.id !== note.id) })}
+                  >
+                    <Icon name="close" size={11} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form className="home-task-form" onSubmit={addNote}>
+            <input
+              value={noteDraft}
+              onChange={event => setNoteDraft(event.target.value)}
+              placeholder={t('New task')}
+              aria-label={t('New task')}
+              maxLength={160}
+            />
+            <button type="submit" className="icon-btn" disabled={!noteDraft.trim()} aria-label={t('Add task')}>
+              <Icon name="plus" size={14} />
+            </button>
+          </form>
+        </div>
+      );
+    }
+
+    return (
+      <aside className="home-guide">
+        <button
+          className="home-guide-head"
+          onClick={() => {
+            setGuideOpen(value => !value);
+            if (!home.guideSeen) onUpdate({ guideSeen: true });
+          }}
+          aria-expanded={guideOpen}
+        >
+          <span className="mono">{t('BOARD GUIDE')}</span>
+          <span className="home-guide-title">{t('A calmer home, built into the shell')}</span>
+          <Icon name="chevron" size={14} className={guideOpen ? 'flip-y' : ''} />
+        </button>
+        {guideOpen ? (
+          <div className="home-guide-body">
+            <p>
+              {t(
+                'This board is native to Kryvex: a clock and greeting, local weather, sticky tasks and a short guide to how the surface fits together. There is no extension, account or new-tab takeover.',
+              )}
+            </p>
+            <p>
+              {t(
+                'It draws over your active theme with a translucent pane, so the workspace still looks like Kryvex rather than a page pasted on top of it.',
+              )}
+            </p>
+            <ul>
+              <li>{t('The clock and greeting follow your system language and time.')}</li>
+              <li>{t('Weather is keyless Open-Meteo data for the place you choose, cached for ten minutes.')}</li>
+              <li>{t('Sticky notes are local state, written to the same JSON file as everything else.')}</li>
+              <li>{t('Widgets shows, hides and moves each card; the note button beside the heart opens sticky notes.')}</li>
+            </ul>
+            <div className="home-guide-actions">
+              <button className="link" onClick={onOpenSettings}>
+                {t('Board settings')} <Icon name="chevron" size={12} />
+              </button>
+              <button
+                className="link"
+                onClick={() => {
+                  setGuideOpen(false);
+                  onUpdate({ guideSeen: true });
+                }}
+              >
+                {t('Got it')}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </aside>
+    );
+  }
+
   return (
-    <section className="home-board" aria-label={t('Home board')}>
+    <section
+      className={`home-board ${columns.side.some(shows) ? '' : 'is-single'}`}
+      aria-label={t('Home board')}
+    >
       <div className="home-board-glow" aria-hidden="true" />
 
       <div className="home-board-main">
@@ -231,6 +483,15 @@ export function HomeBoard({
               <Icon name="heart" size={14} />
             </button>
             <button
+              className={`home-heart home-notes ${home.showTasks ? 'is-on' : ''}`}
+              onClick={() => toggleWidget('notes')}
+              aria-pressed={home.showTasks}
+              title={home.showTasks ? t('Hide sticky notes') : t('Show sticky notes')}
+              aria-label={home.showTasks ? t('Hide sticky notes') : t('Show sticky notes')}
+            >
+              <Icon name="note" size={14} />
+            </button>
+            <button
               className="home-customize"
               onClick={() => setCustomizing(value => !value)}
               aria-expanded={customizing}
@@ -244,217 +505,83 @@ export function HomeBoard({
 
         {customizing ? (
           <div className="home-widget-picker" role="group" aria-label={t('Home widgets')}>
-            {(
-              [
-                ['showWeather', 'Weather'],
-                ['showTasks', 'Tasks'],
-                ['showWellness', 'Wellness'],
-                ['showGuide', 'Board guide'],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                className={`chip-btn ${home[key] ? 'is-active' : ''}`}
-                aria-pressed={home[key]}
-                onClick={() => onUpdate({ [key]: !home[key] } as Partial<HomeSettings>)}
-              >
-                {t(label)}
-              </button>
-            ))}
+            <span className="mono home-widget-hint">
+              {t('The number is the order. Arrows move a card in its column, and Main or Side moves it across.')}
+            </span>
+            {HOME_WIDGETS.map(id => {
+              const area = home.widgetAreas[id];
+              const list = columns[area];
+              const index = list.indexOf(id);
+              const enabled = widgetEnabled(home, id);
+              const label = t(HOME_WIDGET_LABELS[id]);
+              return (
+                <div key={id} className={`home-widget-row ${enabled ? 'is-on' : ''}`}>
+                  <span className="mono home-widget-index" aria-hidden="true">
+                    {!enabled || index < 0 ? '·' : index + 1}
+                  </span>
+                  <button
+                    className={`chip-btn home-widget-name ${enabled ? 'is-active' : ''}`}
+                    aria-pressed={enabled}
+                    onClick={() => toggleWidget(id)}
+                  >
+                    {label}
+                  </button>
+                  <div className="home-widget-actions">
+                    <button
+                      className="icon-btn"
+                      disabled={index <= 0}
+                      onClick={() => moveWidget(id, -1)}
+                      aria-label={t('Move {name} up', { name: label })}
+                      title={t('Move {name} up', { name: label })}
+                    >
+                      <Icon name="chevron" size={11} className="flip-y" />
+                    </button>
+                    <button
+                      className="icon-btn"
+                      disabled={index < 0 || index >= list.length - 1}
+                      onClick={() => moveWidget(id, 1)}
+                      aria-label={t('Move {name} down', { name: label })}
+                      title={t('Move {name} down', { name: label })}
+                    >
+                      <Icon name="chevron" size={11} />
+                    </button>
+                    <button
+                      className="chip-btn home-widget-area"
+                      onClick={() => setWidgetArea(id, nextWidgetArea(area))}
+                      aria-label={
+                        area === 'main'
+                          ? t('Move {name} to the side column', { name: label })
+                          : t('Move {name} to the main column', { name: label })
+                      }
+                      title={
+                        area === 'main'
+                          ? t('Move {name} to the side column', { name: label })
+                          : t('Move {name} to the main column', { name: label })
+                      }
+                    >
+                      {area === 'main' ? t('Main') : t('Side')}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
             <button className="link" onClick={onOpenSettings}>
               {t('More settings')} <Icon name="chevron" size={12} />
             </button>
           </div>
         ) : null}
 
-        {home.showWeather ? (
-          <div className="home-weather">
-            <button
-              className={`home-weather-glyph ${weatherBusy ? 'is-busy' : ''}`}
-              onClick={() => void fetchAtPoint()}
-              disabled={weatherBusy || home.latitude === null}
-              title={t('Refresh conditions')}
-              aria-label={t('Refresh weather')}
-            >
-              <WeatherGlyph kind={kind} isDay={weather?.current?.isDay ?? true} size={46} />
-            </button>
-            <div className="home-weather-copy">
-              <div className="home-weather-line">
-                {weather?.current ? (
-                  <>
-                    <strong className="home-temp">{formatTemperature(weather.current.temperature, home.unit)}</strong>
-                    <span>{t(weatherLabel(weather.current.code))}</span>
-                  </>
-                ) : (
-                  <strong className="home-temp">{weatherBusy ? '··' : '—'}</strong>
-                )}
-                <div className="home-unit" role="group" aria-label={t('Temperature unit')}>
-                  {(['c', 'f'] as const).map(unit => (
-                    <button
-                      key={unit}
-                      className={home.unit === unit ? 'is-active' : ''}
-                      aria-pressed={home.unit === unit}
-                      onClick={() => void changeUnit(unit)}
-                    >
-                      °{unit.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <span className="mono home-weather-place">
-                {weather?.ok
-                  ? [weather.place, weather.country].filter(Boolean).join(', ') || home.place || t('Local conditions')
-                  : home.place || t('Set a city for local conditions')}
-              </span>
-              {weather?.current ? (
-                <span className="mono home-weather-detail">
-                  {t('Feels {temp}', {
-                    temp: formatTemperature(weather.current.apparent, home.unit),
-                  })}
-                  {' · '}
-                  {t('Wind {wind}', { wind: windLabel(weather.current.wind, home.unit) })}
-                  {' · '}
-                  {t('Humidity {value}%', { value: weather.current.humidity })}
-                </span>
-              ) : weatherError ? (
-                <span className="home-weather-detail is-error">
-                  {weatherError === 'offline'
-                    ? t('Weather is unreachable right now.')
-                    : weatherError === 'not-found'
-                      ? t('That city could not be found.')
-                      : t('Weather is unavailable right now.')}
-                </span>
-              ) : null}
-            </div>
-            <form className="home-weather-form" onSubmit={event => void lookUpCity(event)}>
-              <input
-                value={cityDraft}
-                onChange={event => setCityDraft(event.target.value)}
-                placeholder={t('City or town')}
-                aria-label={t('City for weather')}
-                maxLength={80}
-              />
-              <button type="submit" className="btn secondary small" disabled={weatherBusy || !cityDraft.trim()}>
-                {weatherBusy ? t('Checking…') : t('Update')}
-              </button>
-            </form>
-            <span className="mono home-weather-credit">
-              {t('Conditions by Open-Meteo · only the place you choose leaves this device')}
-            </span>
-          </div>
-        ) : null}
-
-        <WellnessBoard
-          home={home}
-          open={wellnessOpen}
-          onOpen={() => setWellnessOpen(true)}
-          onClose={() => setWellnessOpen(false)}
-          onUpdate={onUpdate}
-        />
-
-        {home.showTasks ? (
-          <div className="home-tasks">
-            <div className="home-tasks-head">
-              <span className="mono">{t('STICKY NOTES')}</span>
-              <span className="mono">{t('{count} OPEN', { count: openNotes })}</span>
-            </div>
-            {home.notes.length === 0 ? (
-              <p className="home-tasks-empty">{t('Pin a reminder for today. It stays on this machine.')}</p>
-            ) : (
-              <ul className="home-task-list">
-                {home.notes.map(note => (
-                  <li key={note.id} className={note.done ? 'is-done' : ''}>
-                    <button
-                      className="home-task-check"
-                      aria-label={note.done ? t('Mark “{text}” open', { text: note.text }) : t('Mark “{text}” done', { text: note.text })}
-                      aria-pressed={note.done}
-                      onClick={() =>
-                        onUpdate({
-                          notes: home.notes.map(item =>
-                            item.id === note.id ? { ...item, done: !item.done } : item,
-                          ),
-                        })
-                      }
-                    >
-                      {note.done ? <Icon name="check" size={11} /> : null}
-                    </button>
-                    <span>{note.text}</span>
-                    <button
-                      className="home-task-remove"
-                      aria-label={t('Remove “{text}”', { text: note.text })}
-                      onClick={() => onUpdate({ notes: home.notes.filter(item => item.id !== note.id) })}
-                    >
-                      <Icon name="close" size={11} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <form className="home-task-form" onSubmit={addNote}>
-              <input
-                value={noteDraft}
-                onChange={event => setNoteDraft(event.target.value)}
-                placeholder={t('New task')}
-                aria-label={t('New task')}
-                maxLength={160}
-              />
-              <button type="submit" className="icon-btn" disabled={!noteDraft.trim()} aria-label={t('Add task')}>
-                <Icon name="plus" size={14} />
-              </button>
-            </form>
-          </div>
-        ) : null}
+        {columns.main.filter(shows).map(id => (
+          <Fragment key={id}>{renderWidget(id)}</Fragment>
+        ))}
       </div>
 
-      {home.showGuide ? (
-        <aside className="home-guide">
-          <button
-            className="home-guide-head"
-            onClick={() => {
-              setGuideOpen(value => !value);
-              if (!home.guideSeen) onUpdate({ guideSeen: true });
-            }}
-            aria-expanded={guideOpen}
-          >
-            <span className="mono">{t('BOARD GUIDE')}</span>
-            <span className="home-guide-title">{t('A calmer home, built into the shell')}</span>
-            <Icon name="chevron" size={14} className={guideOpen ? 'flip-y' : ''} />
-          </button>
-          {guideOpen ? (
-            <div className="home-guide-body">
-              <p>
-                {t(
-                  'This board is native to Kryvex: a clock and greeting, local weather, sticky tasks and a short guide to how the surface fits together. There is no extension, account or new-tab takeover.',
-                )}
-              </p>
-              <p>
-                {t(
-                  'It draws over your active theme with a translucent pane, so the workspace still looks like Kryvex rather than a page pasted on top of it.',
-                )}
-              </p>
-              <ul>
-                <li>{t('The clock and greeting follow your system language and time.')}</li>
-                <li>{t('Weather is keyless Open-Meteo data for the place you choose, cached for ten minutes.')}</li>
-                <li>{t('Tasks are local state, written to the same JSON file as everything else.')}</li>
-                <li>{t('Hide any widget from the Widgets button; nothing is installed.')}</li>
-              </ul>
-              <div className="home-guide-actions">
-                <button className="link" onClick={onOpenSettings}>
-                  {t('Board settings')} <Icon name="chevron" size={12} />
-                </button>
-                <button
-                  className="link"
-                  onClick={() => {
-                    setGuideOpen(false);
-                    onUpdate({ guideSeen: true });
-                  }}
-                >
-                  {t('Got it')}
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </aside>
+      {columns.side.some(shows) ? (
+        <div className="home-board-side">
+          {columns.side.filter(shows).map(id => (
+            <Fragment key={id}>{renderWidget(id)}</Fragment>
+          ))}
+        </div>
       ) : null}
     </section>
   );

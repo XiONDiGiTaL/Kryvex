@@ -70,7 +70,7 @@ function save() {
 
 function check(name, ok, detail) {
   report.checks.push({ name, ok, detail });
-  console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? `, ${detail}` : ''}`);
   return ok;
 }
 
@@ -406,9 +406,9 @@ function archiveCapture(version) {
     return `| ${page.index} | ${label} | ${detail} |`;
   });
   const passes = report.checks
-    .map(item => `- ${item.ok ? 'PASS' : 'FAIL'} ${item.name}${item.detail ? ` — ${item.detail}` : ''}`)
+    .map(item => `- ${item.ok ? 'PASS' : 'FAIL'} ${item.name}${item.detail ? `, ${item.detail}` : ''}`)
     .join('\n');
-  const markdown = `# Wizard capture — Kryvex ${version}
+  const markdown = `# Wizard capture: Kryvex ${version}
 
 Recorded ${manifest.recordedAt} by \`pnpm verify:self-update --wizard --archive\`.
 
@@ -530,7 +530,7 @@ async function stopNewApps(before) {
       );
       await sleep(400);
       report.stages.push({ stage: 'after-check', ...(await cdp.evaluate(PANEL)) });
-      console.log(`after check: ${report.stages.at(-1).phase} — ${report.stages.at(-1).title}`);
+      console.log(`after check: ${report.stages.at(-1).phase}, ${report.stages.at(-1).title}`);
 
       if (terminal === 'is-error') {
         throw new Error(`the update check failed: ${report.stages.at(-1).title}`);

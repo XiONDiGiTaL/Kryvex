@@ -1,4 +1,4 @@
-# Kryvex 0.8.7 — Windows release
+# Kryvex 0.8.7: Windows release
 
 Published 2026-10-22 from the `v0.8.7` tag. This release adds **Disk pulse**, a
 local drive analyzer and guarded cleaner, moves its scan into a worker thread so
@@ -83,12 +83,12 @@ whose installer has no matching entry. Both EXEs are **unsigned**.
 
 ## Verification performed
 
-- `npm run typecheck` — exit 0 for the renderer and `electron/` (strict).
-- `npm test` — exit 0, **466/466** tests across 48 files. The 19 disk-rule and
+- `npm run typecheck`: exit 0 for the renderer and `electron/` (strict).
+- `npm test`: exit 0, **466/466** tests across 48 files. The 19 disk-rule and
   service tests and the three scanner tests are part of that count.
-- `npm run audit:i18n` — clean, no hardcoded UI strings in 35 renderer files.
-- `npm run build` — exit 0; renderer and main rebuilt before packaging.
-- `node scripts/verify-disk-pulse.cjs` — PASS, **12 assertions** against the
+- `npm run audit:i18n`, clean, no hardcoded UI strings in 35 renderer files.
+- `npm run build`: exit 0; renderer and main rebuilt before packaging.
+- `node scripts/verify-disk-pulse.cjs`: PASS, **12 assertions** against the
   built Electron app in a disposable profile: the route opens, the disclaimer
   gates the tool and can be accepted, health reads real numbers (`97% FULL`,
   29 GB free), the analyzer runs, the main process answers IPC in 0 ms while the
@@ -104,7 +104,7 @@ whose installer has no matching entry. Both EXEs are **unsigned**.
 - Local `electron-builder --publish never` with `--config.electronDist=node_modules/electron/dist`
   produced both 0.8.7 EXEs, which is what the wizard was captured against.
 - `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer
-  release/Kryvex-Setup-0.8.7-x64.exe --version 0.8.7` — PASS: four pages
+  release/Kryvex-Setup-0.8.7-x64.exe --version 0.8.7`, PASS: four pages
   captured, the install page ran for 23,091 ms, the installer exited 0, and the
   capture was archived under `docs/media/releases/0.8.7-wizard/`. The installed
   `C:\Kryvex\Kryvex.exe` reports `ProductVersion 0.8.7.0`.
@@ -124,7 +124,7 @@ whose installer has no matching entry. Both EXEs are **unsigned**.
   app quit with code 0, the wizard ran (five pages, install page 39,940 ms, exit
   0), and `C:\Kryvex\Kryvex.exe` reports `0.8.7.0` and boots. Details:
   [TESTING.md](TESTING.md).
-- `node scripts/check-release-record.cjs` — PASS for 0.8.7.
+- `node scripts/check-release-record.cjs`: PASS for 0.8.7.
 
 ## Wizard capture
 

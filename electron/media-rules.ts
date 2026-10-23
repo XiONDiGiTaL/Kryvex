@@ -161,6 +161,66 @@ export function controlScript(url: string, action: MediaAction): string {
 })()`;
 }
 
+/**
+ * Volume for page-owned media. A slider value is a fraction, never a boost and
+ * never NaN; a missing value means "the page's own volume".
+ */
+export function clampPageVolume(value: unknown): number {
+  const number = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(number)) return 1;
+  return Math.max(0, Math.min(1, number));
+}
+
+/**
+ * One guard per service page. Single-page players replace their media element
+ * on every track, so a listener attached to the element goes deaf after one
+ * song; the document-level capture survives the swap.
+ *
+ * - `play` re-applies the chosen volume, because a new element starts at 1.
+ * - `ended` restarts the same clip when repeat is on. When the page refuses
+ *   (a player that has already navigated away), it reloads instead, which is
+ *   the behaviour a looped YouTube tab is expected to have.
+ */
+export function dockGuardScript(volume: unknown, repeat: unknown): string {
+  const state = JSON.stringify({
+    volume: clampPageVolume(volume),
+    repeat: repeat === true,
+  });
+  return `(() => {
+  const state = ${state};
+  window.__kryvexDock = state;
+  const apply = media => {
+    try {
+      if (media && typeof media.volume === 'number') media.volume = state.volume;
+    } catch {
+      /* a page can expose a read-only element */
+    }
+  };
+  document.querySelectorAll('video, audio').forEach(apply);
+  if (!window.__kryvexDockGuard) {
+    window.__kryvexDockGuard = true;
+    document.addEventListener('play', event => apply(event.target), true);
+    document.addEventListener('ended', event => {
+      const media = event.target;
+      const now = window.__kryvexDock;
+      if (!now || !now.repeat || !media) return;
+      try {
+        media.currentTime = 0;
+        const attempt = media.play();
+        if (attempt && typeof attempt.catch === 'function') {
+          attempt.catch(() => {
+            try { location.reload(); } catch { /* the page is already gone */ }
+          });
+        }
+      } catch {
+        try { location.reload(); } catch { /* the page is already gone */ }
+      }
+    }, true);
+  }
+  return true;
+})()`;
+}
+
 /** A short, stable title for the dock when a page never sets one. */
 export function mediaTitle(state: { title: string; artist: string; url: string }): string {
   if (state.title) return state.title;

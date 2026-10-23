@@ -41,11 +41,15 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
 
     'RUN A MODEL FILE': 'EJECUTAR UN ARCHIVO DE MODELO',
     IDLE: 'INACTIVO',
-    'Pick a .gguf model you already downloaded. Kryvex starts llama.cpp on loopback and Vexium uses it like any other runtime. No weights are downloaded or hosted by us.':
-      'Elige un modelo .gguf que ya hayas descargado. Kryvex inicia llama.cpp en loopback y Vexium lo usa como cualquier otro motor. No descargamos ni alojamos pesos.',
+    'Pick a .gguf model you already downloaded. Kryvex starts llama.cpp on loopback and Vexium uses it like any other runtime. The CPU runtime is included; no weights are downloaded or hosted by us.':
+      'Elige un modelo .gguf que ya hayas descargado. Kryvex inicia llama.cpp en loopback y Vexium lo usa como cualquier otro motor. El motor de CPU está incluido; no descargamos ni alojamos pesos.',
     'Model file': 'Archivo de modelo',
-    'No model file chosen. A 4B–8B quantised model runs well on most machines.':
-      'Ningún archivo elegido. Un modelo cuantizado de 4B–8B funciona bien en la mayoría de equipos.',
+    'No model file chosen. Download the reviewed starter below, or choose a .gguf you already have.':
+      'Ningún archivo elegido. Descarga el modelo inicial revisado abajo o elige un .gguf que ya tengas.',
+    'Included with Kryvex and ready for the model you choose. Point Kryvex at another llama.cpp build if you want GPU acceleration.':
+      'Incluido con Kryvex y listo para el modelo que elijas. Indica otro build de llama.cpp si quieres aceleración por GPU.',
+    'Other builds': 'Otros builds',
+    'Use another runtime…': 'Usar otro motor…',
     'Choose model…': 'Elegir modelo…',
     'Get models': 'Obtener modelos',
     'not found': 'no encontrado',
@@ -60,7 +64,7 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
     'Tokens the model can hold. Larger needs more memory. A change applies the next time the server starts.':
       'Tokens que caben en el modelo. Más grande exige más memoria. El cambio se aplica al reiniciar el servidor.',
     'GPU layers: {count}': 'Capas GPU: {count}',
-    'Serving {name} at {url} — Vexium is pointed at it.':
+    'Serving {name} at {url}: Vexium is pointed at it.':
       '{name} sirviéndose en {url}: Vexium ya apunta ahí.',
     'Models are yours to source: Hugging Face GGUF builds, Ollama’s library, or LM Studio’s catalogue. Kryvex never uploads or redistributes them.':
       'Los modelos los buscas tú: builds GGUF en Hugging Face, la biblioteca de Ollama o el catálogo de LM Studio. Kryvex nunca los sube ni los redistribuye.',
@@ -115,11 +119,15 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
 
     'RUN A MODEL FILE': 'MODELLDATEI AUSFÜHREN',
     IDLE: 'BEREIT',
-    'Pick a .gguf model you already downloaded. Kryvex starts llama.cpp on loopback and Vexium uses it like any other runtime. No weights are downloaded or hosted by us.':
-      'Wähle ein .gguf-Modell, das du bereits heruntergeladen hast. Kryvex startet llama.cpp auf Loopback, Vexium nutzt es wie jede andere Laufzeit. Wir laden oder hosten keine Gewichte.',
+    'Pick a .gguf model you already downloaded. Kryvex starts llama.cpp on loopback and Vexium uses it like any other runtime. The CPU runtime is included; no weights are downloaded or hosted by us.':
+      'Wähle ein .gguf-Modell, das du bereits heruntergeladen hast. Kryvex startet llama.cpp auf Loopback, Vexium nutzt es wie jede andere Laufzeit. Die CPU-Laufzeit ist enthalten; wir laden oder hosten keine Gewichte.',
     'Model file': 'Modelldatei',
-    'No model file chosen. A 4B–8B quantised model runs well on most machines.':
-      'Keine Modelldatei gewählt. Ein quantisiertes 4B–8B-Modell läuft auf den meisten Rechnern gut.',
+    'No model file chosen. Download the reviewed starter below, or choose a .gguf you already have.':
+      'Keine Modelldatei gewählt. Lade unten das geprüfte Startmodell herunter oder wähle eine vorhandene .gguf-Datei.',
+    'Included with Kryvex and ready for the model you choose. Point Kryvex at another llama.cpp build if you want GPU acceleration.':
+      'In Kryvex enthalten und bereit für dein Modell. Zeige auf einen anderen llama.cpp-Build, wenn du GPU-Beschleunigung willst.',
+    'Other builds': 'Andere Builds',
+    'Use another runtime…': 'Andere Laufzeit verwenden…',
     'Choose model…': 'Modell wählen…',
     'Get models': 'Modelle holen',
     'not found': 'nicht gefunden',
@@ -134,8 +142,8 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
     'Tokens the model can hold. Larger needs more memory. A change applies the next time the server starts.':
       'Tokens, die das Modell halten kann. Mehr braucht mehr Speicher. Änderungen gelten beim nächsten Serverstart.',
     'GPU layers: {count}': 'GPU-Schichten: {count}',
-    'Serving {name} at {url} — Vexium is pointed at it.':
-      '{name} läuft auf {url} — Vexium zeigt darauf.',
+    'Serving {name} at {url}: Vexium is pointed at it.':
+      '{name} läuft auf {url}: Vexium zeigt darauf.',
     'Models are yours to source: Hugging Face GGUF builds, Ollama’s library, or LM Studio’s catalogue. Kryvex never uploads or redistributes them.':
       'Modelle besorgst du selbst: GGUF-Builds von Hugging Face, Ollamas Bibliothek oder der LM-Studio-Katalog. Kryvex lädt sie weder hoch noch gibt es sie weiter.',
     'MODEL FILE': 'MODELLDATEI',
@@ -189,11 +197,15 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
 
     'RUN A MODEL FILE': 'EXÉCUTER UN FICHIER DE MODÈLE',
     IDLE: 'INACTIF',
-    'Pick a .gguf model you already downloaded. Kryvex starts llama.cpp on loopback and Vexium uses it like any other runtime. No weights are downloaded or hosted by us.':
-      'Choisissez un modèle .gguf déjà téléchargé. Kryvex lance llama.cpp en loopback et Vexium l’utilise comme n’importe quel moteur. Nous ne téléchargeons ni n’hébergeons aucun poids.',
+    'Pick a .gguf model you already downloaded. Kryvex starts llama.cpp on loopback and Vexium uses it like any other runtime. The CPU runtime is included; no weights are downloaded or hosted by us.':
+      'Choisissez un modèle .gguf déjà téléchargé. Kryvex lance llama.cpp en loopback et Vexium l’utilise comme n’importe quel moteur. Le moteur CPU est inclus ; nous ne téléchargeons ni n’hébergeons aucun poids.',
     'Model file': 'Fichier de modèle',
-    'No model file chosen. A 4B–8B quantised model runs well on most machines.':
-      'Aucun fichier choisi. Un modèle quantifié 4B–8B tourne bien sur la plupart des machines.',
+    'No model file chosen. Download the reviewed starter below, or choose a .gguf you already have.':
+      'Aucun fichier choisi. Téléchargez le modèle de départ vérifié ci-dessous ou choisissez un .gguf existant.',
+    'Included with Kryvex and ready for the model you choose. Point Kryvex at another llama.cpp build if you want GPU acceleration.':
+      'Inclus avec Kryvex et prêt pour le modèle choisi. Indiquez un autre build llama.cpp pour l’accélération GPU.',
+    'Other builds': 'Autres builds',
+    'Use another runtime…': 'Utiliser un autre moteur…',
     'Choose model…': 'Choisir un modèle…',
     'Get models': 'Obtenir des modèles',
     'not found': 'introuvable',
@@ -208,8 +220,8 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
     'Tokens the model can hold. Larger needs more memory. A change applies the next time the server starts.':
       'Tokens que le modèle peut contenir. Plus grand demande plus de mémoire. Le changement s’applique au prochain démarrage du serveur.',
     'GPU layers: {count}': 'Couches GPU : {count}',
-    'Serving {name} at {url} — Vexium is pointed at it.':
-      '{name} est servi sur {url} — Vexium pointe dessus.',
+    'Serving {name} at {url}: Vexium is pointed at it.':
+      '{name} est servi sur {url}: Vexium pointe dessus.',
     'Models are yours to source: Hugging Face GGUF builds, Ollama’s library, or LM Studio’s catalogue. Kryvex never uploads or redistributes them.':
       'Les modèles sont à trouver vous-même : builds GGUF sur Hugging Face, bibliothèque d’Ollama ou catalogue de LM Studio. Kryvex ne les envoie ni ne les redistribue.',
     'MODEL FILE': 'FICHIER DE MODÈLE',

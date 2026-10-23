@@ -289,6 +289,8 @@ export interface LocalModelStatus {
   port: number | null;
   binary: string;
   binaryFound: boolean;
+  bundled: boolean;
+  runtimeVersion: string;
   pid: number | null;
   startedAt: number | null;
   ctxSize: number;
@@ -432,14 +434,22 @@ export interface WellnessSettings {
   remindSleep: boolean;
 }
 
+export type HomeWidgetId = 'weather' | 'wellness' | 'notes' | 'guide';
+export type HomeWidgetArea = 'main' | 'side';
+
 /** The Home board is an overlay, not a new start page: it sits over the theme. */
 export interface HomeSettings {
   showBoard: boolean;
   showWeather: boolean;
+  /** Sticky notes. Kept under its historical name so saved state still loads. */
   showTasks: boolean;
   showGuide: boolean;
   /** Wellness stays off by default: it is opt-in, not a second dashboard. */
   showWellness: boolean;
+  /** Position of every widget, across both columns. */
+  widgetOrder: HomeWidgetId[];
+  /** Which column each widget occupies. */
+  widgetAreas: Record<HomeWidgetId, HomeWidgetArea>;
   wellness: WellnessSettings;
   city: string;
   /** Country or region label returned by geocoding, for the city chip. */
@@ -532,6 +542,15 @@ export interface PlayerSettings {
   volume: number;
   repeat: RepeatMode;
   shuffle: boolean;
+  /** Volume for media playing inside a service page, separate from the player. */
+  serviceVolume: number;
+  /** Loop the clip a service page is playing instead of letting it advance. */
+  serviceRepeat: boolean;
+  /**
+   * Opt-in Spotify ad handling: mute the module while the page shows an ad and
+   * press its own Next control once. Off unless the user asks for it.
+   */
+  spotifyAdGuard: boolean;
 }
 
 export interface Settings {
@@ -796,6 +815,7 @@ export interface KryvexBridge {
   onPopupChanged: (listener: (popup: PopupTabInfo) => void) => () => void;
   onPopupClosed: (listener: (event: { id: string }) => void) => () => void;
   serviceClearSession: (partition: string) => Promise<boolean>;
+  serviceStop: (partition: string) => Promise<number>;
   serviceSetNotifications: (enabled: boolean) => Promise<boolean>;
   serviceSetPolicy: (
     partition: string,
@@ -809,6 +829,10 @@ export interface KryvexBridge {
   /** Media playing in service guests, plus one remote control per track. */
   mediaList: () => Promise<import('../electron/types').ServiceMediaState[]>;
   mediaControl: (id: number, action: 'play' | 'pause' | 'next' | 'previous') => Promise<boolean>;
+  mediaSetVolume: (volume: number) => Promise<number>;
+  mediaSetRepeat: (repeat: boolean) => Promise<boolean>;
+  /** Opt-in Spotify ad guard; resolves to the state the main process kept. */
+  spotifyAdGuard: (enabled: boolean) => Promise<boolean>;
   onMediaChanged: (
     listener: (event: import('../electron/types').ServiceMediaEvent) => void,
   ) => () => void;

@@ -6,7 +6,7 @@ import { OCR_SCRIPT } from './lexium';
  * Tesseract is loaded from a CDN on first use instead of being bundled: the
  * wasm core and language packs are tens of megabytes and would otherwise sit in
  * every install. The emulator takes the same approach, and the reader says so
- * plainly when the CDN cannot be reached. The image never leaves the renderer —
+ * plainly when the CDN cannot be reached. The image never leaves the renderer:
  * only the language pack is downloaded.
  *
  * It is injected as a plain `<script crossorigin="anonymous">`. A dynamic

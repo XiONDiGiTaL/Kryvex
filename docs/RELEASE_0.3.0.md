@@ -1,4 +1,4 @@
-# Kryvex 0.3.0 — Windows release
+# Kryvex 0.3.0: Windows release
 
 Released 2026-10-19. This release adds visible, click-first navigation for
 people who do not use keyboard shortcuts, improves the About credits, and
@@ -46,20 +46,20 @@ The Portable EXE runs without installation. Its state still lives in
 
 ## Verification performed
 
-- `pnpm typecheck` — exit 0.
-- `pnpm test` — exit 0, 40/40 tests.
-- `pnpm build` — exit 0.
-- `pnpm capture` — exit 0, thirteen 1440×900 screenshots including `help.png`.
-- Offscreen click probes — header Add/Settings/Help and Home common actions
+- `pnpm typecheck`: exit 0.
+- `pnpm test`: exit 0, 40/40 tests.
+- `pnpm build`: exit 0.
+- `pnpm capture`: exit 0, thirteen 1440×900 screenshots including `help.png`.
+- Offscreen click probes: header Add/Settings/Help and Home common actions
   reached the expected dialogs and routes.
-- Setup EXE — silent install to a custom temporary directory exited 0; the
+- Setup EXE: silent install to a custom temporary directory exited 0; the
   installed `Kryvex.exe` launched and completed all thirteen capture routes.
-- Portable EXE — launched directly and completed all thirteen capture routes.
-- Shortcuts — Desktop and Start Menu entries were created and removed by the
+- Portable EXE: launched directly and completed all thirteen capture routes.
+- Shortcuts: Desktop and Start Menu entries were created and removed by the
   uninstaller.
-- Uninstaller — silent uninstall exited 0 and removed the install directory,
+- Uninstaller: silent uninstall exited 0 and removed the install directory,
   shortcuts and uninstall registry entry.
-- Authenticode — both EXEs report `NotSigned`.
+- Authenticode: both EXEs report `NotSigned`.
 
 ## Known limitations
 

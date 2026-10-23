@@ -34,7 +34,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /**
  * Accepts an origin such as `http://127.0.0.1:11434`, optionally written with
  * a trailing `/v1` or slash, and returns the bare origin. Anything that is not
- * plain http on loopback — another host, credentials, a path, https — is
+ * plain http on loopback (another host, credentials, a path, https) is
  * rejected so this channel can never become a general outbound request.
  */
 export function normalizeAssistantUrl(raw: unknown): string | null {

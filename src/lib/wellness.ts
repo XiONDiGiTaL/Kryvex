@@ -122,7 +122,7 @@ export function ageFrom(birthYear: number | null, now: Date = new Date()): numbe
 
 /**
  * Mifflin-St Jeor. The sex offsets differ by 166 kcal, so an unspecified answer
- * uses their midpoint instead of silently assuming one — the result stays an
+ * uses their midpoint instead of silently assuming one: the result stays an
  * estimate, which is why the card calls it one and carries a disclaimer.
  */
 export function basalCalories(profile: WellnessProfile, now: Date = new Date()): number | null {

@@ -1,4 +1,4 @@
-# Media player — x531
+# Media player: x531
 
 The player is a secret service in the same series as Lexium: an element tile
 marked **Mx / x531**, a full page at `#/player`, and a transport bar that docks

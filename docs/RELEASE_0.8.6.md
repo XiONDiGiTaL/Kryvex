@@ -1,4 +1,4 @@
-# Kryvex 0.8.6 — Windows release
+# Kryvex 0.8.6: Windows release
 
 Published 2026-10-22 from the `v0.8.6` tag. This release turns the browser's
 blank tab into a designed start page, adds private tabs and an RSS/Atom reader,
@@ -84,11 +84,11 @@ whose installer has no matching entry. Both EXEs are **unsigned**.
 
 ## Verification performed
 
-- `npm run typecheck` — exit 0 for the renderer and `electron/` (strict).
-- `npx vitest run` — exit 0, **444/444** tests across 45 files.
-- `npm run build` — exit 0; renderer and main rebuilt before packaging.
-- `npm run audit:i18n` — clean, no hardcoded UI strings in 34 renderer files.
-- `node scripts/verify-browser-start.cjs` — PASS against the built Electron app
+- `npm run typecheck`: exit 0 for the renderer and `electron/` (strict).
+- `npx vitest run`: exit 0, **444/444** tests across 45 files.
+- `npm run build`: exit 0; renderer and main rebuilt before packaging.
+- `npm run audit:i18n`, clean, no hardcoded UI strings in 34 renderer files.
+- `node scripts/verify-browser-start.cjs`: PASS against the built Electron app
   with an isolated profile and a local fixture server: four start-page cards,
   home button as the first toolbar control, RSS through the visible form, OPML
   through the real file input, options menu, private marking, no private history,
@@ -97,7 +97,7 @@ whose installer has no matching entry. Both EXEs are **unsigned**.
   `screenshots/browser-start.png` and `screenshots/browser-private.png` without
   any overlay.
 - Local `electron-builder --publish never` with the pnpm 10 shim and
-  `--config.electronDist=node_modules/electron/dist` — produced both 0.8.6
+  `--config.electronDist=node_modules/electron/dist`: produced both 0.8.6
   EXEs. The Setup reports `ProductVersion 0.8.6`; the installed pilot binary
   now reports `0.8.6.0` after the wizard run.
 - **Published artifacts.** The release workflow passed every step (tag/version
@@ -112,7 +112,7 @@ whose installer has no matching entry. Both EXEs are **unsigned**.
   chrome: "152.0.7977.76", node: "24.20.0", packaged: true}`, and `#/browser`
   rendered the start page with its four cards.
 - `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer
-  release/Kryvex-Setup-0.8.6-x64.exe --version 0.8.6` — PASS: five pages
+  release/Kryvex-Setup-0.8.6-x64.exe --version 0.8.6`, PASS: five pages
   captured, the install page ran for 19,601 ms, the installer exited 0, and the
   capture was archived under `docs/media/releases/0.8.6-wizard/`.
 - The installed `C:\Kryvex\Kryvex.exe` reports `ProductVersion 0.8.6.0`. It was
@@ -121,7 +121,7 @@ whose installer has no matching entry. Both EXEs are **unsigned**.
   "24.20.0", packaged: true}`; the browser start page reported the Home button
   first, all four cards and the options menu. Capture:
   [screenshots/release-0.8.6-installed-start.png](../screenshots/release-0.8.6-installed-start.png).
-- `node scripts/check-release-record.cjs` — PASS for 0.8.6.
+- `node scripts/check-release-record.cjs`: PASS for 0.8.6.
 
 ## Wizard capture
 

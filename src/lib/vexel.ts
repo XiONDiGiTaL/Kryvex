@@ -72,7 +72,7 @@ export function offlineReply(input: string): VexelReply {
   }
 
   return {
-    text: 'I do not know that without a model. Load one in Settings → Vexium for a real answer, or search the web now — the button below opens the Browser with your question.',
+    text: 'I do not know that without a model. Load one in Settings → Vexium for a real answer, or search the web now: the button below opens the Browser with your question.',
     search: input.trim(),
     kind: 'fallback',
   };

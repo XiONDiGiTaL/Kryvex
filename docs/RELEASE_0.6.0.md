@@ -1,4 +1,4 @@
-# Kryvex 0.6.0 — Windows release
+# Kryvex 0.6.0: Windows release
 
 Released 2026-10-20. This release turns services into kept-alive apps, adds
 in-app updates and expands the theme system to 38 built-in themes plus a custom
@@ -81,16 +81,16 @@ The Portable EXE runs without installation. Its state still lives in
 Built from the complete 0.6.0 working tree, then checked against the packaged
 build.
 
-- `pnpm typecheck` — exit 0 for renderer and main.
-- `pnpm test` — exit 0, **149/149** tests across 18 files.
-- `pnpm build` — exit 0; 533.68 kB JS (159.67 kB gzip), 61.77 kB CSS.
-- `pnpm capture` — exit 0; **nineteen** 1440×900 PNGs from the running window,
+- `pnpm typecheck`: exit 0 for renderer and main.
+- `pnpm test`: exit 0, **149/149** tests across 18 files.
+- `pnpm build`: exit 0; 533.68 kB JS (159.67 kB gzip), 61.77 kB CSS.
+- `pnpm capture`: exit 0; **nineteen** 1440×900 PNGs from the running window,
   including the new `settings-custom` colour-studio route.
-- `pnpm verify:updater` — pass; a loopback release feed produced an available
+- `pnpm verify:updater`, pass; a loopback release feed produced an available
   update, a wrong SHA-256 was rejected (`checksum-failed`), the corrected
   download reached `ready` with the Install action, and a source-mode build
   reported the release without offering an install.
-- `pnpm run package:win` — exit 0; produced the two artifacts and checksums
+- `pnpm run package:win`, exit 0; produced the two artifacts and checksums
   above. The packaged EXE reports version `0.6.0`.
 - **Packaged capture:** `release/win-unpacked/Kryvex.exe` completed all
   nineteen capture routes, including the periodic-table picker and the custom

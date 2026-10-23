@@ -30,7 +30,7 @@ const DESKTOP_ID = /^(screen|window):[^\s:]+(?::\d+)?$/;
 export function partyAttachWindow(win: BrowserWindow): void {
   shell = win.webContents;
   // `closed` arrives after the window is gone, and reading `win.webContents`
-  // there throws "Object has been destroyed" — Electron turns that into the
+  // there throws "Object has been destroyed": Electron turns that into the
   // "A JavaScript error occurred in the main process" dialog on quit. Keep the
   // reference taken at attach time and compare against it instead.
   const attached = shell;

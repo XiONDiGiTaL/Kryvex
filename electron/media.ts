@@ -1,7 +1,9 @@
 import { webContents, type BrowserWindow, type WebContents } from 'electron';
 import { serviceSessions } from './service-sessions';
 import {
+  clampPageVolume,
   controlScript,
+  dockGuardScript,
   isMediaAction,
   parseMediaSample,
   sampleScript,
@@ -21,6 +23,14 @@ class MediaTracker {
   private states = new Map<number, ServiceMediaState>();
   private timers = new Map<number, NodeJS.Timeout>();
   private pending = new Set<number>();
+  /**
+   * Volume and repeat apply to page-owned media. They start unset so a page
+   * keeps whatever volume its own player chose until the user touches the
+   * dock; after that every guest gets the guard, including future tracks.
+   */
+  private pageVolume = 1;
+  private pageRepeat = false;
+  private pageTouched = false;
 
   attachWindow(win: BrowserWindow): void {
     this.win = win;
@@ -48,6 +58,8 @@ class MediaTracker {
     contents.on('media-paused', refresh);
     contents.on('dom-ready', () => {
       setTimeout(refresh, 900);
+      // A navigation rebuilds the page, so the guard has to be installed again.
+      void this.applyGuard(contents);
     });
     contents.on('did-navigate', () => {
       // A new page is a new track (or silence); the old metadata must not
@@ -89,6 +101,22 @@ class MediaTracker {
     } catch {
       return false;
     }
+  }
+
+  /** Dock volume, applied to every service page that is playing something. */
+  setPageVolume(raw: unknown): number {
+    this.pageVolume = clampPageVolume(raw);
+    this.pageTouched = true;
+    this.applyGuardToAll();
+    return this.pageVolume;
+  }
+
+  /** Loop the clip a service page is playing, for every service page. */
+  setPageRepeat(raw: unknown): boolean {
+    this.pageRepeat = raw === true;
+    this.pageTouched = true;
+    this.applyGuardToAll();
+    return this.pageRepeat;
   }
 
   refreshAll(): void {
@@ -139,6 +167,28 @@ class MediaTracker {
       /* the guest may be between navigations */
     } finally {
       this.pending.delete(id);
+    }
+  }
+
+  private applyGuardToAll(): void {
+    for (const contents of webContents.getAllWebContents()) {
+      if (contents.isDestroyed() || contents.getType() !== 'webview') continue;
+      if (!serviceSessions.partitionFor(contents)) continue;
+      void this.applyGuard(contents);
+    }
+  }
+
+  private async applyGuard(contents: WebContents): Promise<void> {
+    // Nothing is injected until the user changes something, so a page keeps
+    // its own volume and its own looping until Kryvex is asked to interfere.
+    if (!this.pageTouched || contents.isDestroyed()) return;
+    try {
+      await contents.executeJavaScript(
+        dockGuardScript(this.pageVolume, this.pageRepeat),
+        true,
+      );
+    } catch {
+      /* a guest between navigations gets it on its next dom-ready */
     }
   }
 

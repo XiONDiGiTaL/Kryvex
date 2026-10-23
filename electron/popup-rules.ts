@@ -6,7 +6,7 @@
  * `webContents` belongs to the window Chromium created for it, and
  * `WebContentsView` refuses an adopted contents ("already attached to a
  * window"). Moves are what keep `window.opener`, and therefore every OAuth
- * provider that answers by `postMessage`, working — so Kryvex keeps the real
+ * provider that answers by `postMessage`, working, so Kryvex keeps the real
  * popup window and places it over the browser canvas, with a matching entry in
  * the tab strip. These helpers hold the parts of that decision that are pure
  * arithmetic and policy, so they can be tested without Electron.

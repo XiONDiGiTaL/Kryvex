@@ -14,7 +14,7 @@ let failures = 0;
 
 function check(name, ok, detail) {
   if (!ok) failures += 1;
-  console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? `, ${detail}` : ''}`);
 }
 
 function read(file) {

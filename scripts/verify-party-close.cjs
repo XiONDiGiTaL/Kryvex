@@ -10,7 +10,7 @@
  * raised "A JavaScript error occurred in the main process" on quit.
  *
  * This drives the compiled module with a window that throws on every property
- * access once it is marked destroyed — a stricter stand-in than the real
+ * access once it is marked destroyed: a stricter stand-in than the real
  * BrowserWindow, which only throws on some properties.
  */
 const path = require('node:path');
@@ -44,8 +44,8 @@ try {
   // From here on the window is gone, exactly as it is when `closed` fires.
   destroyed = true;
   closedHandler();
-  console.log('rooms close handler: PASS — released the shell without reading the closed window');
+  console.log('rooms close handler: PASS, released the shell without reading the closed window');
 } catch (error) {
-  console.error('rooms close handler: FAIL —', error.message);
+  console.error('rooms close handler: FAIL:', error.message);
   process.exitCode = 1;
 }

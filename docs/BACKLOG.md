@@ -1,10 +1,10 @@
 # Backlog (actionable, ordered)
 
-## Now (M3+ — product)
+## Now (M3+: product)
 M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
 - [x] All M1 analysis docs written from the cloned source.
 - [x] Name screen: Veyra rejected, Gatherium superseded, Kryvex selected
-  (high risk — ED-002); `kryvex` repo-existence check still pending.
+  (high risk: ED-002); `kryvex` repo-existence check still pending.
 - [x] Baseline M2 green: install, typecheck, tests, no upstream edits.
 - [x] Kryvex identity: tile logo, small/tray/mono SVGs, `BRAND.md`, tokens,
   6 themes, PNG 16–512 + 7-size ICO, visual QA sheet.
@@ -37,11 +37,11 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
 - [ ] Safe Browsing equivalent. Electron does not expose Chromium's protocol, so
   this needs a deliberate reputation provider and privacy review before work.
 
-## Done (M2 baseline — record)
+## Done (M2 baseline: record)
 - [x] pnpm 12.3.4 via local `.tools/pnpm`; Node 24.19.0 delta recorded.
 - [x] `pnpm install` exit 0 (2m15s); `typecheck` exit 0; `test` exit 0
   (140 passed, 2 skipped, 0 failed).
-- [ ] Baseline perf workload — deferred to M8 with the same method.
+- [ ] Baseline perf workload: deferred to M8 with the same method.
 
 ## Then (M3+)
 - [x] Brand system: Kryvex tile logo + tokens (#0B0E12/#12171E/#38BDF8/

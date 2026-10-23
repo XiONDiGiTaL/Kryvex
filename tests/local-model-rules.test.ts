@@ -10,6 +10,7 @@ import {
   isGgufPath,
   logText,
   modelName,
+  runtimeDirs,
   tailLog,
 } from '../electron/local-model-rules';
 
@@ -93,6 +94,34 @@ describe('binaryCandidates', () => {
   it('uses the POSIX name elsewhere', () => {
     const list = binaryCandidates('linux', ['/opt/kryvex/bin']);
     expect(list[0]).toBe('/opt/kryvex/bin/llama-server');
+  });
+});
+
+describe('runtimeDirs', () => {
+  it('checks app data, the installed app and a source checkout, in that order', () => {
+    const dirs = runtimeDirs({
+      userDataDir: '/home/me/.config/kryvex/bin/',
+      resourcesDir: '/opt/kryvex/resources/bin',
+      appDir: '/home/me/Kryvex/',
+      packaged: false,
+    });
+    expect(dirs.map(entry => entry.dir)).toEqual([
+      '/home/me/.config/kryvex/bin',
+      '/opt/kryvex/resources/bin',
+      '/home/me/Kryvex/runtime/bin',
+    ]);
+    expect(dirs.map(entry => entry.bundled)).toEqual([false, true, true]);
+  });
+
+  it('never consults a working-directory runtime once packaged', () => {
+    const dirs = runtimeDirs({
+      userDataDir: 'C:\\Users\\me\\AppData\\Kryvex\\bin',
+      resourcesDir: 'C:\\Program Files\\Kryvex\\resources\\bin',
+      appDir: 'C:\\Kryvex\\resources\\app.asar',
+      packaged: true,
+    });
+    expect(dirs).toHaveLength(2);
+    expect(dirs.some(entry => entry.dir.includes('app.asar'))).toBe(false);
   });
 });
 

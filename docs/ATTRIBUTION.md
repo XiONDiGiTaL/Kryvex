@@ -5,12 +5,12 @@
 Disk pulse was designed after reviewing three open projects. Their code was
 not incorporated, because only one of the three licences permits it:
 
-- **Cleanmgr+** — https://github.com/builtbybel/CleanmgrPlus — custom EULA that
+- **Cleanmgr+**: https://github.com/builtbybel/CleanmgrPlus, custom EULA that
   forbids modification and derivative works. No code or text was adapted.
-- **CleanManager** — https://github.com/patrickleehua/CleanManager — MIT,
+- **CleanManager**: https://github.com/patrickleehua/CleanManager, MIT,
   Copyright (c) 2026 patrickleehua. Its category checklist and
   see-before-you-delete flow informed the UI; no source files were copied.
-- **SquirrelDisk** — https://github.com/adileo/squirreldisk — AGPL-3.0.
+- **SquirrelDisk**: https://github.com/adileo/squirreldisk, AGPL-3.0.
   Its analyzer presentation informed the concept only; incorporating AGPL code
   would relicense Kryvex, so none was used.
 
@@ -24,7 +24,7 @@ authorship of, affiliation with, or endorsement by any project listed here.
 
 ## uBlock Origin filter lists
 
-- **Project:** uBlock Origin — https://github.com/gorhill/uBlock
+- **Project:** uBlock Origin, https://github.com/gorhill/uBlock
 - **Author:** Raymond Hill and the uBlock Origin contributors
 - **License:** GPL-3.0
 - **How Kryvex uses it:** Kryvex Shield downloads these public filter lists at
@@ -45,7 +45,7 @@ project's filter data natively instead.
 
 ## EasyList, EasyPrivacy and EasyList Cookie
 
-- **Projects:** https://easylist.to/ — EasyList and EasyPrivacy; EasyList Cookie
+- **Projects:** https://easylist.to/, EasyList and EasyPrivacy; EasyList Cookie
   is the Fanboy Cookie Monster list at https://secure.fanboy.co.nz/
 - **License:** GPL-3.0 (list data)
 - **How Kryvex uses it:** downloaded at runtime alongside the uBO lists and
@@ -104,14 +104,14 @@ Electron sessions; it does not audit, modify, or redistribute them. Firefox
 
 ## Demo reel tooling and assets
 
-- **Skill:** `/brag` — https://github.com/latent-spaces/brag
+- **Skill:** `/brag`, https://github.com/latent-spaces/brag
   - **Author:** Shunit Haviv Hakimi
   - **License:** MIT. The skill is a local agent workflow and is not
     redistributed with this repository.
   - **How Kryvex uses it:** the skill is installed for agent-driven launch-video
     work and produced the reel published at `docs/media/kryvex-demo.mp4`. It is
     not loaded by the app at runtime.
-- **Video framework:** HyperFrames — https://github.com/heygen-com/hyperframes
+- **Video framework:** HyperFrames, https://github.com/heygen-com/hyperframes
   - **License:** Apache-2.0
   - **How Kryvex uses it:** local rendering of the HTML composition. The
     composition is a working project kept outside the repository; only the
@@ -121,6 +121,27 @@ Electron sessions; it does not audit, modify, or redistribute them. Firefox
 - **Sound effects:** [Kenney](https://kenney.nl/), CC0, bundled by `/brag`.
 - **Inter typeface:** https://rsms.me/inter/, SIL Open Font License 1.1,
   bundled as a variable WOFF2 for the reel.
+
+## llama.cpp and ggml
+
+- **Project:** llama.cpp, https://github.com/ggml-org/llama.cpp
+- **Authors:** The ggml authors and the llama.cpp contributors
+- **License:** MIT. The Windows CPU build also carries the LLVM OpenMP runtime
+  under the Apache License 2.0 with LLVM Exceptions.
+- **How Kryvex uses it:** release `b11835` (commit `f64a49819`), asset
+  `llama-b11835-bin-win-cpu-x64.zip`, SHA-256
+  `256e606f93b7f7dfb440e8d78bdbac34184c3b45ae4defead4e072a84afe63e4`
+  (arm64: `llama-b11835-bin-win-cpu-arm64.zip`, SHA-256
+  `3e3695e4004d5e1d8d0d142e6e665172503e03c15df32f26b7442dc36a498011`).
+  `scripts/fetch-runtime.mjs` downloads that pinned asset at package time,
+  verifies its size and digest, and extracts only `llama-server` and the DLLs it
+  loads into `runtime/bin`. Electron Builder copies them to `resources/bin`
+  inside the installed app.
+- **What is not bundled:** model weights. The user downloads a GGUF separately
+  from the reviewed catalogue or supplies one they already have.
+- The llama.cpp MIT text and the OpenMP license ship beside the binaries as
+  `LICENSE-llama.cpp` and `LICENSE-LLVM-OpenMP`. Kryvex does not modify the
+  binaries, and no llama.cpp trademark or endorsement is claimed.
 
 ## Runtime stack
 

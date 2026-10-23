@@ -8,6 +8,9 @@ dist-electron/
 release/
 coverage/
 
+# fetched at package time; never committed (45 MB of binaries)
+runtime/
+
 # local tooling / caches kept on this machine
 .tools/
 .pnpm-store/

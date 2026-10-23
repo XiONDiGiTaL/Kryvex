@@ -44,11 +44,11 @@ export function weatherLabel(code: number): string {
 }
 
 export function formatTemperature(value: number, unit: 'c' | 'f'): string {
-  if (!Number.isFinite(value)) return '—';
+  if (!Number.isFinite(value)) return 'n/a';
   return `${Math.round(value)}°${unit === 'f' ? 'F' : 'C'}`;
 }
 
 export function windLabel(value: number, unit: 'c' | 'f'): string {
-  if (!Number.isFinite(value)) return '—';
+  if (!Number.isFinite(value)) return 'n/a';
   return `${Math.round(value)} ${unit === 'f' ? 'mph' : 'km/h'}`;
 }

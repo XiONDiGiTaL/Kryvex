@@ -392,12 +392,12 @@ export function WellnessBoard({
           <div className="wellness-metrics">
             <div>
               <span className="mono">{t('BMI')}</span>
-              <strong>{bmiValue === null ? '—' : bmiValue}</strong>
+              <strong>{bmiValue === null ? 'n/a' : bmiValue}</strong>
               <span>{band ? t(BAND_LABEL[band]) : t('Add height and weight')}</span>
             </div>
             <div>
               <span className="mono">{t('Daily target')}</span>
-              <strong>{calorieTarget === null ? '—' : t('{value} kcal', { value: calorieTarget })}</strong>
+              <strong>{calorieTarget === null ? 'n/a' : t('{value} kcal', { value: calorieTarget })}</strong>
               <span>{t('Activity estimate')}</span>
             </div>
             <label className="wellness-field">

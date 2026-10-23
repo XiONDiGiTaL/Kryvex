@@ -1,6 +1,6 @@
-# Kryvex — Project Status
+# Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.8.7 — a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.8.8, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -29,18 +29,18 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
 ## Milestones
 
-- [x] **M0 — Environment & safety audit.** Verified storage, git, Node 24.19.0,
+- [x] **M0: Environment & safety audit.** Verified storage, git, Node 24.19.0,
   gh auth as XiONDiGiTaL. `X:\REA` untouched.
-- [x] **M1 — Requirements and reference research.** Reviewed comparable
+- [x] **M1: Requirements and reference research.** Reviewed comparable
   modular-workspace patterns without copying code; the independent-shell
   decision is recorded in `docs/ENGINEERING_DECISIONS.md`.
-- [x] **M2 — Reproducible baseline.** pnpm 12.3.4 (local tool dir; corepack
+- [x] **M2: Reproducible baseline.** pnpm 12.3.4 (local tool dir; corepack
   blocked by EPERM), install/typecheck/test run in the reference clone.
-- [x] **M3 — Identity & shell.** Periodic-table tile logo, small/tray/mono
+- [x] **M3: Identity & shell.** Periodic-table tile logo, small/tray/mono
   variants, `brand/BRAND.md`, `brand/tokens.json`, `brand/themes.json` (schema
   v3, 78 catalogue themes in eight families), PNG 16–512, 7-resolution
   `kryvex.ico`. App id `net.xiondigital.kryvex`.
-- [x] **M4 — Theming (core).** 80 themes applied at runtime from
+- [x] **M4: Theming (core).** 80 themes applied at runtime from
   `brand/themes.json` and `src/plugins/` (78 catalogue + Donkey + XiØN), with
   reds and pinks in the spectrum band, flame-test elements, a 12-entry
   birthstone **gems** family and a 12-entry gradient **planets** family (the
@@ -53,7 +53,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   flags drive chrome, sheen and type. Density, sidebar mode, status bar and
   start view persist. Theme Studio import/export of third-party theme files
   and a formal contrast audit remain.
-- [x] **M5 — Services as apps.** Registry with add/edit/remove/pin, validation,
+- [x] **M5: Services as apps.** Registry with add/edit/remove/pin, validation,
   search and category filters, 27 presets across communication, work, AI,
   resources and media. A service frame is mounted once and kept alive; the
   partition is set before `src`; the guest reports a Chrome user agent. Native
@@ -61,7 +61,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   from the page title, auth popups share the service session, pop-unders are
   denied, and one service's session can be cleared without touching any other.
   Hibernation, a notification-per-service granularity and health checks remain.
-- [x] **M6 — Browser (core).** Tabs that reopen after a restart, back/forward/
+- [x] **M6: Browser (core).** Tabs that reopen after a restart, back/forward/
   reload, address bar with host-or-search resolution, bookmarks bar and toggle,
   in-memory per-tab partitions, system-browser handoff, a persistent
   downloads/history/bookmarks library, find-in-page, page zoom, a persisted
@@ -75,7 +75,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   never enter the saved session; an options menu gathers tab, library, private
   and shield actions. Per-site zoom memory is Chromium's own map; it is
   reported read-only.
-- [ ] **M7 — Security (baseline shipped).** Sandboxed renderer, context
+- [ ] **M7: Security (baseline shipped).** Sandboxed renderer, context
   isolation, a narrowed typed IPC bridge, hardened webviews, partition
   allowlist, http(s)-only navigation, an explicit per-origin mic/camera prompt
   with other permissions/devices denied, service-scoped notifications and auth
@@ -86,7 +86,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   farbling and EasyList Cookie. Remaining: per-site privacy exceptions,
   persisted per-module scopes, Safe Browsing equivalent, `pnpm audit`,
   packaged-app integrity checks, renderer CSP, macOS/Linux validation.
-- [ ] **M8 — Testing (partial).** 444/444 unit tests, strict typecheck, build and
+- [ ] **M8: Testing (partial).** 444/444 unit tests, strict typecheck, build and
   twenty-four-capture pass; live Sohbet probe passed. Two-instance Rooms
   (`pnpm verify:rooms`) proves presence, chat and a 2560×1440 screen share
   between separate profiles. The new service-engine
@@ -105,9 +105,9 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   Remaining: broader e2e UI
   coverage, backup/restore,  measured performance comparison (`docs/PERFORMANCE.md` still holds no
   numbers).
-- [x] **M9 — Packaging & CI.** The **0.6.0**, **0.7.0**, **0.8.0**, **0.8.1**, **0.8.2**, **0.8.3**,
-  **0.8.4**, **0.8.5**, **0.8.6** and **0.8.7** Setup and Portable EXEs are built by GitHub Actions on their `v*` tags
-  (**0.8.5**, **0.8.6** and **0.8.7** were also built and installed locally before their
+- [x] **M9: Packaging & CI.** The **0.6.0**, **0.7.0**, **0.8.0**, **0.8.1**, **0.8.2**, **0.8.3**,
+  **0.8.4**, **0.8.5**, **0.8.6**, **0.8.7** and **0.8.8** Setup and Portable EXEs are built by GitHub Actions on their `v*` tags
+  (**0.8.5**, **0.8.6**, **0.8.7** and **0.8.8** were also built and installed locally before their
   tags, and their published EXEs were re-downloaded and hash-verified
   afterwards); the
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
@@ -119,20 +119,20 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   unpacked build completes all twenty-seven capture routes, including Rooms, the
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
-- [x] **M10 — Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.7
+- [x] **M10: Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.8
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it.
-- [ ] **M11 — Final review.** README with real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.7
+- [ ] **M11: Final review.** README with real screenshots, banner,
+  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.8
   release records are in place. Outstanding: engineering report and
   a signed public release.
 
 ## Fixed (2026-10-21, error dialog on close)
 
 - **Reported:** closing the installed build showed **“A JavaScript error occurred
-  in the main process — TypeError: Object has been destroyed”**, at
+  in the main process, TypeError: Object has been destroyed”**, at
   `dist-electron/party.js` inside a `BrowserWindow` `closed` listener.
 - **Cause:** `partyAttachWindow` compared `shell === win.webContents` inside the
   `closed` handler. The window is already destroyed by then, so that getter
@@ -194,7 +194,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 - Measured constraint first: Electron refuses `new WebContentsView({ webContents })`
   with “options.webContents is already attached to a window”, and moving the page
   between contents is what would drop the opener. The popup therefore stays a
-  real window — frameless, taskbar-hidden, parented to the shell — and
+  real window (frameless, taskbar-hidden, parented to the shell) and
   `electron/popup-tabs.ts` places it over the browser canvas while the tab strip
   mirrors it.
 - `electron/popup-rules.ts` holds the pure policy: browser tabs and popups they
@@ -254,8 +254,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 ## Verified evidence (2026-10-21, published 0.8.0 artifacts)
 
 - The `v0.8.0` tag was pushed at `be02c4d`; the tag-triggered Release workflow
-  (run 39523097023) passed every step — tag/version check, install, typecheck,
-  tests, `package:win`, checksums and publish — and published the release
+  (run 39523097023) passed every step: tag/version check, install, typecheck,
+  tests, `package:win`, checksums and publish, and published the release
   without a draft.
 - The published assets report `Kryvex-Setup-0.8.0-x64.exe` at 120,286,633 bytes
   and `Kryvex-Portable-0.8.0-x64.exe` at 120,049,414 bytes. Downloaded copies
@@ -273,7 +273,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   `mode: portable`, `currentVersion 0.8.0`, and the live check returned
   `phase: current`; Settings → Updates rendered `v0.8.0 · BUILD PORTABLE`,
   `Kryvex 0.8.0 is the latest release.` and `UP TO DATE` with an SVG check,
-  `.update-status.is-current` and `rgb(74, 222, 128)` — equal to the probe
+  `.update-status.is-current` and `rgb(74, 222, 128)`: equal to the probe
   painted with `var(--success)`. Clicking **Check for updates** raised the
   `toast toast-success` reading `Kryvex 0.8.0 is up to date.`
 - The same build exposes the model runner at Settings → Vexium: `RUN A MODEL
@@ -400,7 +400,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   list through `getHighEntropyValues`, and `Sec-CH-UA` headers on the wire with
   no Electron token. Fingerprint farbling was provably active (2 of 256 pixels
   perturbed) while `Function.prototype.toString` still reported native code for
-  every wrapper — a closure that previously leaked its JavaScript source.
+  every wrapper: a closure that previously leaked its JavaScript source.
 - **Google sign-in probe (not a pass/fail).** With that identity, a guest
   navigated to `accounts.google.com/ServiceLogin` and Google served the sign-in
   form (`input[type=email]` present, no refusal card). A full sign-in was not
@@ -418,7 +418,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   the app quit with code 0, and the service partition still came back signed out
   on relaunch. Inspecting `.tmp-service-engine-profile/Kryvex/Partitions/
   svc-s-verify/Network/Cookies` after that quit showed no cookie row at all, so
-  Chromium was never writing the store — a session cookie set minutes before a
+  Chromium was never writing the store: a session cookie set minutes before a
   quit is exactly the case a real sign-in hits.
 - Fix: `serviceSessions.flush()` flushes the default session and every tracked
   `persist:svc-*` partition's cookie store; `before-quit` defers the quit until
@@ -472,7 +472,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 - **Limits:** no real GGUF or GPU was available, so inference speed was not
   measured; no Discord session was signed in, so the parked-heartbeat change
   is verified only as configuration (guest throttling off) rather than by
-  watching a gateway stay connected; Google's sign-in refusal was not waived —
+  watching a gateway stay connected; Google's sign-in refusal was not waived:
   Kryvex detects and explains it.
 
 ## Verified evidence (2026-10-20, service engine)
@@ -606,16 +606,18 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   hatch. Discord's own token invalidation is outside the app's control.
 - BetterDiscord/Vencord/AyuGram-style injection is deliberately not shipped;
   compounds and a gated emulator are designed but not built (see
-  `docs/PLATFORM_PLAN.md`). Local models shipped as the GGUF runner above,
-  which still needs a llama.cpp binary the user supplies.
+  `docs/PLATFORM_PLAN.md`). Local models ship as the GGUF runner above; the
+  installer now includes the llama.cpp CPU runtime, while weights remain a
+  separate, reviewed download.
 - Notifications are all-or-nothing for service modules; there is no per-service
   mute or notification history in the shell yet.
 - “Kryvex” clearance unresolved (above).
 
 ## Next concrete action
 
-0.8.7 is published from the `v0.8.7` tag with the Setup, Portable and checksum
-assets, so installed 0.8.6 builds pick up Disk pulse, its worker-thread scan and
-the status-bar transport through **Settings → Updates**. Next: code signing, the
+0.8.8 is published from the `v0.8.8` tag with the Setup, Portable and checksum
+assets, so installed 0.8.7 builds pick up the bundled llama.cpp runtime, the
+rearrangeable Home widgets, the service-dock volume and repeat controls, and the
+opt-in Spotify ad guard through **Settings → Updates**. Next: code signing, the
 PWA client on Android (no APK), and the compound manifest and permission sheet
 described in `docs/PLATFORM_PLAN.md` before adding any branded add-on.

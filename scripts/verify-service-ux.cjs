@@ -4,7 +4,9 @@
  *
  *   - the resource panel reports Kryvex's own footprint and closes three ways;
  *   - the pinned rail opens a themed right-click menu;
- *   - a service page that plays audio produces a dock and accepts transport;
+ *   - a service page that plays audio produces a dock, accepts transport, and
+ *     follows the dock's volume and repeat controls;
+ *   - the resource panel can force-close one module without touching another;
  *   - parking the service (navigating Home) does not stop its audio.
  *
  * It drives the real app in a disposable profile against a local media page, so
@@ -78,7 +80,10 @@ async function serve() {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(PAGE);
   });
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  // Listen on every loopback family so the second fixture can use `localhost`.
+  // Two services on one host would share a resource row, and the force-close
+  // check needs each module to be attributed on its own.
+  await new Promise(resolve => server.listen(0, resolve));
   return server;
 }
 
@@ -214,7 +219,7 @@ async function main() {
         {
           id: 's-pause',
           name: 'Pause Lab',
-          url: `${origin}pause`,
+          url: `${origin.replace('127.0.0.1', 'localhost')}pause`,
           category: 'other',
           color: '#2dd4bf',
           letter: 'P',
@@ -492,12 +497,90 @@ async function main() {
     'the dock to show Pause after resuming',
   );
 
+  // 4. Volume and repeat are page-level, so they have to reach the guest's own
+  // media element and survive the player replacing it.
+  const slider = await client.evaluate(`(() => {
+    const input = document.querySelector('.media-dock-volume-range');
+    if (!input) return null;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setter.call(input, '40');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    return input.value;
+  })()`);
+  check(slider === '40', 'the island offers a volume slider');
+  await waitFor(
+    client.evaluate,
+    `document.querySelector('.service-frame.is-active webview').executeJavaScript(
+      'Math.abs(document.getElementById("tone").volume - 0.4) < 0.02'
+    )`,
+    5000,
+    'the page volume to follow the dock',
+  );
+  const pageVolume = await client.evaluate(
+    `document.querySelector('.service-frame.is-active webview').executeJavaScript(
+      'document.getElementById("tone").volume'
+    )`,
+  );
+  check(Math.abs(pageVolume - 0.4) < 0.02, `the page volume follows the dock (${pageVolume})`);
+
+  await client.evaluate(
+    `document.querySelector('.media-dock button[aria-label="Repeat this clip"]').click(); true;`,
+  );
+  await waitFor(
+    client.evaluate,
+    `document.querySelector('.service-frame.is-active webview').executeJavaScript(
+      'Boolean(window.__kryvexDock && window.__kryvexDock.repeat)'
+    )`,
+    5000,
+    'the repeat guard to reach the page',
+  );
+  const guard = await client.evaluate(
+    `document.querySelector('.service-frame.is-active webview').executeJavaScript(
+      'JSON.stringify({ volume: window.__kryvexDock.volume, repeat: window.__kryvexDock.repeat })'
+    )`,
+  );
+  check(JSON.parse(guard).volume === 0.4, 'the guard keeps the chosen volume');
+
+  // The test page loops itself; disable that once so the guard's own restart is
+  // the only thing that can keep the clip playing.
+  await client.evaluate(
+    `document.querySelector('.service-frame.is-active webview').executeJavaScript(
+      '(() => { const a = document.getElementById("tone"); a.loop = false; a.currentTime = Math.max(0, a.duration - 0.1); return true; })()'
+    )`,
+  );
+  await sleep(2600);
+  const looped = await client.evaluate(
+    `document.querySelector('.service-frame.is-active webview').executeJavaScript(
+      '(() => { const a = document.getElementById("tone"); return { paused: a.paused, time: a.currentTime }; })()'
+    )`,
+  );
+  check(
+    looped && looped.paused === false && looped.time < 1,
+    `repeat restarts the clip at the end (${JSON.stringify(looped)})`,
+  );
+  await client.evaluate(
+    `document.querySelector('.service-frame.is-active webview').executeJavaScript(
+      'document.getElementById("tone").loop = true; true;'
+    )`,
+  );
+  await client.evaluate(
+    `document.querySelector('.media-dock button[aria-label="Repeat this clip"]').click(); true;`,
+  );
+  await waitFor(
+    client.evaluate,
+    `document.querySelector('.service-frame.is-active webview').executeJavaScript(
+      'window.__kryvexDock.repeat === false'
+    )`,
+    5000,
+    'the repeat guard to stand down',
+  );
+
   await client.evaluate(
     `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true;`,
   );
   await waitFor(client.evaluate, `!document.querySelector('.media-dock')`, 2500, 'Escape to close the pinned island');
 
-  // 4. Parking the service must not stop it.
+  // 5. Parking the service must not stop it.
   await client.evaluate(
     `document.querySelectorAll('.nav-item')[0].click(); true;`,
   );
@@ -577,6 +660,73 @@ async function main() {
     `document.querySelector('.service-frame[data-service="s-pause"] webview').executeJavaScript('document.getElementById("tone").paused')`,
   );
   check(pauseStopped === true, 'its audio pauses while it is parked');
+
+  // 6. Force-close is a two-press action and ends only the chosen module.
+  await client.evaluate(`document.querySelectorAll('.pinned-item')[0].click(); true;`);
+  await waitFor(
+    client.evaluate,
+    `Boolean(document.querySelector('.service-frame.is-active[data-service="s-tone"]'))`,
+    8000,
+    'the tone service again',
+  );
+  await client.evaluate(`document.querySelector('.header-tool.is-resources').click(); true;`);
+  await waitFor(
+    client.evaluate,
+    `Boolean(document.querySelector('.resource-row .resource-kill'))`,
+    5000,
+    'a force-close button per service',
+  );
+
+  await client.evaluate(`(() => {
+    const row = [...document.querySelectorAll('.resource-row')].find(item => /Tone Lab/.test(item.innerText));
+    row?.querySelector('.resource-kill')?.click();
+    return true;
+  })()`);
+  await waitFor(
+    client.evaluate,
+    `Boolean(document.querySelector('.resource-row .resource-kill.is-armed'))`,
+    3000,
+    'the armed force-close button',
+  );
+  const armed = await client.evaluate(`(() => {
+    const button = document.querySelector('.resource-row .resource-kill.is-armed');
+    return button ? { label: button.textContent.trim(), armed: true } : null;
+  })()`);
+  check(
+    armed && armed.label === 'Kill?',
+    `the first press only arms force-close (${JSON.stringify(armed)})`,
+  );
+  check(
+    await client.evaluate(`Boolean(document.querySelector('.service-frame[data-service="s-tone"]'))`),
+    'arming does not stop the service',
+  );
+
+  await client.evaluate(`(() => {
+    const row = [...document.querySelectorAll('.resource-row')].find(item => /Tone Lab/.test(item.innerText));
+    const button = row?.querySelector('.resource-kill');
+    if (button) button.click();
+    return true;
+  })()`);
+  await waitFor(
+    client.evaluate,
+    `!document.querySelector('.service-frame[data-service="s-tone"]')`,
+    5000,
+    'the killed frame to leave the stage',
+  );
+  check(
+    await client.evaluate(`location.hash.startsWith('#/services')`),
+    'force-close leaves the dead module behind',
+  );
+  check(
+    await client.evaluate(`Boolean(document.querySelector('.service-frame[data-service="s-pause"]'))`),
+    'force-close leaves every other module mounted',
+  );
+  await waitFor(
+    client.evaluate,
+    `![...document.querySelectorAll('.resource-row')].some(item => /Tone Lab/.test(item.innerText))`,
+    5000,
+    'the killed module to leave the panel',
+  );
 
   server.close();
   client.close();

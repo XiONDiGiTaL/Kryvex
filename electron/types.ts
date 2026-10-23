@@ -61,6 +61,10 @@ export interface LocalModelStatus {
   port: number | null;
   binary: string;
   binaryFound: boolean;
+  /** True when the executable came from the installer or a source checkout. */
+  bundled: boolean;
+  /** llama.cpp release tag of the bundled runtime, e.g. `b11835`; empty if none. */
+  runtimeVersion: string;
   pid: number | null;
   startedAt: number | null;
   ctxSize: number;

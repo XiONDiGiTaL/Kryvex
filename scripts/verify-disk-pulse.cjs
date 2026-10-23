@@ -154,7 +154,7 @@ async function main() {
     const usage = await client.evaluate(
       `({ state: document.querySelector('.disk-state')?.textContent, free: document.querySelectorAll('.disk-heart-stats strong')[0]?.textContent })`,
     );
-    check(!!usage.free && usage.free !== '—', `drive health reads real numbers (${usage.state}, free ${usage.free})`);
+    check(!!usage.free && usage.free !== 'n/a', `drive health reads real numbers (${usage.state}, free ${usage.free})`);
 
     const clicked = await client.evaluate(
       `(() => { const b = [...document.querySelectorAll('.disk-analyzer button')].find(n => /Analyze|Scanning/.test(n.textContent)); if (!b) return false; b.click(); return true; })()`,

@@ -54,6 +54,7 @@ type IconName =
   | 'rss'
   | 'menu'
   | 'heart'
+  | 'note'
   | 'droplet'
   | 'moon';
 
@@ -356,6 +357,13 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   heart: (
     <path d="M12 20.2S4 15.5 4 9.9A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1 8 2.9c0 5.6-8 10.3-8 10.3Z" />
+  ),
+  note: (
+    <>
+      <path d="M5.5 4.5h13v9.8l-4.2 4.2H5.5Z" />
+      <path d="M14.3 18.5v-4.2h4.2" />
+      <path d="M8.5 8.6h7M8.5 11.8h4.4" />
+    </>
   ),
   droplet: (
     <path d="M12 3.6c3.2 3.3 5.6 6.1 5.6 9.1a5.6 5.6 0 0 1-11.2 0c0-3 2.4-5.8 5.6-9.1Z" />

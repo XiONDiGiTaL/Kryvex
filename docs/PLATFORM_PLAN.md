@@ -1,4 +1,4 @@
-# Platform plan — compounds, assistants and the ideas around them
+# Platform plan: compounds, assistants and the ideas around them
 
 This is a triage of the larger wishlist: BetterDiscord-style client injection,
 Ferdium-like services, an in-house assistant with periodic-table branding,
@@ -11,7 +11,7 @@ update, and it does not pretend a feature is safe because it is convenient.
 
 ## 1. Service engine (adopted)
 
-The core of the request — a Discord-like app instead of a browser page — is
+The core of the request (a Discord-like app instead of a browser page) is
 shipped as the service engine described in [SERVICES.md](SERVICES.md):
 persistent partitions, keep-alive frames, a browser user agent, native
 notifications, unread badges, auth popups and per-service session clearing.
@@ -48,7 +48,7 @@ What Kryvex does instead:
 - will host its own **compounds** (below) with a signed, first-party capability
   model rather than monkey-patching someone else's client.
 
-## 3. Compounds — the periodic-table add-on system (designed, not built)
+## 3. Compounds: the periodic-table add-on system (designed, not built)
 
 The user-facing idea is good: optional modules with an element-style identity
 that extend Kryvex itself. The implementation must avoid turning "install from
@@ -68,16 +68,16 @@ Proposed model:
 
 Candidate compounds, in build order:
 
-1. **Vexium (VX, 078)** — an in-house assistant surface. Chat history, local
+1. **Vexium (VX, 078)**: an in-house assistant surface. Chat history, local
    notes, prompt library and a tool palette. Talks to *user-configured*
    endpoints only.
-2. **Nexion (NX, 042)** — planner, scheduler and focus timer with local
+2. **Nexion (NX, 042)**: planner, scheduler and focus timer with local
    reminders and calendar export (`.ics`). No account.
-3. **Matronix (MN, 086)** — workspace automation: open a set of services, set a
+3. **Matronix (MN, 086)**, workspace automation: open a set of services, set a
    theme, run a checklist. Deterministic macros, no page automation.
-4. **Aetheron (AE, 119)** — knowledge index over the user's own notes and
+4. **Aetheron (AE, 119)**: knowledge index over the user's own notes and
    bookmarks, with local embeddings if a local model is configured.
-5. **Omnexis (OM, 064)** — the compound manager and diagnostics view.
+5. **Omnexis (OM, 064)**: the compound manager and diagnostics view.
 
 Aetheron and Omnexis are deliberately later: they need the manifest and
 permission model to exist first. Shipping five branded tiles before the
@@ -91,7 +91,7 @@ users the real product, with its own features and updates, without Kryvex
 shipping an API key, a proxy or a copy of someone else's UI.
 
 The in-house assistant is different: it should not re-implement a chat client.
-Its value is being *inside* Kryvex — aware of the user's workspace, able to open
+Its value is being *inside* Kryvex: aware of the user's workspace, able to open
 a service, start a focus session, search local notes and hand a task to a model
 the user chose. That is a compound with a narrow tool API, not a clone.
 
@@ -208,17 +208,17 @@ fallbacks; it would not be Kryvex.
 
 A real mobile client is a separate build with a smaller native core:
 
-- **Phase 1 — service launcher.** A Kotlin app (minSdk 26, targetSdk 35) with a
+- **Phase 1: service launcher.** A Kotlin app (minSdk 26, targetSdk 35) with a
   home grid, add/edit service, and one active WebView per service. Use AndroidX
   WebKit's `WebViewAssetLoader` for the local shell, `CookieManager` with
   `flush()` for persistence, Chrome Custom Tabs for OAuth that a service refuses
   to frame, and `DownloadManager` for downloads. Keep the desktop's URL, colour
   and catalogue rules in a shared JSON file so the two clients do not drift.
-- **Phase 2 — session model.** Android's WebView cookie jar is shared across
+- **Phase 2: session model.** Android's WebView cookie jar is shared across
   WebViews in one process. True per-service isolation needs a separate process
   or a separate profile per service, and that choice must be made before the UI
   promises isolation. This is the hardest parity gap, not the styling.
-- **Phase 3 — shell features.** Request interception for the Shield, a
+- **Phase 3: shell features.** Request interception for the Shield, a
   user-configured OpenAI-compatible client for Vexium (Android would need an
   explicit LAN address, not the desktop's loopback-only rule), EmulatorJS in a
   WebView for the optional emulator, `VpnService` with a native OpenVPN engine

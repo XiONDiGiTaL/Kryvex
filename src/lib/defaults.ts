@@ -14,6 +14,7 @@ import {
   DEFAULT_SLEEP_GOAL_MINUTES,
   DEFAULT_WATER_GOAL_ML,
 } from './wellness';
+import { HOME_WIDGET_DEFAULT_AREAS, HOME_WIDGET_DEFAULT_ORDER } from './home-widgets';
 
 export const DEFAULT_SEARCH_REGION: SearchRegion = 'global';
 
@@ -41,9 +42,13 @@ export const DEFAULT_WELLNESS: WellnessSettings = {
 export const DEFAULT_HOME: HomeSettings = {
   showBoard: true,
   showWeather: true,
-  showTasks: true,
+  // Sticky notes are an opt-in widget: the Notes button beside Wellness opens
+  // it, and an existing file that says `true` keeps its saved choice.
+  showTasks: false,
   showGuide: true,
   showWellness: false,
+  widgetOrder: [...HOME_WIDGET_DEFAULT_ORDER],
+  widgetAreas: { ...HOME_WIDGET_DEFAULT_AREAS },
   wellness: DEFAULT_WELLNESS,
   city: '',
   place: '',
@@ -96,6 +101,11 @@ export const DEFAULT_PLAYER: PlayerSettings = {
   volume: 0.8,
   repeat: 'off',
   shuffle: false,
+  // Page media starts at its own volume; only a change here overrides it.
+  serviceVolume: 1,
+  serviceRepeat: false,
+  // Ad handling changes what a module does, so it starts off until asked.
+  spotifyAdGuard: false,
 };
 
 export const DEFAULT_DISK: DiskSettings = {

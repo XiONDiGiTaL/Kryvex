@@ -1,4 +1,4 @@
-# Kryvex 0.5.0 — Windows release
+# Kryvex 0.5.0: Windows release
 
 Released 2026-10-19. This release makes the download location a first-class
 setting and ships the complete 0.4.0 browser workspace with it.
@@ -58,30 +58,30 @@ The Portable EXE runs without installation. Its state still lives in
 Built from the complete 0.5.0 working tree, then checked against the packaged
 EXEs.
 
-- `pnpm typecheck` — exit 0 for renderer and main.
-- `pnpm test` — exit 0, **110/110** tests across 13 files.
-- `pnpm build` — exit 0; 468.11 kB JS, 54.02 kB CSS.
-- `pnpm capture` — exit 0; **seventeen** 1440×900 PNGs from the running window,
+- `pnpm typecheck`: exit 0 for renderer and main.
+- `pnpm test`: exit 0, **110/110** tests across 13 files.
+- `pnpm build`: exit 0; 468.11 kB JS, 54.02 kB CSS.
+- `pnpm capture`: exit 0; **seventeen** 1440×900 PNGs from the running window,
   including the new `settings-data` route.
-- `pnpm verify:downloads` — pass; a completed file was written to a chosen
+- `pnpm verify:downloads`, pass; a completed file was written to a chosen
   folder, the location was changed again, the restored record was deleted with
   its file, and the location reset to Downloads.
-- `pnpm verify:location-ui` — pass against the built app and against
+- `pnpm verify:location-ui`, pass against the built app and against
   `release/win-unpacked/Kryvex.exe`; the Data row showed the seeded folder,
   offered Change folder and reset, and reset the live path and bridge value to
   the real Downloads folder.
-- `pnpm verify:torrents` — pass; a `.torrent` and magnet survived a location
+- `pnpm verify:torrents`, pass; a `.torrent` and magnet survived a location
   change, restored paused in a fresh manager with no client, hydrated on
   Resume, transferred from a loopback peer, and deleted their folders and
   metadata. A magnet added after the change used the new torrent root.
-- `pnpm verify:torrent-restore-ui` — pass; the Downloads hub rendered the
+- `pnpm verify:torrent-restore-ui`, pass; the Downloads hub rendered the
   restored row as **Paused** with **Resume**, no active speed and no peers.
-- `pnpm verify:browser` — pass; find-in-page reported `1 of 3`, zoom reached
+- `pnpm verify:browser`, pass; find-in-page reported `1 of 3`, zoom reached
   110% and reset to 100%.
-- `pnpm verify:restart` — pass; theme, start view and an open tab survived a
+- `pnpm verify:restart`, pass; theme, start view and an open tab survived a
   close/relaunch, including a change made immediately before close, and a
   command-line URL joined the restored tab.
-- `pnpm run package:win` — exit 0; produced the two artifacts and checksums
+- `pnpm run package:win`, exit 0; produced the two artifacts and checksums
   above. Both EXEs report version `0.5.0`.
 - **Installed and portable capture:** the silent custom-directory install, the
   installed EXE and the Portable EXE each completed all seventeen capture

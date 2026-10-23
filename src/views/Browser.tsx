@@ -105,11 +105,11 @@ function torrentProgress(record: TorrentRecord): number {
 }
 
 function formatSpeed(value: number): string {
-  return value > 0 ? `${formatBytes(value)}/s` : '—';
+  return value > 0 ? `${formatBytes(value)}/s` : 'n/a';
 }
 
 function formatRemaining(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return '—';
+  if (!Number.isFinite(value) || value <= 0) return 'n/a';
   const seconds = Math.max(1, Math.round(value / 1000));
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.round(seconds / 60);
@@ -233,8 +233,8 @@ export function Browser({
   }, [active?.id, active?.url]);
 
   // Popup tabs: the main process announces each window it opens and the tab
-  // strip mirrors it. Closing the popup — the provider finishes and calls
-  // window.close() — returns to the tab that opened it.
+  // strip mirrors it. Closing the popup (the provider finishes and calls
+  // window.close()) returns to the tab that opened it.
   useEffect(() => {
     const bridge = window.kryvex;
     if (!bridge) return;

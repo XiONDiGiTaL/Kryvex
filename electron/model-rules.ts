@@ -3,7 +3,7 @@
  *
  * Downloading weights is a different security boundary from inference: the
  * renderer may only name a catalogue id, and every byte that reaches the disk
- * is described here — URL, host, redirect, size, hash and final path. Kryvex
+ * is described here: URL, host, redirect, size, hash and final path. Kryvex
  * never fetches a URL the catalogue does not pin, and never runs what it
  * downloads; the file is handed to the existing `llama-server` path only when
  * the user starts it.

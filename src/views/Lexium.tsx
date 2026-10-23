@@ -452,7 +452,7 @@ export function Lexium({
           ) : (
             <p className="lexium-hint">
               {t(
-                'Nothing leaves this device except the audio sent to the speech server you configured. No model is bundled, so the engine has to run somewhere — local is the default.',
+                'Nothing leaves this device except the audio sent to the speech server you configured. No model is bundled, so the engine has to run somewhere: local is the default.',
               )}
             </p>
           )}
@@ -574,7 +574,7 @@ export function Lexium({
             </button>
             {provider === 'mymemory' ? (
               <span className="mono lexium-provider">
-                {t('Local server was unreachable — answered by the public MyMemory API.')}
+                {t('Local server was unreachable: answered by the public MyMemory API.')}
               </span>
             ) : null}
           </div>

@@ -5,6 +5,7 @@ import { toolsCopy } from './i18n-tools';
 import { modelsCopy } from './i18n-models';
 import { browserCopy } from './i18n-browser';
 import { wellnessCopy } from './i18n-wellness';
+import { playbackCopy } from './i18n-playback';
 
 export const LANGUAGES: ReadonlyArray<{ id: LanguageSetting; label: string }> = [
   { id: 'system', label: 'System language' },
@@ -77,7 +78,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Everything connected, nothing scattered.': 'Todo conectado, nada disperso.',
     '{count} modules ready. Each one keeps its own session, cookies and sign-in, so switching context never means signing in again.':
       '{count} módulos listos. Cada uno mantiene su propia sesión, cookies e inicio de sesión, así que cambiar de contexto nunca significa volver a entrar.',
-    'ELEMENT x529 — MODULAR TECHNOLOGY': 'ELEMENTO x529 — TECNOLOGÍA MODULAR',
+    'ELEMENT x529: MODULAR TECHNOLOGY': 'ELEMENTO x529: TECNOLOGÍA MODULAR',
     'Precision in Every Connection.': 'Precisión en cada conexión.',
     'Kryvex treats every web app as a module: a URL, a purpose, an isolated session, and a place in your workspace. Compose the surface you need instead of a haystack of tabs.':
       'Kryvex trata cada app web como un módulo: una URL, un propósito, una sesión aislada y un lugar en tu espacio. Compón la superficie que necesitas en lugar de un pajar de pestañas.',
@@ -135,7 +136,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     All: 'Todos',
     'No modules installed': 'No hay módulos instalados',
     'Nothing matches that filter': 'Nada coincide con ese filtro',
-    'Add a web app by URL — it gets its own persistent, isolated session and a permanent home here.':
+    'Add a web app by URL: it gets its own persistent, isolated session and a permanent home here.':
       'Añade una app web por URL: obtiene su propia sesión persistente y aislada, y un hogar permanente aquí.',
     'Try another search term or switch back to the All filter.':
       'Prueba otro término o vuelve al filtro Todos.',
@@ -352,7 +353,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Opening the repository.': 'Abriendo el repositorio.',
     DEVELOPERS: 'DESARROLLADORES',
     '{name} on GitHub': '{name} en GitHub',
-    'FICTIONAL ELEMENT — NOT A CHEMICAL CLAIM': 'ELEMENTO FICTICIO — NO ES UNA AFIRMACIÓN QUÍMICA',
+    'FICTIONAL ELEMENT, NOT A CHEMICAL CLAIM': 'ELEMENTO FICTICIO: NO ES UNA AFIRMACIÓN QUÍMICA',
     Language: 'Idioma',
     'Use your system language or choose one for the whole interface.':
       'Usa el idioma del sistema o elige uno para toda la interfaz.',
@@ -492,7 +493,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Everything connected, nothing scattered.': 'Alles verbunden, nichts verstreut.',
     '{count} modules ready. Each one keeps its own session, cookies and sign-in, so switching context never means signing in again.':
       '{count} Module bereit. Jedes behält seine eigene Sitzung, Cookies und Anmeldung, sodass ein Kontextwechsel nie eine neue Anmeldung bedeutet.',
-    'ELEMENT x529 — MODULAR TECHNOLOGY': 'ELEMENT x529 — MODULARE TECHNOLOGIE',
+    'ELEMENT x529: MODULAR TECHNOLOGY': 'ELEMENT x529: MODULARE TECHNOLOGIE',
     'Precision in Every Connection.': 'Präzision in jeder Verbindung.',
     'Kryvex treats every web app as a module: a URL, a purpose, an isolated session, and a place in your workspace. Compose the surface you need instead of a haystack of tabs.':
       'Kryvex behandelt jede Web-App als Modul: eine URL, einen Zweck, eine isolierte Sitzung und einen Platz in Ihrem Arbeitsbereich. Stellen Sie die Oberfläche zusammen, die Sie brauchen, statt einen Heuhaufen aus Tabs.',
@@ -550,8 +551,8 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     All: 'Alle',
     'No modules installed': 'Keine Module installiert',
     'Nothing matches that filter': 'Nichts entspricht diesem Filter',
-    'Add a web app by URL — it gets its own persistent, isolated session and a permanent home here.':
-      'Fügen Sie eine Web-App per URL hinzu — sie erhält eine eigene persistente, isolierte Sitzung und einen festen Platz hier.',
+    'Add a web app by URL: it gets its own persistent, isolated session and a permanent home here.':
+      'Fügen Sie eine Web-App per URL hinzu: Sie erhält eine eigene persistente, isolierte Sitzung und einen festen Platz hier.',
     'Try another search term or switch back to the All filter.':
       'Versuchen Sie einen anderen Suchbegriff oder wechseln Sie zurück zu Alle.',
     'Add your first service': 'Ersten Dienst hinzufügen',
@@ -762,7 +763,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Opening the repository.': 'Repository wird geöffnet.',
     DEVELOPERS: 'ENTWICKLER',
     '{name} on GitHub': '{name} auf GitHub',
-    'FICTIONAL ELEMENT — NOT A CHEMICAL CLAIM': 'FIKTIVES ELEMENT — KEINE CHEMISCHE AUSSAGE',
+    'FICTIONAL ELEMENT, NOT A CHEMICAL CLAIM': 'FIKTIVES ELEMENT: KEINE CHEMISCHE AUSSAGE',
     Language: 'Sprache',
     'Use your system language or choose one for the whole interface.':
       'Verwenden Sie die Systemsprache oder wählen Sie eine für die gesamte Oberfläche.',
@@ -901,7 +902,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Everything connected, nothing scattered.': 'Tout est connecté, rien n’est dispersé.',
     '{count} modules ready. Each one keeps its own session, cookies and sign-in, so switching context never means signing in again.':
       '{count} modules prêts. Chacun conserve sa session, ses cookies et sa connexion, changer de contexte ne signifie donc jamais se reconnecter.',
-    'ELEMENT x529 — MODULAR TECHNOLOGY': 'ÉLÉMENT x529 — TECHNOLOGIE MODULAIRE',
+    'ELEMENT x529: MODULAR TECHNOLOGY': 'ÉLÉMENT x529: TECHNOLOGIE MODULAIRE',
     'Precision in Every Connection.': 'La précision dans chaque connexion.',
     'Kryvex treats every web app as a module: a URL, a purpose, an isolated session, and a place in your workspace. Compose the surface you need instead of a haystack of tabs.':
       'Kryvex traite chaque application web comme un module : une URL, un objectif, une session isolée et une place dans votre espace. Composez la surface dont vous avez besoin plutôt qu’une pile d’onglets.',
@@ -959,7 +960,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     All: 'Tous',
     'No modules installed': 'Aucun module installé',
     'Nothing matches that filter': 'Rien ne correspond à ce filtre',
-    'Add a web app by URL — it gets its own persistent, isolated session and a permanent home here.':
+    'Add a web app by URL: it gets its own persistent, isolated session and a permanent home here.':
       'Ajoutez une application web par URL : elle obtient sa propre session persistante et isolée, et une place permanente ici.',
     'Try another search term or switch back to the All filter.':
       'Essayez un autre terme ou revenez au filtre Tous.',
@@ -1171,7 +1172,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'Opening the repository.': 'Ouverture du dépôt.',
     DEVELOPERS: 'DÉVELOPPEURS',
     '{name} on GitHub': '{name} sur GitHub',
-    'FICTIONAL ELEMENT — NOT A CHEMICAL CLAIM': 'ÉLÉMENT FICTIF — AUCUNE AFFIRMATION CHIMIQUE',
+    'FICTIONAL ELEMENT, NOT A CHEMICAL CLAIM': 'ÉLÉMENT FICTIF: AUCUNE AFFIRMATION CHIMIQUE',
     Language: 'Langue',
     'Use your system language or choose one for the whole interface.':
       'Utilisez la langue du système ou choisissez-en une pour toute l’interface.',
@@ -2827,6 +2828,7 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           ...modelsCopy[language],
           ...browserCopy[language],
           ...wellnessCopy[language],
+          ...playbackCopy[language],
         };
   return {
     language,

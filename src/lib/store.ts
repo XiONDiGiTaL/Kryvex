@@ -69,6 +69,7 @@ import { themeGallerySeenValue } from './theme-gallery';
 import { isThemeId, sanitizeCustomTheme } from './themes';
 import { hostOf, isHttpUrl } from './url';
 import { sanitizeFeeds } from './rss';
+import { normalizeWidgetAreas, normalizeWidgetOrder } from './home-widgets';
 
 const VIEWS: ViewId[] = ['home', 'services', 'browser', 'assistant', 'settings'];
 const DENSITIES: Density[] = ['comfortable', 'compact'];
@@ -367,10 +368,15 @@ export function sanitizeHome(raw: unknown): HomeSettings {
     !inheritedDefault &&
     Math.abs(latitude) <= 90 &&
     Math.abs(longitude) <= 180;
+  // Before the widget registry, notes were on for everyone and there was no
+  // Notes button to close them. A file without an order predates that button,
+  // so its `true` is the old default rather than a choice: read it once as
+  // closed, then the saved order keeps whatever the user does next.
+  const legacyWidgets = !Array.isArray(raw.widgetOrder);
   return {
     showBoard: raw.showBoard === undefined ? base.showBoard : raw.showBoard === true,
     showWeather: raw.showWeather === undefined ? base.showWeather : raw.showWeather === true,
-    showTasks: raw.showTasks === undefined ? base.showTasks : raw.showTasks === true,
+    showTasks: legacyWidgets ? false : raw.showTasks === true,
     // `showMomentum`/`momentumSeen` were the old field names; keep reading
     // them once so an existing workspace does not lose its board preference.
     showGuide:
@@ -385,6 +391,10 @@ export function sanitizeHome(raw: unknown): HomeSettings {
     longitude: hasPoint ? longitude : null,
     showWellness: raw.showWellness === true,
     wellness: sanitizeWellness(raw.wellness),
+    // A file written before the widget registry has no order or columns, so
+    // both are derived from the registry defaults instead of being dropped.
+    widgetOrder: normalizeWidgetOrder(raw.widgetOrder),
+    widgetAreas: normalizeWidgetAreas(raw.widgetAreas),
     unit: raw.unit === 'f' ? 'f' : 'c',
     notes: sanitizeNotes(raw.notes),
     guideSeen: raw.guideSeen === true || raw.momentumSeen === true,
@@ -464,6 +474,13 @@ export function sanitizePlayer(raw: unknown): PlayerSettings {
     volume: clampVolume(Number(raw.volume)),
     repeat: REPEAT_MODES.includes(raw.repeat as RepeatMode) ? (raw.repeat as RepeatMode) : base.repeat,
     shuffle: raw.shuffle === true,
+    // A missing field must not read as 0 and silence every service page for
+    // someone upgrading from a build that never had this setting.
+    serviceVolume:
+      typeof raw.serviceVolume === 'number' ? clampVolume(raw.serviceVolume) : base.serviceVolume,
+    serviceRepeat: raw.serviceRepeat === true,
+    // Missing reads as off: an upgrade must not start muting a module.
+    spotifyAdGuard: raw.spotifyAdGuard === true,
   };
 }
 

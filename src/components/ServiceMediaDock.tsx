@@ -26,16 +26,27 @@ export function ServiceMediaDock({
   services,
   onOpenService,
   onControl,
+  volume = 1,
+  repeat = false,
+  onVolume,
+  onRepeat,
   variant = 'status',
 }: {
   entries: ServiceMediaState[];
   services: Service[];
   onOpenService: (service: Service) => void;
   onControl: (id: number, action: MediaAction) => Promise<boolean>;
+  /** Volume for page-owned media, 0 to 1. */
+  volume?: number;
+  /** Loop the clip the page is playing when it ends. */
+  repeat?: boolean;
+  onVolume?: (volume: number) => void;
+  onRepeat?: (repeat: boolean) => void;
   /** The floating layout is only a fallback when the status bar is hidden. */
   variant?: 'status' | 'floating';
 }) {
   const t = useT();
+  const lastAudible = useRef(volume > 0 ? volume : 1);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
@@ -97,6 +108,11 @@ export function ServiceMediaDock({
       setSelectedId(null);
     }
   }, [entries, selectedId]);
+
+  // Unmuting returns to the level the user last chose, not to full volume.
+  useEffect(() => {
+    if (volume > 0) lastAudible.current = volume;
+  }, [volume]);
 
   useEffect(() => {
     if (!open) return;
@@ -201,6 +217,36 @@ export function ServiceMediaDock({
         >
           <Icon name="next" size={16} />
         </button>
+        <button
+          className={`media-dock-btn ${repeat ? 'is-on' : ''}`}
+          onClick={() => onRepeat?.(!repeat)}
+          aria-pressed={repeat}
+          aria-label={t('Repeat this clip')}
+          title={repeat ? t('Repeat is on') : t('Repeat this clip')}
+        >
+          <Icon name={repeat ? 'repeat-one' : 'repeat'} size={15} />
+        </button>
+      </div>
+
+      <div className="media-dock-volume">
+        <button
+          className="media-dock-btn"
+          onClick={() => onVolume?.(volume > 0 ? 0 : lastAudible.current)}
+          aria-label={volume > 0 ? t('Mute') : t('Unmute')}
+          title={volume > 0 ? t('Mute') : t('Unmute')}
+        >
+          <Icon name={volume > 0 ? 'volume' : 'mute'} size={15} />
+        </button>
+        <input
+          className="media-dock-volume-range"
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={Math.round(volume * 100)}
+          onChange={event => onVolume?.(Number(event.target.value) / 100)}
+          aria-label={t('Volume')}
+        />
       </div>
 
       <span className="media-dock-times mono">

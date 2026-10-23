@@ -195,7 +195,7 @@ describe('panel formatting', () => {
   });
 
   it('turns a failure code into one translatable sentence', () => {
-    expect(failureMessage('hash')).toBe('Checksum mismatch — nothing was installed.');
+    expect(failureMessage('hash')).toBe('Checksum mismatch: nothing was installed.');
     expect(failureMessage('disk-space')).toContain('disk space');
     expect(failureMessage('running')).toMatch(/stop the server/i);
     expect(failureMessage(undefined)).toBe('The download could not be completed.');

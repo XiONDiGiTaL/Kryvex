@@ -1,4 +1,4 @@
-# Kryvex Web — the non-Electron client
+# Kryvex Web: the non-Electron client
 
 Kryvex Web is the same React renderer as the desktop app, built for a normal
 browser and installed as a PWA. It is a real client, not a screenshot gallery:

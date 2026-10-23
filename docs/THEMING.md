@@ -1,6 +1,6 @@
-# Theming (Kryvex Theme Studio — plan of record)
+# Theming (Kryvex Theme Studio: plan of record)
 
-Brand: **Kryvex** — a fictional periodic-table element (designation `x529`, symbol
+Brand: **Kryvex**, a fictional periodic-table element (designation `x529`, symbol
 `Kx`) rendered as a graphite tile with a metallic border and restrained
 electric-blue accent. Full identity rules live in `brand/BRAND.md`; this file
 covers the theme system that will ship in the app.
@@ -13,7 +13,7 @@ Assets: `brand/logo.svg` (full tile), `brand/icon-small.svg` (16–64px),
 
 One source of truth for `color`, `radius`, `spacing`, `border`, `density`,
 `type`, `motion`, `layout` and the `brand` block (product, tagline, element
-number/symbol). Application code references tokens — never hard-coded hex,
+number/symbol). Application code references tokens: never hard-coded hex,
 px radius, or duration. Review enforces this from M4.
 
 Core palette (dark default):
@@ -153,8 +153,8 @@ looks can sit on screen without touching the document theme.
   (`[data-shot="gallery-skip"]`) before shooting routes, so screenshots show
   pages rather than onboarding.
 
-The mock is intentionally abstract — rail, header bar, copy lines, two cards, a
-primary action and a status strip — so it reads as a workspace at 128px wide
+The mock is intentionally abstract (rail, header bar, copy lines, two cards, a
+primary action and a status strip) so it reads as a workspace at 128px wide
 and still shows gradient, glass and mono themes honestly. It sizes to its
 content rather than a fixed height: an earlier fixed frame clipped the bottom
 of every preview, and `verify:layout` now treats that as a failure. On the
@@ -172,7 +172,7 @@ back to the wash.
 
 The image is never part of the saved state: the renderer downscales the chosen
 file to at most 2560px, re-encodes it as WebP, and stores it in exactly one
-place — `userData/wallpaper/wallpaper.<ext>` in Electron
+place: `userData/wallpaper/wallpaper.<ext>` in Electron
 (`electron/wallpaper.ts`) or `kryvex.wallpaper.v1` in localStorage for the web
 preview (`src/lib/wallpaper.ts`). Only `settings.wallpaper` is persisted:
 `enabled`, `source`, `fit` (`cover` | `contain` | `tile`) and `veil` (0–90,
@@ -198,8 +198,8 @@ Rendering is one layered background on `.app`:
 ```
 
 `--wallpaper-veil` is `color-mix(in srgb, var(--bg) <veil>%, transparent)`, so
-the veil follows the active theme — light themes wash with light, dark themes
-with dark — and every plugin, custom palette and future theme inherits it for
+the veil follows the active theme (light themes wash with light, dark themes
+with dark) and every plugin, custom palette and future theme inherits it for
 free. Header, sidebar and status bar switch to `color-mix(...)` surfaces with
 `backdrop-filter` so the artwork reads through the chrome; panels keep about
 94% body for contrast. There is no per-theme wallpaper CSS to maintain.
@@ -212,12 +212,12 @@ free. Header, sidebar and status bar switch to `color-mix(...)` surfaces with
 - Import/export JSON with schema validation (`version`, `mode`, token map);
   reject malformed or unknown keys safely; migrate v1 (Gatherium) files by
   mapping the old surface/ink/accent keys onto v2 names.
-- Imported themes are data only — never execute JS, HTML, CSS urls or shell
+- Imported themes are data only: never execute JS, HTML, CSS urls or shell
   from a theme file.
 - Contrast checks in light and dark; a 2px focus ring at 2px offset must be
   visible in every theme, including High Contrast.
 - Native window chrome follows the theme. Remote service content is **not**
-  re-skinned by default — no CSS injection into third-party sites.
+  re-skinned by default: no CSS injection into third-party sites.
 
 ## Brand in the interface
 

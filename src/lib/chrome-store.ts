@@ -28,5 +28,5 @@ export function chromeWebStoreExtensionId(raw: string): string | null {
 }
 
 export function chromeWebStoreTitle(title: string): string {
-  return title.replace(/\s*[-–—]\s*Chrome Web Store\s*$/i, '').trim();
+  return title.replace(/\s*[-–\u2014]\s*Chrome Web Store\s*$/i, '').trim();
 }

@@ -1,4 +1,4 @@
-# Wizard capture — Kryvex 0.8.4
+# Wizard capture: Kryvex 0.8.4
 
 Recorded 2026-10-22T06:43:05.607Z by `pnpm verify:self-update --wizard --archive`.
 
@@ -25,9 +25,9 @@ was alive.
 
 ## Checks from the run
 
-- PASS the wizard showed more than one page — 5 pages: Choose Installation Options → Choose Install Location → Installing → Installation Complete → Completing Kryvex Setup
-- PASS the installer exited 0 — exit code 0
-- PASS the wizard opened an install progress page — "Installing"
-- PASS the install page ran instead of being skipped — 19836 ms between "Installing" and "Installation Complete"
-- PASS the wizard reached its finish page — "Installation Complete"
-- PASS every page was photographed — 5/5 pages
+- PASS the wizard showed more than one page, 5 pages: Choose Installation Options → Choose Install Location → Installing → Installation Complete → Completing Kryvex Setup
+- PASS the installer exited 0: exit code 0
+- PASS the wizard opened an install progress page: "Installing"
+- PASS the install page ran instead of being skipped: 19836 ms between "Installing" and "Installation Complete"
+- PASS the wizard reached its finish page: "Installation Complete"
+- PASS every page was photographed: 5/5 pages

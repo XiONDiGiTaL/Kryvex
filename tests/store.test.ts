@@ -33,6 +33,26 @@ function makeService(overrides: Partial<Service> = {}): Service {
   };
 }
 
+describe('player settings', () => {
+  it('gives page media a full volume when the saved state predates the field', () => {
+    const state = sanitizeState({ settings: { player: { volume: 0.4, repeat: 'all' } } });
+    expect(state.settings.player.volume).toBe(0.4);
+    expect(state.settings.player.serviceVolume).toBe(1);
+    expect(state.settings.player.serviceRepeat).toBe(false);
+  });
+
+  it('clamps a saved page volume and keeps an explicit loop', () => {
+    const state = sanitizeState({
+      settings: { player: { serviceVolume: 7, serviceRepeat: true } },
+    });
+    expect(state.settings.player.serviceVolume).toBe(1);
+    expect(state.settings.player.serviceRepeat).toBe(true);
+    expect(
+      sanitizeState({ settings: { player: { serviceVolume: -1 } } }).settings.player.serviceVolume,
+    ).toBe(0);
+  });
+});
+
 describe('sanitizeState', () => {
   it('returns starters for missing or malformed data', () => {
     expect(sanitizeState(null).services.length).toBeGreaterThan(0);

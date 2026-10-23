@@ -42,9 +42,9 @@ export function failureMessage(error: string | undefined): string {
     case 'cancelled':
       return 'The download was cancelled.';
     case 'size':
-      return 'Size mismatch — nothing was installed.';
+      return 'Size mismatch: nothing was installed.';
     case 'hash':
-      return 'Checksum mismatch — nothing was installed.';
+      return 'Checksum mismatch: nothing was installed.';
     case 'disk-space':
       return 'Not enough free disk space for this model.';
     case 'already-installed':
@@ -80,7 +80,7 @@ export function limitationLabel(id: string): string {
     case 'reasoning':
       return 'Multi-step reasoning';
     case 'arithmetic':
-      return 'Arithmetic — use the calculator';
+      return 'Arithmetic: use the calculator';
     case 'current-facts':
       return 'Current facts without a search';
     default:

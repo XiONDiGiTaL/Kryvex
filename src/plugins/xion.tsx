@@ -1,7 +1,7 @@
 import type { Theme } from '../lib/themes';
 
 /**
- * Special XiØN Edition — the creator's signature theme.
+ * Special XiØN Edition: the creator's signature theme.
  *
  * The darkest base in the catalogue with one electric blue (`#33B5E5`), a
  * glass sheen and the XiØN blade mark in place of the element tile. Glow and

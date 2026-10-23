@@ -23,6 +23,8 @@ export function serviceForPartition(services: Service[], partition: string): Ser
 export function useServiceMedia(enabled = true): {
   entries: ServiceMediaState[];
   control: (id: number, action: MediaAction) => Promise<boolean>;
+  setVolume: (volume: number) => void;
+  setRepeat: (repeat: boolean) => void;
 } {
   const [entries, setEntries] = useState<ServiceMediaState[]>([]);
 
@@ -71,5 +73,16 @@ export function useServiceMedia(enabled = true): {
     return window.kryvex.mediaControl(id, action).catch(() => false);
   }, []);
 
-  return { entries, control };
+  // Volume and repeat are page-level, not transport actions: they are written
+  // into every service guest that is playing something. They are fire and
+  // forget because the dock already holds the value it just sent.
+  const setVolume = useCallback((volume: number) => {
+    void window.kryvex?.mediaSetVolume(volume).catch(() => undefined);
+  }, []);
+
+  const setRepeat = useCallback((repeat: boolean) => {
+    void window.kryvex?.mediaSetRepeat(repeat).catch(() => undefined);
+  }, []);
+
+  return { entries, control, setVolume, setRepeat };
 }

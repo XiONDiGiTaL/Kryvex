@@ -114,7 +114,7 @@ export function withPrivacyHeaders(
  * Chromium's user-agent client hints name the *product*, and Electron's product
  * is "Chromium" rather than "Google Chrome". Kryvex already presents a plain
  * Chrome user agent, so leaving the hints alone makes one browser announce two
- * identities — a stronger fingerprint than either, and one Google's sign-in
+ * identities: a stronger fingerprint than either, and one Google's sign-in
  * flow treats as unsupported. Both hint headers are rewritten to the desktop
  * Chrome brand set that matches the user agent Kryvex sends.
  */

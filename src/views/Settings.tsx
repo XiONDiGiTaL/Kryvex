@@ -1295,7 +1295,7 @@ export function Settings({
           </div>
           <p className="setting-copy">
             {t(
-              'Pick a .gguf model you already downloaded. Kryvex starts llama.cpp on loopback and Vexium uses it like any other runtime. No weights are downloaded or hosted by us.',
+              'Pick a .gguf model you already downloaded. Kryvex starts llama.cpp on loopback and Vexium uses it like any other runtime. The CPU runtime is included; no weights are downloaded or hosted by us.',
             )}
           </p>
 
@@ -1305,7 +1305,9 @@ export function Settings({
               <p className="mono local-model-path">
                 {model?.path
                   ? model.path
-                  : t('No model file chosen. A 4B–8B quantised model runs well on most machines.')}
+                  : t(
+                      'No model file chosen. Download the reviewed starter below, or choose a .gguf you already have.',
+                    )}
               </p>
             </div>
             <div className="assistant-address">
@@ -1330,17 +1332,23 @@ export function Settings({
               <strong>{t('Runtime')}</strong>
               <p className="mono local-model-path">
                 {model?.binary || 'llama-server'}
+                {model?.bundled && model.runtimeVersion ? ` · llama.cpp ${model.runtimeVersion}` : ''}
                 {model && !model.binaryFound ? ` · ${t('not found')}` : ''}
               </p>
               <p>
-                {t(
-                  'Kryvex uses llama.cpp’s llama-server. If it is not on your PATH, point Kryvex at the executable once.',
-                )}{' '}
+                {model?.bundled
+                  ? t(
+                      'Included with Kryvex and ready for the model you choose. Point Kryvex at another llama.cpp build if you want GPU acceleration.',
+                    )
+                  : t(
+                      'Kryvex uses llama.cpp’s llama-server. If it is not on your PATH, point Kryvex at the executable once.',
+                    )}{' '}
                 <button
                   className="link"
                   onClick={() => openExternalUrl(MODEL_SOURCES.runtime)}
                 >
-                  {t('Download llama.cpp')} <Icon name="external" size={11} />
+                  {model?.bundled ? t('Other builds') : t('Download llama.cpp')}{' '}
+                  <Icon name="external" size={11} />
                 </button>
               </p>
             </div>
@@ -1350,7 +1358,7 @@ export function Settings({
                 disabled={!isElectron || modelBusy}
                 onClick={() => void chooseModelBinary()}
               >
-                {t('Find runtime…')}
+                {model?.bundled ? t('Use another runtime…') : t('Find runtime…')}
               </button>
               {model?.phase === 'running' ? (
                 <button
@@ -1403,7 +1411,7 @@ export function Settings({
           ) : null}
           {model?.phase === 'running' && model.baseUrl ? (
             <p className="shield-note mono">
-              {t('Serving {name} at {url} — Vexium is pointed at it.', {
+              {t('Serving {name} at {url}: Vexium is pointed at it.', {
                 name: model.name,
                 url: model.baseUrl,
               })}
@@ -1414,13 +1422,14 @@ export function Settings({
           ) : null}
           <p className="shield-note">
             {t(
-              'You can keep sourcing GGUF builds yourself — Hugging Face, Ollama’s library, LM Studio’s catalogue. Kryvex never uploads or redistributes them.',
+              'You can keep sourcing GGUF builds yourself: Hugging Face, Ollama’s library, LM Studio’s catalogue. Kryvex never uploads or redistributes them.',
             )}
           </p>
 
           <ModelManager
             isElectron={isElectron}
             runtimeReady={Boolean(model?.binaryFound)}
+            runtimeBundled={Boolean(model?.bundled)}
             onUse={path => void configureModel({ path })}
           />
         </div>
@@ -2228,7 +2237,7 @@ export function Settings({
               >
                 {SEARCH_REGIONS.map(region => (
                   <option key={region.id} value={region.id}>
-                    {region.id === 'global' ? t(region.label) : `${t(region.label)} — ${t(region.hint)}`}
+                    {region.id === 'global' ? t(region.label) : `${t(region.label)}: ${t(region.hint)}`}
                   </option>
                 ))}
               </select>
@@ -2243,7 +2252,7 @@ export function Settings({
                   <optgroup key={group.label} label={t(group.label)}>
                     {group.engines.map(engine => (
                       <option key={engine.id} value={engine.id}>
-                        {engine.name} · {engine.host} — {t(engine.purpose)}
+                        {engine.name} · {engine.host}: {t(engine.purpose)}
                       </option>
                     ))}
                   </optgroup>
@@ -2437,12 +2446,12 @@ export function Settings({
             <div>
               <span className="mono">{t('GRAPHICS')}</span>
               <strong>
-                {engine ? (engine.accelerated ? t('Hardware') : t('Software')) : '—'}
+                {engine ? (engine.accelerated ? t('Hardware') : t('Software')) : 'n/a'}
               </strong>
             </div>
             <div>
               <span className="mono">{t('COMPOSITING')}</span>
-              <strong className="mono">{engine?.gpu.compositing || '—'}</strong>
+              <strong className="mono">{engine?.gpu.compositing || 'n/a'}</strong>
             </div>
             <div>
               <span className="mono">{t('LIVE PAGES')}</span>
@@ -2450,14 +2459,14 @@ export function Settings({
             </div>
             <div>
               <span className="mono">{t('CHROMIUM')}</span>
-              <strong className="mono">{engine?.chrome ?? info?.chrome ?? '—'}</strong>
+              <strong className="mono">{engine?.chrome ?? info?.chrome ?? 'n/a'}</strong>
             </div>
           </div>
 
           <p className="shield-note mono engine-switches">
             {engine && engine.switches.length > 0
               ? engine.switches.join(' · ')
-              : t('No launch switches — every Chromium default is in effect.')}
+              : t('No launch switches: every Chromium default is in effect.')}
           </p>
 
           <div className="engine-actions">
@@ -2594,6 +2603,50 @@ export function Settings({
         <p className="shield-note">
           {t(
             'Weather is fetched by the main process from Open-Meteo with no key. Only the place you choose is sent: a city name on lookup, then its coordinates when the card refreshes. Tasks never leave this device.',
+          )}
+        </p>
+      </SettingsBlock>
+
+      <SettingsBlock
+        className="panel panel-wide service-playback-panel"
+        id="service-playback"
+        title={t('Service playback')}
+        icon="volume"
+        meta={settings.player.spotifyAdGuard ? t('GUARDED') : t('OFF')}
+      >
+        <p className="settings-copy">
+          {t(
+            'Volume and looping in the media dock apply to any module. This optional guard is narrower: it only watches Spotify’s own player.',
+          )}
+        </p>
+        <div className="setting-row">
+          <div>
+            <strong>{t('Mute Spotify ads and try to skip them')}</strong>
+            <p>
+              {t(
+                'Local only. The module is muted while Spotify labels an ad, including podcast breaks. Kryvex uses the page’s own Skip ad control, or Next for a track ad, and never advances past an episode; unskippable ads still play.',
+              )}
+            </p>
+          </div>
+          <button
+            className={`switch ${settings.player.spotifyAdGuard ? 'is-on' : ''}`}
+            role="switch"
+            aria-checked={settings.player.spotifyAdGuard}
+            onClick={() =>
+              onUpdate({
+                player: {
+                  ...settings.player,
+                  spotifyAdGuard: !settings.player.spotifyAdGuard,
+                },
+              })
+            }
+          >
+            <span />
+          </button>
+        </div>
+        <p className="shield-note">
+          {t(
+            'No account, cookie or request is changed, and ad audio is not downloaded or blocked: the module is simply quiet and the player is asked to move on. Detection depends on Spotify’s labels, so an unlabelled ad, such as a host-read segment inside a podcast, is left alone. Shield handles network-level rules separately.',
           )}
         </p>
       </SettingsBlock>
@@ -2907,12 +2960,12 @@ export function Settings({
             <div>
               <dt>{t('Runtime')}</dt>
               <dd>
-                {isElectron ? `Electron ${info?.electron ?? '—'}` : t('Web preview')}
+                {isElectron ? `Electron ${info?.electron ?? 'n/a'}` : t('Web preview')}
               </dd>
             </div>
             <div>
               <dt>{t('Chromium')}</dt>
-              <dd>{info?.chrome ?? '—'}</dd>
+              <dd>{info?.chrome ?? 'n/a'}</dd>
             </div>
             <div>
               <dt>{t('License')}</dt>
@@ -2956,7 +3009,7 @@ export function Settings({
           <div className="about-foot">
             <ThemeMark mark={mark} size={16} />
             <span className="mono">
-              {t('FICTIONAL ELEMENT — NOT A CHEMICAL CLAIM')}
+              {t('FICTIONAL ELEMENT, NOT A CHEMICAL CLAIM')}
             </span>
           </div>
         </section>

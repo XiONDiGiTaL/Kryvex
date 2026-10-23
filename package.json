@@ -1,7 +1,7 @@
 {
   "name": "kryvex",
   "productName": "Kryvex",
-  "version": "0.8.7",
+  "version": "0.8.8",
   "description": "A modular desktop workspace that brings independent web services, a browser and shared tools into one engineered surface.",
   "license": "MIT",
   "author": {
@@ -25,8 +25,9 @@
     "capture": "node scripts/capture.mjs",
     "audit:deps": "node scripts/audit-deps.cjs",
     "audit:i18n": "node scripts/audit-i18n.cjs",
-    "package:dir": "pnpm build && electron-builder --dir",
-    "package:win": "pnpm build && electron-builder --publish never",
+    "fetch:runtime": "node scripts/fetch-runtime.mjs",
+    "package:dir": "node scripts/fetch-runtime.mjs && pnpm build && electron-builder --dir",
+    "package:win": "node scripts/fetch-runtime.mjs && pnpm build && electron-builder --publish never",
     "release:checksums": "node scripts/release-checksums.cjs",
     "release:wizard": "node scripts/verify-self-update.cjs --wizard --archive",
     "release:check": "node scripts/check-release-record.cjs",
@@ -78,6 +79,10 @@
       {
         "from": "brand/icons",
         "to": "icons"
+      },
+      {
+        "from": "runtime/bin",
+        "to": "bin"
       }
     ],
     "win": {

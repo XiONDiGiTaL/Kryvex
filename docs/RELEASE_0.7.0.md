@@ -1,4 +1,4 @@
-# Kryvex 0.7.0 — Windows release
+# Kryvex 0.7.0: Windows release
 
 Released 2026-10-20. This release adds Rooms, the Vexium local assistant, a real
 Chromium engine panel, a first-run theme gallery, an opt-in wallpaper backdrop
@@ -13,10 +13,10 @@ Download the installer, portable build and checksum list from the
   the same place. Presence with a chosen name and colour, ephemeral text chat
   and screen share of a whole screen, a single window or one Kryvex app.
   Recent rooms bring a group back. There is no account and no Kryvex-owned
-  server in the media path — the invite link is the whole access model. File
+  server in the media path: the invite link is the whole access model. File
   drop, voice and co-watch are not built yet.
 - **Vexium, a local assistant:** a first-party chat surface that talks to a
-  model runtime you already run — Ollama or LM Studio — over loopback. The
+  model runtime you already run (Ollama or LM Studio) over loopback. The
   renderer never contacts the model server; the main process normalizes every
   address, rejects anything that is not loopback, streams SSE deltas and keeps
   no transcript on disk. No account, no key, no bundled weights.
@@ -25,8 +25,8 @@ Download the installer, portable build and checksum list from the
   preferences (JavaScript, images, WebGL, PDF viewer, autoplay, background
   throttling, spellcheck, colour scheme, default zoom). A live report shows the
   engine version, GPU state, launch switches and what each open guest attached.
-- **First look:** a fresh install opens a family gallery — eight bands, nine
-  mock workspaces — so you compare looks before committing. Previews never
+- **First look:** a fresh install opens a family gallery (eight bands, nine
+  mock workspaces) so you compare looks before committing. Previews never
   apply; clicking a theme does. Profiles that predate the gallery are marked as
   seen, so an upgrade never interrupts.
 - **Wallpaper on your terms:** the backdrop is off by default and the active
@@ -38,7 +38,7 @@ Download the installer, portable build and checksum list from the
   fixed 1440×900, keeps a real 900×520 floor, and `verify:layout` sweeps ten
   window sizes across six views to prove no panel clips its own content.
 - **Planets retuned:** Uranus is now a pale, eerie ice teal (`#8DDDE2` ground,
-  `#3F8E92` accent), Turquoise a pale mint and Neptune a vivid navy — 78
+  `#3F8E92` accent), Turquoise a pale mint and Neptune a vivid navy: 78
   catalogue themes in eight families plus two creator plugins and the Custom
   slot.
 
@@ -81,23 +81,23 @@ The Portable EXE runs without installation. Its state still lives in
 Run from the complete 0.7.0 working tree on Windows with Node 24.19.0,
 Electron 44.2.0 and pnpm 12.3.4.
 
-- `pnpm typecheck` — exit 0 for renderer and `electron/`.
-- `pnpm test` — exit 0, **223/223** tests across 24 files.
-- `pnpm build` — exit 0 for the renderer and main process.
-- `pnpm capture` — 27 routes from the running window, including `rooms`,
+- `pnpm typecheck`: exit 0 for renderer and `electron/`.
+- `pnpm test`: exit 0, **223/223** tests across 24 files.
+- `pnpm build`: exit 0 for the renderer and main process.
+- `pnpm capture`: 27 routes from the running window, including `rooms`,
   `theme-gallery`, `settings-chromium` and `settings-wallpaper`.
-- `verify:layout` — PASS at 2560×1400, 1920×1080, 1440×900, 1366×768,
+- `verify:layout`, PASS at 2560×1400, 1920×1080, 1440×900, 1366×768,
   1280×720, 1104×720, 1040×680, 960×640, 900×600 and 900×520, plus the
   first-run sheet at four sizes.
-- `verify:rooms` — two real app instances joined one room through the invite
+- `verify:rooms`, two real app instances joined one room through the invite
   hash; presence, chat and a 2560×1440 screen share decoded.
-- `verify:theme-gallery` — the first-run sheet renders eight family cards,
+- `verify:theme-gallery`, the first-run sheet renders eight family cards,
   previews without applying, applies on click and stays dismissed after reload.
-- `verify:wallpaper` — the backdrop starts off, the wash follows a changed
+- `verify:wallpaper`, the backdrop starts off, the wash follows a changed
   theme accent, a real file import paints the shell, and off survives a reload.
-- `verify:chromium` — engine switches and page preferences reach real guest
+- `verify:chromium`, engine switches and page preferences reach real guest
   webviews.
-- `verify:updater` — the loopback release feed produced
+- `verify:updater`, the loopback release feed produced
   `available → checksum-failed → ready`, and source-mode builds refused to
   install a binary.
 

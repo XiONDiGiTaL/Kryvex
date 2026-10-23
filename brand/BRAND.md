@@ -1,4 +1,4 @@
-# KRYVEX — Brand Specification
+# KRYVEX: Brand Specification
 
 **Product:** Kryvex (app: Kryvex Desktop) · **Mark:** Kx · **Abbreviation:** Krx
 **Tagline:** Precision in Every Connection.
@@ -8,8 +8,8 @@ services and workflows into one engineered surface.
 
 Kryvex is named after a fictional engineered element: a stable substrate that
 binds other materials without changing them. The identity therefore treats the
-product as an element on a periodic table of software — one tile in a larger
-system — rather than as a dashboard or a launcher. The tile is the brand.
+product as an element on a periodic table of software (one tile in a larger
+system) rather than as a dashboard or a launcher. The tile is the brand.
 
 > **Fictional element notice.** Element designation **x529**, symbol **Kx**,
 > and the name Kryvex are branding inventions. `x529` is not a real atomic
@@ -25,7 +25,7 @@ Every asset derives from one 512×512 tile:
 | Plate | `#0B0E12` near-black graphite, radius 86/512 (17%), 6-unit `#394451` border | Flat fill; a 1-unit inner hairline at 35% adds machined edge without gradient |
 | Top left | `x529` in mono, `#38BDF8` | The only element designation used in the identity |
 | Top right | Three 10-unit signal squares, `#2DD4BF` at 35/60/100% | "Connected systems" motif; omitted below 64px |
-| Center | `Kx` constructed from 26-unit round-capped strokes, `#F0F3F7` | Drawn, not typed — no font dependency, identical on every OS |
+| Center | `Kx` constructed from 26-unit round-capped strokes, `#F0F3F7` | Drawn, not typed: no font dependency, identical on every OS |
 | Divider | 64×4 accent rule, `#38BDF8` | Separates symbol from name, like a table row rule |
 | Name | `KRYVEX`, 30/512, weight 600, tracking 9, `#38BDF8` | Omitted below 64px |
 | Micro-label | `MODULAR TECHNOLOGY`, 11/512 mono, tracking 5, `#9AA6B5` | Omitted below 128px |
@@ -37,7 +37,7 @@ mockups. `Krx` remains the spoken/written abbreviation; `Kx` is the symbol.
 
 **Why `x529`.** The tile keeps a short alphanumeric designation in the
 atomic-number slot, preserving the periodic-table grammar without pretending to
-be a real element. `x529` is fictional and constant — do not renumber it per
+be a real element. `x529` is fictional and constant: do not renumber it per
 release, module, or theme.
 
 ## 2. Variants and minimum sizes
@@ -51,7 +51,7 @@ release, module, or theme.
 | `icons/*.png`, `icons/kryvex.ico` | Windows shell, shortcuts, store listings | 16px |
 
 At 16px the icon keeps only the plate and `Kx`; strokes are 48/512 (~1.5px)
-so the symbol does not dissolve. Never scale the full logo down to 16px — use
+so the symbol does not dissolve. Never scale the full logo down to 16px: use
 `icon-small.svg`. Rendered checks: the 16px export was reviewed at 8× zoom
 and the `Kx` remains readable as a single mark.
 
@@ -74,7 +74,7 @@ busy photo without a solid `#0B0E12` field behind it.
 | `success` / `warning` / `danger` | `#4ADE80` / `#FBBF24` / `#F87171` | Status only |
 
 Rules: the interface stays neutral; accents mark focus, selection, live status
-and primary actions — never decoration. Text uses `ink` or `inkMuted`; accent
+and primary actions: never decoration. Text uses `ink` or `inkMuted`; accent
 text is reserved for links and active labels (contrast on `#0B0E12` is 8.4:1
 for `#38BDF8`, 10.7:1 for `#2DD4BF`). Light theme swaps to darker accent
 variants (`#0369A1`, `#0F766E`) so contrast holds on white. Every color is a
@@ -122,14 +122,14 @@ only place the element metaphor appears.
 Six built-in themes live in `themes.json` (schema v2): Kryvex Dark (default),
 Kryvex Light, Midnight, Graphite, OLED Black, High Contrast. Themes override
 surface/ink/accent tokens only; spacing, radius, type and motion stay shared.
-Custom themes are data — never executable content. See `docs/THEMING.md`.
+Custom themes are data: never executable content. See `docs/THEMING.md`.
 
 ## 7. Imagery and voice
 
 - Screenshots are shot in Kryvex Dark with real module content; no mockups
   passed off as product.
 - Copy is short, technical, declarative. Tagline appears in full only on the
-  splash/about screen and docs cover — not repeated in the UI chrome.
+  splash/about screen and docs cover, not repeated in the UI chrome.
 - Never claim an integration works before it does; planned features are
   labelled planned in docs and disabled in the UI.
 
@@ -162,5 +162,5 @@ Raster exports are rendered from these SVGs through Chromium at integer sizes;
 the wordmark/micro-label use a font stack, so production marketing art should
 outline the type before sending to print. Name clearance for "Kryvex" is
 research-grade and currently **high risk** (an existing KRYVEX AI platform,
-a KRYVEX password-vault project, and ~38 GitHub repos) — see
+a KRYVEX password-vault project, and ~38 GitHub repos): see
 `docs/ENGINEERING_DECISIONS.md` ED-002 before any public launch.

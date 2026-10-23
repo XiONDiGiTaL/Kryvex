@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { extensionMessage, languageLabel, makeI18n, normalizeLanguage } from '../src/lib/i18n';
+import { playbackCopy } from '../src/lib/i18n-playback';
 
 describe('normalizeLanguage', () => {
   it('maps system locales to a supported base language', () => {
@@ -137,6 +138,22 @@ describe('makeI18n', () => {
     expect(
       makeI18n('fr').t('Code sent to {service}.', { service: 'Discord' }),
     ).toBe('Code envoyé à Discord.');
+  });
+
+  it('resolves every Spotify playback key that has a translation', () => {
+    for (const language of ['es', 'de', 'fr'] as const) {
+      const { t } = makeI18n(language);
+      for (const [key, value] of Object.entries(playbackCopy[language])) {
+        expect(t(key), `${language}: ${key}`).toBe(value);
+      }
+    }
+  });
+
+  it('localizes the Spotify ad guard settings', () => {
+    expect(makeI18n('es').t('Service playback')).toBe('Reproducción de servicios');
+    expect(makeI18n('de').t('Mute Spotify ads and try to skip them')).toContain('Spotify');
+    expect(makeI18n('fr').t('GUARDED')).toBe('PROTÉGÉ');
+    expect(makeI18n('en').t('Service playback')).toBe('Service playback');
   });
 
   it('localizes the system-language option label', () => {

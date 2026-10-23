@@ -231,6 +231,32 @@ class ServiceSessionManager {
     return this.notifications;
   }
 
+  /**
+   * Force-closes every guest page that belongs to one module.
+   *
+   * The shell also unmounts the frame, but a wedged renderer can outlive its
+   * element, so the main process ends the guests itself. This is a stop, not a
+   * reload: the partition keeps its cookies, so reopening the module is a
+   * fresh visit with the same sign-in.
+   */
+  stop(partition: unknown): number {
+    if (!isServicePartition(partition)) return 0;
+    let stopped = 0;
+    for (const contents of webContents.getAllWebContents()) {
+      try {
+        if (contents.getType() !== 'webview') continue;
+        if (this.partitionFor(contents) !== partition) continue;
+        // A page cannot veto a forced stop: waiting for beforeunload would let
+        // the very page the user is trying to end hold the button hostage.
+        contents.close({ waitForBeforeUnload: false });
+        stopped += 1;
+      } catch {
+        /* a guest that is already gone needs nothing */
+      }
+    }
+    return stopped;
+  }
+
   /** Clears only the named service partition: cookies, storage and cache. */
   async clear(partition: unknown): Promise<boolean> {
     if (!isServicePartition(partition)) return false;

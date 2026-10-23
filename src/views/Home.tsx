@@ -82,7 +82,7 @@ export function Home({
       <div className="hero-grid">
         <div className="hero-card">
           <div className="hero-copy">
-            <span className="chip mono">{t('ELEMENT x529 — MODULAR TECHNOLOGY')}</span>
+            <span className="chip mono">{t('ELEMENT x529: MODULAR TECHNOLOGY')}</span>
             <h2>{t('Precision in Every Connection.')}</h2>
             <p>
               {t(

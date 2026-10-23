@@ -10,6 +10,7 @@ type SettingsIcon =
   | 'spark'
   | 'users'
   | 'monitor'
+  | 'volume'
   | 'lock';
 
 /**

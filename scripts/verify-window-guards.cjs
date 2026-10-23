@@ -14,7 +14,7 @@
  * This drives the compiled modules with a window that throws on every property
  * except `isDestroyed()` (the only read Electron still answers after a close)
  * and an Electron stub that records dialog requests. A missing guard shows up
- * twice: the picker throws, or it reaches Electron anyway — `0` dialog calls is
+ * twice: the picker throws, or it reaches Electron anyway, `0` dialog calls is
  * part of the pass condition.
  */
 const path = require('node:path');
@@ -71,7 +71,7 @@ async function main() {
   const failures = [];
   const check = (name, pass, detail) => {
     if (!pass) failures.push(name);
-    console.log(`${name}: ${pass ? 'PASS' : 'FAIL'}${detail ? ` — ${detail}` : ''}`);
+    console.log(`${name}: ${pass ? 'PASS' : 'FAIL'}${detail ? `, ${detail}` : ''}`);
   };
 
   // Prove the stand-in is genuinely hostile, so `0` dialog calls below means
@@ -111,14 +111,14 @@ async function main() {
 
   fs.rmSync(root, { recursive: true, force: true });
   if (failures.length > 0) {
-    console.error(`window guards: FAIL — ${failures.join(', ')}`);
+    console.error(`window guards: FAIL: ${failures.join(', ')}`);
     process.exitCode = 1;
     return;
   }
-  console.log('window guards: PASS — every folder picker refused a closed window');
+  console.log('window guards: PASS, every folder picker refused a closed window');
 }
 
 main().catch(error => {
-  console.error('window guards: FAIL —', error && error.message ? error.message : error);
+  console.error('window guards: FAIL:', error && error.message ? error.message : error);
   process.exitCode = 1;
 });

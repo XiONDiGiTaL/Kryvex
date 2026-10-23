@@ -40,6 +40,8 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     'The file is missing from disk.': 'El archivo no está en el disco.',
     'Cancel download': 'Cancelar descarga',
     Download: 'Descargar',
+    'The llama.cpp runtime is included with Kryvex. Downloading a model does not start it.':
+      'El motor llama.cpp está incluido con Kryvex. Descargar un modelo no lo inicia.',
     'llama-server was found. Downloading does not start it.':
       'Se encontró llama-server. Descargar no lo inicia.',
     'llama-server was not found. You can download now and point Kryvex at the runtime before starting.':
@@ -51,8 +53,8 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
       'Modelo instalado. Usa «Usar este modelo» para entregarlo a Vexium y luego inicia el servidor.',
     'The model file was deleted.': 'Se borró el archivo del modelo.',
     'The download was cancelled.': 'La descarga se canceló.',
-    'Size mismatch — nothing was installed.': 'Tamaño incorrecto: no se instaló nada.',
-    'Checksum mismatch — nothing was installed.': 'Suma de comprobación incorrecta: no se instaló nada.',
+    'Size mismatch: nothing was installed.': 'Tamaño incorrecto: no se instaló nada.',
+    'Checksum mismatch: nothing was installed.': 'Suma de comprobación incorrecta: no se instaló nada.',
     'Not enough free disk space for this model.': 'No hay espacio libre suficiente para este modelo.',
     'That model is already installed.': 'Ese modelo ya está instalado.',
     'That model is running. Stop the server before deleting it.':
@@ -66,7 +68,7 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     'Short summaries of text you paste': 'Resúmenes breves del texto que pegues',
     'Explanations and how-to': 'Explicaciones y pasos',
     'Multi-step reasoning': 'Razonamiento de varios pasos',
-    'Arithmetic — use the calculator': 'Aritmética: usa la calculadora',
+    'Arithmetic: use the calculator': 'Aritmética: usa la calculadora',
     'Current facts without a search': 'Datos actuales sin búsqueda',
     English: 'Inglés',
     Spanish: 'Español',
@@ -104,6 +106,8 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     'The file is missing from disk.': 'Die Datei fehlt auf dem Datenträger.',
     'Cancel download': 'Download abbrechen',
     Download: 'Herunterladen',
+    'The llama.cpp runtime is included with Kryvex. Downloading a model does not start it.':
+      'Die llama.cpp-Laufzeit ist in Kryvex enthalten. Der Download eines Modells startet sie nicht.',
     'llama-server was found. Downloading does not start it.':
       'llama-server wurde gefunden. Der Download startet ihn nicht.',
     'llama-server was not found. You can download now and point Kryvex at the runtime before starting.':
@@ -115,8 +119,8 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
       'Modell installiert. Mit „Dieses Modell verwenden“ an Vexium übergeben und dann den Server starten.',
     'The model file was deleted.': 'Die Modelldatei wurde gelöscht.',
     'The download was cancelled.': 'Der Download wurde abgebrochen.',
-    'Size mismatch — nothing was installed.': 'Größe stimmt nicht — nichts wurde installiert.',
-    'Checksum mismatch — nothing was installed.': 'Prüfsumme stimmt nicht — nichts wurde installiert.',
+    'Size mismatch: nothing was installed.': 'Größe stimmt nicht: Nichts wurde installiert.',
+    'Checksum mismatch: nothing was installed.': 'Prüfsumme stimmt nicht: Nichts wurde installiert.',
     'Not enough free disk space for this model.': 'Nicht genug freier Speicher für dieses Modell.',
     'That model is already installed.': 'Dieses Modell ist bereits installiert.',
     'That model is running. Stop the server before deleting it.':
@@ -130,7 +134,7 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     'Short summaries of text you paste': 'Kurze Zusammenfassungen eingefügter Texte',
     'Explanations and how-to': 'Erklärungen und Anleitungen',
     'Multi-step reasoning': 'Mehrstufiges Schlussfolgern',
-    'Arithmetic — use the calculator': 'Arithmetik — den Rechner nutzen',
+    'Arithmetic: use the calculator': 'Arithmetik: den Rechner nutzen',
     'Current facts without a search': 'Aktuelle Fakten ohne Suche',
     English: 'Englisch',
     Spanish: 'Spanisch',
@@ -169,6 +173,8 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     'The file is missing from disk.': 'Le fichier est absent du disque.',
     'Cancel download': 'Annuler le téléchargement',
     Download: 'Télécharger',
+    'The llama.cpp runtime is included with Kryvex. Downloading a model does not start it.':
+      'Le moteur llama.cpp est inclus avec Kryvex. Le téléchargement d’un modèle ne le démarre pas.',
     'llama-server was found. Downloading does not start it.':
       "llama-server a été trouvé. Le téléchargement ne le démarre pas.",
     'llama-server was not found. You can download now and point Kryvex at the runtime before starting.':
@@ -180,8 +186,8 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
       "Modèle installé. Utilisez « Utiliser ce modèle » pour le confier à Vexium, puis démarrez le serveur.",
     'The model file was deleted.': 'Le fichier du modèle a été supprimé.',
     'The download was cancelled.': 'Le téléchargement a été annulé.',
-    'Size mismatch — nothing was installed.': "Taille incorrecte — rien n'a été installé.",
-    'Checksum mismatch — nothing was installed.': "Empreinte incorrecte — rien n'a été installé.",
+    'Size mismatch: nothing was installed.': "Taille incorrecte: rien n'a été installé.",
+    'Checksum mismatch: nothing was installed.': "Empreinte incorrecte: rien n'a été installé.",
     'Not enough free disk space for this model.': 'Espace disque insuffisant pour ce modèle.',
     'That model is already installed.': 'Ce modèle est déjà installé.',
     'That model is running. Stop the server before deleting it.':
@@ -195,7 +201,7 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     'Short summaries of text you paste': 'Résumés courts du texte collé',
     'Explanations and how-to': 'Explications et pas-à-pas',
     'Multi-step reasoning': 'Raisonnement en plusieurs étapes',
-    'Arithmetic — use the calculator': 'Arithmétique — utilisez la calculatrice',
+    'Arithmetic: use the calculator': 'Arithmétique: utilisez la calculatrice',
     'Current facts without a search': 'Faits actuels sans recherche',
     English: 'Anglais',
     Spanish: 'Espagnol',

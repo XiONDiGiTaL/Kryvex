@@ -87,6 +87,31 @@ export function serverBaseUrl(port: number): string {
   return `http://127.0.0.1:${port}`;
 }
 
+export interface RuntimeDir {
+  dir: string;
+  bundled: boolean;
+}
+
+/**
+ * Where to look for a runtime, in order: a binary the user dropped into app
+ * data, the copy in the installed app, and a source checkout's fetched copy.
+ * The checkout is only consulted while the app is unpackaged, so a packaged
+ * build can never load a binary from the working directory.
+ */
+export function runtimeDirs(input: {
+  userDataDir: string;
+  resourcesDir?: string;
+  appDir?: string;
+  packaged: boolean;
+}): RuntimeDir[] {
+  const dirs: RuntimeDir[] = [{ dir: input.userDataDir, bundled: false }];
+  if (input.resourcesDir) dirs.push({ dir: input.resourcesDir, bundled: true });
+  if (!input.packaged && input.appDir) {
+    dirs.push({ dir: `${input.appDir.replace(/[\\/]+$/, '')}/runtime/bin`, bundled: true });
+  }
+  return dirs.map(entry => ({ ...entry, dir: entry.dir.replace(/[\\/]+$/, '') }));
+}
+
 /** Order matters: a user-supplied path, then app data, then the installer. */
 export function binaryCandidates(platform: string, dirs: string[]): string[] {
   const names =

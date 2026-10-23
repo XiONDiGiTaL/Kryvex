@@ -38,6 +38,21 @@
   min-width: 0;
 }
 
+/* The guide column disappears with its last widget, so the main stack can use
+   the full width instead of leaving a narrow gutter behind. */
+.home-board.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.home-board-side {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-self: start;
+  min-width: 0;
+}
+
 .home-board-top {
   display: flex;
   align-items: flex-start;
@@ -99,6 +114,55 @@
 .home-widget-picker .chip-btn,
 .home-widget-toggles .chip-btn {
   font-size: 10px;
+}
+
+.home-widget-hint {
+  width: 100%;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.home-widget-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 2px 0;
+}
+
+.home-widget-index {
+  width: 12px;
+  flex: none;
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+
+.home-widget-row:not(.is-on) .home-widget-index {
+  opacity: 0.45;
+}
+
+.home-widget-row .home-widget-name {
+  min-width: 92px;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.home-widget-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.home-widget-actions .icon-btn:disabled {
+  opacity: 0.3;
+}
+
+.home-widget-area {
+  min-width: 46px;
+  font-size: 9px;
 }
 
 .home-weather {
@@ -527,7 +591,7 @@
 
 .resource-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) 54px 70px 36px;
+  grid-template-columns: minmax(0, 1.7fr) 54px 70px 36px 44px;
   align-items: center;
   gap: 6px;
   padding: 5px 2px;
@@ -564,6 +628,41 @@
   height: 7px;
   border-radius: 2px;
   flex: none;
+}
+
+.resource-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Two presses end a module: the first arms it, the second kills it. */
+.resource-kill {
+  min-width: 40px;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--danger) 34%, var(--line-soft));
+  border-radius: 5px;
+  background: transparent;
+  color: color-mix(in srgb, var(--danger) 78%, var(--ink));
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.resource-kill:hover {
+  border-color: color-mix(in srgb, var(--danger) 60%, var(--line));
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.resource-kill.is-armed {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 22%, transparent);
+  color: var(--ink);
+}
+
+.resource-kill:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--danger) 70%, transparent);
+  outline-offset: 1px;
 }
 
 .resource-empty {
@@ -1032,6 +1131,28 @@ body[data-player-bar='1'] .media-dock.is-floating {
   color: var(--ink-faint);
 }
 
+.media-dock-btn.is-on {
+  color: var(--accent);
+}
+
+.media-dock-volume {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+.media-dock-volume-range {
+  width: 64px;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .media-dock-volume-range {
+    display: none;
+  }
+}
+
 .media-dock-times {
   flex: none;
   font-size: 8px;
@@ -1427,6 +1548,18 @@ body[data-player-bar='1'] .media-dock.is-floating {
 .home-heart.is-fresh {
   color: var(--danger);
   animation: heart-invite 3.4s ease-in-out infinite;
+}
+
+.home-notes:hover,
+.home-notes:focus-visible {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--line));
+}
+
+.home-notes.is-on {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 34%, var(--line-soft));
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
 }
 
 @keyframes heart-invite {

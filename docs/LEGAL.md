@@ -117,7 +117,7 @@ screen-reader coverage of a webview is limited by Chromium, not Kryvex.
 | Brand icons | Simple Icons, CC0-1.0; trademarks belong to their owners |
 | Filter lists | uBlock Origin / EasyList, downloaded at runtime, not redistributed |
 | Ad-block engine | `@ghostery/adblocker`, MPL-2.0 |
-| Runtime | Electron, Chromium, Node.js, React, WebTorrent — see their licences |
+| Runtime | Electron, Chromium, Node.js, React, WebTorrent: see their licences |
 | Fonts | System UI and system monospace; no font files are redistributed |
 
 ## Your data, your choice

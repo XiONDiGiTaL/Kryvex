@@ -303,7 +303,7 @@ export function resample(input: Float32Array, fromRate: number, toRate = 16000):
   return output;
 }
 
-/** 16-bit mono PCM WAV — the one container every Whisper server accepts. */
+/** 16-bit mono PCM WAV: the one container every Whisper server accepts. */
 export function encodeWav(samples: Float32Array, sampleRate = 16000): ArrayBuffer {
   const bytes = samples.length * 2;
   const buffer = new ArrayBuffer(44 + bytes);

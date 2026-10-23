@@ -1,4 +1,4 @@
-# Performance (methodology first — no numbers yet)
+# Performance (methodology first: no numbers yet)
 
 No measurements taken. The word "lightweight" must not appear in user-facing
 copy until this file holds real numbers.

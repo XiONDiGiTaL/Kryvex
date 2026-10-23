@@ -1,7 +1,7 @@
 import type { Theme } from '../lib/themes';
 
 /**
- * Special Donkey Edition — the first Kryvex theme plugin.
+ * Special Donkey Edition: the first Kryvex theme plugin.
  *
  * It is intentionally self-contained: a theme definition plus the brand mark
  * it asks the shell to use. No colours are duplicated in CSS; the normal token
@@ -43,7 +43,7 @@ export const DONKEY_PLUGIN = {
 } as const;
 
 /**
- * Gold line-art donkey. Long ears, long face, minimal strokes — it has to read
+ * Gold line-art donkey. Long ears, long face, minimal strokes: it has to read
  * at 16px in the title bar as well as at 96px in an empty state.
  */
 export function DonkeyMark({

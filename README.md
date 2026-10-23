@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="docs/banner.svg" alt="Kryvex — Precision in Every Connection" width="100%" />
+<img src="docs/banner.svg" alt="Kryvex: Precision in Every Connection" width="100%" />
 
 ### A modular desktop workspace for the web apps you actually live in.
 
-Kryvex turns independent services into first-class modules — each with its own
+Kryvex turns independent services into first-class modules: each with its own
 persistent session, a place in your sidebar, and one composed surface. It also
 ships a native ad blocker, Brave-style URL privacy and fingerprint farbling, a
 Chrome-extension loader and a browser with microphone/camera access for real
@@ -24,12 +24,12 @@ calls, without asking you to trust a browser policy.
 
 ## Demo reel
 
-[![Kryvex demo reel — modules instead of tabs](docs/media/kryvex-demo.gif)](docs/media/kryvex-demo.mp4)
+[![Kryvex demo reel: modules instead of tabs](docs/media/kryvex-demo.gif)](docs/media/kryvex-demo.mp4)
 
 Twenty seconds, cut from the real app: modules instead of tabs, a persistent
 session behind every service, 78 themes, and no account in sight.
 
-**[Open the full reel](docs/media/kryvex-demo.mp4)** — 1920×1080, 30 fps, with
+**[Open the full reel](docs/media/kryvex-demo.mp4)**: 1920×1080, 30 fps, with
 sound, 6.2 MB. The preview above is the same cut at 800×450 and 10 fps so it can
 play inline like any image; the poster frame is
 [here](docs/media/kryvex-demo-poster.jpg).
@@ -39,13 +39,13 @@ play inline like any image; the poster frame is
 ![Kryvex home workspace](screenshots/home.png)
 
 Home keeps the everyday actions in view: Add, browse services, open the
-browser, or jump into settings — all ordinary buttons.
+browser, or jump into settings: all ordinary buttons.
 
 ## Why Kryvex
 
 Every team has the same stack of tabs: chat, mail, issues, notes, docs, a
 dashboard, three internal tools. Browsers treat them as pages. Kryvex treats
-them as **modules** — named, categorised, pinned, isolated, and one keystroke
+them as **modules**: named, categorised, pinned, isolated, and one keystroke
 away.
 
 - **Modules, not tabs.** Add any web app by URL or pick a preset. Give it a
@@ -55,8 +55,8 @@ away.
   partition (`persist:svc-*`). Browser tabs use disposable in-memory partitions
   (`browser-*`) that are cleared when the tab closes, so casual browsing leaves
   no session behind.
-- **Speaks your language.** The whole interface — navigation, settings,
-  themes, help, browser library, extension results and errors — follows the
+- **Speaks your language.** The whole interface (navigation, settings,
+  themes, help, browser library, extension results and errors) follows the
   system language or an explicit choice of English, Spanish, German or French.
 - **Ads filtered natively.** Kryvex Shield runs uBlock Origin and EasyList
   filter data through Electron's own session layer. No MV3 service worker, no
@@ -77,16 +77,17 @@ away.
 - **Local by design.** One JSON state file on your machine. No account, no
   telemetry, no cloud sync, no analytics SDK.
 - **Vexium, a local assistant.** A first-party chat surface that talks to a
-  model runtime on your machine — Ollama or LM Studio — over loopback only. No
-  account, no key, no cloud call, no transcript on disk.
-- **A real design system.** 78 catalogue themes in eight families — including
-  reds, pinks, birthstones and the solar system — plus two creator plugins and a
+  model runtime on your machine (Ollama, LM Studio, or the llama.cpp runtime
+  included in the installer) over loopback only. No account, no key, no cloud
+  call, no transcript on disk.
+- **A real design system.** 78 catalogue themes in eight families (including
+  reds, pinks, birthstones and the solar system) plus two creator plugins and a
   **Custom** slot,
   organised as a periodic table with two-letter symbols and full HSV/RGB colour
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
   support ride on the same tokens.
 
-> Status: **working desktop prototype (0.8.7, packaged and published)**. The app boots, modules load, service apps stay running with their
+> Status: **working desktop prototype (0.8.8, packaged and published)**. The app boots, modules load, service apps stay running with their
 > sessions, native notifications and unread badges work, auth popups complete
 > inside the module, themes switch, the shield blocks tracker requests and
 > consent banners, top-level navigations are upgraded to HTTPS with a one-time
@@ -108,10 +109,10 @@ to `release/`:
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.8.7-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
-| `Kryvex-Portable-0.8.7-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.8.8-x64.exe` | Standard per-user installer. Choose the destination folder, get Desktop and Start Menu shortcuts, and uninstall from Windows Settings. |
+| `Kryvex-Portable-0.8.8-x64.exe` | Run directly without installing. State still lives in `%APPDATA%\Kryvex`. |
 
-The **0.8.7** artifacts are built from this tree by the tag-triggered workflow
+The **0.8.8** artifacts are built from this tree by the tag-triggered workflow
 and published on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
 Each release is built from the complete source tree by the tag-triggered
@@ -145,9 +146,10 @@ per-user install needs no administrator rights; choosing a protected folder
 will ask for elevation. It creates Desktop and Start Menu shortcuts and an
 uninstall entry in Windows Settings.
 
-The **0.8.7** Setup and Portable EXEs are built from this tree. Artifact
+The **0.8.8** Setup and Portable EXEs are built from this tree. Artifact
 checksums, verification steps and limitations are recorded in
-[docs/RELEASE_0.8.7.md](docs/RELEASE_0.8.7.md); earlier releases are in
+[docs/RELEASE_0.8.8.md](docs/RELEASE_0.8.8.md); earlier releases are in
+[docs/RELEASE_0.8.7.md](docs/RELEASE_0.8.7.md),
 [docs/RELEASE_0.8.6.md](docs/RELEASE_0.8.6.md),
 [docs/RELEASE_0.8.5.md](docs/RELEASE_0.8.5.md),
 [docs/RELEASE_0.8.4.md](docs/RELEASE_0.8.4.md),
@@ -181,15 +183,15 @@ CDN is reachable), Lexium's translation and image reading, and the media player
 for local files and direct links. Transcription needs the speech engine to be
 reachable from that device; see [docs/LEXIUM.md](docs/LEXIUM.md). State lives in
 `localStorage`; the shell caches itself for offline use after the first visit.
-Services open in their own browser tabs, and the panels that need Electron —
+Services open in their own browser tabs, and the panels that need Electron (
 embedded persistent sessions, Shield, extensions, downloads/torrents, VPN, local
-models, screen share — say so instead of failing silently.
+models, screen share) say so instead of failing silently.
 
 On an Android phone, open the HTTPS (or `localhost`) build in Chrome and use
 **Install app**. See [docs/WEB.md](docs/WEB.md) for the build, hosting, USB
 fallback and the full feature-parity table.
 
-## In-house tools — Lexium and the player
+## In-house tools: Lexium and the player
 
 Services → **Secret services** now holds three element tiles besides the
 emulator: two tools built into Kryvex rather than embedded from the web.
@@ -212,20 +214,49 @@ The catalogue also gained Twitch, TikTok, Facebook, SoundCloud and Vimeo
 presets. TikTok, Twitch and Facebook default to **Start muted**, so an
 autoplaying feed cannot make noise until you unmute the module.
 
-## What's new in 0.8.7
+## What's new in 0.8.8
+
+**Vexium now ships its runtime.** The installer carries the pinned llama.cpp
+CPU runtime (`b11835`) beside the app, so a reviewed GGUF model can be started
+without installing llama.cpp first. The model itself remains a separate,
+verified download in **Settings → Vexium → Download models**; weights are not
+bundled, nothing is fetched at launch, and inference stays on `127.0.0.1`.
+A user-supplied runtime still takes precedence.
+
+**The Home board is a widget board.** Weather, Wellness, sticky notes and the
+board guide are entries in one small registry. The Widgets picker shows or hides
+each card, moves it up or down inside its column, and switches it between the
+main and side columns; the order survives a restart, and the guide column
+collapses when it has no card.
+
+**The service dock gained real controls.** A volume slider applies to media a
+service page owns, and a repeat toggle loops the page's own clip when it ends.
+Both start unset, so a page keeps its own playback until you touch them.
+
+**Spotify ads can be muted, opt-in.** A **Service playback** switch mutes the
+Spotify module while its own player labels an ad, then restores the module's
+previous mute state. On a track, album or playlist page it can press Spotify's
+own Skip ad control, or Next, at most once every twenty seconds; a podcast or an
+unclear page is never advanced past the episode. It reads the page only: no
+account, cookie or request is changed, and unlabelled or unskippable ads still
+play. Off by default.
+
+Everything in 0.8.7 is included.
+
+## What was new in 0.8.7
 
 **Disk pulse** is the fourth secret service (`#/disk`, element x533): a local
 disk analyzer with a guarded cleaner. It reads free and used space for the
 drive that holds your profile and draws it as a heart-rate trace that beats
 faster as the drive fills, sizes the drive's top-level folders as proportional
-bars, and lists seven cleanup categories with real sizes — user temp older than
+bars, and lists seven cleanup categories with real sizes: user temp older than
 a day, crash dumps, the legacy Windows internet cache, thumbnail and icon
 caches, Chrome caches, Edge caches and the Windows Error Reporting queue.
 Nothing leaves the machine.
 
 The cleaner is gated twice: a one-time disclaimer before the first scan, then a
 modal naming the exact categories and bytes plus a typed `CLEAN` for every run.
-The renderer only ever sends *target ids* — the roots live in the main process
+The renderer only ever sends *target ids*: the roots live in the main process
 and every file is re-checked before `unlink`: it must sit strictly below its
 target root, must not be a drive root, and must not be inside Windows,
 System32, WinSxS, Program Files, ProgramData, Desktop, Documents, Downloads or
@@ -237,7 +268,7 @@ for elevation. Details: [docs/DISK_PULSE.md](docs/DISK_PULSE.md).
 The scan itself runs in a **worker thread**, not the main process. A full-drive
 walk now cannot compete with the window, IPC or another service: each scan gets
 one worker that is terminated when it settles or when **Stop scan** is pressed,
-and the UI keeps answering while it runs — a health call answered in 0 ms
+and the UI keeps answering while it runs: a health call answered in 0 ms
 mid-walk in the release harness.
 
 The **service transport moved into the status bar**. Pinned services that are
@@ -250,7 +281,7 @@ Everything in 0.8.6 is included.
 ## What was new in 0.8.6
 
 The browser became a browser you can live in rather than a page with tabs. A
-**home button** on the left returns to a designed start page — not a blank tab —
+**home button** on the left returns to a designed start page (not a blank tab)
 with a field guide, live Shield counters (requests blocked, filters compiled,
 HTTPS upgrades, tracking parameters stripped), quick launch for modules and
 bookmarks, and an **RSS/Atom reader**. Add a feed by URL or import the OPML file
@@ -290,8 +321,8 @@ translates in both directions and reads text out of images using servers you
 point it at; **the media player (x531)** queues local files and direct links,
 keeps playing while you work in another view, and docks its transport above the
 status bar. The emulator is now **x532 / “8-bit”**, with its old pixel screen
-faded into the tile as a watermark behind the symbol. Five presets arrived —
-Twitch, TikTok, Facebook, SoundCloud and Vimeo — and the autoplaying feeds start
+faded into the tile as a watermark behind the symbol. Five presets arrived (
+Twitch, TikTok, Facebook, SoundCloud and Vimeo) and the autoplaying feeds start
 muted. Leaving the player page no longer pauses the track, and an unset weather
 location no longer reads as 0,0 and reports Null Island weather as local.
 
@@ -314,8 +345,8 @@ one-time-code relay harness. Everything in 0.8.3 is included.
 A page's `window.open` used to leave Kryvex for the system browser, so a Google
 or Microsoft sign-in finished in another application and the page that started
 it waited forever for the message that ends the flow. The popup now stays in
-Kryvex: it keeps its own window — and with it `window.opener` and the session
-the provider needs — while the tab strip shows it as a tab with the page's
+Kryvex: it keeps its own window, and with it `window.opener` and the session
+the provider needs, while the tab strip shows it as a tab with the page's
 title, a close button and back/forward/reload, and the window is placed exactly
 over the browser canvas so the toolbar and tabs stay yours. Another tab hides
 it, the tab shows it again, and `window.close()` returns you to the page that
@@ -335,7 +366,7 @@ now answers **“The main window is not ready.”** The IPC sender check and the
 permission broker compare a web contents reference captured while the window was
 alive, and Rooms checks that its shell is alive before touching `mainFrame`.
 `pnpm audit:lifecycle` walks every `closed`/`destroyed` handler and fails if one
-reads a window again — the test suite runs it, and runs it against the old
+reads a window again: the test suite runs it, and runs it against the old
 crashing line to prove it still catches it. `pnpm verify:guards` drives the
 three compiled pickers with a destroyed window and an Electron stub that counts
 dialog requests. Everything in 0.8.1 is included.
@@ -343,7 +374,7 @@ dialog requests. Everything in 0.8.1 is included.
 ## What was new in 0.8.1
 
 One fix: closing the app no longer raises **“A JavaScript error occurred in the
-main process — TypeError: Object has been destroyed”**. The Rooms broker read
+main process, TypeError: Object has been destroyed”**. The Rooms broker read
 `win.webContents` inside the window's `closed` handler, where the window is
 already gone; it now compares against a reference captured when the window was
 attached. `pnpm verify:party-close` fails with `Object has been destroyed` if the
@@ -366,7 +397,7 @@ with lists you chose. Kryvex still hosts nothing and uploads nothing.
   module as an anonymous Electron window. Fingerprint farbling still hides its
   JavaScript wrappers from `Function.prototype.toString`.
 - **My filters:** the shield accepts the uBlock Origin syntax people already
-  paste — `||ads.example.com^`, `example.com##.ad`, `example.com##+js(…)` — and
+  paste: `||ads.example.com^`, `example.com##.ad`, `example.com##+js(…)`, and
   compiles it from the cached lists, so applying needs no download. Scriptlets
   sit behind their own switch, the editor imports and exports plain text, and a
   YouTube preset bundles ad and feed blocking for one site.
@@ -388,7 +419,7 @@ a look instead of a list.
 - **Rooms:** create a room, copy one invite, and everyone who opens it lands in
   the same place. Presence with names and colours, ephemeral text chat, and
   screen share of a whole screen, a window or a single Kryvex app. No account
-  and no Kryvex server in the media path — the invite link is the access model,
+  and no Kryvex server in the media path: the invite link is the access model,
   and recent rooms bring a group back. File drop, voice and co-watch are not
   built yet.
 - **Vexium, a local assistant:** a first-party chat surface that talks to
@@ -400,8 +431,8 @@ a look instead of a list.
   preferences (JavaScript, images, WebGL, PDF viewer, autoplay, background
   throttling, spellcheck, colour scheme, default zoom). A live report shows the
   engine version, GPU state and what each open guest attached.
-- **First look:** a fresh install opens a family gallery — eight bands, nine
-  mock workspaces — so you compare looks before committing. Previews never
+- **First look:** a fresh install opens a family gallery (eight bands, nine
+  mock workspaces) so you compare looks before committing. Previews never
   apply; clicking a theme does. Existing profiles are marked as seen, so an
   upgrade never interrupts.
 - **Wallpaper on your terms:** off by default, so the active theme paints the
@@ -412,7 +443,7 @@ a look instead of a list.
   fixed 1440×900, keeps a real 900×520 floor, and a layout sweep at ten sizes
   proves no panel clips its own content.
 - **Planets retuned:** Uranus is a pale, eerie ice teal, Turquoise a pale mint
-  and Neptune a vivid navy — 78 catalogue themes in eight families plus two
+  and Neptune a vivid navy: 78 catalogue themes in eight families plus two
   creator plugins and the Custom slot.
 
 ## What was new in 0.6.0
@@ -434,19 +465,19 @@ Kryvex now runs services like installed apps rather than browser pages.
   denied.
 - **Clear one session:** the lock button in a service toolbar deletes only that
   service's cookies, storage and cache, after confirmation.
-- **A real catalogue:** 26 presets across communication, work, AI and resources
-  — Discord, Steam, Messenger, WhatsApp, Telegram, Instagram, Gmail, ChatGPT, Claude,
+- **A real catalogue:** 26 presets across communication, work, AI and resources:
+  Discord, Steam, Messenger, WhatsApp, Telegram, Instagram, Gmail, ChatGPT, Claude,
   Gemini, Copilot, Perplexity, Hugging Face, Freebuff, Ollama, FMHY and more.
   Links read while building Kryvex are not shipped as presets.
 - **A periodic theme table:** the picker is a periodic-table grid with
-  two-letter symbols, family bands and palette strips — core, spectrum (with
+  two-letter symbols, family bands and palette strips: core, spectrum (with
   Crimson, Vermillion and a pink range), flame-test elements, metals
   (Quicksilver included), birthstone **gems**, **planets**, lights and a
   high-contrast **Terminal**. Platinum and Quicksilver add an aero-style glass
   sheen; gradient themes paint buttons and marks with an accent-to-accent
   gradient.
-- **Custom colours:** the **Custom** tile opens a five-picker colour studio —
-  hue/saturation field, rainbow slider, HEX and editable R/G/B — that derives
+- **Custom colours:** the **Custom** tile opens a five-picker colour studio (
+  hue/saturation field, rainbow slider, HEX and editable R/G/B) that derives
   the remaining tones and switches light/dark from the background luminance.
 - **In-app updates:** **Settings → Updates** checks GitHub Releases, verifies
   the installer against a mandatory `SHA256SUMS.txt`, and can install and
@@ -474,8 +505,8 @@ Kryvex now runs services like installed apps rather than browser pages.
 - **Localized:** the new controls and errors follow the system language or an
   explicit choice of English, Spanish, German or French.
 
-The 0.4.0 features below — the browser library, session restore, find/zoom,
-privacy protections, calls, torrents and extensions — are all included in
+The 0.4.0 features below (the browser library, session restore, find/zoom,
+privacy protections, calls, torrents and extensions) are all included in
 0.5.0.
 
 ## What was new in 0.4.0
@@ -519,7 +550,7 @@ privacy protections, calls, torrents and extensions — are all included in
 ## What was new in 0.3.0
 
 - **Visible controls:** Add, Settings and Help buttons in the header, plus a
-  Common actions strip on Home — search, categories, browser and preferences
+  Common actions strip on Home: search, categories, browser and preferences
   are reachable without a single keyboard shortcut.
 - **Quick help:** a clickable guide for adding a service, browsing modules,
   opening the browser, opening settings, and the optional key combinations.
@@ -553,14 +584,15 @@ faster; the same actions remain available on screen.
 | Area | What works today |
 | --- | --- |
 | **Module registry** | Add, edit, remove and pin services. Name, URL, category, colour, glyph and brand-icon validation. Search, category filters, recents, starter catalogue, duplicate-safe IDs. |
-| **Vexium** | Chat with a local Ollama or LM Studio runtime over its OpenAI-compatible API, or a GGUF file Kryvex starts locally. Offline app answers and a search fallback when no model is loaded, streamed replies, Stop, runtime/address/model settings. Loopback http only; prompts stay in the session and no key or weights are stored. |
-| **Home board** | Greeting and clock, opt-in Open-Meteo weather with a ten-minute cache and °C/°F, sticky tasks, an optional Wellness widget and a guide. Widgets hide independently. |
-| **Wellness (off by default)** | A heart beside the Widgets button opens one optional intake form — units, height, weight, birth year, activity, an optional note, water and sleep goals. Water, hours slept, weight, calories and one tiny daily task are then logged by hand; XP, levels and a streak are recomputed from that log, never stored. BMI and a calorie estimate are labelled as estimates, and the whole block is one local state subtree with no network calls. |
-| **Resource monitor** | CPU, system memory, the Chromium GPU process and per-service/per-process usage, in the sidebar or a full view. Samples only while visible. |
+| **Vexium** | Chat with a local Ollama or LM Studio runtime over its OpenAI-compatible API, or a GGUF file Kryvex starts with the llama.cpp CPU runtime it now bundles. Offline app answers and a search fallback when no model is loaded, streamed replies, Stop, runtime/address/model settings. Loopback http only; prompts stay in the session and no key or weights are stored. |
+| **Home board** | Greeting and clock plus four widgets drawn from one small registry: opt-in Open-Meteo weather with a ten-minute cache and °C/°F, an optional Wellness card, sticky notes (off until the note button beside the heart opens them) and a board guide. Each card can be shown or hidden, moved up or down inside its column, or switched between the main and side column from the Widgets picker, which numbers the visible cards in display order. The guide column collapses when it has no card, and the order survives restarts. |
+| **Wellness (off by default)** | A heart beside the Widgets button opens one optional intake form: units, height, weight, birth year, activity, an optional note, water and sleep goals. Water, hours slept, weight, calories and one tiny daily task are then logged by hand; XP, levels and a streak are recomputed from that log, never stored. BMI and a calorie estimate are labelled as estimates, and the whole block is one local state subtree with no network calls. |
+| **Resource monitor** | CPU, system memory, the Chromium GPU process and per-service/per-process usage, in the sidebar or a full view. Samples only while visible, and every module row has a two-press **Kill** that force-closes its guests without touching another service. |
 | **VPN** | Start and stop an OpenVPN tunnel from your own binary and profile, with DNS, proxy, extra flags and connect-on-launch. Dangerous helper flags are refused. |
 | **Search engines** | Worldwide, Chinese, Korean, Czech, Vietnamese and international engines shared by the address bar, Settings and Vexium. |
 | **Lexium** | Secret in-house language tool: Whisper transcription for imported MP3/WAV/M4A/OGG/FLAC/WebM/MP4 with timed segments and `.txt`/`.srt` export, LibreTranslate translation with automatic detection and a labelled public fallback, and Tesseract OCR that hands recognized text straight to the translator. Audio is decoded and resampled to 16 kHz mono WAV locally. |
 | **Media player** | Secret in-house player for local files and direct links, with a persistent queue, repeat off/all/one, shuffle, seek, volume, video stage and a docked transport bar. Platform URLs are classified and handed to their own module. |
+| **Spotify ads (off by default)** | A Service playback switch that mutes the Spotify module while its player labels an ad, including podcast ad breaks, returns the module to its own mute switch afterwards, and uses Spotify's own Skip ad control, or Next on a track, album or playlist page, at most once per twenty seconds. A podcast or unclear page is never advanced past the episode. Local only: it reads the page and changes no account, cookie or request, and unlabelled or unskippable ads still play. |
 | **8-bit emulator** | EmulatorJS cores for NES, SNES, Game Boy/Color, GBA, Master System, Game Gear, Genesis, 32X, SG-1000, WonderSwan, Atari 2600/7800/Lynx, PC Engine, Neo Geo Pocket and Virtual Boy. Local ROMs only. |
 | **Service catalogue** | 31 presets across communication (Discord, Steam, Messenger, WhatsApp, Telegram, Instagram, Gmail, X, Facebook), work (GitHub, Linear, Notion, Figma, Trello), AI (ChatGPT, Claude, Gemini, Copilot, Perplexity, Hugging Face, Freebuff), resources (FMHY, Ollama, Internet Archive) and media (Spotify, YouTube, Twitch, TikTok, SoundCloud, Vimeo, Reddit), with brand marks and honest notes about embedding limits. Presets can start a module muted, which TikTok, Twitch and Facebook use so their autoplaying feeds stay quiet. |
 | **Brand icons** | Built-in CC0 Simple Icons paths for known services. Unknown services request their own `/favicon.ico` directly, then fall back to a letter tile. No third-party favicon service. |
@@ -570,7 +602,7 @@ faster; the same actions remain available on screen.
 | **Browser library** | Downloads, history and bookmarks in a side panel. Live download progress, pause/resume, cancel, show in folder, remove and delete-file actions; searchable history with clear/remove; full bookmark list. |
 | **Downloads** | Chromium downloads are observed in the main process across services and browser tabs, saved to the folder chosen in **Settings → Data** (Downloads by default) with collision-safe names, and exposed only as tracked display records. Finished history is written to `userData/kryvex-downloads.json`, so the library survives a restart; a download interrupted by quitting is shown as interrupted. |
 | **Torrents** | Magnet links and `.torrent` files open into the Downloads hub. New torrents use a `Kryvex Torrents` subfolder inside the chosen download location. Live progress, seeders/leechers, download/upload speed, ratio, time remaining, protocols, trackers and file list; pause/resume, reveal folder, remove, and optional data deletion. The queue is written to `userData/kryvex-torrents.json` and restored paused after a restart; no transfer resumes until the user presses Resume. Kryvex does not host, index or recommend torrents. |
-| **Rooms** | A link-only hangout view: create a room, copy the invite, and everyone who opens it shares presence, a name, a colour and ephemeral chat. Share a whole screen, a single window, or one Kryvex service app (Discord, a browser tab, Vexium) — optionally with system audio on Windows — with peers connecting directly over WebRTC. Signaling rides public WebTorrent trackers, media never touches a Kryvex server, and no account is involved. Capture is shell-only, one armed source at a time, and every viewer costs the sharer one upload (mesh). |
+| **Rooms** | A link-only hangout view: create a room, copy the invite, and everyone who opens it shares presence, a name, a colour and ephemeral chat. Share a whole screen, a single window, or one Kryvex service app (Discord, a browser tab, Vexium), optionally with system audio on Windows, with peers connecting directly over WebRTC. Signaling rides public WebTorrent trackers, media never touches a Kryvex server, and no account is involved. Capture is shell-only, one armed source at a time, and every viewer costs the sharer one upload (mesh). |
 | **Calls** | A visible prompt grants microphone and camera access per site. Works in service modules and browser tabs, so Discord, WhatsApp, Messenger, Instagram and Telegram web calls can use the local devices. Other permissions remain denied. |
 | **Default browser** | Opt-in per-user Default Apps capabilities for `http` and `https`, Windows handoff, status readout, and command-line link handling. |
 | **Kryvex Shield** | Native network filtering from uBlock Origin filters, uBO Privacy/Badware, EasyList, EasyPrivacy and EasyList Cookie. Live blocked counter, filter count, update-now, cached engine, per-session attachment. No MV3. |
@@ -578,29 +610,29 @@ faster; the same actions remain available on screen.
 | **Fingerprint farbling** | A sandboxed frame preload perturbs canvas `getImageData`/`toDataURL`/`toBlob`, WebGL `readPixels` and `AnalyserNode` frequency data with stable per-site, per-launch noise. The trusted shell is never patched. |
 | **Extensions** | Install Chrome-compatible extensions from a Chrome Web Store detail page in one click, or from `.zip`, `.crx` or a folder; enable, disable, remove. Loaded into services and browser sessions. |
 | **Languages** | System language or English, Spanish, German and French across the shell, browser library, dialogs, themes and extension messages. |
-| **Themes** | 78 catalogue themes in eight periodic-table families — core, spectrum (reds and pinks included), elements, metals, **gems/birthstones**, **planets**, lights and terminal — plus the **Special Donkey Edition** and **Special XiØN Edition** plugins, and a **Custom** tile you build from five RGB/HSV colour pickers. XiØN is the creator skin: near-black glass, one electric blue, the blade mark and liquid progress fills. All token-driven from `brand/themes.json` and `src/plugins/`. |
+| **Themes** | 78 catalogue themes in eight periodic-table families (core, spectrum (reds and pinks included), elements, metals, **gems/birthstones**, **planets**, lights and terminal) plus the **Special Donkey Edition** and **Special XiØN Edition** plugins, and a **Custom** tile you build from five RGB/HSV colour pickers. XiØN is the creator skin: near-black glass, one electric blue, the blade mark and liquid progress fills. All token-driven from `brand/themes.json` and `src/plugins/`. |
 | **Theme gallery** | A preview-first route to the same catalogue: every family rendered on a miniature Kryvex workspace, opened once on a fresh install and kept below the periodic table in Settings. Picking a family previews its hero, clicking a theme applies it, and the skip button keeps the current look. |
 | **Layout** | Collapsible sidebar (rail ↔ expanded), comfortable/compact density, toggleable status bar, adjustable start view. |
 | **Usability** | Header Add / Settings / Help buttons, Home common-action cards, a clickable quick-help dialog, visible dialog buttons, and optional keyboard shortcuts. |
-| **Command palette** | Fuzzy-ish filter over navigation, actions, services and themes; arrow keys, `Enter`, `Esc`. Optional — every action also has a visible button. |
+| **Command palette** | Fuzzy-ish filter over navigation, actions, services and themes; arrow keys, `Enter`, `Esc`. Optional: every action also has a visible button. |
 | **Persistence** | Debounced writes with an atomic temp-file rename, 1 MB cap, defensive sanitisation on every load. Reset restores starters. |
 | **Security** | Sandboxed renderer, context isolation, fixed IPC bridge, sender checks on every IPC call, hardened webviews, partition allowlist, http(s)-only navigation, prompt-only microphone/camera access, denied device permissions, display capture granted to the shell only while a Rooms source pick is armed, externalised popups, GPC, referrer trimming, no-pings, no DNS prefetch, WebRTC public-interface policy, HTTPS upgrades with a one-time fallback, tracking-parameter stripping and per-site fingerprint farbling. |
-| **Quality** | 390 unit tests, strict TypeScript across renderer and main, production build, packaged-app run, real screenshots from the running window, and harnesses for restart persistence, download history and location, torrent restore, find-in-page, zoom, the updater, the theme gallery (first-run flow, family previews, persistence), a layout sweep that fails on clipped content across ten window sizes, and two-instance Rooms (presence, chat, screen share). |
+| **Quality** | 547 unit tests, strict TypeScript across renderer and main, production build, packaged-app run, real screenshots from the running window, and harnesses for restart persistence, download history and location, torrent restore, find-in-page, zoom, the updater, the theme gallery (first-run flow, family previews, persistence), a layout sweep that fails on clipped content across ten window sizes, and two-instance Rooms (presence, chat, screen share). |
 
 ## Screenshots
 
 All captures below come from the running Electron window at 1440×900, produced
-by the app's own capture routine or a live DevTools run against the same window
-— no mockups.
+by the app's own capture routine or a live DevTools run against the same window,
+not mockups.
 
-### Help — a clickable guide
+### Help: a clickable guide
 
 ![Quick help dialog with clickable actions](screenshots/help.png)
 
 The Help button opens a clickable guide, not a keyboard cheat sheet. Shortcut
 commands are listed separately as optional accelerators.
 
-### Services — the module registry
+### Services: the module registry
 
 ![Services grid](screenshots/services.png)
 
@@ -638,7 +670,7 @@ session, cleared when the tab closes.
 the tab strip, write no history and are never restored after a restart. Closing
 them from the same menu also clears their partitions.
 
-### Browser library — downloads and history
+### Browser library: downloads and history
 
 ![Browser downloads panel](screenshots/browser-downloads.png)
 
@@ -657,13 +689,13 @@ row carries live seeders, leechers, peers, down/up speed, ratio, remaining
 time, active protocols, trackers and the file list. Kryvex is a client, not a
 directory: it does not host, index or recommend torrents.
 
-### Rooms — share a screen, a window or an app
+### Rooms: share a screen, a window or an app
 
 ![A Kryvex room with presence, chat and the share button](screenshots/rooms.png)
 
 `Ctrl 6` opens Rooms. **Create a room** mints a 26-character code; the invite
 copies as `kryvex://room/…`, and anyone who opens it lands in the same room.
-Inside, you get a name, a colour, a presence list and ephemeral chat — no
+Inside, you get a name, a colour, a presence list and ephemeral chat: no
 account, nothing listed publicly. **Share something** lists your screens, your
 windows and every open Kryvex app, so you can hand over one Discord session
 instead of your whole desktop. Peers decode the stream directly; signaling
@@ -674,7 +706,7 @@ sharer one upload per viewer, roughly six viewers at 720p on a normal line, and
 peers behind strict corporate NATs need a TURN relay you supply. File drop,
 voice and co-watch are the next steps, not shipped features.
 
-### Calls — microphone and camera prompt
+### Calls: microphone and camera prompt
 
 ![Microphone and camera permission prompt](screenshots/media-permission.png)
 
@@ -700,9 +732,9 @@ Apps because Windows requires the user's final choice.
 describing it. Hardware acceleration and smooth scrolling are launch switches;
 JavaScript, images, WebGL, the PDF viewer, autoplay, hidden-page throttling,
 spellcheck and the default zoom are page preferences; the preferred colour
-scheme applies immediately. The panel reads the live engine back — Chromium
+scheme applies immediately. The panel reads the live engine back (Chromium
 version, GPU compositing, active launch switches and how many embedded pages
-use the profile — and **Rebuild open pages** remounts each guest, because a
+use the profile) and **Rebuild open pages** remounts each guest, because a
 Chromium webview keeps the preferences it attached with.
 
 ### Command palette
@@ -710,7 +742,7 @@ Chromium webview keeps the preferences it attached with.
 ![Command palette](screenshots/command-palette.png)
 
 `Ctrl K` reaches anything: views, add-service, every module, and theme
-switching — without leaving the keyboard. It is optional: the same actions are
+switching, without leaving the keyboard. It is optional: the same actions are
 available through the header, Home cards, sidebar and Help dialog.
 
 ### Kryvex Shield and extensions
@@ -728,8 +760,8 @@ and EasyList explicitly.
 
 **Settings → Appearance** ends with a wallpaper panel that is off by default:
 the active theme paints the whole window until you flip the pill switch. Turn
-it on and pick **Theme wash** — a gradient built only from that theme's own
-accent tokens, so it moves with every theme you choose — or **My image** to
+it on and pick **Theme wash**: a gradient built only from that theme's own
+accent tokens, so it moves with every theme you choose, or **My image** to
 drop in your own photo with a veil, fill, fit or tile. Kryvex re-encodes the
 image to a bounded WebP, keeps it beside the state file on desktop
 (localStorage in the web preview) and never writes it into the saved state.
@@ -741,7 +773,7 @@ through; panels keep enough body for legible text.
 ![Kryvex in black and gold](screenshots/donkey-theme.png)
 
 Both creator skins now sit in the same periodic table as the rest of the
-catalogue, under **CUSTOM** — one chooser, no duplicate card. **Special Donkey
+catalogue, under **CUSTOM**: one chooser, no duplicate card. **Special Donkey
 Edition** is a self-contained plugin: true-black surfaces, gold line work, and a
 donkey mark in place of the element tile. It is still a normal token theme, so
 every surface, focus ring and chart follows it.
@@ -754,8 +786,8 @@ every surface, focus ring and chart follows it.
 running build and explain what each build can do with a new version. Installed
 builds download a checksum-verified Setup EXE and can install it on restart;
 portable builds reveal the verified EXE for a manual swap; a git checkout just
-links to the release. When nothing newer exists the panel says so in green — an
-**UP TO DATE** verdict beside the running version — and a manual check confirms
+links to the release. When nothing newer exists the panel says so in green: an
+**UP TO DATE** verdict beside the running version, and a manual check confirms
 with a toast instead of leaving the panel looking untouched.
 
 ### Download location
@@ -767,7 +799,7 @@ with a toast instead of leaving the panel looking untouched.
 returns to the system default. Existing downloads and torrent rows keep the
 folder they were saved in.
 
-### Vexium — a local assistant
+### Vexium: a local assistant
 
 ![Vexium answering through a local runtime](screenshots/assistant.png)
 
@@ -789,15 +821,23 @@ check happens again in the main process. See [ASSISTANT.md](docs/ASSISTANT.md).
 
 #### Run a model file
 
-No runtime installed? **Settings → Vexium → Run a model file** takes a `.gguf`
-file you already downloaded, starts llama.cpp's `llama-server` against it on a
-free loopback port, waits until `/v1/models` answers, and points Vexium at it.
-**Get models** links to Hugging Face's GGUF catalogue, Ollama's library and LM
-Studio's models; Kryvex hosts and redistributes nothing. If `llama-server` is
-not on your PATH, **Find runtime…** stores the path to the executable once, and
-a `.js` wrapper runs on Electron's own Node. Context size and GPU layers are
-adjustable, the runtime's output is kept for errors, and the process is killed
-when you press **Stop server** or quit Kryvex.
+**Settings → Vexium → Run a model file** takes the reviewed starter `.gguf` or
+one you already downloaded, starts the bundled llama.cpp `llama-server` against
+it on a free loopback port, waits until `/v1/models` answers, and points Vexium
+at it. The runtime ships with the app (llama.cpp `b11835`, about 45 MB), so a
+machine with no separate llama.cpp install can still run a model. **Get models**
+links to Hugging Face's GGUF catalogue, Ollama's library and LM Studio's models;
+Kryvex hosts and redistributes no weights. A Vulkan, CUDA or Metal build can be
+selected with **Use another runtime…** for GPU acceleration, and a `.js` wrapper
+runs on Electron's own Node. Context size and GPU layers are adjustable, the
+runtime's output is kept for errors, and the process is killed when you press
+**Stop server** or quit Kryvex. Building from source fetches the pinned runtime
+with `npm run fetch:runtime`; `runtime/` is never committed.
+
+Measured on the build machine on 2026-10-23: the starter model loaded and
+answered `/v1/models` in about 1.2 s, produced 34.7 tokens/s on CPU, and
+delivered a streamed reply in under a second. See
+[ASSISTANT.md](docs/ASSISTANT.md) for the exact commands and limits.
 
 ### Settings and themes
 
@@ -815,7 +855,7 @@ Every colour in the Custom theme has a hue/saturation field, a rainbow slider
 and an editable HEX, R, G and B value. Applying it derives the matching line,
 raised and muted tones and switches light/dark automatically.
 
-### First look — the theme gallery
+### First look: the theme gallery
 
 ![First-run theme gallery over the workspace](screenshots/first-look.png)
 
@@ -823,7 +863,7 @@ A fresh install opens **Choose your look** over the shell: eight family cards,
 each painted on a mock workspace, plus a full-size preview and the family's
 themes as chips. Clicking a family only previews it; clicking a theme applies
 it and dismisses the sheet. **Keep the current theme**, the close button and
-`Esc` all skip the choice, and none of it comes back — the flag is persisted
+`Esc` all skip the choice, and none of it comes back: the flag is persisted
 with the rest of the settings. An upgrade never interrupts: a state file
 written before the gallery counts as already seen.
 
@@ -902,15 +942,15 @@ user-data directory, and refreshes after seven days.
 **Settings → Shield → My filters** accepts the syntax users already paste into
 uBlock Origin's dashboard: `||ads.example.com^`, `site##.selector`,
 `site##+js(…)`. Rules live in the shield's own config, compile on top of the
-downloaded lists, and rebuild from a cached copy of those lists — editing a
+downloaded lists, and rebuild from a cached copy of those lists: editing a
 rule never waits on six downloads, and it works offline.
 
 Three switches decide what runs:
 
-- **Enable my custom filters** — off keeps the text but compiles nothing.
-- **Allow scriptlet rules (+js)** — scriptlets run code inside the page, so
+- **Enable my custom filters**: off keeps the text but compiles nothing.
+- **Allow scriptlet rules (+js)**: scriptlets run code inside the page, so
   they are held back until this is on; the editor counts what is on hold.
-- **YouTube: block ads and feed noise** — a curated bundle that hides ad slots,
+- **YouTube: block ads and feed noise**, a curated bundle that hides ad slots,
   sponsored feed cards and recommendation shelves, switches off YouTube's
   ad-block popup config, and blocks `youtube.com/pagead/`, `doubleclick.net`
   and `googlesyndication.com` on youtube.com only.
@@ -1010,8 +1050,8 @@ mode and a palette strip, so the whole collection reads at a glance.
 | **Gems** | Birthstones and stones: Garnet, Aquamarine, Diamond, Pearl, Ruby, Peridot, Sapphire, Opal, Topaz, Moonstone, Bloodstone, Tourmaline |
 | **Planets** | Mercury (stone grey), Venus (cream), Earth (ocean blue/green), Mars (rust), Jupiter (banded cream with a red spot accent), Saturn (pale gold and ring silver), Uranus (eerie icy teal), Neptune (vibrant blue), Pluto (white with brown-red), Nibiru (near-black with a faint dark red), Sun (solar gold/orange), Moon (silver) |
 | **Lights** | Helium, Lithium, Oxygen |
-| **Terminal** | Terminal — pitch black with high-contrast phosphor green in the mono face |
-| **Plugin** | Special Donkey Edition — true black, gold outlines, donkey mark. Special XiØN Edition — near-black glass, one electric blue (`#33B5E5`), the XiØN blade mark, a soft glow and liquid progress fills. |
+| **Terminal** | Terminal: pitch black with high-contrast phosphor green in the mono face |
+| **Plugin** | Special Donkey Edition: true black, gold outlines, donkey mark. Special XiØN Edition: near-black glass, one electric blue (`#33B5E5`), the XiØN blade mark, a soft glow and liquid progress fills. |
 | **Custom** | Five colour pickers (background, surface, accent, accent two, text) with a hue/saturation field, rainbow slider, HEX field and editable R/G/B channels; raised, line and muted tones are mixed automatically. |
 
 ![The spectrum band with the new reds and pinks](screenshots/settings-reds.png)
@@ -1105,7 +1145,7 @@ flowchart LR
 
 - **Main** owns the window, state file, filter engine, extension folders and
   every security decision.
-- **Preload** exposes typed calls only — state, external links, app info,
+- **Preload** exposes typed calls only: state, external links, app info,
   shield status/control, extension list/install/toggle/remove, download and
   torrent records/actions, permission responses, and browser registration/URL
   handoff. No filesystem, shell, arbitrary IPC or extension path crosses the
@@ -1158,7 +1198,7 @@ Verified with Node 24.19.0, pnpm 12.3.4, Electron 44.2.0.
 # 1. install (downloads the Electron runtime)
 pnpm install
 
-# 2. develop with hot reload — starts Vite and the Electron shell
+# 2. develop with hot reload: starts Vite and the Electron shell
 pnpm dev:electron
 
 # web-only preview of the UI (no webviews)
@@ -1195,7 +1235,7 @@ pnpm start         # run the built app
 | `pnpm run package:win` | electron-builder installer/portable targets (unsigned). |
 | `pnpm release:checksums` | Write `release/SHA256SUMS.txt` for the Setup and Portable EXEs. |
 
-`pnpm pack` is pnpm's own tarball command, not the packaging script — use
+`pnpm pack` is pnpm's own tarball command, not the packaging script: use
 `pnpm run package:*`.
 
 ### Packaging
@@ -1279,24 +1319,24 @@ and [player529](https://github.com/player529).
 
 Kryvex takes **no credit** for the following work:
 
-- **uBlock Origin** — filter lists by Raymond Hill and contributors
+- **uBlock Origin**: filter lists by Raymond Hill and contributors
   ([gorhill/uBlock](https://github.com/gorhill/uBlock), GPL-3.0). Kryvex
   downloads the lists at runtime and does not ship uBO code or claim
   affiliation.
-- **WebTorrent** — the embedded BitTorrent client
+- **WebTorrent**: the embedded BitTorrent client
   ([webtorrent/webtorrent](https://github.com/webtorrent/webtorrent), MIT).
   qBittorrent was used only as a feature reference for peer/speed terminology;
   no qBittorrent code is included.
-- **Brave Browser / Brave Core** — feature reference for HTTPS upgrades,
+- **Brave Browser / Brave Core**: feature reference for HTTPS upgrades,
   tracking-parameter stripping, farbling and consent-banner filtering
   ([brave/brave-browser](https://github.com/brave/brave-browser),
   [brave/brave-core](https://github.com/brave/brave-core), MPL-2.0). No Brave
   source code is copied; Kryvex implements small Electron-native equivalents.
-- **Ghostery Adblocker** — the filtering engine
+- **Ghostery Adblocker**: the filtering engine
   ([ghostery/adblocker](https://github.com/ghostery/adblocker), MPL-2.0).
-- **EasyList / EasyPrivacy / EasyList Cookie** — list maintainers
+- **EasyList / EasyPrivacy / EasyList Cookie**: list maintainers
   ([easylist.to](https://easylist.to/), GPL-3.0).
-- **Simple Icons** — CC0 brand glyph paths
+- **Simple Icons**: CC0 brand glyph paths
   ([simpleicons.org](https://simpleicons.org)); trademarks belong to their
   owners and identify the linked services only.
 
@@ -1341,7 +1381,7 @@ The full license and modification notes are in
   headers (Electron sends none) and a matching `navigator.userAgentData`,
   which Electron omits entirely. On 2026-10-20 that identity reached Google's
   sign-in form from inside a Kryvex guest instead of the refusal card. A stale
-  stored Google session is a separate failure — the refusal banner offers
+  stored Google session is a separate failure: the refusal banner offers
   **Reset session & retry**. If Google still refuses after that, the limit is
   Google's, and **Open in my browser** is the route. Brave is a Chromium fork
   rather than an embedded view, which is why it behaves differently.
@@ -1395,6 +1435,6 @@ The full license and modification notes are in
 Code and brand assets are released under the [MIT License](LICENSE).
 Kryvex is an independent project; "element x529 / Kx" is a fictional brand
 device, not a claim about a chemical element. Third-party data and libraries
-retain their own licenses — see [docs/ATTRIBUTION.md](docs/ATTRIBUTION.md).
+retain their own licenses: see [docs/ATTRIBUTION.md](docs/ATTRIBUTION.md).
 
 <div align="center"><sub>KRYVEX · ELEMENT x529 · SHIELD · EXTENSIONS · DONKEY EDITION.</sub></div>

@@ -119,7 +119,7 @@ WhatsApp, Telegram, Instagram, Gmail, X), work tools (GitHub, Linear, Notion,
 Figma, Trello), AI assistants (ChatGPT, Claude, Gemini, Copilot, Perplexity,
 Hugging Face, Freebuff), resources (FMHY, Ollama, Internet Archive) and media
 (Spotify, YouTube, Reddit). Links that exist only as research material for the
-app's own build — the Awesome Electron list, for instance — never appear here.
+app's own build (the Awesome Electron list, for instance) never appear here.
 
 A preset fills the form; it does not bundle a client, an API key or a bridge.
 Kryvex is not affiliated with these services, and their terms still apply. Some
@@ -139,7 +139,7 @@ Discord still asks to log in again:
   the lock button, then sign in once more.
 
 Server-side token invalidation is Discord's decision. Kryvex does not inject
-client mods, scrape tokens or patch the page to defeat it — see
+client mods, scrape tokens or patch the page to defeat it: see
 [PLATFORM_PLAN.md](PLATFORM_PLAN.md) for why BetterDiscord-style injection is
 deliberately not shipped.
 

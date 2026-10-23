@@ -1,7 +1,7 @@
-# Kryvex 0.8.5 — Windows release
+# Kryvex 0.8.5: Windows release
 
 Published 2026-10-22 from the `v0.8.5` tag. This release adds the first two
-in-house tools to **Services → Secret services** — Lexium and the media player —
+in-house tools to **Services → Secret services** (Lexium and the media player)
 and gives the emulator the same periodic-table tile as its neighbours.
 
 Download the installer, portable build and checksum list from the
@@ -99,14 +99,14 @@ installs pnpm, is unaffected and still runs the plain `pnpm package:win`.
 
 ## Verification performed
 
-- `npm run typecheck` — exit 0 for renderer and `electron/` (strict).
-- `npx vitest run` — exit 0, **390/390** tests across 40 files.
-- `npm run build` — exit 0; renderer and main rebuilt before packaging.
-- `npm run audit:i18n` — clean, no hardcoded UI strings in 30 renderer files.
-- `npx electron-builder --publish never` — produced both 0.8.5 EXEs; the asar
+- `npm run typecheck`: exit 0 for renderer and `electron/` (strict).
+- `npx vitest run`: exit 0, **390/390** tests across 40 files.
+- `npm run build`: exit 0; renderer and main rebuilt before packaging.
+- `npm run audit:i18n`, clean, no hardcoded UI strings in 30 renderer files.
+- `npx electron-builder --publish never`: produced both 0.8.5 EXEs; the asar
   reports `0.8.5` and both EXEs report `ProductVersion 0.8.5`.
 - `pnpm verify:self-update --installer release/Kryvex-Setup-0.8.5-x64.exe
-  --no-app --wizard --archive --version 0.8.5` — PASS: five pages captured, the
+  --no-app --wizard --archive --version 0.8.5`, PASS: five pages captured, the
   install page ran for 21,668 ms, the installer exited 0, and the capture was
   archived under `docs/media/releases/0.8.5-wizard/`.
 - The installed `C:\Kryvex\Kryvex.exe` reports `ProductVersion 0.8.5.0`, and the
@@ -123,7 +123,7 @@ installs pnpm, is unaffected and still runs the plain `pnpm package:win`.
   is still `Emulator · element x532 · 8-bit`. The earlier `[ Emulator ]` caption
   overflowed that box and rendered as `[ Emulato…` in a 3× capture, which is why
   the caption changed.
-- `node scripts/check-release-record.cjs` — PASS for 0.8.5.
+- `node scripts/check-release-record.cjs`: PASS for 0.8.5.
 - **Published artifacts.** The release workflow passed every step (tag/version
   check, release record, install, typecheck, 390 tests, the one-time-code relay,
   packaging, checksums) and published a stable, non-draft release with the
@@ -177,7 +177,7 @@ no stray instance.
 - The player's queue is session-only by design: a reload cannot reopen a local
   file without asking again. Volume, repeat and shuffle are persisted.
 - The CDP harness recorded one Electron console message while driving the
-  installed build — `sandboxed_renderer.bundle.js script failed to run` /
+  installed build: `sandboxed_renderer.bundle.js script failed to run` /
   `Cannot destructure property 'preloadScripts' of 'binding.startupData'`. It
   appears with the harness attached, no view fails to render, `window.kryvex`
   works, and this batch touches no preload, webview or sandbox code. It is

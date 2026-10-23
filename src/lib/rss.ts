@@ -23,7 +23,7 @@ const NAMED_ENTITIES: Record<string, string> = {
   apos: "'",
   nbsp: ' ',
   hellip: '…',
-  mdash: '—',
+  mdash: '-',
   ndash: '–',
   lsquo: '‘',
   rsquo: '’',

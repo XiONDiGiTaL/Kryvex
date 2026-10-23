@@ -102,7 +102,7 @@ function warnExpiring(entry, message) {
   console.warn(`  EXPIRING     ${message}`);
 }
 
-/** "today", "tomorrow" or "in 9 days" — read by whoever has to act on it. */
+/** "today", "tomorrow" or "in 9 days": read by whoever has to act on it. */
 function due(days) {
   if (days === 0) return 'today';
   if (days === 1) return 'tomorrow';
@@ -144,7 +144,7 @@ function checkExceptions() {
   if (problems.length === 0) return;
   for (const problem of problems) console.error(`  STALE        ${problem}`);
   console.error(
-    'dependency audit: FAIL — re-check each exception in scripts/audit-deps.cjs: confirm the advisory is still unreachable or land the upgrade, then move reviewBy. Delete the entry if it is no longer needed.',
+    'dependency audit: FAIL, re-check each exception in scripts/audit-deps.cjs: confirm the advisory is still unreachable or land the upgrade, then move reviewBy. Delete the entry if it is no longer needed.',
   );
   process.exit(1);
 }
@@ -159,25 +159,25 @@ const audit = spawnSync('pnpm audit --json', {
   maxBuffer: 32 * 1024 * 1024,
 });
 
-if (audit.error) fail(`dependency audit: FAIL — pnpm audit could not start: ${audit.error.message}`);
+if (audit.error) fail(`dependency audit: FAIL, pnpm audit could not start: ${audit.error.message}`);
 
 const stdout = audit.stdout || '';
 const start = stdout.indexOf('{');
 if (start < 0) {
   const detail = (audit.stderr || stdout || '').trim().split('\n').slice(-3).join(' ');
-  fail(`dependency audit: FAIL — pnpm audit returned no JSON${detail ? `: ${detail}` : ''}`);
+  fail(`dependency audit: FAIL, pnpm audit returned no JSON${detail ? `: ${detail}` : ''}`);
 }
 // Exit 1 means advisories were found, which is the only non-zero code with JSON.
 if (audit.status !== 0 && audit.status !== 1) {
   const detail = (audit.stderr || '').trim().split('\n').slice(-3).join(' ');
-  fail(`dependency audit: FAIL — pnpm audit exited ${audit.status}${detail ? `: ${detail}` : ''}`);
+  fail(`dependency audit: FAIL, pnpm audit exited ${audit.status}${detail ? `: ${detail}` : ''}`);
 }
 
 let report;
 try {
   report = JSON.parse(stdout.slice(start));
 } catch {
-  fail('dependency audit: FAIL — pnpm audit returned unreadable JSON.');
+  fail('dependency audit: FAIL, pnpm audit returned unreadable JSON.');
 }
 
 const advisories = Object.values(report.advisories || {});
@@ -192,19 +192,19 @@ for (const advisory of advisories) {
   const allowed = allowlist.get(id);
   if (allowed) {
     seen.add(id);
-    console.log(`  allowlisted  ${severity.padEnd(8)} ${name} — ${id} (review by ${allowed.reviewBy})`);
+    console.log(`  allowlisted  ${severity.padEnd(8)} ${name}: ${id} (review by ${allowed.reviewBy})`);
     console.log(`               ${allowed.reason}`);
     continue;
   }
   if (!GATED.has(severity)) {
-    console.log(`  below gate   ${severity.padEnd(8)} ${name} — ${id}`);
+    console.log(`  below gate   ${severity.padEnd(8)} ${name}: ${id}`);
     continue;
   }
   blocking.push({ id, severity, name, title: advisory.title || '' });
 }
 
 for (const advisory of blocking) {
-  console.error(`  BLOCKING     ${advisory.severity.padEnd(8)} ${advisory.name} — ${advisory.id}`);
+  console.error(`  BLOCKING     ${advisory.severity.padEnd(8)} ${advisory.name}: ${advisory.id}`);
   if (advisory.title) console.error(`               ${advisory.title}`);
   console.error('               no exception on file; see scripts/audit-deps.cjs');
 }
@@ -212,15 +212,15 @@ for (const advisory of blocking) {
 for (const entry of ALLOWED) {
   if (seen.has(entry.id)) continue;
   console.warn(
-    `dependency audit: note — the exception for ${entry.module} (${entry.id}) no longer matches anything; remove it from scripts/audit-deps.cjs.`,
+    `dependency audit: note, the exception for ${entry.module} (${entry.id}) no longer matches anything; remove it from scripts/audit-deps.cjs.`,
   );
 }
 
 if (blocking.length > 0) {
-  fail(`dependency audit: FAIL — ${blocking.length} high or critical advisory${blocking.length === 1 ? '' : 'ies'}.`);
+  fail(`dependency audit: FAIL, ${blocking.length} high or critical advisory${blocking.length === 1 ? '' : 'ies'}.`);
 }
 
 const total = advisories.length;
 console.log(
-  `dependency audit: PASS — ${total} advisor${total === 1 ? 'y' : 'ies'}, ${seen.size} allowlisted.`,
+  `dependency audit: PASS, ${total} advisor${total === 1 ? 'y' : 'ies'}, ${seen.size} allowlisted.`,
 );

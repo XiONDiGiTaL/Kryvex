@@ -272,7 +272,7 @@ export function Player({
           <Icon name="globe" size={16} />
           <p>
             {t(
-              '{name} is a web page, not a media file, so it cannot feed this player. Open it in its own tab — the audio keeps playing there.',
+              '{name} is a web page, not a media file, so it cannot feed this player. Open it in its own tab: the audio keeps playing there.',
               { name: platform.name },
             )}
           </p>

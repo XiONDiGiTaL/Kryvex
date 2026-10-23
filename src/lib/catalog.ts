@@ -10,7 +10,7 @@ export interface ServicePreset {
   /** Optional: unknown brands fall back to the site favicon, then a letter. */
   icon?: BrandIconKey;
   note: string;
-  /** Start the module muted — feeds and autoplaying videos must not make noise. */
+  /** Start the module muted: feeds and autoplaying videos must not make noise. */
   muted?: boolean;
 }
 

@@ -1,4 +1,4 @@
-# Rooms — in-app hangouts
+# Rooms: in-app hangouts
 
 **Status:** implemented and shipped in 0.7.0.
 Rooms is a first-party view (`#/rooms`, sidebar, `Ctrl 6`).
@@ -12,9 +12,9 @@ the reasoning, the limits and the next steps honest.
 Create a room, copy one invite, and everyone who opens it lands in the same
 place. Inside a room:
 
-- presence — who is here, chosen display name, colour, connection state;
-- text chat — ephemeral, per room, no account, Enter to send;
-- screen share — a desktop, a window, or a **specific Kryvex app** (Discord, a
+- presence, who is here, chosen display name, colour, connection state;
+- text chat: ephemeral, per room, no account, Enter to send;
+- screen share: a desktop, a window, or a **specific Kryvex app** (Discord, a
   browser tab, Vexium), with optional system audio on Windows;
 - recent rooms on the lobby so a group can come back;
 - later: file drop, voice, host-authoritative co-watch.
@@ -28,7 +28,7 @@ Kosmi is a browser hangout: rooms, watch-together with a "virtual browser",
 screen share up to 720p free, voice/video/text, games. Its public pages say
 group screen share is relayed through Kosmi's media servers, and its GitHub
 organisation (`kosmigramma`, 42 public repos) publishes prototypes, landing
-pages, emulator forks and small services — **not** the product itself. There is
+pages, emulator forks and small services: **not** the product itself. There is
 no public source to copy, and copying it would not help anyway: its value is
 scheduling, codecs and relay infrastructure.
 
@@ -121,10 +121,10 @@ the capture handler never ran. The fix is narrow and testable:
 
 ## 6. Phases
 
-**Phase 1 — room, presence, chat, invites.** Done.
-**Phase 2 — screen share + app share.** Done. File drop still open.
-**Phase 3 — co-watch and host controls.** Not started.
-**Phase 4 — voice, relay hardening.** Not started. TURN is configured but
+**Phase 1: room, presence, chat, invites.** Done.
+**Phase 2: screen share + app share.** Done. File drop still open.
+**Phase 3: co-watch and host controls.** Not started.
+**Phase 4: voice, relay hardening.** Not started. TURN is configured but
 needs a user-supplied relay; a self-hosted signaling relay is a later option.
 
 ## 7. Security and abuse

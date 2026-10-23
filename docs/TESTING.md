@@ -1,4 +1,4 @@
-# Testing record — Kryvex (0.3.0–0.8.0)
+# Testing record: Kryvex (0.3.0–0.8.0)
 
 All results below were produced on 2026-10-19 on Windows with Node 24.19.0,
 pnpm 12.3.4 and Electron 44.2.0. Commands were run from `X:\Veyra`; no test was
@@ -225,7 +225,7 @@ What the unit suite covers:
   `NotSigned` for both EXEs.
 - **Dev mode.** `pnpm dev:electron` was started after fixing a Vite
   `publicDir` defect; Vite served the renderer and Electron launched. The dev
-  renderer was not visually captured — screenshots come from the production
+  renderer was not visually captured: screenshots come from the production
   build.
 
 ## Not executed (do not treat as passing)
@@ -269,7 +269,7 @@ pnpm verify:wallpaper    # backdrop is opt-in, theme-derived and image-capable
 Each harness sets `KRYVEX_USER_DATA` (or opts into the capture flag) so it uses
 an isolated profile; none of them read or modify a real installation's state.
 
-## Service engine — 0.6.0 (2026-10-20)
+## Service engine: 0.6.0 (2026-10-20)
 
 This pass added persistent service apps, notifications, unread badges, auth
 popups, per-service session clearing and the expanded preset catalogue. It was
@@ -319,7 +319,7 @@ Not verified here:
 - `pnpm run package:win` was not run for 0.6.0, so the EXEs above remain the
   0.5.0 builds; unsigned artifacts and the missing auto-updater are unchanged.
 
-## Session persistence — 0.7.0 (2026-10-20)
+## Session persistence: 0.7.0 (2026-10-20)
 
 `node scripts/verify-service-engine.cjs` failed on `origin/main` at the restart
 step: the app closed its window and quit cleanly, but the service partition's
@@ -337,7 +337,7 @@ now flushes every known partition (plus the default session) from
 Regression guard: the harness fails if a future change drops the flush, because
 it restarts the real app rather than calling `flushStore` directly.
 
-## Updater — 0.6.0 (2026-10-20)
+## Updater: 0.6.0 (2026-10-20)
 
 This pass added GitHub release checks, checksum-verified downloads, a
 self-install path for packaged NSIS builds, and a manual path for portable and
@@ -359,7 +359,7 @@ the downloaded installer, and a real update against
 installing the previous build; the manual procedure is in
 [UPDATES.md](UPDATES.md).
 
-## Chromium engine settings — 0.7.0 (2026-10-20)
+## Chromium engine settings: 0.7.0 (2026-10-20)
 
 This pass added the Chromium engine panel: launch switches, page preferences,
 rendering options and a live engine report. Run on Windows with Node 24.19.0,
@@ -384,7 +384,7 @@ local fixture page.
   `gpu_compositing: disabled_software`, and the switches
   `--disable-smooth-scrolling` + `hardware acceleration disabled`.
 - The live guest's recorded preferences matched the seed field for field, its
-  zoom factor was `1.25`, and the fixture's inline script never ran — the
+  zoom factor was `1.25`, and the fixture's inline script never ran: the
   page stayed at `Engine fixture` and `executeJavaScript` was refused entirely.
 - In the panel, JavaScript, images and autoplay were switched on, the colour
   scheme set to light and the default zoom to 100%. `chromiumInfo()` reflected
@@ -405,7 +405,7 @@ zoom was proven on a fresh tab instead. PDF rendering, spellcheck suggestions
 and background throttling were verified as attached preferences, not by
 inspecting rendered PDFs or CPU use.
 
-## Rooms — 2026-10-20
+## Rooms: 2026-10-20
 
 Rooms shipped with the capture broker, the shell permission gate and the
 two-instance harness. Verified on Windows with Node 24.19.0, Electron 44.2.0
@@ -420,7 +420,7 @@ from `X:\Veyra`.
 
 `verify-rooms.cjs` seeds two isolated profiles, mounts a loopback fixture
 service in A, creates a room through the button, and joins it in B through
-`#/rooms?room=<code>` — the same hash the invite produces.
+`#/rooms?room=<code>`: the same hash the invite produces.
 
 - **Sources:** `partySources()` listed the fixture as an `app` source plus
   `screen` and every window; the picker rendered them in three groups.
@@ -447,7 +447,7 @@ network. Not executed: two machines across the internet, a forced-TURN peer, a
 room with three or more viewers, and system-audio capture. Do not treat those
 as passing.
 
-## Theme gallery — 2026-10-20
+## Theme gallery: 2026-10-20
 
 The first-run gallery, the Settings section and the upgrade path. Verified on
 Windows with Electron 44.2.0 from `X:\Veyra`.
@@ -465,7 +465,7 @@ The harness launches the built app with a fresh user-data profile and asserts:
   (CORE 6, SPECTRUM 16, ELEMENTS 21, METALS 7, GEMS 12, PLANETS 12, LIGHT 3,
   TERMINAL 1) and nine or more mock workspaces;
 - clicking **GEMS** previews *Sapphire* while `documentElement.dataset.theme`
-  stays `kryvex-dark` — a preview must not apply;
+  stays `kryvex-dark`: a preview must not apply;
 - clicking the **Ruby** chip applies `data-theme="ruby"` and closes the sheet;
 - after `location.reload()` the sheet is gone and the theme is still `ruby`, so
   both the pick and the dismissal are persisted;
@@ -477,12 +477,12 @@ Screenshots from that run: `screenshots/first-look.png` and
 `screenshots/theme-gallery.png`.
 
 **Not executed:** the web-only preview (no Electron bridge), a downgrade from a
-newer state file, and the capture routine's automatic dismissal — the capture
+newer state file, and the capture routine's automatic dismissal: the capture
 path compiles but the full twenty-five-shot pass was not re-run for this
 change.
 
 
-## Layout clipping — 2026-10-20
+## Layout clipping: 2026-10-20
 
 The UI report was "aspects are getting chopped graphically". Chopping is a
 class of bug: a container with `overflow: hidden` whose content no longer fits
@@ -508,8 +508,8 @@ label with a real ellipsis is the only allowed exception.
 **Three defects it found, all fixed:**
 
 1. **Theme previews were clipped by 46 px.** The small gallery mocks stacked two
-   cards inside a fixed 86 px frame, so the bottom of every mini workspace — the
-   action row and status strip — was cut. They now lay the two cards side by side
+   cards inside a fixed 86 px frame, so the bottom of every mini workspace (the
+   action row and status strip) was cut. They now lay the two cards side by side
    and the frame height follows its content instead of a fixed pixel value.
 2. **The large preview had a 12 px clip at 860 px wide.** A narrow-window media
    query forced the large mock to 168 px while its content needed 180. The media
@@ -519,7 +519,7 @@ label with a real ellipsis is the only allowed exception.
    are now fixed and only the gallery scrolls.
 
 **Window fit.** The default 1440×900 window could be larger than a laptop's work
-area, which puts the right column and bottom row off-screen — chopping that no
+area, which puts the right column and bottom row off-screen: chopping that no
 CSS can fix. `electron/window-rules.ts` now fits the initial size to the primary
 display's work area with a 32 px margin, keeps a verified floor of 900×520, and
 the minimum window is that floor instead of 1040×680. `tests/window-rules.test.ts`
@@ -530,7 +530,7 @@ floor.
 harness emulates smaller CSS viewports, not the OS scale factor), and the
 web-only preview.
 
-## Wallpaper backdrop — 0.7.0 (2026-10-20)
+## Wallpaper backdrop: 0.7.0 (2026-10-20)
 
 The backdrop became opt-in, gained a theme-derived wash next to the user image,
 and the panel grew a pill switch that gates its whole body. Run on Windows with
@@ -556,7 +556,7 @@ Turning the switch off, then reloading, leaves `backgroundImage: none`.
 not a colorimetric comparison across all 90 catalogue themes; and the web-only
 preview's localStorage path for images was not exercised.
 
-## Up-to-date verdict — 0.8.0 (2026-10-20)
+## Up-to-date verdict: 0.8.0 (2026-10-20)
 
 A check that finds no newer release now proves it instead of leaving the panel
 unchanged: a green **UP TO DATE** verdict with a check mark sits beside the
@@ -586,7 +586,7 @@ checkout (`BUILD SOURCE`), and no packaged 0.7.1 exists yet. `verify-local-model
 uses `scripts/fake-llama-server.mjs`, not a real llama.cpp binary with real
 weights.
 
-## Window lifecycle audit — 2026-10-21
+## Window lifecycle audit: 2026-10-21
 
 After the 0.8.1 close crash, every `closed`/`destroyed` handler and every late
 callback in `electron/` was checked for reads of an object that may already be
@@ -605,16 +605,16 @@ safe guard looks like:
 
 Fixed in the audit:
 
-- `party.ts` — the 0.8.1 crash: the `closed` handler read `win.webContents`.
+- `party.ts`, the 0.8.1 crash: the `closed` handler read `win.webContents`.
   The display-media handler also read `shell.mainFrame` without checking whether
   the shell was alive, and `listSources` called `getType()` before `isDestroyed()`.
-- `main.ts` — `isShellSender` compared IPC senders against
+- `main.ts`: `isShellSender` compared IPC senders against
   `mainWindow.webContents`; it now compares against a `shellContents` reference
   captured at window creation, so an IPC arriving during teardown cannot throw.
-- `permissions.ts` — `isShellCapture` read `this.window.webContents` from the
+- `permissions.ts`: `isShellCapture` read `this.window.webContents` from the
   permission path, and `send` read it again; both use a shell reference captured
   at attach time and `isAliveContents`.
-- `extensions.ts`, `torrents.ts`, `storage.ts` — `dialog.showOpenDialog(window)`
+- `extensions.ts`, `torrents.ts`, `storage.ts`: `dialog.showOpenDialog(window)`
   was reached with only a null check; a destroyed parent throws, so each now
   guards with `isAliveWindow` and reports "The main window is not ready."
 - Already safe and left alone: `updater.ts`, `downloads.ts`, `assistant.ts`,
@@ -656,10 +656,10 @@ the permission broker's teardown path is covered by the guard and the type
 checker rather than a click-through; and the audit is a heuristic over handler
 bodies, not a type check, so a read hidden behind a helper is still possible.
 
-## Close-time exception — 0.8.1 (2026-10-21)
+## Close-time exception: 0.8.1 (2026-10-21)
 
 Reported from the installed build: closing Kryvex raised **“A JavaScript error
-occurred in the main process — TypeError: Object has been destroyed”** with the
+occurred in the main process, TypeError: Object has been destroyed”** with the
 stack pointing at `dist-electron/party.js` inside a `BrowserWindow` `closed`
 listener.
 
@@ -688,7 +688,7 @@ listener.
   `npm run build` exit 0.
 
 **Not executed:** the fix was not observed suppressing the dialog in an
-installed 0.7.x profile — that build still contains the old line until 0.8.1
+installed 0.7.x profile, that build still contains the old line until 0.8.1
 installs over it.
 
 **Published 0.8.1 check.** The release workflow passed and published
@@ -718,8 +718,8 @@ That EXE was then launched against a disposable profile via `KRYVEX_USER_DATA`.
 It opened a window titled **Kryvex**, wrote its Chromium profile, and was closed
 through the window's own close path: the process was gone within 40 s and no
 Kryvex process or dialog remained. **Limit:** the numeric exit code was not
-captured — PowerShell reports `ExitCode` only for a process it started itself,
-and the portable launcher spawns the app as a child — so “closed cleanly” rests
+captured: PowerShell reports `ExitCode` only for a process it started itself,
+and the portable launcher spawns the app as a child, so “closed cleanly” rests
 on the window closing, the process disappearing and nothing being left behind,
 not on an exit status. The installed 0.8.1 build was not driven through the
 in-app self-update; the live feed was checked instead with the compiled
@@ -727,7 +727,7 @@ in-app self-update; the live feed was checked instead with the compiled
 entries matching the uploaded digests, `isNewer('0.8.1')` true and
 `isNewer('0.8.2')` false.
 
-## Published 0.8.0 artifacts — 2026-10-21
+## Published 0.8.0 artifacts: 2026-10-21
 
 Run after the tag-triggered workflow published the release, against the EXEs
 downloaded from `github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.0`, so the
@@ -735,7 +735,7 @@ shipped binary is what was checked rather than the source checkout.
 
 | Check | Result |
 | --- | --- |
-| Workflow run 39523097023 | success — tag/version check, install, typecheck, tests, `package:win`, checksums, publish |
+| Workflow run 39523097023 | success: tag/version check, install, typecheck, tests, `package:win`, checksums, publish |
 | Asset digests vs `SHA256SUMS.txt` | identical for both EXEs (`352fb5c8…33b3` Setup, `d62b44bc…f5ff` Portable) |
 | Version resources | both report `ProductVersion 0.8.0`, `FileVersion 0.8.0` |
 | Live feed through `update-rules` | parses `v0.8.0`, trusted Setup and Portable URLs, checksum entries present; `available` from 0.7.0, `current` from 0.8.0 |
@@ -751,7 +751,7 @@ the feed comparison and the artifacts rather than a completed replacement; the
 model runner was inspected in the shipped UI but not started against real GGUF
 weights, because none are available on this machine.
 
-## Popup tabs — 2026-10-21
+## Popup tabs: 2026-10-21
 
 A browser tab's `window.open` used to leave for the system browser, so a Google
 or Microsoft sign-in finished in another application and the opener page never
@@ -780,8 +780,8 @@ popup removes the tab and returns to the opener.
 Not verified here:
 
 - A real Google or Microsoft sign-in was not completed (no test accounts). The
-  transport the providers use — `window.opener.postMessage` across a real popup
-  on the same session — is what the harness exercises.
+  transport the providers use: `window.opener.postMessage` across a real popup
+  on the same session: is what the harness exercises.
 - The visual screenshot of the overlay is not captured: screen capture of the
   window region reflects whatever is in front on the desktop, and CDP screenshots
   of the shell do not include a native child window. Placement is proven
@@ -789,7 +789,7 @@ Not verified here:
 - A shell modal can render behind an open popup, because the popup is an owned
   window and stays above its parent. This is documented, not fixed.
 
-## In-app self-update, 0.8.1 → 0.8.2 — 2026-10-21
+## In-app self-update, 0.8.1 → 0.8.2: 2026-10-21
 
 The published 0.8.2 artifacts had been checked, but no installed build had been
 driven through its own updater. This run did that on Windows 11: the official
@@ -811,7 +811,7 @@ Checks on the artifacts and the result:
 
 | Check | Result |
 | --- | --- |
-| Downloaded installer | `updates/Kryvex-Setup-0.8.2-x64.exe`, 120,287,904 bytes, SHA-256 `41a009f8c3c9c6cbf8bab3ec830ca18bb4a932492043ca2087f4241573ebe036` — identical to the published digest, so the app's mandatory checksum check passed on the real file |
+| Downloaded installer | `updates/Kryvex-Setup-0.8.2-x64.exe`, 120,287,904 bytes, SHA-256 `41a009f8c3c9c6cbf8bab3ec830ca18bb4a932492043ca2087f4241573ebe036`: identical to the published digest, so the app's mandatory checksum check passed on the real file |
 | Installation target | `C:\Kryvex` (the directory the previous install recorded in `HKCU\Software\<appId>\InstallLocation`), replacing 0.8.1 in place |
 | Installed binary | `Kryvex.exe` reports `ProductVersion 0.8.2.0` |
 | Relaunched app | `window.kryvex.appInfo()` returns `version 0.8.2`, `packaged true`, Electron 44.2.0 / Chrome 152 |
@@ -829,7 +829,7 @@ Not recorded:
 - The machine's installed copy was 0.7.0 before this run and is 0.8.2 now; that
   is the end state an update would have produced, but it was a real change to
   the user's installation rather than a sandbox.
-## 0.8.3 release candidate — 2026-10-21
+## 0.8.3 release candidate: 2026-10-21
 
 Run on the release tree at version 0.8.3, on Windows 11 with Node 24.19.0,
 Electron 44.2.0 and npm 12.0.2 (`pnpm` is not on this shell's PATH, so the same
@@ -855,7 +855,7 @@ The popup run reported the following, in its own words:
  "drift":0,"returned":"Popup fixture"}
 ```
 
-The updater run exercised the same phases as before — `available` for a fixture
+The updater run exercised the same phases as before: `available` for a fixture
 release, `checksum-failed` for a corrupted download, `ready` after a verified
 one, the **ready to install** card, `no-asset` for a source checkout,
 `no-release` for a missing feed, and the **UP TO DATE** verdict with
@@ -871,14 +871,14 @@ auth popup cookie, the cookie surviving a restart and per-service clearing.
 changes popup routing in `main.ts` and browser tabs in the renderer; none of
 those harnesses was re-run, so they are not claimed for this tree.
 
-## Published 0.8.3 artifacts — 2026-10-21
+## Published 0.8.3 artifacts: 2026-10-21
 
 Run after the tag-triggered workflow published the release, against the EXEs
 downloaded from `github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.3`.
 
 | Check | Result |
 | --- | --- |
-| Workflow run 39582848868 | success — tag/version check, install, typecheck, tests, `package:win`, checksums, publish |
+| Workflow run 39582848868 | success: tag/version check, install, typecheck, tests, `package:win`, checksums, publish |
 | Release state | `v0.8.3` published, `isDraft: false`, `isPrerelease: false` |
 | Asset digests vs `SHA256SUMS.txt` | identical for both EXEs (`ed91ad07…8787` Setup, 120,292,667 B; `850fe2c6…8ec4` Portable, 120,055,522 B) |
 | Version resources | both report `ProductVersion 0.8.3` |
@@ -888,7 +888,7 @@ downloaded from `github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.3`.
 run below exercised the installed build instead, and the archive was inspected
 statically.
 
-## In-app self-update, 0.8.2 → 0.8.3 — 2026-10-21
+## In-app self-update, 0.8.2 → 0.8.3: 2026-10-21
 
 The installed 0.8.2 at `C:\Kryvex` was driven through its own **Settings →
 Updates** to the published 0.8.3. The app was started from that install with an
@@ -907,7 +907,7 @@ Checks on the artifacts and the result:
 
 | Check | Result |
 | --- | --- |
-| Downloaded installer | `updates/Kryvex-Setup-0.8.3-x64.exe`, 120,292,667 bytes, SHA-256 `ed91ad0793de3a504c1a2667fbe464959da57429ee7c80af1240ed86533b8787` — identical to the published digest, so the mandatory checksum check passed on the real file |
+| Downloaded installer | `updates/Kryvex-Setup-0.8.3-x64.exe`, 120,292,667 bytes, SHA-256 `ed91ad0793de3a504c1a2667fbe464959da57429ee7c80af1240ed86533b8787`: identical to the published digest, so the mandatory checksum check passed on the real file |
 | Time to ready | the panel was already at `is-ready` at the first poll 1.5 s after **Download update**; the download was not re-measured for throughput |
 | Installation target | `C:\Kryvex`, replacing the installed 0.8.2 in place |
 | Installed binary | `Kryvex.exe` reports `ProductVersion 0.8.3.0` and a write time of 2026-10-21 06:14 |
@@ -932,7 +932,7 @@ Not recorded:
   self-update run left behind; this run moved the real installation to 0.8.3
   rather than a sandbox.
 
-## Self-update harness — 2026-10-21
+## Self-update harness: 2026-10-21
 
 Every release before this one was checked with a one-off driver written for that
 release, and the installer wizard was never captured: NSIS renders its pages as
@@ -947,8 +947,8 @@ pnpm verify:self-update --installer <path>   # capture a specific installer
 pnpm verify:self-update --exe <path>         # a non-default installation
 ```
 
-`--archive` copies the capture into `docs/media/releases/<version>-wizard/` —
-`wizard.json`, a PNG per page and a `capture.md` — so the release record carries
+`--archive` copies the capture into `docs/media/releases/<version>-wizard/`:
+`wizard.json`, a PNG per page and a `capture.md`, so the release record carries
 what its installer showed. `pnpm release:check` fails when the record for the
 current version has no such section or archive, and the release workflow runs
 that check before it builds anything, so a tag cannot ship a record that omits
@@ -990,13 +990,13 @@ things had to be measured rather than assumed:
   restores the archive timestamps of the files it copies, so a same-version
   reinstall leaves `Kryvex.exe` looking untouched while replacing `resources` and
   `locales`. The harness therefore judges progress from the wizard: an install
-  page that ran for 20.5 s, a finish page, and exit code 0 — not from file times.
+  page that ran for 20.5 s, a finish page, and exit code 0, not from file times.
 
 ### Run on this machine, installed 0.8.3 (latest published 0.8.3)
 
 | Check | Result |
 | --- | --- |
-| Live feed check | `is-current`, `Kryvex 0.8.3 is the latest release.` — nothing newer to install |
+| Live feed check | `is-current`, `Kryvex 0.8.3 is the latest release.`: nothing newer to install |
 | Installer used for the wizard run | `Kryvex-Setup-0.8.3-x64.exe`, 120,292,667 B, hash equal to `SHA256SUMS.txt` |
 | Wizard pages | 4 captured with a PNG each: `Choose Installation Options` → `Choose Install Location` → `Installing` → `Completing Kryvex Setup` |
 | Page 1 copy | "Who should this application be installed for?", "There is already a per-user installation.(C:\Kryvex) Will reinstall/upgrade." |
@@ -1018,7 +1018,7 @@ Not verified by this run, and not claimed:
 - The wizard runs with elevation only when the chosen directory needs it; a
   protected install path was not staged.
 
-## In-house tools and the 0.8.5 build — 2026-10-22
+## In-house tools and the 0.8.5 build: 2026-10-22
 
 This pass added Lexium, the media player and one periodic-table tile for the
 three secret services, then packaged and installed the result. Run on Windows
@@ -1073,7 +1073,7 @@ used a temporary pnpm shim on `PATH` plus
 `--config.electronDist=<pre-extracted Electron 44.2.0>`, which also avoids an
 `EPERM` rename of `release/win-unpacked.tmp` seen three times on this drive.
 
-## Published 0.8.5 artifacts — 2026-10-22
+## Published 0.8.5 artifacts: 2026-10-22
 
 The `v0.8.5` tag (`4b382ce`) triggered release run
 [39761506782](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/39761506782),
@@ -1096,7 +1096,7 @@ isolated `KRYVEX_USER_DATA`/`APPDATA`. `window.kryvex.appInfo()` returned
 `{"version":"0.8.5","platform":"win32","electron":"44.2.0","chrome":"152.0.7977.76","node":"24.20.0","packaged":true}`.
 On `#/services` the emulator tile read `x532` / `8-bit` / `[ Retro ]` with
 `aria-label="Emulator · element x532 · 8-bit"`, `scrollWidth === clientWidth ===
-46` and 7 px type — no ellipsis in the shipped build. Capture:
+46` and 7 px type, no ellipsis in the shipped build. Capture:
 `screenshots/release-0.8.5-published-tile.png`.
 
 **Published Setup installed.** With the pilot app stopped, the downloaded Setup
@@ -1108,7 +1108,7 @@ captured earlier from the locally built Setup (five pages, exit 0). An in-app
 `0.8.4 → 0.8.5` update was **not** exercised, because this machine was already
 running 0.8.5.
 
-## Reviewed model downloads — 2026-10-22
+## Reviewed model downloads: 2026-10-22
 
 Built after the 0.8.5 tag, on `feature/vexium-model-manager`. The starter model
 was approved first; nothing was fetched before that.
@@ -1142,7 +1142,7 @@ the runtime phase, and the retest removed the file, emptied
 installed on this machine), a cancelled mid-transfer, a forced hash mismatch
 (covered by unit tests), and a transfer on a slow or dropping connection.
 
-## Service media in the status bar — 2026-10-22
+## Service media in the status bar: 2026-10-22
 
 The service transport moved out of the workspace and into the status bar: a
 compact strip at rest, with the full island revealed on hover or when pinned.
@@ -1173,7 +1173,7 @@ visible and kept playing. Captures:
 `screenshots/verify-service-media-dock.png`,
 `screenshots/verify-media-dock-home.png`.
 
-## Service surfaces — 2026-10-22
+## Service surfaces: 2026-10-22
 
 Built from the 0.8.5 tree on `main`, after the resource, pinned-menu, parked
 frame, media-dock, shield-bundle and icon changes. Nothing was released.
@@ -1217,7 +1217,7 @@ present in the package. The installed `C:\Kryvex\Kryvex.exe` 0.8.5 also still
 carries that icon (`screenshots/installed-exe-icon.png`). The package was not
 signed or released.
 
-## Windows notification identity — 2026-10-22
+## Windows notification identity: 2026-10-22
 
 A toast click opened Electron's default welcome page. Windows resolves a toast
 through the Start Menu shortcut whose AppUserModelID matches the notifier. The
@@ -1247,7 +1247,7 @@ click-to-relaunch. The installed 0.8.5 binary was not replaced, so the packaged
 side of this change was checked from the running process identity, the shortcut
 layout and a clicked toast, not from a newly installed build.
 
-## Browser start page, private tabs and feeds — 2026-10-22
+## Browser start page, private tabs and feeds: 2026-10-22
 
 `scripts/verify-browser-start.cjs` drives the built Electron app with an
 isolated profile and a local fixture server. It does not inspect source or call
@@ -1274,7 +1274,7 @@ persisted-feed sanitisation. `tests/rss-rules.test.ts` covers the main-process
 URL allowlist. `tests/store.test.ts` covers private-tab removal on load and the
 feed add/remove reducers.
 
-## Disk pulse — 2026-10-22
+## Disk pulse: 2026-10-22
 
 The secret storage tool: analyzer, guarded cleaner and its verification harness.
 Read-only in the harness; deletion is proven against a fixture, not the user's
@@ -1310,7 +1310,7 @@ the root survive, and a path or unknown id is refused before any unlink.
 sizing with the age filter, unavailable caches, an aborted signal returning
 cancelled with zero sizes, and real `statfs` health.
 
-## Self-update 0.8.6 → 0.8.7 — 2026-10-22
+## Self-update 0.8.6 → 0.8.7: 2026-10-22
 
 The published chain, driven through the app's own Updates panel rather than a
 loopback fixture. The machine already had 0.8.6 installed at `C:\Kryvex`, so the
@@ -1335,7 +1335,7 @@ The download landed in the isolated `%APPDATA%\Kryvex\updates` and was removed
 with the profile. Four Kryvex processes the installer relaunched were closed
 afterwards; no Kryvex or setup processes were left running.
 
-## Extension packages: `extract-zip` replaced — 2026-10-22
+## Extension packages: `extract-zip` replaced, 2026-10-22
 
 Two Dependabot advisories landed against `extract-zip` 2.0.1, the direct
 dependency the extension installer used to unpack `.zip`/`.crx` packages, and
@@ -1386,7 +1386,7 @@ never reached.
 `pnpm audit:deps` (`scripts/audit-deps.cjs`) is the standing replacement for the
 Dependabot alerts, which are disabled on the repository: it runs `pnpm audit`
 across every scope, fails on high and critical advisories, and carries the `ip`
-advisory above as its only exception. Checked on 2026-10-22 — PASS with the
+advisory above as its only exception. Checked on 2026-10-22: PASS with the
 exception printed, exit 1 with the exception removed, and exit 1 when `pnpm` is
 not on PATH, so a broken audit cannot report success. CI runs it before
 typecheck, and the release workflow runs it again after install so a tag cut
@@ -1429,7 +1429,7 @@ dispatched run 39897268568 returned an annotation with
 `path=.github line=11`, which is the symptom this change removes. The branch was
 deleted afterwards and `main` still carries `reviewBy: '2027-04-22'`.
 
-## Wellness widget — 2026-10-23
+## Wellness widget: 2026-10-23
 
 New Home widget, off by default until the intake form is completed.
 `tests/wellness.test.ts` (27 cases; the suite is now 514) covers local day keys,
@@ -1453,3 +1453,216 @@ hardcoded strings, and `pnpm build:web` passes.
 Not executed: the packaged desktop build (`pnpm build && electron .`). The
 widget holds renderer state only and touches no IPC, so the web preview runs the
 same code, but the Electron shell was not launched for this change.
+
+## Media dock controls and service force-close: 2026-10-23
+
+Two gaps were closed in the service surfaces. The bottom media flyout now has a
+volume slider, a mute button and a repeat toggle for the page that is playing,
+and every row in the resource manager has a **Kill** button that force-closes
+one module.
+
+The dock additions are page-level. `electron/media-rules.ts` grew
+`clampPageVolume` and `dockGuardScript`; `electron/media.ts` installs the guard
+on each service guest's `dom-ready` once the user has changed something, and
+re-installs it after a navigation. The guard sets `volume` on the current media
+element and on every later `play` (document capture, so a single-page player
+that swaps elements keeps the level), and on `ended` it rewinds and restarts
+the clip; a rejected `play()` reloads the page instead. `serviceVolume` and
+`serviceRepeat` live in `settings.player`, sanitised so an older state file
+reads as full volume with looping off.
+
+`serviceSessions.stop` closes every guest in one partition with
+`waitForBeforeUnload: false`, which is the part a page cannot veto. The shell
+then removes the frame, clears the module's unread count, leaves its view if it
+was open, and keeps the partition, so the site still remembers the user. The
+button arms on the first press for four seconds, like an end-process prompt.
+
+**Unit tests.** `tests/media-rules.test.ts` adds three cases: volume clamping
+(fractions, 0, above 1, negatives, numeric strings, `NaN` and `undefined`),
+the guard carrying `volume` and `repeat` (and treating anything other than
+`true` as off), and the script's document-level `play`/`ended` listeners plus a
+valid-JavaScript parse. `tests/store.test.ts` adds two: a state file without
+`serviceVolume` reads 1, and saved values are clamped (7 becomes 1, -1 becomes
+0) while `serviceRepeat: true` survives. The suite is 519/519.
+
+**Desktop harness.** `node scripts/verify-service-ux.cjs` (after
+`pnpm build`) drives the real Electron app against a local audio page. New
+passing checks:
+
+- the island exposes `.media-dock-volume-range`; moving it to 40 sets the
+  guest's `<audio>.volume` to 0.4;
+- the repeat guard arrives in the page carrying 0.4, and with the fixture's own
+  `loop` disabled the clip restarts at the end (observed at 0.367 s, not
+  paused);
+- the first press on **Kill** only arms the button (`Kill?`) and the module
+  keeps running;
+- the second press removes `s-tone` from the stage, navigates to `#/services`,
+  leaves `s-pause` mounted, and the killed row leaves the panel.
+
+The fixture moved its second service to `localhost` because the resource
+sampler attributes guests by host and two services on `127.0.0.1` shared one
+row, which would have hidden whether the killed module left the panel. The
+harness runs unpackaged `electron .`; the installer and release pipeline were
+not exercised for this change.
+
+**Other checks.** `npm run typecheck` exits 0 for both projects;
+`node scripts/audit-i18n.cjs` reports no hardcoded strings in 36 renderer
+files; `npm run build` and `npm run build:web` (1.3 MiB) both pass.
+
+## Em dash sweep: 2026-10-23
+
+The spaced em dash was removed from the interface, documentation, scripts and
+comments: 621 occurrences across the tracked text files, leaving zero literal
+em dashes in the repository. Replacements are context-aware rather than
+mechanical: a label or heading takes a colon (`## Vexium: a local assistant`),
+a parenthetical pair becomes parentheses (`on your machine (Ollama or LM
+Studio) over loopback`), a clause that starts with a conjunction takes a
+comma, and a sentence that already contains a colon takes a comma to avoid a
+second one. One matcher keeps the glyph as an escape rather than prose:
+`chrome-store.ts` strips a `\u2014` suffix from page titles. The RSS entity
+table now maps `&mdash;` to a hyphen, and standalone placeholder dashes became
+`n/a`. Translation keys and their values were rewritten together, and the i18n
+audit plus all 519 tests still pass.
+
+## Home widgets, notes toggle and ordering: 2026-10-23
+
+Sticky notes became an opt-in widget and the four Home cards moved from fixed
+positions to a small registry. `src/lib/home-widgets.ts` holds the ids, the
+persisted boolean behind each one, the default column and the pure helpers that
+normalise a saved order, list one column, and move a card past its neighbour.
+`HomeSettings` gained `widgetOrder` and `widgetAreas`; `sanitizeHome` runs both
+through the registry, so a saved file that predates the registry keeps its
+booleans and gets the default order, and an unknown id is dropped rather than
+trusted. `showTasks` remains the flag for notes, but its default is now `false`;
+a file with no saved order predates the Notes button, so its `true` is read as
+the old default once and comes back closed. After that first save the order is
+present and the user's own notes choice is kept.
+
+In the shell, the heart gained a note button beside it that toggles the notes
+card, and the Widgets picker lists every card with a position number, up and
+down buttons limited to its own column, and a Main/Side switch. A column with no
+visible card is not rendered, and `.home-board.is-single` lets the main stack
+take the full width. Moving a card into the side column is what lets another
+widget use the space when the guide is closed, while the guide keeps its own
+in-card collapse.
+
+**Unit tests.** `tests/home-widgets.test.ts` adds 9 cases: order normalisation
+(duplicates, junk and a newly registered id appended), column sanitising,
+a cross-column move that leaves the other column untouched, movement stopping
+at both ends, visibility filtered by flag and column, notes off for a new
+workspace, a pre-registry `showTasks: true` closing once, that choice kept after
+an order exists, and a saved order that predates the registry repaired. The
+suite is 528/528.
+
+**Web preview.** `npx vite --port 5191` was driven in the browser panel. The
+fresh board rendered weather and guide with no notes card, and the toolbar
+showed `Show sticky notes` with `aria-pressed=false`. Pressing it inserted
+`.home-tasks` into `.home-board-main` and the button became `Hide sticky notes`.
+Opening Widgets listed four rows with position numbers `1, 2, 2, 1` for the two
+columns. `Move Sticky notes to the side column` placed `.home-tasks` before
+`.home-guide` inside `.home-board-side`; `Move Sticky notes down` swapped them.
+Hiding the guide removed `.home-guide` while notes stayed in the side column;
+hiding notes as well removed `.home-board-side` and left a single 558 px
+column with `is-single` set. The preview console showed no errors or failed
+requests.
+
+**Other checks.** `npm run typecheck` exits 0 for both projects,
+`node scripts/audit-i18n.cjs` reports no hardcoded strings in 36 renderer files,
+and `npm run build:web` passes (1.3 MiB).
+
+Not executed: the packaged desktop build. The board is renderer-only state with
+no IPC, and the web build runs the same components, but the Electron shell was
+not launched for this change.
+
+## Spotify ad mute and skip: 2026-10-23
+
+An opt-in guard for the Spotify module, off for every existing and new
+workspace. `settings.player.spotifyAdGuard` is sanitised as `true` only when it
+was saved as a boolean `true`, so an upgrade cannot start muting a module.
+`src/App.tsx` pushes the switch to the main process once at launch and on every
+change; `kryvex:spotify:guard` is accepted only from the shell.
+
+`electron/spotify-ads.ts` polls each Spotify service guest every 1.2 s while the
+switch is on, mutes the guest with `webContents.setAudioMuted` when its player
+reports an ad, restores the module's own mute policy when the ad ends, and
+presses one control at most once every 20 s. `electron/spotify-rules.ts` holds
+the host and podcast checks, the marker sets, the probe and skip scripts, and
+the cooldown. The page is read, never rewritten; no network request, cookie or
+account field is touched.
+
+Podcast breaks are detected from an `/episode/` or `/show/` path and from show
+markers in the now-playing bar, with the Media Session title and album as a
+fallback for breaks that change metadata without changing the bar. A podcast
+never uses the generic Next control, because that advances to the next episode;
+it uses an explicit `control-button-skip-ad`, `ad-skip-button` or a button
+labelled Skip ad when Spotify provides one, and otherwise stays muted until the
+break ends. Track ads keep the Next fallback.
+
+**Unit tests.** `tests/spotify-rules.test.ts` adds 15 cases: the web player over
+https is recognised while lookalikes, plain http, junk and non-strings are not;
+episode and show paths are recognised while track, playlist and home paths are
+not; the probe parses and returns the `{ad, podcast, track, skipAd}` object,
+keeps its markers, does not use the permanent sidebar slot and carries the
+podcast escape hatch; the guest payload is sanitised to booleans; the skip
+decision needs an explicit control unless the context is a track; a skip script
+without Next contains only the explicit Skip ad control, while the track form
+keeps both; the cooldown allows the first attempt, refuses a recent one, allows
+one at the boundary and refuses a `NaN` clock; the restore helper keeps a module
+muted only when its policy says so; and the setting defaults to off, survives a
+saved `true`, ignores `'yes'`, and leaves `serviceVolume` and `serviceRepeat` at
+their existing defaults. `tests/i18n.test.ts` adds two catalogue cases: one
+checks that every translated playback key resolves in Spanish, German and
+French, and one covers the settings title, the toggle label and `GUARDED`.
+The suite is 547/547.
+
+**Browser checks.** Vite previews on `127.0.0.1:5192` and `127.0.0.1:5193` were
+driven in the browser panel, and `/electron/spotify-rules.ts` was imported into
+the page for a DOM fixture. With
+`<div data-testid="now-playing-bar">` fixtures, the probe returned `ad: true`
+for a `context-item-info-ad-subtitle` label and for the exact label
+`Advertisement`, and `ad: false` for a normal artist plus a sidebar
+`ad-slot-container`, for a track whose text is just `Ad`, and for a page with no
+now-playing bar. The podcast flag was true for a `/episode/` path and for a
+`context-item-info-show` marker, and false for a track path. A Media Session
+title of `Advertisement` with no bar also reported an ad. The track flag was
+true for a track page and for a playlist with an artist link, and false for an
+episode or the home page, so an unclear context is mute-only. The skip script
+without Next clicked an explicit Skip ad button and did not click an enabled
+Next button; the track form clicked Next. Both refused `disabled`,
+`aria-disabled="true"` and a missing button. A disabled explicit control was
+never clicked: the track script fell back to Next, while the podcast script
+returned without one. In Settings, opening **Service playback** revealed the
+switch, turning it on changed the block meta to `GUARDED`, set
+`aria-checked="true"` and saved `settings.player.spotifyAdGuard: true` to local
+storage. The podcast wording was present in the panel. The preview console
+showed no errors.
+
+**Other checks.** `npm run typecheck` exits 0 for both projects,
+`node scripts/audit-i18n.cjs` reports no hardcoded strings in 36 renderer files,
+`npm run build` and `npm run build:web` both pass (1.3 MiB).
+
+Not executed: playback of a real Spotify track ad or podcast break, because that
+needs a signed-in account and Spotify serving an ad. The mute, restore and skip
+sequencing is covered by the rule tests and the DOM fixture, but the live
+selectors and Spotify's actual podcast Skip ad control are unverified against a
+current build. The 0.8.8 packaging pass below exercises the packaged installer.
+
+
+## 0.8.8 build and bundled runtime: 2026-10-23
+
+The tag candidate was built on this machine with the pinned runtime and a
+disposable profile.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm test` | exit 0, 547/547 across 52 files |
+| `npm run audit:i18n` | clean, 36 renderer files |
+| `npm run build` | exit 0 |
+| `electron-builder --publish never --config.electronDist=node_modules/electron/dist` | produced `Kryvex-Setup-0.8.8-x64.exe` and `Kryvex-Portable-0.8.8-x64.exe` |
+| Packaged `appInfo()` | `{version: "0.8.8", packaged: true, electron: "44.9.3"}` |
+| Bundled runtime | `resources/bin/llama-server.exe`, `runtime.json` release `b11835`, 44 MB |
+| Model run | Qwen2.5-1.5B from `X:\KryvexData\models` started on loopback, `/v1/models` answered, chat returned `{ok: true}`, stop returned `stopped` |
+| Wizard capture | 4 pages, install page 25,923 ms, installer exit 0, installed `C:\Kryvex\Kryvex.exe` reports 0.8.8.0 |
+| `check-release-record.cjs` | PASS |
+| `verify-service-ux.cjs` | PASS on rerun; dock volume and repeat reached the guest page (the first run hit a transient DOM race after the idle transition) |

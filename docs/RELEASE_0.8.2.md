@@ -1,4 +1,4 @@
-# Kryvex 0.8.2 — Windows patch release
+# Kryvex 0.8.2: Windows patch release
 
 Published 2026-10-21 from the `v0.8.2` tag (commit `31cfe5d`). 0.8.1 fixed the
 one handler named in the reported stack; this release closes the rest of that
@@ -80,20 +80,20 @@ The Portable EXE runs without installation. Its state still lives in
 
 ## Verification performed
 
-- `npm run typecheck` — exit 0 for renderer and `electron/`.
-- `npx vitest run` — exit 0, **268/268** tests across 28 files.
-- `npm run build` — exit 0.
-- `node scripts/audit-lifecycle.cjs` — clean, 38 files.
-- `node scripts/verify-party-close.cjs` — PASS on the fixed Rooms handler.
-- `node scripts/verify-window-guards.cjs` — PASS on all three pickers, and FAIL
+- `npm run typecheck`: exit 0 for renderer and `electron/`.
+- `npx vitest run`: exit 0, **268/268** tests across 28 files.
+- `npm run build`: exit 0.
+- `node scripts/audit-lifecycle.cjs`: clean, 38 files.
+- `node scripts/verify-party-close.cjs`: PASS on the fixed Rooms handler.
+- `node scripts/verify-window-guards.cjs`: PASS on all three pickers, and FAIL
   (`1 call(s)`, “Selection cancelled”) when the compiled download-picker guard
   was removed, so the guard was checked in both directions.
-- `node scripts/verify-updater.cjs` — PASS, including the up-to-date branch.
-- `node scripts/verify-service-engine.cjs` — PASS (mount, unread badge, popup
+- `node scripts/verify-updater.cjs`: PASS, including the up-to-date branch.
+- `node scripts/verify-service-engine.cjs`: PASS (mount, unread badge, popup
   cookie, cookie across restart, per-service clear).
-- `node scripts/verify-rooms.cjs` — PASS with a 2560×1440 screen share flowing
+- `node scripts/verify-rooms.cjs`: PASS with a 2560×1440 screen share flowing
   through the changed display handler.
-- `npm run audit:i18n` — clean.
+- `npm run audit:i18n`, clean.
 - Published artifacts: the release workflow (run 39559900423) passed every step
   and published without a draft. The downloaded Setup and Portable EXEs hash to
   the entries in `SHA256SUMS.txt` and to the digests GitHub reports, and both
@@ -105,7 +105,7 @@ The Portable EXE runs without installation. Its state still lives in
   `shell === win.webContents` text is absent.
 - The downloaded Portable EXE was launched against a disposable profile through
   `KRYVEX_USER_DATA`: it opened a window titled **Kryvex**, wrote its profile,
-  and closed through the window's own close path — the process was gone within
+  and closed through the window's own close path: the process was gone within
   40 s and no Kryvex process or dialog was left behind.
 - The live feed passes the app's own rules: parsing
   `api.github.com/repos/XiONDiGiTaL/Kryvex/releases/latest` yields release

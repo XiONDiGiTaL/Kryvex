@@ -66,9 +66,9 @@
 
 ## Chromium engine preferences
 
-The engine panel in **Settings → Browser** can switch page features off —
+The engine panel in **Settings → Browser** can switch page features off (
 JavaScript, images, WebGL, the PDF viewer, autoplay, spellcheck, hardware
-acceleration and smooth scrolling — and can raise the default zoom. This is a
+acceleration and smooth scrolling) and can raise the default zoom. This is a
 capability-reduction surface, not an extension surface:
 
 - `applyChromiumPreferences` runs *after* `preload` removal, `nodeIntegration =
@@ -117,12 +117,62 @@ These protections are independent of ad/tracker blocking and have their own
 switches in Settings. Brave source code is not copied; see
 `docs/ATTRIBUTION.md`.
 
+## Scripts sent into service guests
+
+Kryvex runs a small, fixed set of scripts inside its own service webviews. They
+are not arbitrary IPC: the main process composes each string, and a shell caller
+cannot supply code or a selector.
+
+| Script | What it may do |
+| --- | --- |
+| Media sample | Read `navigator.mediaSession.metadata` and the first `video`/`audio` element, then return text, an HTTPS image URL, playing state and position |
+| Media control | Click a known transport selector for the page's host family, falling back to `play()`/`pause()` on the media element. Next and previous never fall back |
+| Dock guard | Set `volume` on media elements and restart the current clip when it ends, only while the user has chosen a volume or repeat in the dock |
+
+The receiver validates the guest's session against the service partition list,
+so a browser tab or popup cannot be controlled. Samples are sanitised on the way
+back (text capped and flattened, artwork restricted to https, numbers clamped).
+The dock guard is installed only after the user changes a setting, is limited to
+`volume`, `currentTime`, `play()` and, when that fails, `location.reload()` of the
+same page, and is re-installed after a navigation. Force-closing a module closes
+its guests but never reads or deletes cookies.
+
+## Bundled model runtime
+
+Vexium can start a GGUF file with a llama.cpp `llama-server` that ships inside
+the installer. That binary is a supply-chain surface, so it is pinned and
+verified rather than fetched when the app runs:
+
+- `scripts/fetch-runtime.mjs` fixes the release tag (`b11835`), asset name,
+  exact byte size and SHA-256. A mismatch aborts before extraction.
+- Only `llama-server`, its implementation DLLs, the CPU backends, `mtmd`,
+  `libomp` and the license files are extracted. Entries with a path separator,
+  a drive prefix or a duplicate name are refused, and files are created with
+  exclusive writes.
+- The runtime is fetched at package time, copied to `resources/bin` by Electron
+  Builder, and never downloaded by the installed app. Source checkouts use
+  `runtime/bin`, which is gitignored.
+- A user-selected executable, then a binary in `<userData>/bin`, takes
+  precedence over the bundled one. A chosen or PATH runtime remains outside this
+  pin and is the user's responsibility.
+- The process is spawned with `--host 127.0.0.1` and a free loopback port, with
+  no shell, no renderer-supplied arguments and piped output. llama.cpp warns
+  that no API key is set and CORS allows all origins; binding loopback is what
+  keeps that local, and the server is never exposed on a LAN interface.
+- No model weights are bundled or redistributed. The reviewed catalogue
+  download remains a separate, hash-verified action.
+- The llama.cpp MIT text and the OpenMP license ship beside the binaries. See
+  [ATTRIBUTION.md](ATTRIBUTION.md).
+
+The CPU build has no GPU backend, so `--n-gpu-layers` is accepted but ignored
+(`no usable GPU found`). That is a capability limit, not a security boundary.
+
 ## Dependency advisories
 
 Dependabot alerts are disabled on the repository, so the lockfile is checked by
 a CI gate instead: `pnpm audit:deps` (`scripts/audit-deps.cjs`), run by both the
-CI and release workflows, executes `pnpm audit` over every scope — Electron is a
-dev dependency but ships as the shell — and fails the build on any high or
+CI and release workflows, executes `pnpm audit` over every scope (Electron is a
+dev dependency but ships as the shell) and fails the build on any high or
 critical advisory. Advisories that cannot be fixed and cannot be reached are
 listed inside the script with the reason they are carried and the date that
 reason must be re-checked by; the run prints each exception with its date and
@@ -134,7 +184,7 @@ An exception is valid through its `reviewBy` date and lapses the day after: the
 gate then fails before the audit even runs, so a carve-out cannot outlive the
 reasoning behind it and the decision comes up again on a schedule rather than
 when someone remembers. A missing, malformed or impossible date fails the same
-way. Six months is the intended cadence — long enough not to nag, short enough
+way. Six months is the intended cadence: long enough not to nag, short enough
 that an unpatched advisory is revisited while it still matters.
 
 The last 14 days are reported before the date arrives: the run prints an
@@ -143,7 +193,7 @@ warning annotation so it appears on the run summary rather than only in the log.
 The annotation names `scripts/audit-deps.cjs` and the line of the exception's
 id, so opening it lands on the date that needs moving rather than on the
 workflow that happened to call the gate.
-It does not fail the build — the deadline is the failure — so nobody meets the
+It does not fail the build (the deadline is the failure) so nobody meets the
 expiry for the first time on a red run they did not cause.
 
 The one exception carried today is `ip`

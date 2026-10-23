@@ -292,15 +292,15 @@ export function DiskPulse({
           <div className="disk-heart-stats">
             <span>
               <span className="mono muted">{t('FREE')}</span>
-              <strong>{health ? formatBytes(health.freeBytes) : '—'}</strong>
+              <strong>{health ? formatBytes(health.freeBytes) : 'n/a'}</strong>
             </span>
             <span>
               <span className="mono muted">{t('USED')}</span>
-              <strong>{health ? formatBytes(health.usedBytes) : '—'}</strong>
+              <strong>{health ? formatBytes(health.usedBytes) : 'n/a'}</strong>
             </span>
             <span>
               <span className="mono muted">{t('TOTAL')}</span>
-              <strong>{health ? formatBytes(health.totalBytes) : '—'}</strong>
+              <strong>{health ? formatBytes(health.totalBytes) : 'n/a'}</strong>
             </span>
           </div>
           <div

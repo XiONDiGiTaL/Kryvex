@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
      color="#0B0E12" role="img" aria-label="Kryvex">
-  <title>Kryvex — monochrome</title>
+  <title>Kryvex: monochrome</title>
   <!-- Inherits currentColor; set `color` on the SVG or a parent to recolor. -->
   <g fill="none" stroke="currentColor">
     <rect x="3" y="3" width="506" height="506" rx="86" stroke-width="6"/>

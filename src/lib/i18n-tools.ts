@@ -11,7 +11,7 @@ type ToolLanguage = 'es' | 'de' | 'fr';
 export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
   es: {
     'Secret services': 'Servicios secretos',
-    'Transcribe recordings, translate chats both ways and read text out of photos — on servers you choose.':
+    'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.':
       'Transcribe grabaciones, traduce conversaciones en ambos sentidos y lee texto de fotos, en los servidores que elijas.',
     'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.':
       'Una cola para audio local, vídeo y enlaces directos, con repetición y aleatorio anclados abajo.',
@@ -83,9 +83,9 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
       'Sin respuesta del servidor. Inícialo, revisa la dirección y permite las peticiones a localhost si el navegador bloquea la conexión.',
     'Text is sent to the LibreTranslate server in the engine panel. If that server is offline, Lexium falls back to the keyless MyMemory API and labels the answer; turn the fallback off by pointing at your own server.':
       'El texto se envía al servidor LibreTranslate del panel de motores. Si ese servidor está apagado, Lexium recurre a la API pública MyMemory sin clave y lo indica; para evitarlo, apunta a tu propio servidor.',
-    'Local server was unreachable — answered by the public MyMemory API.':
+    'Local server was unreachable: answered by the public MyMemory API.':
       'El servidor local no respondía: respondió la API pública MyMemory.',
-    'Nothing leaves this device except the audio sent to the speech server you configured. No model is bundled, so the engine has to run somewhere — local is the default.':
+    'Nothing leaves this device except the audio sent to the speech server you configured. No model is bundled, so the engine has to run somewhere: local is the default.':
       'Nada sale de este dispositivo salvo el audio enviado al servidor de voz que configures. No se incluye ningún modelo, así que el motor debe ejecutarse en algún sitio; local es lo predeterminado.',
     'The reader uses Tesseract, downloaded once from a CDN with the language pack you pick. The image itself never leaves the app.':
       'El lector usa Tesseract, descargado una vez desde una CDN con el paquete de idioma que elijas. La imagen nunca sale de la app.',
@@ -151,8 +151,8 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
   },
   de: {
     'Secret services': 'Geheime Dienste',
-    'Transcribe recordings, translate chats both ways and read text out of photos — on servers you choose.':
-      'Aufnahmen transkribieren, Chats in beide Richtungen übersetzen und Text aus Fotos lesen — auf Servern deiner Wahl.',
+    'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.':
+      'Aufnahmen transkribieren, Chats in beide Richtungen übersetzen und Text aus Fotos lesen: auf Servern deiner Wahl.',
     'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.':
       'Eine Warteschlange für lokales Audio, Video und direkte Links, mit Wiederholen und Zufall unten angedockt.',
     'All services': 'Alle Dienste',
@@ -223,10 +223,10 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
       'Keine Antwort vom Server. Starte ihn, prüfe die Adresse und erlaube localhost-Anfragen, falls der Browser die Verbindung blockiert.',
     'Text is sent to the LibreTranslate server in the engine panel. If that server is offline, Lexium falls back to the keyless MyMemory API and labels the answer; turn the fallback off by pointing at your own server.':
       'Text geht an den LibreTranslate-Server im Engine-Bereich. Ist er offline, nutzt Lexium die schlüssellose MyMemory-API und kennzeichnet das; mit einem eigenen Server entfällt der Rückgriff.',
-    'Local server was unreachable — answered by the public MyMemory API.':
-      'Lokaler Server nicht erreichbar — Antwort von der öffentlichen MyMemory-API.',
-    'Nothing leaves this device except the audio sent to the speech server you configured. No model is bundled, so the engine has to run somewhere — local is the default.':
-      'Nichts verlässt dieses Gerät außer dem Audio an den eingestellten Sprachserver. Es ist kein Modell enthalten, die Engine muss also irgendwo laufen — standardmäßig lokal.',
+    'Local server was unreachable: answered by the public MyMemory API.':
+      'Lokaler Server nicht erreichbar: Antwort von der öffentlichen MyMemory-API.',
+    'Nothing leaves this device except the audio sent to the speech server you configured. No model is bundled, so the engine has to run somewhere: local is the default.':
+      'Nichts verlässt dieses Gerät außer dem Audio an den eingestellten Sprachserver. Es ist kein Modell enthalten, die Engine muss also irgendwo laufen: standardmäßig lokal.',
     'The reader uses Tesseract, downloaded once from a CDN with the language pack you pick. The image itself never leaves the app.':
       'Der Reader nutzt Tesseract, einmalig von einem CDN mit dem gewählten Sprachpaket geladen. Das Bild verlässt die App nie.',
     'Audio is decoded to 16 kHz mono WAV in the renderer, so the server never needs ffmpeg for an imported MP3. Point these fields at a machine on your network if the model runs elsewhere.':
@@ -291,8 +291,8 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
   },
   fr: {
     'Secret services': 'Services secrets',
-    'Transcribe recordings, translate chats both ways and read text out of photos — on servers you choose.':
-      'Transcrivez des enregistrements, traduisez les conversations dans les deux sens et lisez le texte des photos — sur les serveurs de votre choix.',
+    'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.':
+      'Transcrivez des enregistrements, traduisez les conversations dans les deux sens et lisez le texte des photos: sur les serveurs de votre choix.',
     'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.':
       'Une file pour l’audio local, la vidéo et les liens directs, avec répétition et aléatoire ancrés en bas.',
     'All services': 'Tous les services',
@@ -363,10 +363,10 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
       'Aucune réponse du serveur. Démarrez-le, vérifiez l’adresse et autorisez localhost si le navigateur bloque la connexion.',
     'Text is sent to the LibreTranslate server in the engine panel. If that server is offline, Lexium falls back to the keyless MyMemory API and labels the answer; turn the fallback off by pointing at your own server.':
       'Le texte part vers le serveur LibreTranslate du panneau des moteurs. S’il est hors ligne, Lexium utilise l’API publique MyMemory sans clé et l’indique ; pointez vers votre serveur pour l’éviter.',
-    'Local server was unreachable — answered by the public MyMemory API.':
-      'Serveur local injoignable — réponse de l’API publique MyMemory.',
-    'Nothing leaves this device except the audio sent to the speech server you configured. No model is bundled, so the engine has to run somewhere — local is the default.':
-      'Rien ne quitte cet appareil sauf l’audio envoyé au serveur vocal configuré. Aucun modèle n’est fourni, le moteur doit donc tourner quelque part — local par défaut.',
+    'Local server was unreachable: answered by the public MyMemory API.':
+      'Serveur local injoignable: réponse de l’API publique MyMemory.',
+    'Nothing leaves this device except the audio sent to the speech server you configured. No model is bundled, so the engine has to run somewhere: local is the default.':
+      'Rien ne quitte cet appareil sauf l’audio envoyé au serveur vocal configuré. Aucun modèle n’est fourni, le moteur doit donc tourner quelque part: local par défaut.',
     'The reader uses Tesseract, downloaded once from a CDN with the language pack you pick. The image itself never leaves the app.':
       'Le lecteur utilise Tesseract, téléchargé une fois depuis un CDN avec le pack de langue choisi. L’image ne quitte jamais l’app.',
     'Audio is decoded to 16 kHz mono WAV in the renderer, so the server never needs ffmpeg for an imported MP3. Point these fields at a machine on your network if the model runs elsewhere.':

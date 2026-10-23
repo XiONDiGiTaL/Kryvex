@@ -1,4 +1,4 @@
-# Disk pulse — secret storage tool
+# Disk pulse: secret storage tool
 
 Status: **implemented.** Services → Secret services → **Disk pulse** (`#/disk`).
 
@@ -43,8 +43,8 @@ them again at deletion time.
    `Program Files`, `Program Files (x86)`, `ProgramData`, Desktop, Documents,
    Downloads, Pictures, Videos, Music, Favorites, AppData\Roaming,
    AppData\LocalLow, `.ssh` and `.gnupg` are refused even if a target root were
-   misconfigured. The profile itself is deliberately not protected — temp and
-   browser caches live under it — but nothing outside a target root is eligible.
+   misconfigured. The profile itself is deliberately not protected (temp and
+   browser caches live under it) but nothing outside a target root is eligible.
 4. **No link following.** Directory walks skip symlinks and junctions, and each
    file is `lstat`ed immediately before `unlink`. A link planted inside a cache
    cannot redirect a delete.
@@ -81,22 +81,22 @@ any of them. See [ATTRIBUTION.md](ATTRIBUTION.md).
 
 ## Verification
 
-- `tests/disk-rules.test.ts` — containment, prefix siblings, protected roots,
+- `tests/disk-rules.test.ts`: containment, prefix siblings, protected roots,
   traversal, drive roots, age filter, target lookup, size formatting.
-- `tests/disk-service.test.ts` — a real fixture under `%TEMP%`: old files in the
+- `tests/disk-service.test.ts`: a real fixture under `%TEMP%`, where old files in the
   root and a subdirectory are removed, a fresh file survives, the root survives,
   and a path or unknown id is refused.
-- `tests/disk-scan.test.ts` — the body the worker runs, against a fixture:
+- `tests/disk-scan.test.ts`, the body the worker runs, against a fixture:
   targets are sized with the age filter applied, missing caches report as
   unavailable, an already-aborted signal returns cancelled with no sizes, and
   drive health reads real numbers.
-- `npm run verify:disk` (build, then `scripts/verify-disk-pulse.cjs`) — launches
+- `npm run verify:disk` (build, then `scripts/verify-disk-pulse.cjs`), launches
   the real app in a disposable profile, opens `#/disk`, accepts the disclaimer,
   reads real drive numbers, runs a scan and checks the categories, sizes and
   that the clean action arms. It also probes IPC while the scan is still
   running (the main process must answer immediately) and stops a second scan to
   prove the worker is torn down. It never presses Clean.
-- Packaged layout — a worker entry inside a real `app.asar` was spawned with
+- Packaged layout: a worker entry inside a real `app.asar` was spawned with
   Electron 44 and returned a scan payload, so the compiled worker (and the
   `disk-scan`/`disk-rules` modules it requires) load from the archive without
   needing `asarUnpack`.

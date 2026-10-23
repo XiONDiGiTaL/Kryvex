@@ -1,4 +1,4 @@
-# Kryvex 0.8.4 — Windows release
+# Kryvex 0.8.4: Windows release
 
 Published 2026-10-22 from the `v0.8.4` tag. This is the largest feature batch
 since the shell: services become a working platform, with Steam sessions that
@@ -52,8 +52,8 @@ Download the installer, portable build and checksum list from the
 - **Settings reorganized.** Workspace, Home board, Network, Shield, Vexium,
   Data, Updates and the engine panel are separate blocks with jump links, so a
   long settings page no longer hides the panel you came for.
-- **More of the interface is translated.** Every new panel — Steam sessions,
-  the code relay, Home board, resources, VPN, search regions and the emulator —
+- **More of the interface is translated.** Every new panel (Steam sessions,
+  the code relay, Home board, resources, VPN, search regions and the emulator)
   has English, Spanish, German and French strings; `pnpm audit:i18n` is clean.
 - **The release pipeline checks the relay.** CI and the release workflow run
   `pnpm verify:otp`, sharing one composite action. On failure the action keeps
@@ -100,13 +100,13 @@ The Portable EXE runs without installation. Its state still lives in
 
 ## Verification performed
 
-- `pnpm typecheck` — exit 0 for renderer and `electron/`.
-- `pnpm test` — 354/354 tests across 38 files.
-- `pnpm build` — exit 0.
-- `pnpm verify:otp` — PASS.
-- `node scripts/audit-i18n.cjs` — clean.
-- `node scripts/check-release-record.cjs` — PASS for 0.8.4.
-- `pnpm package:win` — produced the Setup and Portable EXEs, both reporting
+- `pnpm typecheck`: exit 0 for renderer and `electron/`.
+- `pnpm test`: 354/354 tests across 38 files.
+- `pnpm build`: exit 0.
+- `pnpm verify:otp`, PASS.
+- `node scripts/audit-i18n.cjs`: clean.
+- `node scripts/check-release-record.cjs`: PASS for 0.8.4.
+- `pnpm package:win`, produced the Setup and Portable EXEs, both reporting
   `ProductVersion 0.8.4`.
 - The wizard harness captured 5 pages from the 0.8.4 installer and the
   installer exited 0.

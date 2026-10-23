@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ResourceSnapshot, Service } from '../types';
 import { formatCpu, formatMB } from '../lib/resources';
 import { useT } from '../lib/i18n';
@@ -7,6 +7,46 @@ import { Icon } from './ui';
 function bar(value: number, max: number): string {
   const percent = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
   return `${percent.toFixed(1)}%`;
+}
+
+/**
+ * Force-close is a two-press action, the way an operating system asks before it
+ * ends a process: the first press arms the button for a few seconds, so a click
+ * meant for the row next door cannot throw away someone's unsaved text.
+ */
+function KillServiceButton({ name, onConfirm }: { name: string; onConfirm: () => void }) {
+  const t = useT();
+  const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    if (!armed) return;
+    const timer = window.setTimeout(() => setArmed(false), 4000);
+    return () => window.clearTimeout(timer);
+  }, [armed]);
+
+  return (
+    <button
+      type="button"
+      className={`resource-kill ${armed ? 'is-armed' : ''}`}
+      onClick={() => {
+        if (!armed) {
+          setArmed(true);
+          return;
+        }
+        setArmed(false);
+        onConfirm();
+      }}
+      onBlur={() => setArmed(false)}
+      aria-label={armed ? t('Confirm killing {name}', { name }) : t('Kill {name}', { name })}
+      title={
+        armed
+          ? t('Press again to force-close this service')
+          : t('Force close this service')
+      }
+    >
+      {armed ? t('Kill?') : t('Kill')}
+    </button>
+  );
 }
 
 /**
@@ -108,12 +148,14 @@ export function ResourcePanel({
   snapshot,
   services,
   isElectron,
+  onStopService,
   onClose,
   onOpenSettings,
 }: {
   snapshot: ResourceSnapshot | null;
   services: Service[];
   isElectron: boolean;
+  onStopService?: (service: Service) => void;
   onClose: () => void;
   onOpenSettings: () => void;
 }) {
@@ -221,6 +263,7 @@ export function ResourcePanel({
               <span role="columnheader">{t('CPU')}</span>
               <span role="columnheader">{t('Memory')}</span>
               <span role="columnheader">{t('Proc')}</span>
+              <span role="columnheader" aria-label={t('Force close')} />
             </div>
             {snapshot.services.length === 0 ? (
               <p className="resource-empty">
@@ -240,6 +283,14 @@ export function ResourcePanel({
                     </span>
                     <span role="cell" className="mono">{formatMB(entry.memoryMB)}</span>
                     <span role="cell" className="mono">{entry.processes}</span>
+                    <span role="cell" className="resource-action">
+                      {service && onStopService ? (
+                        <KillServiceButton
+                          name={service.name}
+                          onConfirm={() => onStopService(service)}
+                        />
+                      ) : null}
+                    </span>
                   </div>
                 );
               })

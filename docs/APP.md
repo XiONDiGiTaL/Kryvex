@@ -72,14 +72,14 @@ cleared when closed.
 
 ### Lifecycle
 
-1. **Registered** — validated and written to state.
-2. **Opening** — `ServiceStage` mounts a frame and its webview; the partition
+1. **Registered**: validated and written to state.
+2. **Opening**: `ServiceStage` mounts a frame and its webview; the partition
    attribute is set before the source, and the loading bar renders.
-3. **Active** — navigation events update the address display; the session is
+3. **Active**: navigation events update the address display; the session is
    persistent for the lifetime of the profile.
-4. **Hidden** — leaving the view hides the frame. The guest keeps running, so
+4. **Hidden**: leaving the view hides the frame. The guest keeps running, so
    its gateway, timer and call survive a view change.
-5. **Ended** — only the app closing, an explicit session clear, removing the
+5. **Ended**: only the app closing, an explicit session clear, removing the
    module, or the eight-frame LRU eviction unloads a guest. The partition and
    its cookies survive all of those except an explicit clear.
 
@@ -144,7 +144,7 @@ Persistence rules:
 3. `applyTheme(id)` writes the active theme's colours plus derived values
    (`--line-soft`, `--ink-faint`, `--on-accent`, washes) and sets
    `data-theme` / `data-mode`.
-4. CSS references only variables — no palette literals in `styles.css`.
+4. CSS references only variables: no palette literals in `styles.css`.
 
 Light mode raises faint text to a readable tone and flips `--on-accent` so
 primary buttons keep contrast. Density is a `data-density` attribute, not a
@@ -226,7 +226,7 @@ without a reload.
 
 Page preferences are applied in `will-attach-webview`, after the sandbox,
 preload and node assignments, by `applyChromiumPreferences`. They can only
-remove capability — the call never touches `sandbox`, `contextIsolation`,
+remove capability: the call never touches `sandbox`, `contextIsolation`,
 `nodeIntegration` or `preload`. `did-attach-webview` records what each live
 guest was built with, and `engineInfo()` reports that snapshot next to the live
 URL and zoom factor.
@@ -301,14 +301,14 @@ The home button at the left of the browser toolbar returns the active tab to
 remote home URL, so it has no web history entry behind it. The page is built
 from four cards in the app's own type, radius and token language:
 
-- **Shield / live** — session request count, compiled filter count, HTTPS
+- **Shield / live**: session request count, compiled filter count, HTTPS
   upgrades, stripped tracking parameters, list count and update date. It polls
   the existing `kryvex:shield:status` bridge every 15 seconds while visible.
-- **Field guide** — the browser shortcuts and session model that are actually
+- **Field guide**: the browser shortcuts and session model that are actually
   implemented, not aspirational copy.
-- **Feeds / local reader** — add an RSS or Atom URL, or import an OPML export,
+- **Feeds / local reader**: add an RSS or Atom URL, or import an OPML export,
   and read the merged stories here. Feeds live in `PersistedState.feeds`.
-- **Workspace / quick launch** — pinned modules and bookmarks open in the tab.
+- **Workspace / quick launch**: pinned modules and bookmarks open in the tab.
 
 Private tabs are created from the browser options menu (`New private tab`) or
 `Ctrl+Shift+N`. They are marked with the mask in the tab strip and get their own
@@ -325,7 +325,7 @@ are open.
 `src/lib/rss.ts` is a tolerant RSS 2.0 / Atom parser: CDATA, named and numeric
 entities, Atom `rel="alternate"` links, relative item URLs, permalink GUIDs,
 missing channel titles and undated items. It drops items without an http(s)
-link, caps each feed at 12 items and never injects feed markup into the page —
+link, caps each feed at 12 items and never injects feed markup into the page:
 titles and summaries are stripped to text. `mergeFeedItems` deduplicates stories
 syndicated by two feeds and sorts newest first. OPML import reads every
 `<outline xmlUrl=…>` and deduplicates by URL; feeds are persisted only after
@@ -352,7 +352,7 @@ they belong to a live window.
 Popups stay inside Kryvex. `electron/popup-tabs.ts` claims a browser tab's
 `window.open` (http(s) or `about:blank`, never a background pop-under) and lets
 Chromium create its real popup window, so `window.opener`, `postMessage` and the
-tab's cookie partition all survive — the part that breaks when a sign-in window
+tab's cookie partition all survive: the part that breaks when a sign-in window
 leaves for the system browser. The window is frameless, taskbar-hidden and
 parented to the shell, and it is positioned over `.browser-canvas` using the
 rectangle the renderer reports; the tab strip shows it as a popup tab with the
@@ -532,4 +532,4 @@ boot and render every route before screenshots exist.
 - Capture mode leaves a 138 px gap in the header where native window controls
   sit in the live app (they are not part of the captured web contents).
 - Packaging is configured but unsigned; no CI yet. `pnpm pack` is pnpm's tarball
-  command — use `pnpm run package:dir` / `package:win`.
+  command: use `pnpm run package:dir` / `package:win`.

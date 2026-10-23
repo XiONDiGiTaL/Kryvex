@@ -13,7 +13,7 @@ const CACHE_MS = 10 * 60 * 1000;
 
 /**
  * The web/PWA build has no Electron `net` module, so the Home board talks to
- * Open-Meteo directly. The rules — validation, URLs and response parsing — are
+ * Open-Meteo directly. The rules (validation, URLs and response parsing) are
  * the same pure module the desktop main process uses. Open-Meteo is keyless and
  * serves CORS, and the ten-minute cache keeps a board left open from re-asking.
  */

@@ -35,8 +35,8 @@ interface AllowResponse {
  * A page's `window.open` used to leave Kryvex: the link went to the system
  * browser, the provider signed the user in somewhere else, and the opener page
  * never saw the `postMessage` that finishes the flow. Electron cannot move that
- * popup's page into a tab — its `webContents` is bound to the window Chromium
- * made for it — so Kryvex keeps the real popup window (which is what preserves
+ * popup's page into a tab: its `webContents` is bound to the window Chromium
+ * made for it, so Kryvex keeps the real popup window (which is what preserves
  * `window.opener` and the shared session) and places it exactly over the
  * browser canvas. The tab strip lists it as a tab, the canvas underneath is
  * inert while it is active, and closing it returns to the opener.

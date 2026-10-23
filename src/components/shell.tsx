@@ -261,6 +261,10 @@ export function StatusBar({
   media = [],
   onOpenMediaService,
   onMediaControl,
+  mediaVolume = 1,
+  mediaRepeat = false,
+  onMediaVolume,
+  onMediaRepeat,
 }: {
   state: PersistedState;
   themeId: string;
@@ -270,6 +274,10 @@ export function StatusBar({
   media?: ServiceMediaState[];
   onOpenMediaService: (service: Service) => void;
   onMediaControl: (id: number, action: MediaAction) => Promise<boolean>;
+  mediaVolume?: number;
+  mediaRepeat?: boolean;
+  onMediaVolume?: (volume: number) => void;
+  onMediaRepeat?: (repeat: boolean) => void;
 }) {
   const t = useT();
   const theme = getTheme(themeId);
@@ -299,6 +307,10 @@ export function StatusBar({
           services={state.services}
           onOpenService={onOpenMediaService}
           onControl={onMediaControl}
+          volume={mediaVolume}
+          repeat={mediaRepeat}
+          onVolume={onMediaVolume}
+          onRepeat={onMediaRepeat}
         />
       ) : (
         <span className="status-grow" />

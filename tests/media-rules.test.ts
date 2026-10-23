@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clampPageVolume,
   cleanArtwork,
   cleanText,
   controlScript,
+  dockGuardScript,
   isMediaAction,
   mediaTitle,
   parseMediaSample,
@@ -89,6 +91,35 @@ describe('control scripts', () => {
     expect(typeof factory).toBe('function');
     const sampler = new Function(`return ${sampleScript()}`);
     expect(typeof sampler).toBe('function');
+  });
+});
+
+describe('dock volume and repeat', () => {
+  it('keeps page volume a fraction, and treats junk as unmuted', () => {
+    expect(clampPageVolume(0.35)).toBe(0.35);
+    expect(clampPageVolume(0)).toBe(0);
+    expect(clampPageVolume(4)).toBe(1);
+    expect(clampPageVolume(-2)).toBe(0);
+    expect(clampPageVolume('0.5')).toBe(0.5);
+    expect(clampPageVolume(Number.NaN)).toBe(1);
+    expect(clampPageVolume(undefined)).toBe(1);
+  });
+
+  it('carries both settings into the page guard', () => {
+    const script = dockGuardScript(0.4, true);
+    expect(script).toContain('"volume":0.4');
+    expect(script).toContain('"repeat":true');
+    // A repeat request that is not exactly true must not loop anything.
+    expect(dockGuardScript(1, 'yes')).toContain('"repeat":false');
+  });
+
+  it('listens on the document so a replaced media element still counts', () => {
+    const script = dockGuardScript(0.8, true);
+    expect(script).toContain("addEventListener('play'");
+    expect(script).toContain("addEventListener('ended'");
+    expect(script).toContain('location.reload()');
+    const factory = new Function(`return ${script}`);
+    expect(typeof factory).toBe('function');
   });
 });
 

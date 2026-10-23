@@ -4,7 +4,7 @@ import type { Session } from 'electron';
 /**
  * Registers the identity preload once per session.
  *
- * It runs in every guest that shares the session — a service module, the
+ * It runs in every guest that shares the session: a service module, the
  * popup it opens for an auth flow, and a browser tab. Registering twice would
  * run the patch twice, which is harmless but pointless, so the session is
  * remembered.

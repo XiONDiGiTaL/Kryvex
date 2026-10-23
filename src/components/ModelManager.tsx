@@ -26,10 +26,12 @@ type Tone = 'info' | 'success' | 'danger';
 export function ModelManager({
   isElectron,
   runtimeReady,
+  runtimeBundled,
   onUse,
 }: {
   isElectron: boolean;
   runtimeReady: boolean;
+  runtimeBundled: boolean;
   onUse: (path: string) => void;
 }) {
   const { t } = useI18n();
@@ -297,7 +299,9 @@ export function ModelManager({
           <strong>{t('Runtime')}</strong>
           <p className="mono">
             {runtimeReady
-              ? t('llama-server was found. Downloading does not start it.')
+              ? runtimeBundled
+                ? t('The llama.cpp runtime is included with Kryvex. Downloading a model does not start it.')
+                : t('llama-server was found. Downloading does not start it.')
               : t('llama-server was not found. You can download now and point Kryvex at the runtime before starting.')}
           </p>
         </div>

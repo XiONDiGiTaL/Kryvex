@@ -47,7 +47,7 @@ function isComment(line) {
 
 /**
  * The handler body, found by brace balance from the registration line. Braces
- * inside strings or comments are counted too — good enough for this codebase,
+ * inside strings or comments are counted too: good enough for this codebase,
  * and a mis-measured block only widens or narrows a heuristic report.
  */
 function handlerBody(lines, start) {

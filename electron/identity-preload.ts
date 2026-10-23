@@ -7,7 +7,7 @@ import { contextBridge } from 'electron';
  * does not expose `navigator.userAgentData` at all. A page that reads the UA
  * and then finds the client-hint API missing is looking at a browser that
  * cannot exist: real Chrome has both. Google's sign-in page is the loudest
- * example — it refuses the flow with "This browser or app may not be secure".
+ * example: it refuses the flow with "This browser or app may not be secure".
  *
  * This patch only makes the two halves agree. It does not hide that Kryvex is
  * an app: the engine, the process model and everything a page can observe

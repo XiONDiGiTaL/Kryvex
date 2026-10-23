@@ -1,4 +1,4 @@
-# Kryvex 0.4.0 — Windows release
+# Kryvex 0.4.0: Windows release
 
 Released 2026-10-19. This release turns the browser into a full workspace
 library and adds the privacy, calling and torrent features built after 0.3.0.
@@ -71,10 +71,10 @@ The Portable EXE runs without installation. Its state still lives in
 This release was rebuilt from the complete 0.4.0 working tree, including the
 paused torrent-queue restore, then checked against the packaged EXEs.
 
-- `pnpm typecheck` — exit 0 for renderer and main.
-- `pnpm test` — exit 0, **103/103** tests.
-- `pnpm build` — exit 0; 461.03 kB JS, 53.87 kB CSS.
-- `pnpm run package:win` — exit 0; produced the two artifacts and checksums
+- `pnpm typecheck`: exit 0 for renderer and main.
+- `pnpm test`: exit 0, **103/103** tests.
+- `pnpm build`: exit 0; 461.03 kB JS, 53.87 kB CSS.
+- `pnpm run package:win`, exit 0; produced the two artifacts and checksums
   above.
 - **Packaged app smoke:** the unpacked build, Portable EXE and installed app
   each launched as version `0.4.0`. With a seeded isolated queue, all three

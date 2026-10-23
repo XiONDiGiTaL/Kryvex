@@ -39,6 +39,7 @@ import { vpn } from './vpn';
 import { weather } from './weather';
 import { isSafePartition } from './privacy';
 import { serviceSessions } from './service-sessions';
+import { spotifyAds } from './spotify-ads';
 import { stableUserAgent } from './user-agent';
 import {
   MIN_WINDOW_SIZE,
@@ -361,6 +362,7 @@ function createWindow(): BrowserWindow {
     serviceSessions.applyTo(contents);
     serviceSessions.observeGuest(contents);
     media.track(contents);
+    spotifyAds.track(contents);
     // A parked service frame stays mounted but hidden, and Chromium throttles
     // timers in a hidden page. A chat client that misses one heartbeat shows
     // "connecting" minutes later, which reads as a disconnect. Turning guest
@@ -705,6 +707,10 @@ function registerIpc(): void {
     if (!isShellSender(event)) return false;
     return serviceSessions.clear(partition);
   });
+  ipcMain.handle('kryvex:services:stop', (event, partition: unknown) => {
+    if (!isShellSender(event)) return 0;
+    return serviceSessions.stop(partition);
+  });
   ipcMain.handle('kryvex:services:notifications', (event, enabled: unknown) => {
     if (!isShellSender(event) || typeof enabled !== 'boolean') return serviceSessions.notificationsEnabled();
     serviceSessions.setNotifications(enabled);
@@ -728,6 +734,15 @@ function registerIpc(): void {
   );
   ipcMain.handle('kryvex:media:control', (event, id: unknown, action: unknown) =>
     isShellSender(event) ? media.control(id, action) : false,
+  );
+  ipcMain.handle('kryvex:media:volume', (event, volume: unknown) =>
+    isShellSender(event) ? media.setPageVolume(volume) : 1,
+  );
+  ipcMain.handle('kryvex:media:repeat', (event, repeat: unknown) =>
+    isShellSender(event) ? media.setPageRepeat(repeat) : false,
+  );
+  ipcMain.handle('kryvex:spotify:guard', (event, enabled: unknown) =>
+    isShellSender(event) ? spotifyAds.setEnabled(enabled) : false,
   );
   ipcMain.handle('kryvex:vpn:status', (event) => (isShellSender(event) ? vpn.status() : null));
   ipcMain.handle('kryvex:vpn:configure', (event, settings: unknown) =>
