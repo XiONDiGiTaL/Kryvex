@@ -143,6 +143,18 @@ warning annotation so it appears on the run summary rather than only in the log.
 It does not fail the build — the deadline is the failure — so nobody meets the
 expiry for the first time on a red run they did not cause.
 
+The one exception carried today is `ip`
+(GHSA-2p57-rm9w-gvfp), reached as
+`webtorrent > torrent-discovery > bittorrent-tracker`. It cannot be upgraded
+out: `ip` 2.0.1 is both the newest release and the last affected version, and
+`webtorrent` 3.0.21 is already the newest, so no bump clears it. Patching the
+package in place would leave its version at 2.0.1, which the audit still
+reports. Dropping `webtorrent` would clear it but removes the torrent feature
+outright; that was considered and declined, because the advisory covers
+`isPublic` while the only import lives in the tracker *server* parser, and
+Kryvex runs tracker clients. The exception therefore stays, dated, rather than
+being deleted or hidden behind a patch.
+
 The gate is narrow by design. It only sees advisories that are already
 published, so a compromised or hijacked package version is still a supply-chain
 risk it cannot detect.

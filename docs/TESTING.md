@@ -1409,3 +1409,11 @@ boundary is inclusive and silent beyond it. The same +3-day copy run without
 `GITHUB_ACTIONS` prints the `EXPIRING` line with no `::warning::` text, so a
 local run never shows annotation syntax. The shipped exception is 181 days out
 and prints no warning.
+
+The runner path was proven rather than inferred on 2026-10-23: with the
+exception's `reviewBy` temporarily set three days out on a throwaway branch,
+dispatched run 39893563434 logged
+`EXPIRING     GHSA-2p57-rm9w-gvfp (ip) review is due in 3 days, on 2026-10-26…`
+and `GET /repos/…/check-runs/{id}/annotations` returned one entry at level
+`warning` with that text, so the annotation is real and not just printed. The
+branch was deleted afterwards; `main` never carried the temporary date.
