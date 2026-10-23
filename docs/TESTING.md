@@ -1417,3 +1417,28 @@ dispatched run 39893563434 logged
 and `GET /repos/…/check-runs/{id}/annotations` returned one entry at level
 `warning` with that text, so the annotation is real and not just printed. The
 branch was deleted afterwards; `main` never carried the temporary date.
+
+## Wellness widget — 2026-10-23
+
+New Home widget, off by default until the intake form is completed.
+`tests/wellness.test.ts` (27 cases; the suite is now 514) covers local day keys,
+BMI and its bands, the Mifflin-St Jeor estimate (1780 kcal for 80 kg, 180 cm and
+30 years, 2760 at moderate activity), water-goal rounding and clamps, XP per
+component, level thresholds and the cap, streaks with and without today, the
+seeded daily task, log insertion/replacement/capping, water pacing, bedtime
+rounding past midnight, and the stored-state sanitiser (off without an intake,
+clamped goals, impossible dates dropped, later duplicate days replacing earlier
+ones).
+
+The web preview was driven end to end on `127.0.0.1:5199`: heart → intake form →
+175 cm, 72 kg, 1996, moderate → save, which produced BMI 23.5 (Healthy) and a
+2460 kcal target; then +250 ml, 7.5 hours of sleep, the daily task and Check in.
+XP read 26 (8 check-in + 8 sleep + 10 task); reaching the 2000 ml goal took it to
+38, and a reload kept both the log and the widget enabled. Turning Wellness off
+in the Widgets picker hid the card, and the heart reopened it with the saved
+values pre-filled. No console errors, `node scripts/audit-i18n.cjs` reports no
+hardcoded strings, and `pnpm build:web` passes.
+
+Not executed: the packaged desktop build (`pnpm build && electron .`). The
+widget holds renderer state only and touches no IPC, so the web preview runs the
+same code, but the Electron shell was not launched for this change.

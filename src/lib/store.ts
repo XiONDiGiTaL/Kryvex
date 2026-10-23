@@ -23,6 +23,12 @@ import type {
   VpnSettings,
   WallpaperFit,
   WallpaperSettings,
+  WellnessActivity,
+  WellnessDay,
+  WellnessProfile,
+  WellnessSettings,
+  WellnessSex,
+  WellnessUnits,
 } from '../types';
 import { LANGUAGE_SETTINGS } from '../types';
 import { BRAND_ICONS } from './brand-icons';
@@ -42,7 +48,18 @@ import {
   DEFAULT_PLAYER,
   DEFAULT_RESOURCES,
   DEFAULT_VPN,
+  DEFAULT_WELLNESS,
 } from './defaults';
+import {
+  MAX_CONDITIONS,
+  MAX_SLEEP_GOAL_MINUTES,
+  MAX_WELLNESS_DAYS,
+  MAX_WATER_GOAL_ML,
+  MIN_SLEEP_GOAL_MINUTES,
+  MIN_WATER_GOAL_ML,
+  isBedtime,
+  isDayKey,
+} from './wellness';
 import { cleanLanguage, cleanOcrLanguage, normalizeBaseUrl } from './lexium';
 import { clampVolume } from './player';
 import { isSearchEngine, isSearchRegion } from './search-engines';
@@ -235,10 +252,104 @@ function coordinate(value: unknown): number | null {
   return Number.isFinite(number) ? number : null;
 }
 
+function boundedNumber(value: unknown, min: number, max: number): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < min || number > max) return null;
+  return number;
+}
+
+/**
+ * Goals are clamped rather than rejected: a hand-edited file with an absurd
+ * water goal should come back at the nearest sane value, not silently reset to
+ * the default and lose the user's intent.
+ */
+function clampedNumber(value: unknown, min: number, max: number): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return Math.min(max, Math.max(min, number));
+}
+
+const WELLNESS_UNITS: WellnessUnits[] = ['metric', 'imperial'];
+const WELLNESS_ACTIVITIES: WellnessActivity[] = ['low', 'light', 'moderate', 'high'];
+const WELLNESS_SEXES: WellnessSex[] = ['female', 'male', 'unspecified'];
+
+function sanitizeWellnessDay(raw: unknown): WellnessDay | null {
+  if (!isRecord(raw) || !isDayKey(raw.date)) return null;
+  return {
+    date: raw.date,
+    waterMl: Math.round(boundedNumber(raw.waterMl, 0, 10_000) ?? 0),
+    sleepMinutes: Math.round(boundedNumber(raw.sleepMinutes, 0, 1440) ?? 0),
+    weightKg: boundedNumber(raw.weightKg, 25, 400),
+    calories: boundedNumber(raw.calories, 0, 10_000),
+    taskDone: raw.taskDone === true,
+    checkedIn: raw.checkedIn === true,
+  };
+}
+
+/**
+ * The wellness block is opt-in: an unreadable or missing value must come back as
+ * off, never as an empty widget that looks enabled. Measurements are stored in
+ * metric whatever the display unit, so changing units never rewrites history.
+ */
+export function sanitizeWellness(raw: unknown): WellnessSettings {
+  const base = DEFAULT_WELLNESS;
+  const empty = (): WellnessSettings => ({ ...base, profile: { ...base.profile }, days: [] });
+  if (!isRecord(raw)) return empty();
+
+  const profileRaw = isRecord(raw.profile) ? raw.profile : {};
+  const profile: WellnessProfile = {
+    units: WELLNESS_UNITS.includes(profileRaw.units as WellnessUnits)
+      ? (profileRaw.units as WellnessUnits)
+      : base.profile.units,
+    heightCm: boundedNumber(profileRaw.heightCm, 90, 250),
+    weightKg: boundedNumber(profileRaw.weightKg, 25, 400),
+    birthYear: boundedNumber(profileRaw.birthYear, 1900, new Date().getFullYear()),
+    sex: WELLNESS_SEXES.includes(profileRaw.sex as WellnessSex)
+      ? (profileRaw.sex as WellnessSex)
+      : base.profile.sex,
+    activity: WELLNESS_ACTIVITIES.includes(profileRaw.activity as WellnessActivity)
+      ? (profileRaw.activity as WellnessActivity)
+      : base.profile.activity,
+    conditions: cleanText(profileRaw.conditions, MAX_CONDITIONS),
+  };
+
+  const days: WellnessDay[] = [];
+  if (Array.isArray(raw.days)) {
+    for (const item of raw.days.slice(-MAX_WELLNESS_DAYS * 2)) {
+      const day = sanitizeWellnessDay(item);
+      if (!day) continue;
+      const seen = days.findIndex(existing => existing.date === day.date);
+      if (seen >= 0) days[seen] = day;
+      else days.push(day);
+    }
+  }
+  days.sort((a, b) => a.date.localeCompare(b.date));
+
+  const onboarded = raw.onboarded === true;
+  return {
+    onboarded,
+    enabled: onboarded && raw.enabled === true,
+    profile,
+    days: days.slice(-MAX_WELLNESS_DAYS),
+    waterGoalMl: Math.round(
+      clampedNumber(raw.waterGoalMl, MIN_WATER_GOAL_ML, MAX_WATER_GOAL_ML) ?? base.waterGoalMl,
+    ),
+    sleepGoalMinutes: Math.round(
+      clampedNumber(raw.sleepGoalMinutes, MIN_SLEEP_GOAL_MINUTES, MAX_SLEEP_GOAL_MINUTES) ??
+        base.sleepGoalMinutes,
+    ),
+    bedtime: isBedtime(raw.bedtime) ? raw.bedtime : base.bedtime,
+    remindWater: raw.remindWater === true,
+    remindSleep: raw.remindSleep === true,
+  };
+}
+
 /** Home board values are deliberately small: a widget, not a second app. */
 export function sanitizeHome(raw: unknown): HomeSettings {
   const base = DEFAULT_HOME;
-  if (!isRecord(raw)) return { ...base, notes: [] };
+  if (!isRecord(raw)) return { ...base, notes: [], wellness: sanitizeWellness(undefined) };
   // `Number(null)` is 0, which would silently turn an unset location into Null
   // Island and show its weather as "local". Only a value the user actually
   // saved may become a coordinate; an empty field stays unset.
@@ -272,6 +383,8 @@ export function sanitizeHome(raw: unknown): HomeSettings {
     place,
     latitude: hasPoint ? latitude : null,
     longitude: hasPoint ? longitude : null,
+    showWellness: raw.showWellness === true,
+    wellness: sanitizeWellness(raw.wellness),
     unit: raw.unit === 'f' ? 'f' : 'c',
     notes: sanitizeNotes(raw.notes),
     guideSeen: raw.guideSeen === true || raw.momentumSeen === true,

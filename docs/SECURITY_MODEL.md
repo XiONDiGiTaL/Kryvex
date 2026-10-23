@@ -159,6 +159,17 @@ The gate is narrow by design. It only sees advisories that are already
 published, so a compromised or hijacked package version is still a supply-chain
 risk it cannot detect.
 
+## Wellness data
+
+The optional wellness widget stores height, weight, birth year, an optional
+free-text note and a daily log in the same local state file as everything else.
+It stays off until the intake form is completed, nothing is read from a device
+sensor or a third-party service, and no request carries any of it: the only
+network call on the Home board is still the Open-Meteo lookup for the city the
+user chose. BMI and the calorie target are estimates computed from the values
+entered, shown beside a not-medical-advice note rather than presented as
+measurements or guidance.
+
 ## Not yet implemented
 
 - Per-module permission scopes and persisted site grants (media grants are

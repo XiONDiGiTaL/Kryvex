@@ -130,6 +130,10 @@ Persistence rules:
   the web preview. `settings.wallpaper` keeps only `enabled`, `source`, `fit`
   and `veil`; the backdrop stays off until `enabled` is explicitly true, so
   older profiles and new installs paint the theme alone.
+- The optional wellness block lives under `settings.home.wellness`: the intake
+  values plus one day log capped at 90 entries. XP, levels and streaks are
+  derived from that log on read, so there is no second total to drift, and
+  `sanitizeWellness` refuses to show the widget without a completed intake.
 
 ## Theme pipeline
 

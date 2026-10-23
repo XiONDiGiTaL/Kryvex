@@ -1397,3 +1397,364 @@ body[data-player-bar='1'] .media-dock.is-floating {
 .secret-card > svg {
   color: var(--accent);
 }
+
+/* ---------------------------------------------------------------- wellness --- */
+
+.home-board-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-heart {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 30%, transparent);
+  color: var(--ink-faint);
+}
+
+.home-heart:hover,
+.home-heart:focus-visible {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--line));
+}
+
+.home-heart.is-fresh {
+  color: var(--danger);
+  animation: heart-invite 3.4s ease-in-out infinite;
+}
+
+@keyframes heart-invite {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 0%, transparent);
+  }
+  40% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 14%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-heart.is-fresh {
+    animation: none;
+  }
+}
+
+.wellness {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 18%, var(--line-soft));
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--danger) 4%, transparent);
+}
+
+.wellness-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wellness-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+}
+
+.wellness-heart {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.wellness-level-chip {
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--danger) 24%, var(--line-soft));
+  border-radius: 999px;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: color-mix(in srgb, var(--danger) 70%, var(--ink));
+  white-space: nowrap;
+}
+
+.wellness-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.wellness-intro p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-faint);
+}
+
+.wellness-levelbar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.wellness-level-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wellness-level-copy strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.wellness-level-copy .mono,
+.wellness-meta .mono {
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+
+.wellness-bar {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--line) 62%, transparent);
+}
+
+.wellness-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--danger);
+  transition: width 0.28s ease;
+}
+
+.wellness-bar.is-xp > span {
+  background: linear-gradient(90deg, var(--accent), var(--danger));
+}
+
+.wellness-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+
+.wellness-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.wellness-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bg) 30%, transparent);
+}
+
+.wellness-tile-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.wellness-tile > strong {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.wellness-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wellness-actions .chip-btn {
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+.wellness-nudge {
+  font-size: 10px;
+  color: var(--danger);
+}
+
+.wellness-meta-line {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.wellness-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+
+.wellness-field > span {
+  min-width: 0;
+}
+
+.wellness-field > input {
+  width: 84px;
+  min-width: 0;
+  padding: 4px 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg) 42%, transparent);
+  color: var(--ink);
+  font-size: 11px;
+  text-align: right;
+}
+
+.wellness-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+
+.wellness-metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wellness-metrics > div > span:first-child {
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.wellness-metrics strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.wellness-metrics > div > span:last-child {
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+
+.wellness-metrics .wellness-field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+}
+
+.wellness-metrics .wellness-field > input {
+  width: 100%;
+  text-align: left;
+}
+
+.wellness-metrics .btn {
+  align-self: end;
+}
+
+.wellness-note {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  opacity: 0.85;
+}
+
+.wellness-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wellness-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wellness-form-label {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.wellness-form-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.wellness-form .wellness-field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.wellness-form .wellness-field > input {
+  width: 100%;
+  text-align: left;
+  padding: 7px 9px;
+  font-size: 12px;
+}
+
+.wellness-suggest {
+  align-self: flex-start;
+  font-size: 10px;
+}
+
+.wellness-switches {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wellness-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  background: color-mix(in srgb, var(--bg) 26%, transparent);
+}
+
+.wellness-switch input {
+  accent-color: var(--accent);
+}

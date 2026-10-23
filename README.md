@@ -554,7 +554,8 @@ faster; the same actions remain available on screen.
 | --- | --- |
 | **Module registry** | Add, edit, remove and pin services. Name, URL, category, colour, glyph and brand-icon validation. Search, category filters, recents, starter catalogue, duplicate-safe IDs. |
 | **Vexium** | Chat with a local Ollama or LM Studio runtime over its OpenAI-compatible API, or a GGUF file Kryvex starts locally. Offline app answers and a search fallback when no model is loaded, streamed replies, Stop, runtime/address/model settings. Loopback http only; prompts stay in the session and no key or weights are stored. |
-| **Home board** | Greeting and clock, opt-in Open-Meteo weather with a ten-minute cache and °C/°F, sticky tasks and a guide. Widgets hide independently. |
+| **Home board** | Greeting and clock, opt-in Open-Meteo weather with a ten-minute cache and °C/°F, sticky tasks, an optional Wellness widget and a guide. Widgets hide independently. |
+| **Wellness (off by default)** | A heart beside the Widgets button opens one optional intake form — units, height, weight, birth year, activity, an optional note, water and sleep goals. Water, hours slept, weight, calories and one tiny daily task are then logged by hand; XP, levels and a streak are recomputed from that log, never stored. BMI and a calorie estimate are labelled as estimates, and the whole block is one local state subtree with no network calls. |
 | **Resource monitor** | CPU, system memory, the Chromium GPU process and per-service/per-process usage, in the sidebar or a full view. Samples only while visible. |
 | **VPN** | Start and stop an OpenVPN tunnel from your own binary and profile, with DNS, proxy, extra flags and connect-on-launch. Dangerous helper flags are refused. |
 | **Search engines** | Worldwide, Chinese, Korean, Czech, Vietnamese and international engines shared by the address bar, Settings and Vexium. |

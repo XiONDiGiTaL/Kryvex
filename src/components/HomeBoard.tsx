@@ -9,6 +9,7 @@ import {
   type WeatherKind,
 } from '../lib/weather';
 import { Icon } from './ui';
+import { WellnessBoard } from './WellnessBoard';
 import { weatherAtWeb, weatherLookupWeb } from '../lib/weather-web';
 
 function greeting(hour: number): string {
@@ -104,6 +105,7 @@ export function HomeBoard({
   const [noteDraft, setNoteDraft] = useState('');
   const [guideOpen, setGuideOpen] = useState(!home.guideSeen);
   const [customizing, setCustomizing] = useState(false);
+  const [wellnessOpen, setWellnessOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30_000);
@@ -219,15 +221,25 @@ export function HomeBoard({
             <span className="mono home-date">{date}</span>
           </div>
 
-          <button
-            className="home-customize"
-            onClick={() => setCustomizing(value => !value)}
-            aria-expanded={customizing}
-            title={t('Choose Home widgets')}
-          >
-            <Icon name="sliders" size={14} />
-            {t('Widgets')}
-          </button>
+          <div className="home-board-tools">
+            <button
+              className={`home-heart ${home.wellness.onboarded ? '' : 'is-fresh'}`}
+              onClick={() => setWellnessOpen(true)}
+              title={t('Wellness')}
+              aria-label={t('Open wellness details')}
+            >
+              <Icon name="heart" size={14} />
+            </button>
+            <button
+              className="home-customize"
+              onClick={() => setCustomizing(value => !value)}
+              aria-expanded={customizing}
+              title={t('Choose Home widgets')}
+            >
+              <Icon name="sliders" size={14} />
+              {t('Widgets')}
+            </button>
+          </div>
         </div>
 
         {customizing ? (
@@ -236,6 +248,7 @@ export function HomeBoard({
               [
                 ['showWeather', 'Weather'],
                 ['showTasks', 'Tasks'],
+                ['showWellness', 'Wellness'],
                 ['showGuide', 'Board guide'],
               ] as const
             ).map(([key, label]) => (
@@ -330,6 +343,14 @@ export function HomeBoard({
             </span>
           </div>
         ) : null}
+
+        <WellnessBoard
+          home={home}
+          open={wellnessOpen}
+          onOpen={() => setWellnessOpen(true)}
+          onClose={() => setWellnessOpen(false)}
+          onUpdate={onUpdate}
+        />
 
         {home.showTasks ? (
           <div className="home-tasks">

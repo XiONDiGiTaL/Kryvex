@@ -2557,6 +2557,7 @@ export function Settings({
             [
               ['showWeather', 'Weather'],
               ['showTasks', 'Sticky tasks'],
+              ['showWellness', 'Wellness'],
               ['showGuide', 'Board guide'],
             ] as const
           ).map(([key, label]) => (

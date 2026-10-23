@@ -381,12 +381,66 @@ export interface HomeNote {
   createdAt: number;
 }
 
+export type WellnessUnits = 'metric' | 'imperial';
+export type WellnessActivity = 'low' | 'light' | 'moderate' | 'high';
+export type WellnessSex = 'female' | 'male' | 'unspecified';
+
+/**
+ * What the intake form asks once. Every field is optional: a height and weight
+ * are enough for the derived numbers, and the rest only sharpens them.
+ */
+export interface WellnessProfile {
+  units: WellnessUnits;
+  heightCm: number | null;
+  weightKg: number | null;
+  /** Only the year is kept, which is all the calorie estimate needs. */
+  birthYear: number | null;
+  sex: WellnessSex;
+  activity: WellnessActivity;
+  /** Free text the user chose to note; it is stored, never interpreted. */
+  conditions: string;
+}
+
+/** One day of the log. Every number is entered by the user, never fetched. */
+export interface WellnessDay {
+  /** Local calendar day, YYYY-MM-DD. */
+  date: string;
+  waterMl: number;
+  sleepMinutes: number;
+  weightKg: number | null;
+  calories: number | null;
+  taskDone: boolean;
+  checkedIn: boolean;
+}
+
+/**
+ * The optional wellness widget. It is off until someone opens the intake form,
+ * and everything it knows lives in the same local state file as the rest of the
+ * workspace.
+ */
+export interface WellnessSettings {
+  enabled: boolean;
+  onboarded: boolean;
+  profile: WellnessProfile;
+  /** Oldest first, capped by MAX_WELLNESS_DAYS. */
+  days: WellnessDay[];
+  waterGoalMl: number;
+  sleepGoalMinutes: number;
+  /** HH:MM in local time. */
+  bedtime: string;
+  remindWater: boolean;
+  remindSleep: boolean;
+}
+
 /** The Home board is an overlay, not a new start page: it sits over the theme. */
 export interface HomeSettings {
   showBoard: boolean;
   showWeather: boolean;
   showTasks: boolean;
   showGuide: boolean;
+  /** Wellness stays off by default: it is opt-in, not a second dashboard. */
+  showWellness: boolean;
+  wellness: WellnessSettings;
   city: string;
   /** Country or region label returned by geocoding, for the city chip. */
   place: string;

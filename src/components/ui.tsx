@@ -52,7 +52,10 @@ type IconName =
   | 'music'
   | 'incognito'
   | 'rss'
-  | 'menu';
+  | 'menu'
+  | 'heart'
+  | 'droplet'
+  | 'moon';
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -349,6 +352,17 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M9 18.2V6.4l9-2v11.4" />
       <circle cx="6.6" cy="18.4" r="2.4" />
       <circle cx="15.6" cy="16.6" r="2.4" />
+    </>
+  ),
+  heart: (
+    <path d="M12 20.2S4 15.5 4 9.9A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1 8 2.9c0 5.6-8 10.3-8 10.3Z" />
+  ),
+  droplet: (
+    <path d="M12 3.6c3.2 3.3 5.6 6.1 5.6 9.1a5.6 5.6 0 0 1-11.2 0c0-3 2.4-5.8 5.6-9.1Z" />
+  ),
+  moon: (
+    <>
+      <path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.4 8.4 0 1 0 10.5 10.5Z" />
     </>
   ),
 };

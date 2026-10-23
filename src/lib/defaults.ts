@@ -7,15 +7,44 @@ import type {
   ResourceSettings,
   SearchRegion,
   VpnSettings,
+  WellnessSettings,
 } from '../types';
+import {
+  DEFAULT_BEDTIME,
+  DEFAULT_SLEEP_GOAL_MINUTES,
+  DEFAULT_WATER_GOAL_ML,
+} from './wellness';
 
 export const DEFAULT_SEARCH_REGION: SearchRegion = 'global';
+
+/** Nothing is asked until the heart icon is opened, so this is all defaults. */
+export const DEFAULT_WELLNESS: WellnessSettings = {
+  enabled: false,
+  onboarded: false,
+  profile: {
+    units: 'metric',
+    heightCm: null,
+    weightKg: null,
+    birthYear: null,
+    sex: 'unspecified',
+    activity: 'light',
+    conditions: '',
+  },
+  days: [],
+  waterGoalMl: DEFAULT_WATER_GOAL_ML,
+  sleepGoalMinutes: DEFAULT_SLEEP_GOAL_MINUTES,
+  bedtime: DEFAULT_BEDTIME,
+  remindWater: false,
+  remindSleep: false,
+};
 
 export const DEFAULT_HOME: HomeSettings = {
   showBoard: true,
   showWeather: true,
   showTasks: true,
   showGuide: true,
+  showWellness: false,
+  wellness: DEFAULT_WELLNESS,
   city: '',
   place: '',
   latitude: null,
