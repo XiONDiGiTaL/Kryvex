@@ -1418,6 +1418,17 @@ and `GET /repos/…/check-runs/{id}/annotations` returned one entry at level
 `warning` with that text, so the annotation is real and not just printed. The
 branch was deleted afterwards; `main` never carried the temporary date.
 
+The annotation's location was fixed and re-proven on 2026-10-23. Local copies
+run with `GITHUB_ACTIONS=true` emit
+`::warning file=scripts/audit-deps.cjs,line=38::…`, and line 38 is the line of
+the shipped exception's `id` (`grep -n` confirms it), so the position is derived
+from the file rather than hard-coded. Without `GITHUB_ACTIONS` the command is
+still never emitted. On a throwaway branch with the date three days out,
+dispatched run 39897268568 returned an annotation with
+`path=scripts/audit-deps.cjs line=38`; the earlier run had reported
+`path=.github line=11`, which is the symptom this change removes. The branch was
+deleted afterwards and `main` still carries `reviewBy: '2027-04-22'`.
+
 ## Wellness widget — 2026-10-23
 
 New Home widget, off by default until the intake form is completed.

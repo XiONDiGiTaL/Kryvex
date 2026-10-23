@@ -140,6 +140,9 @@ that an unpatched advisory is revisited while it still matters.
 The last 14 days are reported before the date arrives: the run prints an
 `EXPIRING` line with the days left, and under Actions also emits a workflow
 warning annotation so it appears on the run summary rather than only in the log.
+The annotation names `scripts/audit-deps.cjs` and the line of the exception's
+id, so opening it lands on the date that needs moving rather than on the
+workflow that happened to call the gate.
 It does not fail the build — the deadline is the failure — so nobody meets the
 expiry for the first time on a red run they did not cause.
 
