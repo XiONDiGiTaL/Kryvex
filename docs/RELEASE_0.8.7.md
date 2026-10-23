@@ -51,11 +51,6 @@ Download the installer, portable build and checksum list from the
   while the page is in use, returns at the bottom edge and expands into the full
   island on hover or when pinned; `Escape` closes the pinned island. Details:
   [SERVICE_UX.md](SERVICE_UX.md).
-- **Licence boundary of the reference projects.** Disk pulse was designed after
-  reviewing Cleanmgr+, CleanManager and SquirrelDisk, but only CleanManager is
-  MIT. Cleanmgr+ ships a EULA that forbids derivative works and SquirrelDisk is
-  AGPL-3.0, so neither contributed code; every line shipped here is Kryvex's own.
-  Recorded in [ATTRIBUTION.md](ATTRIBUTION.md).
 
 ## Artifacts
 

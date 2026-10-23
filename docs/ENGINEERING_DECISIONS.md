@@ -1,10 +1,8 @@
 # Engineering Decision Log
 
-## ED-001: Purpose-built application shell
-**Decision:** Kryvex is an independent Electron application under `X:\Veyra`.
-No third-party desktop workspace code is copied, vendored or rebranded.
-**Reason:** A compact shell with a narrow IPC boundary is easier to audit and
-keeps the MIT licensing story unambiguous.
+## ED-001: Application shell
+**Decision:** Kryvex is an Electron application under `X:\Veyra`.
+**Reason:** A compact shell with a narrow IPC boundary is easier to audit.
 **Status:** Implemented since v0.1.0.
 
 ## ED-002: Naming, Veyra → Gatherium → Kryvex (risk open)
@@ -44,15 +42,14 @@ symbol `Kr`), fictional element designation `x529` (initially `027`, changed
 for developer branding), tagline “Precision in Every Connection.”
 **Status:** brand system delivered 2026-10-19; clearance open.
 
-## ED-003: Browser engine (Electron Chromium, not Midori)
-**Findings:** `midori-browser/core` is Vala + GTK3 + WebKitGTK, CMake,
-LGPL-2.1, unmaintained since Oct 2019 (v9.0 Jul 2019). No Electron/Windows
-embed path; historical MinGW docs only. Current Midori desktop is a separate
-Firefox-derived repo.
+## ED-003: Browser engine (Electron Chromium)
 **Decision:** Use Electron's Chromium webview for Kryvex modules and the
 browser, with a documented seam for a future engine. Record measurements
-before claiming anything "lightweight". Do not present Midori as integrated.
-**Status:** Decided; recorded in `docs/MIDORI_INTEGRATION.md`. No Midori code ships.
+before claiming anything "lightweight".
+**Reason:** A second embedded browser engine would add a native runtime, a
+build matrix and an embedding path with no documented Electron support.
+Electron already provides the engine, sandbox and update path.
+**Status:** Decided; Chromium/Electron is the engine.
 
 ## ED-004: Keep Electron + React + TypeScript
 **Decision:** Retain Electron + TypeScript/React + pnpm + electron-builder.
@@ -108,39 +105,36 @@ opens them in a browser tab. It never changes the system default silently.
 Pretending an app can override it would be inaccurate.
 **Status:** Implemented; unsigned installer remains.
 
-## ED-010: Browser hardening borrows goals, not Firefox code
-**Decision:** Kryvex adopts LibreWolf-inspired privacy goals only where
-Chromium/Electron provides an enforceable behaviour. These are no-pings,
-disabling DNS prefetch and domain-reliability telemetry, a WebRTC public-
-interface policy, explicit permission/device/Bluetooth denial, Global Privacy
-Control, cross-origin referrer trimming, and in-memory browser-tab partitions
-cleared on close. Firefox-specific RFP, dFPI, Safe Browsing and DoH prefs are
-not copied or claimed because they have no documented Electron equivalent.
-**Reason:** LibreWolf is Firefox-based, not Chromium-based. Copying its prefs
-would create dead configuration and a false security claim. Each retained
-control is implemented with a documented Electron session/webRequest API or a
-well-known Chromium switch, and is covered by tests or runtime probes.
+## ED-010: Browser hardening stays within Electron APIs
+**Decision:** Kryvex applies privacy controls only where Chromium/Electron
+provides an enforceable behaviour. These are no-pings, disabling DNS prefetch
+and domain-reliability telemetry, a WebRTC public-interface policy, explicit
+permission/device/Bluetooth denial, Global Privacy Control, cross-origin
+referrer trimming, and in-memory browser-tab partitions cleared on close.
+Controls that have no documented Electron equivalent are not exposed or
+claimed.
+**Reason:** Shipping dead configuration would create a false security claim.
+Each retained control is implemented with a documented Electron session or
+webRequest API, or a well-known Chromium switch, and is covered by tests or
+runtime probes.
 **Status:** Implemented 2026-10-19; see `electron/hardening.ts`,
 `electron/privacy.ts` and `docs/SECURITY_MODEL.md`.
 
-## ED-011: Brave protections are clean-room Electron equivalents
-**Decision:** Implement a focused subset of Brave Shields as small Electron
-components: HTTPS upgrades with a one-time HTTP fallback, tracking-parameter
-stripping for top-level GET navigations, deterministic per-site canvas/WebGL/
-audio-analysis farbling in a frame preload, and EasyList Cookie in the existing
-local filter engine. Do not vendor Brave Core, fork Chromium, copy Brave source,
-or present the JavaScript wrappers as native-engine guarantees.
-**Reason:** Brave is MPL-2.0 and its protections rely on browser-engine
-patches. Copying files would add file-level MPL obligations and a large
-maintenance surface; an Electron-native subset is auditable, works with the
-current installer and keeps the MIT project boundary clear. Electron's
-`webRequest` supports only one listener per event, so the privacy rules are
-combined with Ghostery's blocker in a single pipeline instead of competing
-with it.
-**Status:** Implemented in v0.4.0; see `electron/brave-rules.ts`,
-`electron/web-privacy.ts`, `electron/farbling-preload.ts` and
-`docs/ATTRIBUTION.md`. Known limits: no native fingerprint guarantees, no Safe
-Browsing, and top-level HTTPS upgrades only.
+## ED-011: Privacy protections are small Electron components
+**Decision:** Implement the privacy layer as small Electron components: HTTPS
+upgrades with a one-time HTTP fallback, tracking-parameter stripping for
+top-level GET navigations, deterministic per-site canvas/WebGL/audio-analysis
+farbling in a frame preload, and EasyList Cookie in the existing local filter
+engine. Do not present the JavaScript wrappers as native-engine guarantees.
+**Reason:** Browser-engine patches would add a large maintenance surface; an
+Electron-native subset is auditable, works with the current installer and
+keeps the MIT project boundary clear. Electron's `webRequest` supports only one
+listener per event, so the privacy rules are combined with Ghostery's blocker
+in a single pipeline instead of competing with it.
+**Status:** Implemented in v0.4.0; see `electron/url-privacy-rules.ts`,
+`electron/web-privacy.ts` and `electron/farbling-preload.ts`. Known limits: no
+native fingerprint guarantees, no Safe Browsing, and top-level HTTPS upgrades
+only.
 
 ## ED-012: Custom GitHub updater, not electron-updater
 **Decision:** Check the public GitHub `releases/latest` endpoint from the main

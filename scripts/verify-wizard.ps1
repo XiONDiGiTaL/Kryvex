@@ -249,6 +249,9 @@ while ((Get-Date) -lt $deadline) {
   try { $process.Refresh() } catch { }
   $window = [IntPtr]::Zero
   try { $window = $process.MainWindowHandle } catch { $window = [IntPtr]::Zero }
+  # A dialog that has just closed reports no main window at all, and the null
+  # then fails IsWindow's IntPtr conversion after the finish page.
+  if ($null -eq $window) { $window = [IntPtr]::Zero }
 
   if ($window -ne [IntPtr]::Zero -and [KryvexWizard]::IsWindow($window)) {
     $controls = Get-Controls $window

@@ -205,3 +205,35 @@ export interface DefaultBrowserStatus {
   canRegister: boolean;
   detail?: string;
 }
+
+/**
+ * One row resolved from a public Spotify or YouTube playlist. `url` is the
+ * media the player can actually decode: a Spotify preview MP3, or the watch
+ * page that feeds the sandboxed YouTube embed.
+ */
+export interface PlaylistImportTrack {
+  title: string;
+  artist: string;
+  url: string;
+  externalUrl: string;
+  durationMs: number;
+  platform: 'spotify' | 'youtube';
+  sourceId: string;
+}
+
+/** Playlist resolution runs in the main process; no page HTML reaches the shell. */
+export interface PlaylistImportResult {
+  ok: boolean;
+  error?:
+    | 'unsupported'
+    | 'not-found'
+    | 'unavailable'
+    | 'offline'
+    | 'empty'
+    | 'too-large';
+  title?: string;
+  provider?: 'spotify' | 'youtube';
+  tracks?: PlaylistImportTrack[];
+  skipped?: number;
+  truncated?: boolean;
+}

@@ -27,12 +27,17 @@ export function ModelManager({
   isElectron,
   runtimeReady,
   runtimeBundled,
+  runningPath,
   onUse,
+  onStartCore,
 }: {
   isElectron: boolean;
   runtimeReady: boolean;
   runtimeBundled: boolean;
+  /** The model file the local runtime is serving, or an empty string. */
+  runningPath: string;
   onUse: (path: string) => void;
+  onStartCore: (path: string) => Promise<void>;
 }) {
   const { t } = useI18n();
   const [catalogue, setCatalogue] = useState<ModelCatalogueEntry[]>([]);
@@ -76,13 +81,16 @@ export function ModelManager({
   async function download(id: string) {
     const bridge = window.kryvex;
     if (!bridge) return;
+    const entry = catalogue.find(item => item.id === id);
     setBusy(true);
     setMessage(null);
     try {
       const result = await bridge.modelsDownload(id);
       if (result.ok) {
         setMessage({
-          text: t('Model installed. Use this model to hand it to Vexium, then start the server.'),
+          text: entry?.productName
+            ? t('Vexium Core is installed. Start it when you are ready; downloading never starts a server.')
+            : t('Model installed. Use this model to hand it to Vexium, then start the server.'),
           tone: 'success',
         });
         await refresh();
@@ -126,6 +134,16 @@ export function ModelManager({
     }
   }
 
+  async function startCore(row: ModelInstalledRow) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await onStartCore(row.path);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="model-manager">
       <div className="custom-filters-head">
@@ -137,6 +155,13 @@ export function ModelManager({
           'One reviewed file per model, with its publisher, revision, size, checksum and licence shown before anything is fetched. Downloads start only when you press Download, and a running model is never replaced.',
         )}
       </p>
+      {catalogue.some(entry => entry.productName) ? (
+        <p className="setting-copy">
+          {t(
+            'Vexium Core is the supported local stack: the included llama.cpp runtime runs the reviewed Qwen2.5-1.5B-Instruct weights on loopback. Qwen and its Apache-2.0 licence stay visible; Kryvex packages the runtime and verifies the file, not the weights.',
+          )}
+        </p>
+      ) : null}
 
       {!isElectron ? (
         <p className="setting-copy mono">{t('Model downloads are available in the desktop app.')}</p>
@@ -145,18 +170,20 @@ export function ModelManager({
       {catalogue.map(entry => {
         const row = rowFor(entry.id);
         const downloading = activeId === entry.id;
+        const runningHere = Boolean(row && runningPath && row.path === runningPath);
         const percent = downloading ? downloadPercent(progress?.received ?? 0, entry.bytes) : 0;
         return (
           <div key={entry.id} className="model-card">
             <div className="model-card-head">
               <div>
-                <strong>{entry.name}</strong>
+                <strong>{entry.productName ?? entry.name}</strong>
                 <p className="mono model-sub">
+                  {entry.productName ? `${entry.name} · ` : ''}
                   {entry.publisher} · {entry.licence} · {entry.quantisation}
                 </p>
               </div>
               <span className="mono model-state">
-                {row ? t('ALREADY INSTALLED') : t('STARTER')}
+                {row ? t('ALREADY INSTALLED') : t(entry.productName ? 'DEFAULT CORE' : 'STARTER')}
               </span>
             </div>
 
@@ -247,13 +274,23 @@ export function ModelManager({
             <div className="model-actions">
               {row ? (
                 <>
-                  <button
-                    className="btn primary small"
-                    disabled={!isElectron || busy || !row.present}
-                    onClick={() => onUse(row.path)}
-                  >
-                    {t('Use this model')}
-                  </button>
+                  {entry.productName ? (
+                    <button
+                      className="btn primary small"
+                      disabled={!isElectron || busy || !row.present}
+                      onClick={() => void startCore(row)}
+                    >
+                      {runningHere ? t('Vexium Core is running') : t('Start Vexium Core')}
+                    </button>
+                  ) : (
+                    <button
+                      className="btn primary small"
+                      disabled={!isElectron || busy || !row.present}
+                      onClick={() => onUse(row.path)}
+                    >
+                      {t('Use this model')}
+                    </button>
+                  )}
                   {confirming === entry.id ? (
                     <>
                       <button className="btn danger small" disabled={busy} onClick={() => void remove(entry.id)}>
@@ -286,7 +323,7 @@ export function ModelManager({
                   disabled={!isElectron || busy}
                   onClick={() => void download(entry.id)}
                 >
-                  {t('Download')}
+                  {entry.productName ? t('Download Vexium Core') : t('Download')}
                 </button>
               )}
             </div>
@@ -314,12 +351,18 @@ export function ModelManager({
             <p className="mono">{t('No downloaded models. This panel fetched nothing on its own.')}</p>
           ) : (
             <ul className="model-installed">
-              {installed.map(row => (
-                <li key={row.id} className="mono">
-                  {row.name} · {formatModelSize(row.bytes)} · {row.licence}
-                  {row.present ? '' : ` · ${t('file missing')}`}
-                </li>
-              ))}
+              {installed.map(row => {
+                const entry = catalogue.find(item => item.id === row.id);
+                const label = entry?.productName
+                  ? `${entry.productName} · ${row.name}`
+                  : row.name;
+                return (
+                  <li key={row.id} className="mono">
+                    {label} · {formatModelSize(row.bytes)} · {row.licence}
+                    {row.present ? '' : ` · ${t('file missing')}`}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

@@ -9,7 +9,7 @@ skipped, weakened or excluded to make the suite pass.
 | Command | Result | Scope |
 | --- | --- | --- |
 | `pnpm typecheck` | exit 0 | `tsc --noEmit` for renderer and `electron/` (strict) |
-| `pnpm test` | exit 0, 137/137 | Vitest: URL normalisation/search resolution, service validation and helpers, starter state, state sanitisation (including saved browser tabs) and registry operations, history, download-history and storage-location validation, page-zoom stepping, catalogue, theme catalogue, Windows browser registration, i18n catalogues, Chrome Web Store URLs, privacy partitions/referrers/headers, Brave-style URL rewrites and farbling rules, media permission helpers, torrent magnet/name/peer/protocol rules and paused queue restore |
+| `pnpm test` | exit 0, 137/137 | Vitest: URL normalisation/search resolution, service validation and helpers, starter state, state sanitisation (including saved browser tabs) and registry operations, history, download-history and storage-location validation, page-zoom stepping, catalogue, theme catalogue, Windows browser registration, i18n catalogues, Chrome Web Store URLs, privacy partitions/referrers/headers, URL privacy rewrites and farbling rules, media permission helpers, torrent magnet/name/peer/protocol rules and paused queue restore |
 | `pnpm build` | exit 0 | Vite renderer (`dist/`) + `tsc` main/preload (`dist-electron/`); 468.11 kB JS, 54.02 kB CSS |
 | `pnpm capture` | exit 0 | Launches the built Electron window in a disposable profile and writes twenty-four 1440×900 PNGs |
 | `pnpm verify:restart` | exit 0 | Real app launched repeatedly: theme, start view and a browser tab survive; a setting changed just before close also survives; a URL passed on the command line joins the restored tab |
@@ -28,7 +28,7 @@ skipped, weakened or excluded to make the suite pass.
 Test files: `tests/url.test.ts`, `tests/services.test.ts`, `tests/store.test.ts`,
 `tests/themes.test.ts`, `tests/windows-browser.test.ts`, `tests/i18n.test.ts`,
 `tests/chrome-store.test.ts`, `tests/privacy.test.ts`,
-`tests/brave-rules.test.ts`, `tests/torrent-rules.test.ts`,
+`tests/url-privacy-rules.test.ts`, `tests/torrent-rules.test.ts`,
 `tests/download-rules.test.ts`, `tests/storage-rules.test.ts`,
 `tests/zoom.test.ts`.
 
@@ -70,7 +70,7 @@ What the unit suite covers:
   mapping, origin canonicalisation, same-origin referrer retention,
   cross-origin referrer trimming, GPC insertion, `X-Client-Data` removal and
   respect for omitted Referer.
-- Brave-style URL rules: tracking parameters removed while functional values
+- URL privacy rules: tracking parameters removed while functional values
   survive, same-site and non-http exclusions, HTTPS upgrade for public default
   ports, and loopback/private/custom-port exemptions.
 - Torrents: magnet info-hash validation, tracker filtering, length caps, safe
@@ -1667,3 +1667,188 @@ disposable profile.
 | `check-release-record.cjs` | PASS |
 | Published artifacts | stable v0.8.8 release; both EXEs downloaded and `sha256sum -c SHA256SUMS.txt` passed; each reports `ProductVersion 0.8.8` |
 | `verify-service-ux.cjs` | PASS on rerun; dock volume and repeat reached the guest page (the first run hit a transient DOM race after the idle transition) |
+
+## Spotify and YouTube playlists in the player: 2026-10-23
+
+The player's playlist import and its YouTube bridge were built from the 0.8.8
+tree on `main`. Nothing was released.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 for renderer and main |
+| `npm test` | exit 0, **565/565** across 56 files |
+| `npm run audit:i18n` | clean, 38 renderer files |
+| `npm run build` | exit 0; 1,079 kB renderer and both Electron targets |
+| Live Spotify embed | the public Today's Top Hits page parsed to 50 tracks, each with artist, preview URL and full-track link |
+| Live YouTube page and continuation | 100 rows from the playlist page plus 82 from one browse continuation, with titles, artists and durations |
+| Built-app import | a Spotify playlist added 50 rows and started its first preview from `p.scdn.co`; a YouTube video added one row and a second import of it added none |
+| YouTube bridge | the selected video loaded through `http://127.0.0.1:<ephemeral>/youtube?v=...`; the bridge reported its duration and the transport advanced the clock |
+| Empty/private/oversized paths | covered by unit tests for the classifier, both parsers, dedupe and the 500-row cap |
+
+**Regression found and fixed during the run.** The player page's attach effect
+runs before the provider's mount effect. The provider was calling `attach(null)`
+on mount, which cleared the stage the page had just attached and left the local
+media element in the hidden host: a Spotify preview still played, but the stage
+and any local video were blank. The mount effect now only seeds the host when no
+stage is attached. The retest placed the local video inside `.player-screen` and
+kept the YouTube iframe in its positioned host.
+
+**Not run, plainly.** A full YouTube video was not watched to its end, so
+completion, auto-advance and repeat on a real embed remain unverified beyond the
+reported duration and clock. Spotify import depends on its public embed markup;
+the parser was checked against today's live page, not a fixture of every locale.
+
+## Vexium Core naming and one-click setup: 2026-10-23
+
+There is no trained in-house model in this tree. Vexium Core is the product name
+for the supported local stack: the included llama.cpp runtime plus the reviewed
+Qwen2.5-1.5B-Instruct artifact. The upstream name, publisher and Apache-2.0
+licence remain visible, and the catalogue keeps `name` separate from
+`productName`.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 for renderer and main |
+| `npm test` | exit 0, **566/566** across 56 files |
+| `npm run audit:i18n` | clean, 38 renderer files |
+| `npm run build` | exit 0; 1,087 kB renderer and both Electron targets |
+| Built-app card | showed **Vexium Core**, `Qwen2.5-1.5B-Instruct · Qwen (Alibaba Cloud) · Apache-2.0 · Q4_K_M`, and the installed list repeated both names |
+| Provider order | **VEXIUM CORE** was first and active in a fresh profile; OLLAMA and LM STUDIO followed |
+| Configured but stopped | the Model row named `qwen2.5-1.5b-instruct`, said the local server was stopped, and selected it instead of showing an empty runtime |
+| One-click start | both the model row and the card offered **Start Vexium Core**; the action configured the installed path and called `modelStart`, and the seeded placeholder `.gguf` then produced the expected load error |
+| Existing profiles | a saved provider is preserved; only a fresh or missing assistant state defaults to Vexium Core |
+
+A real 1.1 GB model was not re-started in this pass; the bundled runtime and
+real starter were already measured in the 0.8.8 run above. The one-click test
+used a deliberately invalid placeholder to keep the check fast, so success on a
+valid model is supported by the earlier runtime evidence, not by this fixture.
+
+## Google sign-in: the claim, not the engine (2026-10-23)
+
+The refusal reported from Gmail's sign-in was reproduced without credentials.
+Google's identifier step answers `/v3/signin/rejected` ("This browser or app may
+not be secure") for any email, so a guest can be driven to that step and its
+verdict read from the page. Each run used a fresh profile, a `persist:svc-*`
+partition, real key events through `webContents.sendInputEvent`, and one
+identifier submit; the identifier was `kryvex.probe.test@example.com`.
+
+| User agent | Client hints | Identity preload | Farble | Google's answer |
+| --- | --- | --- | --- | --- |
+| Chrome, reduced (`Chrome/152.0.0.0`) | Chrome brands | on | off | refused |
+| Chrome, reduced | Chrome brands | off | off | refused |
+| Chrome, full (`Chrome/152.0.7977.167`) | Chrome brands | on | off | refused |
+| Chrome, reduced | none | off | off | refused |
+| Electron (`Kryvex/... Electron/44.9.3`) | Chrome brands | on | off | account step |
+| Electron | none | off | off | account step |
+
+The user agent was the only variable that changed the verdict: Google refuses a
+page that claims Chrome from an engine it can tell is not Chrome, and lets the
+same engine through when it names itself. "Account step" means the page showed a
+captcha, or answered "Couldn't find this account" for the fake identifier; it
+never showed the refusal card.
+
+The fix follows from that measurement. `electron/sign-in-hosts.ts` recognises
+`accounts.google.*`, `myaccount.google.*` and `accounts.youtube.com`; those
+hosts get the application's own user agent on the wire and through
+`webContents.setUserAgent`, no client hints, no identity preload and no
+fingerprint farbling. Every other page keeps the Chrome identity the 0.8.0 work
+established.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 for renderer and main |
+| `npm test` | exit 0, **571/571** across 57 files; adds `tests/sign-in-hosts.test.ts` (host rule, ports, lookalikes) and two `withApplicationUserAgent` cases in `tests/user-agent.test.ts` |
+| `npm run build` | exit 0 |
+| `npm run verify:identity` | **PASS**: a loopback guest still reports `Google Chrome / Chromium / Not(A:Brand`, the running engine's full version in `getHighEntropyValues`, a `Navigator.prototype` accessor returning `[object NavigatorUAData]`, `Sec-CH-UA` headers on the wire, farbling active with native-looking wrappers, and seed 0 for `accounts.google.com` while an ordinary page keeps its seed |
+| End-to-end guest | the sign-in page's `navigator.userAgent` was the application's agent, `navigator.userAgentData.brands` was Chromium's own, no own `userAgentData` property existed, and the identifier submit reached Google's account step instead of `/v3/signin/rejected` |
+
+**Not run, plainly.** No real Google account was signed in, no captcha was
+solved, and no other provider was tested. The probe scripts were temporary and
+are not in the tree; the steps above are enough to rebuild them. Google can
+change the gate at any time, and a stale stored session remains a separate
+failure the refusal banner still covers.
+
+## Vexium Core on launch, the page card and the 0.8.9 build: 2026-10-23
+
+Vexium Core became the provider a profile actually uses, so three follow-ups were
+built and measured together: a started runtime now survives a relaunch, the
+Vexium page states what is installed and can start it, and a profile saved on
+Ollama's untouched default moves to the local stack once.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 for renderer and main |
+| `npm test` | exit 0, **583/583** across 58 files; adds `tests/vexium-core.test.ts` (`resolveAssistantSettings` migration, `shouldAutoStartCore`, `installedCoreFor`) |
+| `npm run audit:i18n` | clean, 38 renderer files |
+| `npm run build` | exit 0 |
+| `npm run package:win` | exit 0: `release/Kryvex-Setup-0.8.9-x64.exe` (`beef57815f77cbbd…`, 128.1 MiB) and `release/Kryvex-Portable-0.8.9-x64.exe` (`e51968fa55404748…`, 127.9 MiB), both `ProductVersion 0.8.9` |
+| Real model | `%APPDATA%\Kryvex\models\qwen2.5-1.5b-instruct.gguf`, 1,117,320,736 bytes, started by the bundled llama.cpp `b11835` |
+| Auto-start in the packaged app | `release/win-unpacked/Kryvex.exe` with a copied profile (`KRYVEX_USER_DATA`): the chip reached **RUNTIME ONLINE** with no click, and the card read **RUNNING** with `qwen2.5-1.5b-instruct` and its loopback origin |
+| Card actions | **Stop server** took the card to **STOPPED** with **Start Vexium Core** in its place; clicking it returned the chip to **RUNTIME ONLINE** and the card to **RUNNING** |
+| Streamed reply | "Reply in one short sentence confirming you are online." streamed back **"I am online."** from the real weights |
+| Migration | a saved `ollama` / `127.0.0.1:11434` / no-model profile resolves to `local` / `127.0.0.1:8080` once and keeps `migrated: true`; a saved model or a user-set Ollama address is preserved |
+| Setup over 0.8.8 | `Kryvex-Setup-0.8.9-x64.exe /S /D=C:\Kryvex` exit 0: `C:\Kryvex\Kryvex.exe` reports `ProductVersion 0.8.9.0` and `FileVersion 0.8.9`, `resources\app.asar` is the 0.8.9 build (44,544,043 bytes), `resources\bin\llama-server.exe` is present, and the HKCU uninstall entry reads `DisplayVersion 0.8.9` |
+| Installed app | launched from `C:\Kryvex` with the existing profile: Settings showed `0.8.9`, the chip reached **RUNTIME ONLINE** with no click, the card read **RUNNING** for `Qwen2.5-1.5B-Instruct · 1.04 GiB` on `http://127.0.0.1:5227`, and a reply streamed back |
+| Saved state | `settings.assistant` ended as `local` / the chosen loopback port / empty model / `migrated: true`; quitting the app killed the runtime and left only `TIME_WAIT` sockets on that port |
+
+The packaged runs drove the built renderer over `--remote-debugging-port` with a
+throwaway profile first and then with the real one; the scripts were temporary
+and are not in the tree. **Not run:** no tag, release record or installer wizard
+capture exists for 0.8.9, so `pnpm release:check` would refuse that tag.
+`pnpm audit:deps` could not run in this shell because `pnpm` was not on `PATH`;
+it is not evidence about the dependency tree either way.
+
+## 0.8.9 release record, wizard capture and the web build: 2026-10-23
+
+The release record and the installer wizard capture are the two things the
+tag-triggered workflow refuses to build without, and the published PWA was still
+serving its 0.8.4 bundle, so both were closed out together.
+
+| Check | Result |
+| --- | --- |
+| `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer release/Kryvex-Setup-0.8.9-x64.exe --version 0.8.9` | PASS: four pages captured, install page ran 23,012 ms, installer exited 0, 33,366 ms end to end, archived to `docs/media/releases/0.8.9-wizard/` |
+| `node scripts/check-release-record.cjs` | PASS for 0.8.9: record, `## Wizard capture` section, capture link, manifest, 4/4 pages, 4/4 screenshots, text on every page |
+| `npx vite build --outDir dist-web` | exit 0: `assets/index-CS5hOLB_.js` (1,092.94 kB) and `assets/index-C71yy4YJ.css` (180.61 kB), `sw.js` cache `kryvex-web-0.8.9-v1` |
+| `node scripts/check-web-build.cjs` | PASS (1.3 MiB): manifest, 192px and 512px icons, service worker shell, hashed bundle |
+| `gh-pages` publish | commit `99c67f4` on `XiONDiGiTaL/Kryvex`; the branch holds exactly the `dist-web` tree plus `.nojekyll` |
+| Live HTML | `https://xiondigital.net/Kryvex/` and `/index.html` both served `index-CS5hOLB_.js` with `age=0` |
+| Live app | a cold incognito visit to `#/settings` rendered Settings and the status bar read `v0.8.9`, with no console errors |
+
+The first wizard attempt walked all five pages but lost its manifest when
+`scripts/verify-wizard.ps1` read `MainWindowHandle` after the dialog had closed
+and passed `$null` to `IsWindow`; a null now means `IntPtr.Zero`, and the rerun
+above is the archived capture.
+
+**Not run:** no `v0.8.9` tag was cut, so no GitHub Actions release exists and
+the published EXEs have not been hash-verified. A browser tab that loaded the
+0.8.4 bundle keeps it until it reloads, and GitHub Pages caches HTML for ten
+minutes, so a warm tab can show the old version briefly after a publish.
+
+## Currency converter endpoint: 2026-10-23
+
+The Home converter asked `api.frankfurter.app`, and the published 0.8.9 web build
+showed **Rates are unavailable right now** beside a working weather card. The
+fetch was the failure, not the rates.
+
+| Check | Result |
+| --- | --- |
+| `fetch('https://api.frankfurter.app/latest?from=USD&to=EUR')` from the page | `TypeError: Failed to fetch` |
+| the same URL from Node, redirects not followed | `301`, `location: https://api.frankfurter.dev/v1/latest?from=USD&to=EUR`, no `access-control-allow-origin` |
+| `fetch('https://api.frankfurter.dev/v1/latest?base=USD&symbols=EUR')` from the page | `200`, `{"amount":1.0,"base":"USD","date":"2026-10-23","rates":{"EUR":0.89342}}` |
+| a neighbouring cross-origin call (`api.open-meteo.com`) from the same page | `200`, so the browser had network egress |
+
+So the old host redirects to the new one without CORS headers, and the browser
+rejects the redirect before the request is ever made. `CurrencyWidget` now calls
+`https://api.frankfurter.dev/v1/latest?base=<from>&symbols=<to>`; the response
+shape the card reads (`rates[to]`, `date`) is unchanged.
+
+| Check after the fix | Result |
+| --- | --- |
+| `npm run build:web` | exit 0, bundle `assets/index-GS008kh0.js`, `check-web-build` PASS |
+| `gh-pages` publish | commit `a9b9f31`; served HTML points at `index-GS008kh0.js` |
+| Live card, 100 USD to BRL | `$100.00 = R$504.65`, `1 USD = 5.0465 BRL`, dated `Oct 23` |
+| Live calculator, `7 × 8 =` | `56` |
+
+Not run: the desktop build was not re-exercised for this fix; the widget uses the
+same `fetch` in both, and the failure was a browser CORS rule rather than an
+Electron difference.

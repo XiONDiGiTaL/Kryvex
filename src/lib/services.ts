@@ -192,7 +192,7 @@ export function starterState(): PersistedState {
       serviceNotifications: true,
       autoCheckUpdates: true,
       wallpaper: { enabled: false, source: 'gradient', fit: 'cover', veil: 55 },
-      assistant: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: '' },
+      assistant: { provider: 'local', baseUrl: 'http://127.0.0.1:8080', model: '', migrated: true },
       chromium: { ...DEFAULT_CHROMIUM },
       party: {
         displayName: '',

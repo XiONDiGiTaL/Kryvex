@@ -100,6 +100,48 @@ This is what makes "Sign in with Google/Microsoft/Apple" work inside a module.
 If a provider insists on a native app handoff, use **Open externally**; the
 module's own session is not transferred.
 
+### Google's own account pages
+
+Google's account pages verify the browser before they accept a sign-in, and the
+check is about the claim, not the engine: a user agent that says `Chrome/152`
+while the engine is not Chrome is sent to `/v3/signin/rejected` with "This
+browser or app may not be secure". The same engine naming itself is let through
+to the account step.
+
+Measured on 2026-10-23 in a Kryvex guest against `accounts.google.com`, with one
+identifier submit per run:
+
+| User agent | Client hints | Identity shim | Result |
+| --- | --- | --- | --- |
+| Chrome (reduced) | Chrome | on | refused |
+| Chrome (reduced) | Chrome | off | refused |
+| Chrome (full version) | Chrome | on | refused |
+| Electron (real) | Chrome | on | account check |
+| Electron (real) | none | off | account check |
+
+So the claim was the whole problem, and correctness beats disguise. Kryvex
+changes four things for `accounts.google.*`, `myaccount.google.*` and
+`accounts.youtube.com` only:
+
+- requests carry the application's own user agent (`electron/user-agent.ts`
+  keeps the value Electron started with) and no `Sec-CH-UA` hints, because a
+  hint asserts the Chrome brand at the header level;
+- the guest's user agent is switched per navigation in `electron/identity.ts`,
+  so `navigator.userAgent` and the request agree on those pages and the Chrome
+  agent returns the moment the flow leaves them;
+- the identity preload is not installed: the page gets Chromium's own
+  `navigator.userAgentData` instead of a Chrome-shaped one, which matches the
+  agent it is told;
+- fingerprint farbling is not installed (`fingerprintSeed` returns 0 for those
+  hosts), so canvas, WebGL and audio calls are the engine's own.
+
+A Google *product* page (Gmail, YouTube) is an ordinary site and keeps the
+Chrome identity and the full privacy treatment; only the account surface stands
+aside. What Google still decides is the account step itself: a captcha, a
+device check, or a tighter gate. The notice in the service view covers a
+refusal that comes back anyway and offers **Reset session & retry** and
+**Open in my browser**.
+
 ## Unread badges
 
 `unreadFromTitle` in `src/lib/unread.ts` recognises the formats the major web
@@ -140,8 +182,8 @@ Discord still asks to log in again:
 
 Server-side token invalidation is Discord's decision. Kryvex does not inject
 client mods, scrape tokens or patch the page to defeat it: see
-[PLATFORM_PLAN.md](PLATFORM_PLAN.md) for why BetterDiscord-style injection is
-deliberately not shipped.
+[PLATFORM_PLAN.md](PLATFORM_PLAN.md) for why client injection is deliberately
+not shipped.
 
 ## Verification
 

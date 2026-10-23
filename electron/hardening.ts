@@ -1,14 +1,15 @@
 import { app, type MediaAccessPermissionRequest, type Session } from 'electron';
 import { permissions } from './permissions';
 import { clientHintPlatform, withChromeClientHints, withPrivacyHeaders } from './privacy';
+import { isSignInHost } from './sign-in-hosts';
+import { applicationUserAgent, withApplicationUserAgent } from './user-agent';
 
 /**
- * Chromium hardening inspired by LibreWolf's privacy goals.
+ * Chromium hardening for Kryvex sessions.
  *
- * LibreWolf is a Firefox derivative, not Chromium, so its prefs and patches
- * are not portable. Only behaviours with a documented Chromium/Electron
- * equivalent are applied here; fingerprint-resistance and full cookie
- * partition policy have no Electron API and are intentionally not faked.
+ * Only behaviours with a documented Chromium/Electron equivalent are applied
+ * here; fingerprint resistance and full cookie partition policy have no
+ * Electron API and are intentionally not faked.
  */
 const hardenedSessions = new WeakSet<Session>();
 
@@ -25,6 +26,14 @@ export function configurePrivacySwitches(): void {
   );
   // Chromium's domain-reliability uploader is telemetry, not a site feature.
   app.commandLine.appendSwitch('disable-domain-reliability');
+}
+
+function isSignInUrl(url: string): boolean {
+  try {
+    return isSignInHost(new URL(url).hostname);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -64,14 +73,20 @@ export function hardenSession(ses: Session): void {
 
   ses.webRequest.onBeforeSendHeaders((details, callback) => {
     const privateHeaders = withPrivacyHeaders(details.requestHeaders, details.url);
-    // The user agent claims Chrome; the client hints must agree with it or
-    // sites see two different browsers in one request.
+    // Google's account pages check the browser against the identity it
+    // claims, and a Chrome agent from an engine that is not Chrome is refused
+    // outright. They get the application's real agent instead; everything else
+    // keeps the Chrome one and its matching client hints, because the user
+    // agent claims Chrome and the hints must agree with it or sites see two
+    // different browsers in one request.
     callback({
-      requestHeaders: withChromeClientHints(
-        privateHeaders,
-        process.versions.chrome,
-        clientHintPlatform(process.platform),
-      ),
+      requestHeaders: isSignInUrl(details.url)
+        ? withApplicationUserAgent(privateHeaders, applicationUserAgent())
+        : withChromeClientHints(
+            privateHeaders,
+            process.versions.chrome,
+            clientHintPlatform(process.platform),
+          ),
     });
   });
 }

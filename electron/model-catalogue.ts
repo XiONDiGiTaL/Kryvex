@@ -14,10 +14,18 @@ import type { CatalogueEntry } from './model-rules';
 
 export const STARTER_MODEL_ID = 'qwen2.5-1.5b-instruct';
 
+/**
+ * The first-party name for the supported local stack. It is deliberately not
+ * the model's own name: the weights are Qwen's, and the panel keeps that
+ * attribution beside the product name.
+ */
+export const VEXIUM_CORE_NAME = 'Vexium Core';
+
 export const MODEL_CATALOGUE: CatalogueEntry[] = [
   {
     id: STARTER_MODEL_ID,
     name: 'Qwen2.5-1.5B-Instruct',
+    productName: VEXIUM_CORE_NAME,
     publisher: 'Qwen (Alibaba Cloud)',
     repository: 'Qwen/Qwen2.5-1.5B-Instruct-GGUF',
     revision: '91cad51170dc346986eccefdc2dd33a9da36ead9',

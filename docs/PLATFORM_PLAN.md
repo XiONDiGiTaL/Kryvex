@@ -1,9 +1,9 @@
 # Platform plan: compounds, assistants and the ideas around them
 
-This is a triage of the larger wishlist: BetterDiscord-style client injection,
-Ferdium-like services, an in-house assistant with periodic-table branding,
-local model runners, bundled AI sites, a retro emulator and a legal pack. Each
-entry says what Kryvex should adopt, adapt, defer or refuse, and why.
+This is a triage of the larger wishlist: client injection, service-app
+workspaces, an in-house assistant with periodic-table branding, local model
+runners, bundled AI sites, a retro emulator and a legal pack. Each entry says
+what Kryvex should adopt, adapt, defer or refuse, and why.
 
 The rule behind every decision: Kryvex stays a shell the user owns. It does not
 patch other companies' clients, it does not ship code it cannot sign and
@@ -11,32 +11,30 @@ update, and it does not pretend a feature is safe because it is convenient.
 
 ## 1. Service engine (adopted)
 
-The core of the request (a Discord-like app instead of a browser page) is
-shipped as the service engine described in [SERVICES.md](SERVICES.md):
-persistent partitions, keep-alive frames, a browser user agent, native
-notifications, unread badges, auth popups and per-service session clearing.
+The core of the request (a dedicated app instead of a browser page) is shipped
+as the service engine described in [SERVICES.md](SERVICES.md): persistent
+partitions, keep-alive frames, a browser user agent, native notifications,
+unread badges, auth popups and per-service session clearing.
 
-Ferdium, Caprine and `whatsapp-web.js` were read for ideas, not copied. The
-useful patterns are a service recipe (URL plus quirks), one long-lived guest
+The useful pattern is a service recipe (URL plus quirks), one long-lived guest
 per service, and a notification bridge. The parts not adopted are the ones that
 need a custom client per service: Kryvex deliberately stays generic so a
 service can change its web client without a Kryvex release.
 
-`whatsapp-web.js` and other unofficial clients automate WhatsApp through a
-linked-device session. That is out of scope: it violates the service's terms in
-spirit, can get a number banned, and adds a Puppeteer-sized dependency. Kryvex
-uses `web.whatsapp.com` like a browser would.
+Unofficial chat automation through a linked-device session is out of scope: it
+violates the service's terms in spirit, can get a number banned, and adds a
+Puppeteer-sized dependency. Kryvex uses the service's own web client like a
+browser would.
 
-## 2. BetterDiscord, AyuGram and client mods (refused)
+## 2. Client mods (refused)
 
-Bundling BetterDiscord would mean injecting third-party code into an
-authenticated Discord session, against Discord's terms, with the user's account
-as the collateral. It also creates a permanent compatibility treadmill: every
-Discord client update can break the injected bundle, and Kryvex would have to
-ship an updater that patches a site it does not control. The same reasoning
-applies to AyuGram-style patched Telegram clients: those are separate
-applications with their own build and signing pipeline, not modules Kryvex can
-adopt.
+Injecting third-party code into an authenticated service session is against
+that service's terms, with the user's account as the collateral. It also
+creates a permanent compatibility treadmill: every client update can break the
+injected bundle, and Kryvex would have to ship an updater that patches a site
+it does not control. The same reasoning applies to patched clients: those are
+separate applications with their own build and signing pipeline, not modules
+Kryvex can adopt.
 
 What Kryvex does instead:
 
@@ -88,12 +86,12 @@ permission model would be branding without a product.
 ChatGPT, Claude, Gemini, Copilot, Perplexity, Hugging Face and Freebuff are
 presets that open the public web client in a persistent module. That gives
 users the real product, with its own features and updates, without Kryvex
-shipping an API key, a proxy or a copy of someone else's UI.
+shipping an API key or a proxy.
 
 The in-house assistant is different: it should not re-implement a chat client.
 Its value is being *inside* Kryvex: aware of the user's workspace, able to open
 a service, start a focus session, search local notes and hand a task to a model
-the user chose. That is a compound with a narrow tool API, not a clone.
+the user chose. That is a compound with a narrow tool API.
 
 ## 5. Local models (deferred, with a clear path)
 
@@ -176,7 +174,7 @@ The legal text is a starting point for the distributor, not legal advice.
 
 ## 9. Deliberately not doing
 
-- Injecting BetterDiscord, Vencord, AyuGram or any patched client.
+- Injecting client mods or any patched client.
 - Shipping unofficial WhatsApp/Telegram automation.
 - Bundling model weights or an emulator core in the base installer.
 - Adding a cookie banner for cookies Kryvex does not set.

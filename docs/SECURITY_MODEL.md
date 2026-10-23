@@ -22,7 +22,7 @@
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox` where
   compatible; narrow `contextBridge` preloads per surface (app shell,
   service guest, popup).
-- Browser privacy defaults are app policy, not Firefox prefs: deny device and
+- Browser privacy defaults are app policy, not inherited settings: deny device and
   capture permissions, send Global Privacy Control, trim cross-origin
   referrers, disable hyperlink pings, DNS prefetch and domain reliability,
   restrict WebRTC to the public interface, and keep browser-tab storage in
@@ -51,8 +51,8 @@
 | Media prompt validates HTTP(S) origin and devices, stores grants in memory, and requires both devices when Chromium omits a media type | `electron/permissions.ts` |
 | GPC signal, cross-origin referrer trimming and removal of Chromium's `X-Client-Data` header | `electron/hardening.ts`, `electron/privacy.ts` |
 | Chromium switches: no hyperlink pings, no DNS prefetch, no domain-reliability telemetry, WebRTC public-interface policy | `electron/hardening.ts` |
-| Tracking parameters removed from top-level GET navigations; same-site navigations skipped | `electron/brave-rules.ts`, `electron/web-privacy.ts` |
-| Public default-port HTTP navigations upgraded to HTTPS, with exactly one HTTP retry for that URL after a failure; loopback and private hosts exempt | `electron/brave-rules.ts`, `electron/web-privacy.ts` |
+| Tracking parameters removed from top-level GET navigations; same-site navigations skipped | `electron/url-privacy-rules.ts`, `electron/web-privacy.ts` |
+| Public default-port HTTP navigations upgraded to HTTPS, with exactly one HTTP retry for that URL after a failure; loopback and private hosts exempt | `electron/url-privacy-rules.ts`, `electron/web-privacy.ts` |
 | Canvas, WebGL and audio-analysis readbacks receive stable per-site noise in remote pages only; seed is per app launch and site | `electron/farbling-preload.ts`, `electron/web-privacy.ts` |
 | EasyList Cookie is compiled into the local shield engine so many consent banners are hidden without a click | `electron/shield.ts` |
 | Service partitions persist; browser tabs use in-memory `browser-*` partitions and are cleared on tab close | `electron/privacy.ts`, `electron/main.ts`, `src/views/Browser.tsx` |
@@ -85,21 +85,19 @@ capability-reduction surface, not an extension surface:
 - A change never clears a session. **Rebuild open pages** remounts `<webview>`
   elements on the same partition, so cookies, storage and sign-in survive.
 
-## LibreWolf-inspired hardening
+## Browser hardening within Electron
 
-LibreWolf is a Firefox derivative, not Chromium, so its `user.js` and patches
-are not portable to Electron. Kryvex implements only equivalent behaviours
-with documented Electron/Chromium APIs: no-pings, DNS-prefetch disable,
-domain-reliability disable, WebRTC public-interface policy, an explicit
-mic/camera prompt with other permissions denied, device/Bluetooth denial, GPC,
-referrer trimming, and disposable browser storage. Firefox-specific dFPI and
-DoH prefs have no documented Electron equivalent here and are not claimed.
+Kryvex implements privacy behaviours with documented Electron/Chromium APIs:
+no-pings, DNS-prefetch disable, domain-reliability disable, WebRTC
+public-interface policy, an explicit mic/camera prompt with other permissions
+denied, device/Bluetooth denial, GPC, referrer trimming, and disposable browser
+storage. Controls that have no documented Electron equivalent are not exposed
+or claimed.
 
-## Brave-inspired privacy protections
+## Privacy protections
 
-Brave is a Chromium fork; its native rewriters and farbling patches are not
-portable to Electron. Kryvex implements a deliberately smaller, auditable
-subset in JavaScript and `webRequest`:
+Kryvex implements a deliberately small, auditable subset in JavaScript and
+`webRequest`:
 
 - **HTTPS upgrades** happen before the request and cover top-level GET
   navigations. A failed upgrade gets one HTTP retry for the exact destination;
@@ -114,8 +112,7 @@ subset in JavaScript and `webRequest`:
   consent choice on the user's behalf.
 
 These protections are independent of ad/tracker blocking and have their own
-switches in Settings. Brave source code is not copied; see
-`docs/ATTRIBUTION.md`.
+switches in Settings.
 
 ## Scripts sent into service guests
 
@@ -239,8 +236,8 @@ measurements or guidance.
   release's `SHA256SUMS.txt` entry to match before an installer can run. The
   renderer cannot choose a URL or path. Builds are unsigned, so this detects
   transport corruption and mismatched files, not a compromised repository.
-- Safe Browsing. Electron does not expose Chromium's Safe Browsing protocol or
-  Brave's proxy, so Kryvex makes no malicious-site reputation claim.
+- Safe Browsing. Electron does not expose Chromium's Safe Browsing protocol,
+  so Kryvex makes no malicious-site reputation claim.
 - A UI for per-site exceptions to referrer trimming or GPC.
 - Packaged-app ASAR integrity checks, CSP for the renderer.
 - macOS/Linux sandbox validation.

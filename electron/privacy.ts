@@ -1,9 +1,7 @@
 /**
  * Pure privacy rules used by the main process and covered by unit tests.
  *
- * These are Kryvex rules, not Firefox preferences: LibreWolf is a Firefox
- * derivative, so its user.js cannot be dropped into Chromium. The goals that
- * do translate are implemented with Electron's own session APIs.
+ * These are Kryvex rules implemented with Electron's own session APIs.
  */
 
 /** Service modules persist; browser tabs are in-memory and disposable. */
@@ -65,7 +63,7 @@ function findHeader(headers: Record<string, string>, name: string): string | und
 }
 
 /**
- * LibreWolf trims cross-origin referrers to scheme, host and port. Only an
+ * Cross-origin referrers are trimmed to scheme, host and port. Only an
  * existing Referer is rewritten: a missing header may be the result of a
  * site's `Referrer-Policy`, and re-adding it would weaken that choice.
  */

@@ -219,6 +219,11 @@ export interface AssistantSettings {
   provider: AssistantProvider;
   baseUrl: string;
   model: string;
+  /**
+   * Set once the old Ollama default has been replaced by Vexium Core. It keeps
+   * a later choice of Ollama from being migrated again on the next launch.
+   */
+  migrated?: boolean;
 }
 
 export type LocalModelPhase = 'idle' | 'starting' | 'running' | 'stopped' | 'error';
@@ -234,6 +239,8 @@ export interface ModelMemoryEstimate {
 export interface ModelCatalogueEntry {
   id: string;
   name: string;
+  /** First-party product name for the bundled stack, when there is one. */
+  productName?: string;
   publisher: string;
   repository: string;
   revision: string;
@@ -434,7 +441,13 @@ export interface WellnessSettings {
   remindSleep: boolean;
 }
 
-export type HomeWidgetId = 'weather' | 'wellness' | 'notes' | 'guide';
+export type HomeWidgetId =
+  | 'weather'
+  | 'wellness'
+  | 'notes'
+  | 'calculator'
+  | 'currency'
+  | 'guide';
 export type HomeWidgetArea = 'main' | 'side';
 
 /** The Home board is an overlay, not a new start page: it sits over the theme. */
@@ -446,6 +459,11 @@ export interface HomeSettings {
   showGuide: boolean;
   /** Wellness stays off by default: it is opt-in, not a second dashboard. */
   showWellness: boolean;
+  showCalculator: boolean;
+  showCurrency: boolean;
+  /** Last currency pair chosen, kept as three-letter ISO codes. */
+  currencyFrom: string;
+  currencyTo: string;
   /** Position of every widget, across both columns. */
   widgetOrder: HomeWidgetId[];
   /** Which column each widget occupies. */
@@ -823,6 +841,12 @@ export interface KryvexBridge {
   ) => Promise<boolean>;
   weatherLookup: (city: string, unit: 'c' | 'f') => Promise<WeatherResult>;
   weatherAt: (latitude: number, longitude: number, unit: 'c' | 'f') => Promise<WeatherResult>;
+  /** Resolve a public Spotify or YouTube playlist into player queue rows. */
+  playlistResolve: (
+    url: string,
+  ) => Promise<import('../electron/types').PlaylistImportResult>;
+  /** Loopback bridge URL for a validated YouTube video id, or null. */
+  playerEmbedUrl: (videoId: string, autoplay: boolean) => Promise<string | null>;
   resourcesSample: (
     services: Array<{ id: string; url: string }>,
   ) => Promise<ResourceSnapshot | null>;

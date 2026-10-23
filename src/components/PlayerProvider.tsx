@@ -18,6 +18,7 @@ import {
   hostLabel,
   nextIndex,
   nextRepeatMode,
+  playlistTargetFor,
   titleFromUrl,
   type MediaKind,
   type Platform,
@@ -25,16 +26,36 @@ import {
 } from '../lib/player';
 
 /**
- * One media element for the whole app.
+ * One media element for local files, direct links and Spotify previews, plus a
+ * sandboxed YouTube embed for YouTube rows.
  *
- * The element is created detached and attached to the player page when it is
- * open. Audio keeps playing while the user works in another view, and coming
- * back simply re-attaches the same element instead of restarting the track.
- * Object URLs are revoked when a track leaves the queue.
+ * The local engine is a detached <video>; the YouTube engine is an <iframe>
+ * that is never reparented. When the player page is open, its host is positioned
+ * over the stage with fixed coordinates; navigating away only hides it, so the
+ * audio keeps playing. Object URLs are revoked when a track leaves the queue.
  */
 export type LinkResult =
-  | { ok: true; added: number }
-  | { ok: false; reason: 'invalid' | 'unsupported' | 'platform'; platform?: Platform };
+  | {
+      ok: true;
+      added: number;
+      skipped?: number;
+      title?: string;
+      kind?: 'track' | 'playlist';
+    }
+  | {
+      ok: false;
+      reason:
+        | 'invalid'
+        | 'unsupported'
+        | 'platform'
+        | 'not-found'
+        | 'unavailable'
+        | 'offline'
+        | 'empty'
+        | 'too-large'
+        | 'desktop-only';
+      platform?: Platform;
+    };
 
 export interface PlayerApi {
   tracks: PlayerTrack[];
@@ -49,10 +70,10 @@ export interface PlayerApi {
   volume: number;
   error: string | null;
   media: HTMLVideoElement;
-  /** Move the engine into a stage, or back to its off-screen home. */
+  /** Move the local engine into a stage, or back to its off-screen home. */
   attach: (node: HTMLElement | null) => void;
   addFiles: (files: FileList | File[]) => { added: number; errors: string[] };
-  addLink: (input: string) => LinkResult;
+  addLink: (input: string) => Promise<LinkResult>;
   playAt: (index: number) => void;
   toggle: () => void;
   next: () => void;
@@ -74,6 +95,9 @@ export function usePlayer(): PlayerApi {
   return value;
 }
 
+const YOUTUBE_HOST = /^https:\/\/(www\.|m\.)?youtube(-nocookie)?\.com$/;
+const LOOPBACK_BRIDGE = /^http:\/\/127\.0\.0\.1:\d+$/;
+
 export function PlayerProvider({
   settings,
   onUpdate,
@@ -88,10 +112,17 @@ export function PlayerProvider({
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMutedState] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const autoplay = useRef(true);
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLElement | null>(null);
+  const detachStage = useRef<(() => void) | null>(null);
+  const youtubeState = useRef(-2);
+  const advanceRef = useRef<(auto: boolean) => void>(() => {});
+  const volumeRef = useRef(settings.volume);
+  volumeRef.current = settings.volume;
+  const mutedRef = useRef(false);
 
   const media = useMemo(() => {
     const element = document.createElement('video');
@@ -102,9 +133,75 @@ export function PlayerProvider({
     return element;
   }, []);
 
+  const youtube = useMemo(() => {
+    const frame = document.createElement('iframe');
+    frame.className = 'player-media player-youtube-frame';
+    frame.title = 'YouTube player';
+    frame.referrerPolicy = 'no-referrer';
+    frame.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+    frame.setAttribute('allowfullscreen', 'true');
+    frame.src = 'about:blank';
+    return frame;
+  }, []);
+
   const current = index >= 0 ? tracks[index] ?? null : null;
+  mutedRef.current = muted;
   const repeat = settings.repeat;
   const shuffle = settings.shuffle;
+  const youtubeActive = current?.origin === 'youtube';
+  const youtubeActiveRef = useRef(false);
+  youtubeActiveRef.current = youtubeActive;
+
+  const postYouTube = useCallback(
+    (func: string, args: unknown[] = []) => {
+      const target = youtube.contentWindow;
+      if (!target) return;
+      target.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
+    },
+    [youtube],
+  );
+
+  const positionHost = useCallback(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const stage = stageRef.current;
+    if (!youtubeActiveRef.current || !stage) {
+      host.classList.remove('is-stage');
+      for (const property of ['top', 'left', 'width', 'height']) {
+        host.style.removeProperty(property);
+      }
+      return;
+    }
+    const rect = stage.getBoundingClientRect();
+    host.classList.add('is-stage');
+    host.style.top = `${Math.round(rect.top)}px`;
+    host.style.left = `${Math.round(rect.left)}px`;
+    host.style.width = `${Math.round(rect.width)}px`;
+    host.style.height = `${Math.round(rect.height)}px`;
+  }, []);
+
+  const attach = useCallback(
+    (node: HTMLElement | null) => {
+      stageRef.current = node;
+      detachStage.current?.();
+      detachStage.current = null;
+      if (!node) {
+        if (media.parentElement !== hostRef.current) hostRef.current?.appendChild(media);
+        positionHost();
+        return;
+      }
+      if (!youtubeActiveRef.current && media.parentElement !== node) node.appendChild(media);
+      const update = () => positionHost();
+      window.addEventListener('resize', update);
+      window.addEventListener('scroll', update, true);
+      detachStage.current = () => {
+        window.removeEventListener('resize', update);
+        window.removeEventListener('scroll', update, true);
+      };
+      window.requestAnimationFrame(update);
+    },
+    [media, positionHost],
+  );
 
   const playMedia = useCallback(() => {
     const attempt = media.play();
@@ -132,33 +229,141 @@ export function PlayerProvider({
       });
       if (next < 0) {
         media.pause();
+        postYouTube('pauseVideo');
         setPlaying(false);
         setTime(0);
         return;
       }
       autoplay.current = true;
       if (next === index) {
-        media.currentTime = 0;
-        playMedia();
+        if (tracks[index]?.origin === 'youtube') {
+          postYouTube('seekTo', [0, true]);
+          postYouTube('playVideo');
+          setPlaying(true);
+        } else {
+          media.currentTime = 0;
+          playMedia();
+        }
         return;
       }
       setIndex(next);
     },
-    [index, tracks.length, repeat, shuffle, media, playMedia],
+    [index, tracks, repeat, shuffle, media, playMedia, postYouTube],
   );
 
+  advanceRef.current = advance;
+
   useEffect(() => {
-    const onTime = () => setTime(media.currentTime || 0);
-    const onDuration = () =>
-      setDuration(Number.isFinite(media.duration) ? media.duration : 0);
+    const host = hostRef.current;
+    if (host && youtube.parentElement !== host) host.appendChild(youtube);
+    return () => {
+      youtube.remove();
+    };
+  }, [youtube]);
+
+  useEffect(() => {
+    const onLoad = () => {
+      const target = youtube.contentWindow;
+      if (!target) return;
+      target.postMessage(
+        JSON.stringify({ event: 'listening', id: 'kryvex-player', channel: 'widget' }),
+        '*',
+      );
+      postYouTube('setVolume', [Math.round(clampVolume(volumeRef.current) * 100)]);
+      postYouTube(mutedRef.current ? 'mute' : 'unMute');
+      if (autoplay.current && youtubeActiveRef.current) {
+        window.setTimeout(() => postYouTube('playVideo'), 180);
+      }
+    };
+    youtube.addEventListener('load', onLoad);
+    return () => youtube.removeEventListener('load', onLoad);
+  }, [youtube, postYouTube]);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== youtube.contentWindow) return;
+      // Desktop uses the loopback bridge because a file:// parent triggers
+      // YouTube Error 153; the web preview can still talk to the embed direct.
+      if (!YOUTUBE_HOST.test(event.origin) && !LOOPBACK_BRIDGE.test(event.origin)) return;
+      let data: unknown;
+      try {
+        data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      } catch {
+        return;
+      }
+      if (!data || typeof data !== 'object') return;
+      const message = data as Record<string, unknown>;
+      if (message.event === 'onError') {
+        setPlaying(false);
+        setError('unplayable');
+        return;
+      }
+      const info =
+        message.info && typeof message.info === 'object'
+          ? (message.info as Record<string, unknown>)
+          : null;
+      if (!info) return;
+      if (typeof info.currentTime === 'number' && Number.isFinite(info.currentTime)) {
+        setTime(Math.max(0, info.currentTime));
+      }
+      if (typeof info.duration === 'number' && Number.isFinite(info.duration)) {
+        setDuration(Math.max(0, info.duration));
+      }
+      const videoData =
+        info.videoData && typeof info.videoData === 'object'
+          ? (info.videoData as Record<string, unknown>)
+          : null;
+      if (videoData && typeof videoData.errorCode === 'string' && videoData.errorCode) {
+        setPlaying(false);
+        setError('unplayable');
+      }
+      if (typeof info.playerState === 'number') {
+        const state = info.playerState;
+        const previous = youtubeState.current;
+        youtubeState.current = state;
+        if (state === 0) {
+          setPlaying(false);
+          if (previous === 1 || previous === 3) advanceRef.current(true);
+        } else if (state === 1 || state === 3) {
+          setPlaying(true);
+          setError(null);
+        } else if (state === 2 || state === 5 || state === -1) {
+          setPlaying(false);
+        }
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [youtube]);
+
+  useEffect(() => {
+    // While a YouTube row owns playback the local element has no source. Its
+    // teardown events (error, pause, duration 0) must not overwrite the embed's
+    // transport state.
+    const onTime = () => {
+      if (!youtubeActiveRef.current) setTime(media.currentTime || 0);
+    };
+    const onDuration = () => {
+      if (!youtubeActiveRef.current) {
+        setDuration(Number.isFinite(media.duration) ? media.duration : 0);
+      }
+    };
     const onPlay = () => {
+      if (youtubeActiveRef.current) return;
       setPlaying(true);
       setError(null);
     };
-    const onPause = () => setPlaying(false);
-    const onWaiting = () => setError(null);
-    const onEnded = () => advance(true);
+    const onPause = () => {
+      if (!youtubeActiveRef.current) setPlaying(false);
+    };
+    const onWaiting = () => {
+      if (!youtubeActiveRef.current) setError(null);
+    };
+    const onEnded = () => {
+      if (!youtubeActiveRef.current) advance(true);
+    };
     const onError = () => {
+      if (youtubeActiveRef.current) return;
       setPlaying(false);
       setError('unplayable');
     };
@@ -182,87 +387,217 @@ export function PlayerProvider({
     };
   }, [media, advance]);
 
-  /**
-   * The element must never be left detached: Chromium pauses a media element
-   * that is removed from the document. Its permanent home is a 1px host, and
-   * the player page borrows it while open, handing it back on unmount.
-   */
-  const attach = useCallback(
-    (node: HTMLElement | null) => {
-      const target = node ?? hostRef.current;
-      if (target && media.parentElement !== target) target.appendChild(media);
-    },
-    [media],
-  );
-
   useEffect(() => {
-    attach(null);
-  }, [attach]);
+    // The player page's effect runs before this one, so do not call attach(null)
+    // here: it would clear a stage that is already mounted and leave the local
+    // engine stranded in its hidden host.
+    const host = hostRef.current;
+    if (host && !stageRef.current && media.parentElement !== host) {
+      host.appendChild(media);
+    }
+    return () => {
+      detachStage.current?.();
+      detachStage.current = null;
+      stageRef.current = null;
+    };
+  }, [media]);
 
   useEffect(() => {
     media.volume = clampVolume(settings.volume);
-  }, [media, settings.volume]);
+    postYouTube('setVolume', [Math.round(clampVolume(settings.volume) * 100)]);
+  }, [media, postYouTube, settings.volume]);
 
   useEffect(() => {
     media.muted = muted;
-  }, [media, muted]);
+    postYouTube(muted ? 'mute' : 'unMute');
+  }, [media, muted, postYouTube]);
 
   useEffect(() => {
-    if (!current) {
+    const track = current;
+    if (!track) {
+      media.pause();
       media.removeAttribute('src');
       media.load();
+      postYouTube('pauseVideo');
+      if (youtube.src !== 'about:blank') youtube.src = 'about:blank';
+      if (hostRef.current && media.parentElement !== hostRef.current) {
+        hostRef.current.appendChild(media);
+      }
+      setTime(0);
+      setDuration(0);
+      setPlaying(false);
+      setError(null);
+      positionHost();
       return;
     }
-    media.src = current.url;
+
+    if (track.origin === 'youtube') {
+      media.pause();
+      media.removeAttribute('src');
+      media.load();
+      if (hostRef.current && media.parentElement !== hostRef.current) {
+        hostRef.current.appendChild(media);
+      }
+      setTime(0);
+      setDuration(track.durationMs ? track.durationMs / 1000 : 0);
+      setPlaying(false);
+      setError(null);
+      youtubeState.current = -2;
+      if (!track.sourceId) {
+        setError('unplayable');
+        return;
+      }
+      const direct =
+        `https://www.youtube.com/embed/${encodeURIComponent(track.sourceId)}` +
+        `?enablejsapi=1&autoplay=${autoplay.current ? '1' : '0'}` +
+        '&controls=0&playsinline=1&rel=0&modestbranding=1';
+      const bridge = window.kryvex;
+      let live = true;
+      if (bridge?.playerEmbedUrl) {
+        void bridge
+          .playerEmbedUrl(track.sourceId, autoplay.current)
+          .then(url => {
+            if (live) youtube.src = url ?? direct;
+          })
+          .catch(() => {
+            if (live) youtube.src = direct;
+          });
+      } else {
+        youtube.src = direct;
+      }
+      positionHost();
+      return () => {
+        live = false;
+      };
+    }
+
+    postYouTube('pauseVideo');
+    if (youtube.src !== 'about:blank') youtube.src = 'about:blank';
+    if (stageRef.current && media.parentElement !== stageRef.current) {
+      stageRef.current.appendChild(media);
+    } else if (!stageRef.current && hostRef.current && media.parentElement !== hostRef.current) {
+      hostRef.current.appendChild(media);
+    }
+    media.src = track.url;
     media.load();
     setTime(0);
     setDuration(0);
     setError(null);
     if (autoplay.current) playMedia();
-  }, [current?.id, media, playMedia]);
+    positionHost();
+  }, [current?.id, media, playMedia, positionHost, postYouTube, youtube]);
 
-  // Release every object URL when the provider goes away.
   useEffect(
     () => () => {
       media.pause();
       media.removeAttribute('src');
+      youtube.src = 'about:blank';
     },
-    [media],
+    [media, youtube],
   );
 
-  const addFiles = useCallback((files: FileList | File[]) => {
-    const list = Array.from(files);
-    const errors: string[] = [];
-    const fresh: PlayerTrack[] = [];
-    for (const file of list) {
-      const problem = fileValidation(file);
-      if (problem) {
-        errors.push(problem);
-        continue;
+  const addFiles = useCallback(
+    (files: FileList | File[]) => {
+      const list = Array.from(files);
+      const errors: string[] = [];
+      const fresh: PlayerTrack[] = [];
+      for (const file of list) {
+        const problem = fileValidation(file);
+        if (problem) {
+          errors.push(problem);
+          continue;
+        }
+        fresh.push({
+          id: makeId('m'),
+          title: file.name.replace(/\.[a-z0-9]{1,5}$/i, ''),
+          subtitle: file.type || 'Local file',
+          url: URL.createObjectURL(file),
+          kind: fileMediaKind(file),
+          origin: 'file',
+          size: file.size,
+          addedAt: Date.now(),
+        });
       }
-      fresh.push({
-        id: makeId('m'),
-        title: file.name.replace(/\.[a-z0-9]{1,5}$/i, ''),
-        subtitle: file.type || 'Local file',
-        url: URL.createObjectURL(file),
-        kind: fileMediaKind(file),
-        origin: 'file',
-        size: file.size,
-        addedAt: Date.now(),
-      });
-    }
-    if (fresh.length === 0) return { added: 0, errors };
-    setTracks(previous => [...previous, ...fresh]);
-    const wasEmpty = tracks.length === 0;
-    if (wasEmpty) {
-      autoplay.current = true;
-      setIndex(0);
-    }
-    return { added: fresh.length, errors };
-  }, [tracks.length]);
+      if (fresh.length === 0) return { added: 0, errors };
+      setTracks(previous => [...previous, ...fresh]);
+      if (tracks.length === 0) {
+        autoplay.current = true;
+        setIndex(0);
+      }
+      return { added: fresh.length, errors };
+    },
+    [tracks.length],
+  );
 
   const addLink = useCallback(
-    (input: string): LinkResult => {
+    async (input: string): Promise<LinkResult> => {
+      const target = playlistTargetFor(input);
+      if (target) {
+        const bridge = window.kryvex;
+        if (!bridge?.playlistResolve) {
+          return { ok: false, reason: 'desktop-only' };
+        }
+        let result: Awaited<ReturnType<typeof bridge.playlistResolve>>;
+        try {
+          result = await bridge.playlistResolve(input);
+        } catch {
+          return { ok: false, reason: 'offline' };
+        }
+        if (!result.ok) {
+          const reason =
+            result.error === 'not-found' ||
+            result.error === 'unavailable' ||
+            result.error === 'offline' ||
+            result.error === 'empty' ||
+            result.error === 'too-large'
+              ? result.error
+              : 'unsupported';
+          return { ok: false, reason };
+        }
+        const source = result.tracks ?? [];
+        const seen = new Set(
+          tracks.map(track => `${track.origin}:${track.sourceId ?? track.url}`),
+        );
+        const fresh: PlayerTrack[] = [];
+        let duplicates = 0;
+        for (const track of source) {
+          const key = `${track.platform}:${track.sourceId}`;
+          if (seen.has(key)) {
+            duplicates += 1;
+            continue;
+          }
+          seen.add(key);
+          fresh.push({
+            id: makeId('m'),
+            title: track.title,
+            subtitle: track.artist || (track.platform === 'spotify' ? 'Spotify' : 'YouTube'),
+            url: track.platform === 'youtube' ? track.externalUrl : track.url,
+            kind: target.provider === 'youtube' ? 'video' : 'audio',
+            origin: track.platform,
+            platform: track.platform,
+            externalUrl: track.externalUrl,
+            sourceId: track.sourceId,
+            durationMs: track.durationMs,
+            size: 0,
+            addedAt: Date.now(),
+          });
+        }
+        if (fresh.length > 0) {
+          setTracks(previous => [...previous, ...fresh]);
+          if (tracks.length === 0) {
+            autoplay.current = true;
+            setIndex(0);
+          }
+        }
+        return {
+          ok: true,
+          added: fresh.length,
+          skipped: duplicates + (result.skipped ?? 0),
+          title: result.title,
+          kind: target.kind === 'track' || target.kind === 'video' ? 'track' : 'playlist',
+        };
+      }
+
       const result = classifyMediaLink(input);
       if (!result.ok) {
         return result.reason === 'platform'
@@ -284,9 +619,9 @@ export function PlayerProvider({
         autoplay.current = true;
         setIndex(0);
       }
-      return { ok: true, added: 1 };
+      return { ok: true, added: 1, kind: 'track' };
     },
-    [tracks.length],
+    [tracks],
   );
 
   const playAt = useCallback(
@@ -294,31 +629,54 @@ export function PlayerProvider({
       if (next < 0 || next >= tracks.length) return;
       autoplay.current = true;
       if (next === index) {
+        if (tracks[next]?.origin === 'youtube') {
+          postYouTube('seekTo', [0, true]);
+          postYouTube('playVideo');
+          setPlaying(true);
+          return;
+        }
         media.currentTime = 0;
         playMedia();
         return;
       }
       setIndex(next);
     },
-    [tracks.length, index, media, playMedia],
+    [tracks, index, media, playMedia, postYouTube],
   );
 
   const toggle = useCallback(() => {
     if (!current) return;
+    if (current.origin === 'youtube') {
+      autoplay.current = true;
+      if (playing) {
+        postYouTube('pauseVideo');
+        setPlaying(false);
+      } else {
+        postYouTube('playVideo');
+        setPlaying(true);
+      }
+      return;
+    }
     if (media.paused) {
       autoplay.current = true;
       playMedia();
     } else {
       media.pause();
     }
-  }, [current, media, playMedia]);
+  }, [current, media, playMedia, playing, postYouTube]);
 
   const next = useCallback(() => advance(false), [advance]);
 
   const previous = useCallback(() => {
     if (!current) return;
-    if (media.currentTime > 3) {
-      media.currentTime = 0;
+    const inTrack = current.origin === 'youtube' ? time : media.currentTime;
+    if (inTrack > 3) {
+      if (current.origin === 'youtube') {
+        postYouTube('seekTo', [0, true]);
+        setTime(0);
+      } else {
+        media.currentTime = 0;
+      }
       return;
     }
     const target = nextIndex({
@@ -332,28 +690,35 @@ export function PlayerProvider({
     if (target < 0) return;
     autoplay.current = true;
     setIndex(target);
-  }, [current, index, tracks.length, repeat, shuffle, media]);
+  }, [current, index, tracks.length, repeat, shuffle, media, postYouTube, time]);
 
   const seek = useCallback(
     (seconds: number) => {
       if (!current) return;
+      if (current.origin === 'youtube') {
+        const limit = duration > 0 ? duration : seconds;
+        const target = Math.max(0, Math.min(limit, seconds));
+        postYouTube('seekTo', [target, true]);
+        setTime(target);
+        return;
+      }
       const limit = Number.isFinite(media.duration) && media.duration > 0 ? media.duration : seconds;
       media.currentTime = Math.max(0, Math.min(limit, seconds));
       setTime(media.currentTime);
     },
-    [current, media],
+    [current, duration, media, postYouTube],
   );
 
   const setVolume = useCallback(
     (value: number) => {
       const next = clampVolume(value);
       onUpdate({ volume: next });
-      if (next > 0) setMuted(false);
+      if (next > 0) setMutedState(false);
     },
     [onUpdate],
   );
 
-  const toggleMute = useCallback(() => setMuted(value => !value), []);
+  const toggleMute = useCallback(() => setMutedState(value => !value), []);
 
   const cycleRepeat = useCallback(() => {
     onUpdate({ repeat: nextRepeatMode(repeat) });
@@ -373,6 +738,8 @@ export function PlayerProvider({
       if (remaining.length === 0) {
         media.pause();
         media.removeAttribute('src');
+        postYouTube('pauseVideo');
+        youtube.src = 'about:blank';
         setTracks([]);
         setIndex(-1);
         setPlaying(false);
@@ -389,7 +756,7 @@ export function PlayerProvider({
       setTracks(remaining);
       setIndex(nextPosition);
     },
-    [tracks, index, media],
+    [tracks, index, media, postYouTube, youtube],
   );
 
   const clear = useCallback(() => {
@@ -398,13 +765,15 @@ export function PlayerProvider({
     }
     media.pause();
     media.removeAttribute('src');
+    postYouTube('pauseVideo');
+    youtube.src = 'about:blank';
     setTracks([]);
     setIndex(-1);
     setPlaying(false);
     setTime(0);
     setDuration(0);
     setError(null);
-  }, [tracks, media]);
+  }, [tracks, media, postYouTube, youtube]);
 
   const value: PlayerApi = {
     tracks,

@@ -1,10 +1,12 @@
 /**
  * Verifies that a guest page sees the same Chrome identity its user agent
- * claims: `navigator.userAgentData` with a Google Chrome brand, the matching
- * platform and high-entropy values, and Chrome's low-entropy `Sec-CH-UA`
- * headers on the wire. It also checks that the farbling wrappers still look
- * native to `Function.prototype.toString`, which is the cheapest way a page can
- * spot a patched browser.
+ * claims: a native-shaped `NavigatorUAData` behind
+ * `Navigator.prototype.userAgentData`, Google Chrome brands, the running
+ * engine's full version, the matching platform, and Chrome's low-entropy
+ * `Sec-CH-UA` headers on the wire. It also checks that the farbling wrappers
+ * still look native to `Function.prototype.toString`, which is the cheapest way
+ * a page can spot a patched browser, and that Google's account pages get no
+ * farbling at all.
  *
  * Local only by design: a remote Google page can keep a Chromium child alive
  * and stop the process from exiting, so this harness never leaves loopback.
@@ -49,6 +51,10 @@ async function main() {
   const { hardenSession } = require(path.join(process.cwd(), 'dist-electron', 'hardening.js'));
   const { ensureBrowserIdentity } = require(path.join(process.cwd(), 'dist-electron', 'identity.js'));
   const { webPrivacy } = require(path.join(process.cwd(), 'dist-electron', 'web-privacy.js'));
+  const { isSignInHost } = require(path.join(process.cwd(), 'dist-electron', 'sign-in-hosts.js'));
+
+  // The identity preload asks before it patches a page; a sign-in provider is
+  // answered with "no", everything else with "yes".
 
   let headers = {};
   const server = http.createServer((request, response) => {
@@ -66,6 +72,9 @@ async function main() {
   // wrapper is installed and the toString check below proves nothing.
   ipcMain.on('kryvex:farbling:seed', event => {
     event.returnValue = 0x9e3779b9;
+  });
+  ipcMain.on('kryvex:identity:allow', (event, host) => {
+    event.returnValue = !isSignInHost(String(host ?? ''));
   });
 
   const partition = 'persist:svc-identity-check';
@@ -102,12 +111,18 @@ async function main() {
 
   const identity = await guest.executeJavaScript(`(async () => {
     const ua = navigator.userAgentData;
+    const own = Object.prototype.hasOwnProperty.call(navigator, 'userAgentData');
+    const accessor = Object.getOwnPropertyDescriptor(Navigator.prototype, 'userAgentData');
     const high = ua && ua.getHighEntropyValues
       ? await ua.getHighEntropyValues(['fullVersionList','uaFullVersion','platform','platformVersion','architecture','bitness'])
       : null;
     const text = fn => { try { return Function.prototype.toString.call(fn); } catch (error) { return 'THREW ' + error; } };
     return {
       userAgent: navigator.userAgent,
+      ownProperty: own,
+      accessorOnPrototype: Boolean(accessor && typeof accessor.get === 'function'),
+      constructorName: ua ? Object.getPrototypeOf(ua)?.constructor?.name : null,
+      toStringTag: ua ? Object.prototype.toString.call(ua) : null,
       brands: ua ? ua.brands : null,
       mobile: ua ? ua.mobile : null,
       platform: ua ? ua.platform : null,
@@ -144,6 +159,17 @@ async function main() {
     process.platform === 'win32' ? 'Windows' : process.platform === 'darwin' ? 'macOS' : 'Linux';
   if (identity.platform !== expected) return fail(`platform was ${identity.platform}`);
   if (!identity.high?.uaFullVersion) return fail('getHighEntropyValues returned no version');
+  if (identity.high.uaFullVersion !== process.versions.chrome) {
+    return fail(`uaFullVersion was ${identity.high.uaFullVersion}, not the running ${process.versions.chrome}`);
+  }
+  if (identity.ownProperty) return fail('userAgentData is an own property, so the shim is visible');
+  if (!identity.accessorOnPrototype) return fail('Navigator.prototype has no userAgentData accessor');
+  if (identity.constructorName !== 'NavigatorUAData') {
+    return fail(`the client-hint object is a ${identity.constructorName}`);
+  }
+  if (identity.toStringTag !== '[object NavigatorUAData]') {
+    return fail(`Object.prototype.toString said ${identity.toStringTag}`);
+  }
   if (!identity.high?.fullVersionList?.some(entry => entry.brand === 'Google Chrome')) {
     return fail('fullVersionList has no Google Chrome entry');
   }
@@ -163,6 +189,19 @@ async function main() {
   if (!headers['sec-ch-ua-platform']) return fail('Sec-CH-UA-Platform is missing');
   if (String(headers['user-agent']).includes('Electron')) return fail('the request UA names Electron');
   log(`wire headers: ${headers['sec-ch-ua']} · ${headers['sec-ch-ua-platform']}`);
+
+  // Google's account pages are the one place the engine is left stock, so the
+  // seed that drives the farbling preload must be zero there and only there.
+  const guestSender = url => ({ getType: () => 'webview', getURL: () => url });
+  const accountSeed = webPrivacy.fingerprintSeed(
+    guestSender('https://accounts.google.com/ServiceLogin'),
+    'https://accounts.google.com',
+  );
+  if (accountSeed !== 0) return fail(`a Google account page got farbling seed ${accountSeed}`);
+  const pageSeed = webPrivacy.fingerprintSeed(guestSender(`${origin}/`), origin);
+  if (pageSeed === 0) return fail('an ordinary page lost its farbling seed');
+  if (isSignInHost('accounts.google.com') === false) return fail('the sign-in host rule is missing');
+  log(`sign-in surface is stock; an ordinary page still has seed ${pageSeed}`);
 
   win.destroy();
   server.close();

@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 /**
- * Deterministic fingerprint farbling, inspired by Brave's approach.
+ * Deterministic fingerprint farbling.
  *
  * Preload runs before page scripts, but with context isolation it lives in an
  * isolated world. `executeInMainWorld` installs the wrappers where a page can

@@ -31,6 +31,8 @@ import {
 } from '../lib/weather';
 import { Icon } from './ui';
 import { WellnessBoard } from './WellnessBoard';
+import { CalculatorWidget } from './CalculatorWidget';
+import { CurrencyWidget } from './CurrencyWidget';
 import { weatherAtWeb, weatherLookupWeb } from '../lib/weather-web';
 
 function greeting(hour: number): string {
@@ -351,6 +353,12 @@ export function HomeBoard({
       );
     }
 
+    if (id === 'calculator') return <CalculatorWidget />;
+
+    if (id === 'currency') {
+      return <CurrencyWidget home={home} onUpdate={onUpdate} />;
+    }
+
     if (id === 'notes') {
       return (
         <div className="home-tasks">
@@ -424,7 +432,7 @@ export function HomeBoard({
           <div className="home-guide-body">
             <p>
               {t(
-                'This board is native to Kryvex: a clock and greeting, local weather, sticky tasks and a short guide to how the surface fits together. There is no extension, account or new-tab takeover.',
+                'This board is native to Kryvex: a clock and greeting, local weather, sticky tasks, a calculator, daily currency rates and a short guide to how the surface fits together. There is no extension, account or new-tab takeover.',
               )}
             </p>
             <p>
@@ -436,6 +444,7 @@ export function HomeBoard({
               <li>{t('The clock and greeting follow your system language and time.')}</li>
               <li>{t('Weather is keyless Open-Meteo data for the place you choose, cached for ten minutes.')}</li>
               <li>{t('Sticky notes are local state, written to the same JSON file as everything else.')}</li>
+              <li>{t('The calculator evaluates arithmetic locally without running code. Currency rates come from the ECB via Frankfurter only while the card is visible.')}</li>
               <li>{t('Widgets shows, hides and moves each card; the note button beside the heart opens sticky notes.')}</li>
             </ul>
             <div className="home-guide-actions">

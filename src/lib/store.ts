@@ -70,6 +70,7 @@ import { isThemeId, sanitizeCustomTheme } from './themes';
 import { hostOf, isHttpUrl } from './url';
 import { sanitizeFeeds } from './rss';
 import { normalizeWidgetAreas, normalizeWidgetOrder } from './home-widgets';
+import { resolveAssistantSettings } from './vexium-core';
 
 const VIEWS: ViewId[] = ['home', 'services', 'browser', 'assistant', 'settings'];
 const DENSITIES: Density[] = ['comfortable', 'compact'];
@@ -188,22 +189,13 @@ function sanitizeBrowser(raw: unknown): PersistedState['browser'] {
 
 /**
  * Only the loopback runtimes Vexium knows about are accepted: Ollama, LM
- * Studio, and a model file Kryvex serves itself.
+ * Studio, and a model file Kryvex serves itself. A profile still sitting on
+ * Ollama's untouched default moves to Vexium Core once; see vexium-core.ts.
  */
 export function sanitizeAssistant(raw: unknown): AssistantSettings {
   const base = starterState().settings.assistant;
   if (!isRecord(raw)) return base;
-  const provider: AssistantSettings['provider'] =
-    raw.provider === 'lmstudio' || raw.provider === 'ollama' || raw.provider === 'local'
-      ? raw.provider
-      : base.provider;
-  const baseUrl = typeof raw.baseUrl === 'string' ? raw.baseUrl.trim().slice(0, 200) : '';
-  const model = typeof raw.model === 'string' ? raw.model.trim().slice(0, 120) : '';
-  return {
-    provider,
-    baseUrl: baseUrl || base.baseUrl,
-    model: /[\u0000-\u001f]/.test(model) ? '' : model,
-  };
+  return resolveAssistantSettings(raw, base);
 }
 
 /**
@@ -347,6 +339,10 @@ export function sanitizeWellness(raw: unknown): WellnessSettings {
   };
 }
 
+function currencyCode(value: unknown, fallback: string): string {
+  return typeof value === 'string' && /^[A-Z]{3}$/.test(value) ? value : fallback;
+}
+
 /** Home board values are deliberately small: a widget, not a second app. */
 export function sanitizeHome(raw: unknown): HomeSettings {
   const base = DEFAULT_HOME;
@@ -390,6 +386,12 @@ export function sanitizeHome(raw: unknown): HomeSettings {
     latitude: hasPoint ? latitude : null,
     longitude: hasPoint ? longitude : null,
     showWellness: raw.showWellness === true,
+    // The calculator and converter are new cards, not opt-ins. A file written
+    // before them should show them without the user hunting through Widgets.
+    showCalculator: raw.showCalculator === undefined ? base.showCalculator : raw.showCalculator === true,
+    showCurrency: raw.showCurrency === undefined ? base.showCurrency : raw.showCurrency === true,
+    currencyFrom: currencyCode(raw.currencyFrom, base.currencyFrom),
+    currencyTo: currencyCode(raw.currencyTo, base.currencyTo),
     wellness: sanitizeWellness(raw.wellness),
     // A file written before the widget registry has no order or columns, so
     // both are derived from the registry defaults instead of being dropped.

@@ -5,7 +5,12 @@ on 2026-10-22, so Settings → Vexium → **Download models** now fetches exactl
 that file (§13). No weights are bundled in the installer, nothing is fetched at
 launch, and the inference path is unchanged. On 2026-10-23 the llama.cpp CPU
 runtime itself was pinned and made part of the installer, so the local core no
-longer depends on the user installing a runtime first (§14).
+longer depends on the user installing a runtime first (§14). The starter model
+was then evaluated against that bundled runtime with a fixed prompt set (§15).
+The supported stack is presented in the app as **Vexium Core**: the bundled
+llama.cpp runtime plus this reviewed Qwen artifact. The product name never
+replaces the upstream attribution; the card keeps Qwen, the publisher, the
+pinned revision and Apache-2.0 visible beside it.
 
 A nonfunctional UI sketch lives at
 [mockups/vexium-models.html](mockups/vexium-models.html) with a rendered capture
@@ -110,11 +115,11 @@ Screened out before the table:
 | Auth / gate | None; anonymous download |
 | Architecture | `qwen2`, 28 blocks, hidden 1,536, 12 Q heads / 2 KV heads, key/value length 128, native context 32,768 (all from the GGUF header) |
 | llama.cpp | `qwen2` is a long-standing architecture; any 2024-or-later `llama-server` build knows it |
-| Languages | Card: "**Multilingual support** for over 29 languages, including Chinese, English, French, Spanish, Portuguese, German, Italian, Russian, Japanese, Korean…", the four Kryvex languages are claimed. **Not yet tested in Kryvex.** |
+| Languages | Card: "**Multilingual support** for over 29 languages, including Chinese, English, French, Spanish, Portuguese, German, Italian, Russian, Japanese, Korean…", the four Kryvex languages are claimed. Tested on 2026-10-23 (§15): English is usable for short structural tasks, Spanish and French are fluent but drift on content and sentence count, and German produced broken grammar and false claims in this pass. |
 | Context for first test | **4096**, which is already `DEFAULT_CONTEXT`; 8,192 is reasonable on a 16 GB machine, and the app clamps at 131,072 |
-| Memory estimate | ≈1.04 GiB weights + 112 MiB KV @ 4k (f16, 2×28×2×128×2 B/token) + 0.3–0.6 GB runtime overhead ⇒ **≈1.5–1.7 GB resident**. Assumes CPU inference, f16 KV, no mmap savings counted, batch ≤512. Not measured on this machine yet. |
-| Known limits | 1.5B instruction-following is shallow: unreliable multi-step reasoning, weak arithmetic (hence the deterministic tools in §9), invented app specifics without provided context, and it drifts on long inputs. Adequate for chat, rewriting, short summaries and translation drafts; not for analysis. |
-| Unverified | Actual tokens/s on this machine; the four-language output quality; whether the 32,768 native context is stable beyond 8k on CPU. |
+| Memory estimate | ≈1.04 GiB weights + 112 MiB KV @ 4k (f16, 2×28×2×128×2 B/token) + 0.3–0.6 GB runtime overhead ⇒ **≈1.5–1.7 GB resident**. Assumes CPU inference, f16 KV, no mmap savings counted, batch ≤512. Measured on 2026-10-23 (§15): 1.80 GB after load and 1.91 GB after the prompt set, slightly above this estimate. |
+| Known limits | 1.5B instruction-following is shallow: unreliable multi-step reasoning, weak arithmetic (measured 14 instead of 18 in §15, hence the deterministic tools in §9), invented app specifics without provided context, and it drifts on long inputs. Useful for short conversational replies, rewriting, formatting and extraction from supplied text; not for analysis, and translation output needs review, especially German. |
+| Unverified | Whether the 32,768 native context is stable beyond 8k on CPU. Tokens/s, resident memory and the four-language quality were measured in §15; one fixed run is not a broad benchmark. |
 
 ### B. Llama 3.2 3B Instruct: stronger option
 
@@ -211,7 +216,10 @@ Flow, exactly as specified:
 1. The card shows one artifact: publisher, repo + revision, filename, bytes,
    licence, quantisation, estimated memory (**labelled an estimate**),
    capabilities and limits, and whether a runtime is available.
-2. **Download** is an explicit click on that one card. Nothing starts on launch.
+2. **Download** is an explicit click on that one card. No download starts on
+   launch; the only thing that may start by itself is the server for a model the
+   user already installed, when the local provider is selected
+   (`docs/ASSISTANT.md`, "On launch").
 3. Progress shows bytes transferred and total, with **Cancel**.
 4. The stream is hashed; completion requires exact byte count **and** SHA-256
    match. Only then is the `.part` renamed into `userData/models`.
@@ -268,11 +276,12 @@ unverified download path.
 
 ## 9. Assistant behaviour and tools
 
-The starter is expected to handle ordinary conversation, rewriting, short
-summaries of text the user pastes, explanations with stated uncertainty, Kryvex
-help grounded in maintained docs, and en/de/es/fr once tested. It must not be
-sold as frontier reasoning, and it cannot know current facts without a
-retrieval step.
+The starter handles short conversational replies, rewriting, formatting and
+summaries of text the user pastes. The 2026-10-23 evaluation (§15) found that it
+does not reliably follow strict sentence or bullet counts, performs weak
+arithmetic, invents app facts without retrieval, and is not production quality
+in German. It must not be sold as frontier reasoning, and it cannot know
+current facts without a retrieval step.
 
 Deterministic tools stay in the app and never go through the model: safe
 arithmetic, local date/time, unit conversion, allowlisted navigation/search.
@@ -306,24 +315,28 @@ responses, hash mismatch and cleanup; **no network request before consent**; a
 
 ## 12. Not verified / open questions
 
-1. Tokens/s and resident memory for any candidate on this machine: no model was
-   downloaded or run for this note.
+1. Tokens/s, resident memory and the four-language quality for the starter:
+   measured on 2026-10-23 against the bundled runtime (§15). The 3B and Qwen3
+   candidates remain unmeasured.
 2. The exact `llama.cpp` build that first supported `qwen3` (and `lfm2`); only
    the architecture strings in current master were confirmed.
 3. Hugging Face CDN redirect hosts and their stability: the allowlist must be
    measured before implementation, not guessed.
-4. en/es/de/fr output quality for the starter; needs a fixed prompt set run
-   after install.
+4. The starter's en/es/de/fr quality has one fixed-set measurement (§15); it is
+   not a broad language benchmark. The other candidates remain untested.
 5. Gemma 3 1B's licence text: the repository is gated, so only its licence id
    and gate flag were read.
 6. ModelScope download redirects, rate limits and auth behaviour.
 7. Whether a 1.5B model is good enough for Kryvex help without retrieval: the
-   plan assumes retrieval is required for app-specific facts.
+   plan assumes retrieval is required for app-specific facts. The 2026-10-23
+   run supports that assumption; without the supplied sentence the model
+   invented a description of Kryvex, and with it the answer was correct.
 
 ## 13. Phase 2 as built
 
-The approved artifact is the only entry in `electron/model-catalogue.ts`. The
-panel lives inside the existing Settings → Vexium block
+The approved artifact is the only entry in `electron/model-catalogue.ts`, with
+`productName: "Vexium Core"` and `name: "Qwen2.5-1.5B-Instruct"` kept separate.
+The panel lives inside the existing Settings → Vexium block
 (`src/components/ModelManager.tsx`), so it reuses the panel's scroll position,
 theme tokens and focus styles instead of adding a second settings surface.
 
@@ -417,7 +430,9 @@ can say the runtime is included rather than asking the user to find one.
   `/v1/models` in about 1.2 s.
 - A non-streamed 41-token prompt produced 31 tokens at 34.7 tokens/s. Streamed
   replies arrived in 647 ms and 741 ms on two runs, and `stop()` ended the
-  process. These are CPU numbers on the build machine, not a general promise.
+  process. That short-run figure is not representative: the broader 14-request
+  set in §15 measured 18.3 to 21.7 tokens/s weighted across two runs. These are
+  CPU numbers on the build machine, not a general promise.
 - `pnpm run verify:model` (run directly with Electron in this environment, as
   `pnpm` was not on PATH) still passes against the fake runtime, so the existing
   start, health, stream and stop path is unchanged.
@@ -447,6 +462,84 @@ can say the runtime is included rather than asking the user to find one.
   part of the shipped configuration.
 
 Not verified: arm64 packaging on real hardware, GPU acceleration through a
-user-supplied build, and inference on a memory-constrained machine. The
-runtime's `security: no API key is set and CORS allows all origins` warning is
-why the process binds `127.0.0.1` and is never exposed on the LAN.
+user-supplied build, inference on a memory-constrained machine, and context
+beyond 8k. The 4k prompt set is §15, not a long-context test. The runtime's
+`security: no API key is set and CORS allows all origins` warning is why the
+process binds `127.0.0.1` and is never exposed on the LAN.
+
+## 15. Starter model evaluation on the shipped runtime (2026-10-23)
+
+The fixed prompt set in
+[eval-model-quality.cjs](../scripts/eval-model-quality.cjs) was run against the
+runtime installed by the 0.8.8 Setup, not a development copy. The raw answers,
+token counts and timings are in
+[qwen-0.8.8.json](media/evals/qwen-0.8.8.json).
+
+```bash
+node scripts/eval-model-quality.cjs \
+  --runtime "C:\Kryvex\resources\bin\llama-server.exe" \
+  --model "X:\KryvexData\models\qwen2.5-1.5b-instruct.gguf" \
+  --out docs/media/evals/qwen-0.8.8.json --port 8099
+```
+
+| Field | Value |
+| --- | --- |
+| Runtime | `C:\Kryvex\resources\bin\llama-server.exe`, `b11835` (`f64a49819`), CPU x64 |
+| Model | `qwen2.5-1.5b-instruct.gguf`, 1,117,320,736 B, SHA-256 `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e` |
+| Host | Windows 11 Pro 10.0.26100, Ryzen 7 5700X3D (8 cores / 16 threads), 31.9 GB RAM |
+| Context | 4,096 tokens, the app default; `--n-gpu-layers 999` as the app passes it, ignored by the CPU build |
+| Sampling | temperature 0, seed 42, no prompt cache, one user message per turn, no system prompt (the current Vexium request shape) |
+| Requests | 14 completions across 13 prompts; 1,204 prompt tokens, 1,154 generated tokens |
+| Load | 1,578 ms to `/v1/models` |
+| Memory | 1,803,083,776 B (1.68 GiB) after load; 1,911,336,960 B (1.78 GiB) after the prompts. One sample, not a peak. |
+| Generation speed | 18.3 tokens/s weighted in the saved run; an earlier full-budget run (not saved) measured 21.7. Per request 10.4 to 27.3 tokens/s, median 20.9. |
+| Prompt processing | 146.4 tokens/s weighted in the saved run (92.6 to 175.3); the earlier full-budget run measured 159.1. |
+
+The JSON above is the second full-budget run. Its answers are byte-identical to
+the previous full-budget run, so the quality result is stable under greedy
+decoding; the speed difference is machine load, not a model or runtime change.
+The harness is not part of CI: it needs the 1 GB model and a real runtime on
+disk.
+
+### Scoring
+
+Each prompt is worth two points: **2** means correct and followed the
+instructions, **1** means fluent or partly correct with a clear failure, and
+**0** means wrong, broken or fabricated. This is a smoke test with 13 prompts,
+not a benchmark score comparable to MMLU or similar suites.
+
+| Prompt | Score | Finding |
+| --- | --- | --- |
+| English chat | 0/2 | Two sentences, but defines a local model as one "trained on a specific language" and gives avoiding a weight download as the benefit. |
+| Rewriting | 2/2 | One clear sentence; the Tuesday release and the network-drop bug both survive. |
+| Grounded summary | 1/2 | The four bullets are accurate and short, but the request was exactly three. |
+| Uncertainty | 1/2 | Four sentences, and "Yes, you can run ... comfortably" contradicts the two following statements that performance cannot be known. |
+| Conversation memory | 1/2 | The second turn keeps the museum preference and uses two sentences, but the first turn repeats a museum three times and is cut at the token limit; several Berlin museum names are unverified. |
+| Spanish reply | 1/2 | Fluent Spanish, but six sentences and two numbered blocks instead of exactly two sentences; the advantages are generic latency and resource claims. |
+| German reply | 0/2 | Broken German ("Faster Reaktionszeit", "wenn ein Sprachmodell ... auszuführen ist") and false claims that model servers cannot use context. |
+| French reply | 1/2 | Exactly two fluent sentences, but claims local execution improves precision and reliability without support. |
+| Arithmetic | 0/2 | Answered 14; the correct total is 18. |
+| App help without retrieval | 1/2 | Begins with "I cannot verify", then invents Kryvex as a model-deployment tool and suggests buttons that may not exist. |
+| App help with retrieval text | 2/2 | Correctly takes "Start server" in Vexium from the supplied sentence. |
+| Current facts | 1/2 | Says it cannot know the 2026 winner and does not guess, but uses two sentences instead of one and calls a past tournament a future event. |
+| Formatting | 2/2 | Exactly three short bullets, no introduction or conclusion. |
+
+**Result: 13/26.** Three prompts pass, seven are partial and three fail. The
+useful core is narrow: rewriting, formatting, and extraction when the answer is
+in the prompt. The failures are exactly the ones §9 already plans around:
+arithmetic, app facts without retrieval, factual precision, and strict output
+constraints. German is weaker than the model card's language claim suggests, so
+"supports en/es/de/fr" should be read as "attempts all four", not "all four are
+production quality".
+
+No runtime regression was observed: the server started in about 1.6 s, every
+request completed, and the same server produced identical answers twice. The
+failures are model behaviour, not the bundled `b11835` build. The run used no
+system prompt because Vexium currently sends only the conversation; a fixed
+system prompt is a separate experiment that could improve format and refusal
+behaviour, but it was not tested here and is not part of 0.8.8.
+
+The run changes no product behavior. It confirms three decisions: keep
+arithmetic deterministic, keep app facts behind retrieval, and do not market a
+1.5B starter as a reasoning model. It also adds a reason to evaluate a larger
+model before claiming production-quality German.

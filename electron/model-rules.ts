@@ -37,6 +37,8 @@ export interface ModelMemoryEstimate {
 export interface CatalogueEntry {
   id: string;
   name: string;
+  /** First-party product name for the bundled stack, when there is one. */
+  productName?: string;
   publisher: string;
   /** `owner/name` on Hugging Face. */
   repository: string;

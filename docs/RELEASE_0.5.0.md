@@ -25,8 +25,8 @@ Download the installer, portable build and checksum list from the
 - **Localized UI:** the new controls, errors and toasts follow the system
   language or an explicit choice of English, Spanish, German or French.
 - **Everything from 0.4.0 included:** browser library (downloads, history,
-  bookmarks), restored tabs, find-in-page and zoom, Brave-style privacy
-  protections, microphone/camera prompts, the WebTorrent queue that restores
+  bookmarks), restored tabs, find-in-page and zoom, privacy protections,
+  microphone/camera prompts, the WebTorrent queue that restores
   paused, Chrome extension loading and Windows default-browser setup.
 
 ## Artifacts

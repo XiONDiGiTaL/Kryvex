@@ -1,13 +1,9 @@
 /**
- * URL-level privacy rules inspired by Brave Shields.
+ * URL-level privacy rules for top-level navigations.
  *
- * Brave is a Chromium fork; its native URL rewriters are not portable to
- * Electron. These small, auditable rules cover the two behaviours Electron
- * can reproduce faithfully in `webRequest`: removing known click/campaign
+ * These small, auditable rules cover the two behaviours Electron can
+ * reproduce faithfully in `webRequest`: removing known click/campaign
  * identifiers and trying HTTPS before falling back to HTTP.
- *
- * No Brave source code is copied. The rule list is Kryvex's own conservative
- * subset of widely used tracking parameters.
  */
 
 const TRACKING_PARAMS = new Set([
@@ -93,9 +89,8 @@ function hasTrackingParam(key: string): boolean {
 
 /**
  * Removes known tracking parameters from an http(s) URL. Returns `null` when
- * there is nothing to change, or when the referrer is the same site: Brave
- * deliberately leaves same-site GETs alone because those parameters are often
- * functional.
+ * there is nothing to change, or when the referrer is the same site: those
+ * parameters are often functional on same-site GETs.
  */
 export function stripTrackingParams(rawUrl: string, referrer?: string): string | null {
   let url: URL;

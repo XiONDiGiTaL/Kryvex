@@ -21,6 +21,7 @@ import type {
   WallpaperSource,
 } from '../types';
 import { CHROMIUM_ZOOM_STEPS, DEFAULT_CHROMIUM, zoomLabel } from '../lib/chromium';
+import { modelFileLabel } from '../lib/local-models';
 import {
   DEFAULT_ICE_SERVERS,
   DEFAULT_TRACKERS,
@@ -162,6 +163,12 @@ export function Settings({
   const assistantRef = useRef<HTMLElement | null>(null);
   const resourcesRef = useRef<HTMLElement | null>(null);
   const runtime = useAssistantRuntime(settings.assistant);
+  const configuredModel = model?.path ? modelFileLabel(model.path) : '';
+  const localCoreStopped =
+    settings.assistant.provider === 'local' &&
+    Boolean(configuredModel) &&
+    model?.phase !== 'running' &&
+    runtime.models.length === 0;
 
   useEffect(() => {
     if (!focusUpdates) return;
@@ -580,11 +587,37 @@ export function Settings({
     }
   }
 
-  async function startModel() {
+  async function startModel(path?: string, core = false) {
     if (!window.kryvex) return;
+    if (
+      model?.phase === 'running' &&
+      model.baseUrl &&
+      (!path || path === model.path)
+    ) {
+      onUpdate({
+        assistant: {
+          ...settings.assistant,
+          provider: 'local',
+          baseUrl: model.baseUrl,
+          model: '',
+        },
+      });
+      runtime.refresh();
+      onToast(
+        core ? t('Vexium Core is already running.') : t('{name} is already serving on {url}.', {
+          name: model.name,
+          url: model.baseUrl,
+        }),
+        'info',
+      );
+      return;
+    }
     setModelBusy(true);
     onToast(t('Loading the model. Large files can take a minute.'), 'info');
     try {
+      if (path && path !== model?.path) {
+        setModel(await window.kryvex.modelConfigure({ path }));
+      }
       const next = await window.kryvex.modelStart();
       setModel(next);
       if (next.phase === 'running' && next.baseUrl) {
@@ -597,7 +630,13 @@ export function Settings({
           },
         });
         runtime.refresh();
-        onToast(t('{name} is serving on {url}.', { name: next.name, url: next.baseUrl }), 'success');
+        onToast(
+          core ? t('Vexium Core is serving on {url}.', { url: next.baseUrl }) : t('{name} is serving on {url}.', {
+            name: next.name,
+            url: next.baseUrl,
+          }),
+          'success',
+        );
       } else if (next.error) {
         onToast(next.error, 'danger');
       }
@@ -1178,7 +1217,7 @@ export function Settings({
             <p>{t('Ollama serves on port 11434, LM Studio on 1234. Only loopback http addresses are accepted.')}</p>
           </div>
           <div className="assistant-providers" role="group" aria-label={t('Runtime')}>
-            {(['ollama', 'lmstudio', 'local'] as const).map(provider => (
+            {(['local', 'ollama', 'lmstudio'] as const).map(provider => (
               <button
                 key={provider}
                 className={`assistant-provider-btn ${settings.assistant.provider === provider ? 'is-active' : ''}`}
@@ -1187,7 +1226,7 @@ export function Settings({
                   onUpdate({
                     assistant: {
                       provider,
-                      // A model file lives on a port picked at launch; use the
+                      // Vexium Core lives on a port picked at launch; use the
                       // running server's address when there is one.
                       baseUrl:
                         provider === 'local' && model?.phase === 'running' && model.baseUrl
@@ -1198,11 +1237,11 @@ export function Settings({
                   })
                 }
               >
-                {provider === 'ollama'
-                  ? 'OLLAMA'
-                  : provider === 'lmstudio'
-                    ? 'LM STUDIO'
-                    : t('MODEL FILE')}
+                {provider === 'local'
+                  ? t('VEXIUM CORE')
+                  : provider === 'ollama'
+                    ? 'OLLAMA'
+                    : 'LM STUDIO'}
               </button>
             ))}
           </div>
@@ -1258,7 +1297,13 @@ export function Settings({
             <p>
               {runtime.status === 'unavailable'
                 ? t('Vexium needs the desktop app; the web preview has no loopback access.')
-                : t('{count} models reported by the runtime.', { count: runtime.models.length })}
+                : model?.phase === 'starting'
+                  ? t('Vexium Core is starting…')
+                  : localCoreStopped
+                    ? t('{name} is configured, but the local server is stopped.', {
+                        name: configuredModel,
+                      })
+                    : t('{count} models reported by the runtime.', { count: runtime.models.length })}
             </p>
           </div>
           <div className="assistant-address">
@@ -1269,13 +1314,24 @@ export function Settings({
                 onUpdate({ assistant: { ...settings.assistant, model: event.target.value } })
               }
             >
-              <option value="">{runtime.models[0] ?? t('No model selected')}</option>
+              <option value="">
+                {runtime.models[0] ?? (localCoreStopped ? configuredModel : t('No model selected'))}
+              </option>
               {runtime.models.map(name => (
                 <option key={name} value={name}>
                   {name}
                 </option>
               ))}
             </select>
+            {localCoreStopped ? (
+              <button
+                className="btn primary small"
+                disabled={modelBusy}
+                onClick={() => void startModel(undefined, true)}
+              >
+                {model?.phase === 'starting' ? t('Starting…') : t('Start Vexium Core')}
+              </button>
+            ) : null}
             <button className="btn ghost small" onClick={runtime.refresh}>
               <Icon name="reload" size={12} /> {t('Refresh')}
             </button>
@@ -1284,7 +1340,7 @@ export function Settings({
 
         <div className="local-model-block">
           <div className="custom-filters-head">
-            <span className="mono privacy-kicker">{t('RUN A MODEL FILE')}</span>
+            <span className="mono privacy-kicker">{t('VEXIUM CORE')}</span>
             <span className={`mono shield-state ${model?.phase === 'running' ? 'is-ready' : ''}`}>
               {model
                 ? t(model.phase.toUpperCase())
@@ -1295,7 +1351,7 @@ export function Settings({
           </div>
           <p className="setting-copy">
             {t(
-              'Pick a .gguf model you already downloaded. Kryvex starts llama.cpp on loopback and Vexium uses it like any other runtime. The CPU runtime is included; no weights are downloaded or hosted by us.',
+              'Run Vexium Core locally, or choose any .gguf you already have. The included llama.cpp runtime keeps inference on loopback; there is no account, key or cloud call.',
             )}
           </p>
 
@@ -1306,7 +1362,7 @@ export function Settings({
                 {model?.path
                   ? model.path
                   : t(
-                      'No model file chosen. Download the reviewed starter below, or choose a .gguf you already have.',
+                      'No model file chosen. Install Vexium Core below, or choose a .gguf you already have.',
                     )}
               </p>
             </div>
@@ -1430,7 +1486,9 @@ export function Settings({
             isElectron={isElectron}
             runtimeReady={Boolean(model?.binaryFound)}
             runtimeBundled={Boolean(model?.bundled)}
+            runningPath={model?.phase === 'running' ? model.path : ''}
             onUse={path => void configureModel({ path })}
+            onStartCore={path => startModel(path, true)}
           />
         </div>
       </SettingsBlock>
@@ -2544,7 +2602,7 @@ export function Settings({
       >
         <p className="settings-copy">
           {t(
-            'A transparent overlay on Home: clock, local weather, sticky tasks and a short board guide. Every widget can be hidden independently.',
+            'A transparent overlay on Home: clock, local weather, sticky tasks, a calculator, daily currency rates and a short board guide. Every widget can be hidden independently.',
           )}
         </p>
         <div className="setting-row">
@@ -2567,6 +2625,8 @@ export function Settings({
               ['showWeather', 'Weather'],
               ['showTasks', 'Sticky tasks'],
               ['showWellness', 'Wellness'],
+              ['showCalculator', 'Calculator'],
+              ['showCurrency', 'Currency converter'],
               ['showGuide', 'Board guide'],
             ] as const
           ).map(([key, label]) => (

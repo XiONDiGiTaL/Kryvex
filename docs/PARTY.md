@@ -20,24 +20,11 @@ place. Inside a room:
 - later: file drop, voice, host-authoritative co-watch.
 
 No account, no lobby, no Kryvex-owned server in the media path. The invite link
-is the whole access model, exactly like the link Kosmi gives you.
+is the whole access model.
 
-## 2. What Kosmi is, and what this can and cannot copy
+## 2. Room scope
 
-Kosmi is a browser hangout: rooms, watch-together with a "virtual browser",
-screen share up to 720p free, voice/video/text, games. Its public pages say
-group screen share is relayed through Kosmi's media servers, and its GitHub
-organisation (`kosmigramma`, 42 public repos) publishes prototypes, landing
-pages, emulator forks and small services: **not** the product itself. There is
-no public source to copy, and copying it would not help anyway: its value is
-scheduling, codecs and relay infrastructure.
-
-Rooms is therefore an independent implementation of the *idea*, not a clone.
-The old-chat inspiration is deliberate: a name, a colour and a room code is the
-AOL/MSN/Trillian model, and the presence list is the Ventrilo/TeamSpeak model,
-without the account server either of them needed.
-
-| Kosmi feature | Kryvex Rooms | Notes |
+| Feature | Kryvex Rooms | Notes |
 | --- | --- | --- |
 | Rooms + link invites | yes | `kryvex://room/<id>` and a copyable code |
 | Screen share | yes (P2P, up to ~6 viewers) | no 1080p guarantee; upload bound |
@@ -46,7 +33,7 @@ without the account server either of them needed.
 | File drop | not yet | chunked over data channels, phase 2 |
 | Voice | not yet | same peer connections, phase 4 |
 | Co-watch YouTube / direct video | not yet | host clock, drift correction, phase 3 |
-| Netflix / DRM streaming sync | **no** | DRM forbids it; Kosmi's virtual browser is not portable |
+| Netflix / DRM streaming sync | **no** | DRM forbids it; a virtual browser is not portable |
 | Public room lobby | **no** by default | link-only rooms avoid the moderation surface |
 | Games, emulators | not planned | separate, much larger effort |
 

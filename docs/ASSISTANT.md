@@ -1,10 +1,55 @@
 # Vexium assistant
 
-Vexium is Kryvex's first-party assistant surface. It chats with a language model
-that the user already runs on their own machine (Ollama or LM Studio) and it
-never talks to a cloud endpoint. There is no account, no API key, no telemetry,
-no bundled weights and no prompt history on disk. The llama.cpp CPU runtime is
-included, so a downloaded GGUF can be started without a separate install.
+Vexium is Kryvex's first-party assistant surface. **Vexium Core** is the
+supported local stack: the Vexium surface, the llama.cpp CPU runtime included in
+the installer, and the reviewed Qwen2.5-1.5B-Instruct weights fetched once with
+the user's click. It never talks to a cloud endpoint. There is no account, no
+API key, no telemetry, no bundled weights and no prompt history on disk.
+Ollama, LM Studio and a custom GGUF remain available as alternative runtimes.
+
+## Vexium Core
+
+| Part | What it is |
+| --- | --- |
+| Surface | Vexium at `#/assistant`; the renderer never reaches the model server. |
+| Runtime | llama.cpp `b11835` (commit `f64a49819`), CPU build, shipped in `resources/bin`. |
+| Weights | `qwen2.5-1.5b-instruct-q4_k_m.gguf`, pinned revision and SHA-256 in `electron/model-catalogue.ts`. |
+| Licence | Apache-2.0, with the Qwen publisher, repository and licence shown on the card and in the installed list. |
+| Default | New state uses the `local` provider at `http://127.0.0.1:8080`; an existing saved provider is preserved. |
+
+**Attribution is not optional.** The card names the product **Vexium Core** and
+keeps `Qwen2.5-1.5B-Instruct`, Qwen (Alibaba Cloud), the pinned revision and
+Apache-2.0 visible directly under it. Kryvex packages the runtime and verifies
+the downloaded file; it does not claim the weights as its own model.
+
+**One-click start.** After the explicit **Download Vexium Core** action, the
+card's **Start Vexium Core** button configures the installed path and starts the
+bundled runtime in one step, then points Vexium at the loopback port it chose.
+The download itself never starts a server. A custom `.gguf` still uses the
+Choose model and Start server path.
+
+**Configured is not running.** When a file is selected but the local server is
+stopped, the Settings **Model** row names that file and offers **Start Vexium
+Core** beside the selector, rather than reporting “0 models” as if nothing were
+installed. The runtime may report no models until it is started; that is a
+stopped process, not a missing model. The Vexium page carries the same action:
+its **Vexium Core** card shows what is installed, the active build with its
+context size and loopback origin, and the state (RUNNING, STARTING, STOPPED),
+with **Start Vexium Core** or **Stop server** beside it.
+
+**On launch.** A started runtime is the default, so Kryvex starts it for you
+when the saved provider is `local`, a model file is already configured, and the
+server is `stopped` or `idle` (`shouldAutoStartCore` in
+`src/lib/vexium-core.ts`). A saved error is left alone: retrying a missing or
+broken file on every launch would only hide the reason. Nothing starts when no
+file is configured or another provider is selected, and no weights are ever
+downloaded at launch.
+
+**One-time move off Ollama.** A profile that never touched the assistant was
+stored as `ollama` at Ollama's stock `127.0.0.1:11434` with no model. That is
+indistinguishable from untouched defaults, so on the next launch it is switched
+to `local` at `127.0.0.1:8080` once, and a `migrated` flag is written; a user
+who later chooses Ollama, LM Studio or their own address keeps that choice.
 
 ## Boundary
 
@@ -31,8 +76,9 @@ fragments. The main process normalizes again on every request, so a saved
 setting cannot smuggle in a remote host. `src/lib/assistant.ts` keeps the same
 rule for the form; a unit test asserts the two copies agree.
 
-Defaults: Ollama `http://127.0.0.1:11434`, LM Studio `http://127.0.0.1:1234`.
-Both expose an OpenAI-compatible API, so one client covers both:
+Defaults: Vexium Core `http://127.0.0.1:8080` until its server reports the port
+it picked, Ollama `http://127.0.0.1:11434`, LM Studio `http://127.0.0.1:1234`.
+All three expose an OpenAI-compatible API, so one client covers them:
 
 - `GET /v1/models`: model list (also accepts Ollama's `{ models: [{ name }] }`).
 - `POST /v1/chat/completions` with `stream: true`, SSE deltas.

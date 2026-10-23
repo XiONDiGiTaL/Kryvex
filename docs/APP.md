@@ -1,8 +1,7 @@
 # Kryvex application architecture (v0.8.3)
 
-This document describes the app that lives in `electron/` and `src/`. It is a
-purpose-built Electron application; no third-party desktop workspace is
-vendored or rebranded.
+This document describes the app that lives in `electron/` and `src/`. It is an
+Electron application with a small trusted main process and untrusted content.
 
 ## Stack
 
@@ -12,7 +11,7 @@ vendored or rebranded.
 | Renderer | React 19 + TypeScript 7, bundled by Vite 8 |
 | State | Pure reducer-style helpers in `src/lib/store.ts`, persisted as JSON |
 | Styling | One stylesheet driven by CSS custom properties from `brand/tokens.json` |
-| Tests | Vitest, 219 unit tests over URL, services, catalogue, store, history, downloads and storage location, page zoom, themes, Windows browser registration, torrent rules and queue restore, media permissions, Rooms ids/invites/limits/presence, window-fit rules, Brave-style URL rules, release-version comparison, asset/checksum validation and update-state rules |
+| Tests | Vitest, 219 unit tests over URL, services, catalogue, store, history, downloads and storage location, page zoom, themes, Windows browser registration, torrent rules and queue restore, media permissions, Rooms ids/invites/limits/presence, window-fit rules, URL privacy rules, release-version comparison, asset/checksum validation and update-state rules |
 | Shield | `@ghostery/adblocker` over downloaded uBO/EasyList lists, with a combined privacy rewrite pipeline |
 | Extensions | Electron `session.extensions` with a guarded ZIP/CRX/folder installer (in-house archive reader that refuses links and escaping paths) |
 | Downloads | Chromium `will-download` events, main-process records, user-selected root, safe file lifecycle |
@@ -172,7 +171,7 @@ Electron permits only one `onBeforeRequest` listener per session, so
 its adapter. That listener performs HTTPS upgrades and tracking-parameter
 stripping, then delegates unchanged requests to the active blocker. A failed
 HTTPS navigation is recorded by URL and `webContents` id; `did-fail-load`
-allows one HTTP retry for that exact destination. `electron/brave-rules.ts`
+allows one HTTP retry for that exact destination. `electron/url-privacy-rules.ts`
 keeps the URL decisions pure and unit-tested.
 
 The Electron adapter registers two global cosmetic-filter IPC handlers per

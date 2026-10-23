@@ -68,9 +68,9 @@ and does not grant you any right to it.
 media, no ROMs, no keys and no links to infringing material. Downloading or
 sharing content without permission may be illegal where you live.
 
-**Client mods.** Kryvex does not inject BetterDiscord, Vencord, AyuGram or any
-other patched client. Doing so is against several services' terms and can end
-an account; that risk is not transferred to Kryvex.
+**Client mods.** Kryvex does not inject client mods or patched clients. Doing
+so is against several services' terms and can end an account; that risk is not
+transferred to Kryvex.
 
 **Changes.** These terms may change with a release. The version in the installed
 app is the one that applies.

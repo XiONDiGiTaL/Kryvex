@@ -6,7 +6,7 @@
 
 Kryvex turns independent services into first-class modules: each with its own
 persistent session, a place in your sidebar, and one composed surface. It also
-ships a native ad blocker, Brave-style URL privacy and fingerprint farbling, a
+ships a native ad blocker, built-in URL privacy and fingerprint farbling, a
 Chrome-extension loader and a browser with microphone/camera access for real
 calls, without asking you to trust a browser policy.
 
@@ -16,7 +16,7 @@ calls, without asking you to trust a browser policy.
 [![Platform](https://img.shields.io/badge/platform-Windows-9AA6B5?style=flat-square)](#known-limitations)
 [![Shield](https://img.shields.io/badge/shield-uBO%20lists-F2C94C?style=flat-square)](#kryvex-shield)
 
-**[Demo reel](#demo-reel) · [Install on Windows](#install-on-windows) · [Pointer first](#pointer-first) · [Features](#features) · [Screenshots](#screenshots) · [Adding services](#adding-services) · [Shield](#kryvex-shield) · [Extensions](#extensions) · [Themes](#themes) · [Credits](#credits) · [Limitations](#known-limitations)**
+**[Demo reel](#demo-reel) · [Install on Windows](#install-on-windows) · [Pointer first](#pointer-first) · [Features](#features) · [Screenshots](#screenshots) · [Adding services](#adding-services) · [Shield](#kryvex-shield) · [Extensions](#extensions) · [Themes](#themes) · [Third-party work](#third-party-work) · [Limitations](#known-limitations)**
 
 </div>
 
@@ -76,10 +76,12 @@ away.
   Browser, Vexium, Rooms and Settings.
 - **Local by design.** One JSON state file on your machine. No account, no
   telemetry, no cloud sync, no analytics SDK.
-- **Vexium, a local assistant.** A first-party chat surface that talks to a
-  model runtime on your machine (Ollama, LM Studio, or the llama.cpp runtime
-  included in the installer) over loopback only. No account, no key, no cloud
-  call, no transcript on disk.
+- **Vexium Core, a local assistant.** A first-party chat surface that talks to
+  a model runtime on your machine (Vexium Core, Ollama or LM Studio) over
+  loopback only. Vexium Core pairs the llama.cpp runtime included in the
+  installer with the reviewed Qwen2.5-1.5B-Instruct weights; Qwen and its
+  Apache-2.0 licence stay visible. No account, no key, no cloud call, no
+  transcript on disk.
 - **A real design system.** 78 catalogue themes in eight families (including
   reds, pinks, birthstones and the solar system) plus two creator plugins and a
   **Custom** slot,
@@ -203,11 +205,13 @@ LibreTranslate server with a labelled keyless fallback; OCR runs in the page
 through Tesseract. Nothing is stored after you leave the page. Setup, formats,
 limits and failure modes: [docs/LEXIUM.md](docs/LEXIUM.md).
 
-**Media player (Mx · x531)** queues local audio and video or direct media
-links, with repeat, shuffle, seek and volume, and a transport bar that docks
-above the status bar while you work elsewhere. Platform pages (YouTube,
-Spotify, Twitch, SoundCloud, Vimeo) are recognised and opened in their own
-module instead of pretending an `<audio>` tag can play them. Details:
+**Media player (Mx · x531)** queues local audio and video, direct media links,
+Spotify playlists/albums/tracks and YouTube playlists/videos, with repeat,
+shuffle, seek and volume, and a transport bar that docks above the status bar
+while you work elsewhere. Spotify rows play their public 30-second preview and
+link to the full track; YouTube rows play in an embedded player through a
+loopback bridge so they keep playing when you switch views. Twitch, SoundCloud
+and Vimeo pages still open in their own modules. Details:
 [docs/PLAYER.md](docs/PLAYER.md).
 
 The catalogue also gained Twitch, TikTok, Facebook, SoundCloud and Vimeo
@@ -223,11 +227,11 @@ verified download in **Settings → Vexium → Download models**; weights are no
 bundled, nothing is fetched at launch, and inference stays on `127.0.0.1`.
 A user-supplied runtime still takes precedence.
 
-**The Home board is a widget board.** Weather, Wellness, sticky notes and the
-board guide are entries in one small registry. The Widgets picker shows or hides
-each card, moves it up or down inside its column, and switches it between the
-main and side columns; the order survives a restart, and the guide column
-collapses when it has no card.
+**The Home board is a widget board.** Weather, Wellness, sticky notes, a
+calculator, a currency converter and the board guide are entries in one small
+registry. The Widgets picker shows or hides each card, moves it up or down
+inside its column, and switches it between the main and side columns; the order
+survives a restart, and the guide column collapses when it has no card.
 
 **The service dock gained real controls.** A volume slider applies to media a
 service page owns, and a repeat toggle loops the page's own clip when it ends.
@@ -393,9 +397,14 @@ with lists you chose. Kryvex still hosts nothing and uploads nothing.
   no weights and checks no remote catalogue.
 - **A Chrome identity for embedded pages:** guests report
   `Google Chrome / Chromium / Not(A:Brand` with full client hints through
-  `getHighEntropyValues` and `Sec-CH-UA` on the wire, so Google stops treating a
+  `getHighEntropyValues` and `Sec-CH-UA` on the wire, so sites stop treating a
   module as an anonymous Electron window. Fingerprint farbling still hides its
   JavaScript wrappers from `Function.prototype.toString`.
+  Google's own account pages are the exception. They verify the engine, and a
+  page that claims Chrome while failing Chrome's checks is refused, so
+  `accounts.google.*` runs under Kryvex's real user agent with no client hints,
+  no identity shim and no farbling. Signing in there now reaches Google's form
+  and its account step instead of the refusal card.
 - **My filters:** the shield accepts the uBlock Origin syntax people already
   paste: `||ads.example.com^`, `example.com##.ad`, `example.com##+js(…)`, and
   compiles it from the cached lists, so applying needs no download. Scriptlets
@@ -422,10 +431,12 @@ a look instead of a list.
   and no Kryvex server in the media path: the invite link is the access model,
   and recent rooms bring a group back. File drop, voice and co-watch are not
   built yet.
-- **Vexium, a local assistant:** a first-party chat surface that talks to
-  Ollama or LM Studio over loopback. The renderer never reaches the model
-  server; the main process enforces a loopback-only address on every request,
-  streams the deltas and keeps no transcript on disk.
+- **Vexium Core, a local assistant:** a first-party chat surface that talks to
+  Vexium Core, Ollama or LM Studio over loopback. Vexium Core is the bundled
+  llama.cpp runtime plus the reviewed Qwen2.5-1.5B-Instruct model, with the
+  upstream name and Apache-2.0 licence beside it. The renderer never reaches
+  the model server; the main process enforces a loopback-only address on every
+  request, streams the deltas and keeps no transcript on disk.
 - **Chromium engine panel:** Settings exposes the switches Chromium actually
   boots with (hardware acceleration, smooth scrolling) and per-page
   preferences (JavaScript, images, WebGL, PDF viewer, autoplay, background
@@ -511,7 +522,7 @@ privacy protections, calls, torrents and extensions) are all included in
 
 ## What was new in 0.4.0
 
-- **Brave-style privacy protections:** top-level HTTP navigations try HTTPS
+- **Browser privacy protections:** top-level HTTP navigations try HTTPS
   first and retry once over HTTP when the secure connection is unavailable;
   known campaign and click identifiers are removed before the request; and
   canvas, WebGL and audio-analysis readbacks receive stable per-site noise.
@@ -544,8 +555,6 @@ privacy protections, calls, torrents and extensions) are all included in
   Windows Default Apps, and opens links passed by Windows in a Kryvex tab.
 - **Deeper browser navigation:** deep links such as
   `#/browser?url=https%3A%2F%2Fexample.com` open a page directly in a tab.
-- **Cleaner project:** obsolete reference-analysis documents were removed;
-  Kryvex is documented as an independent, purpose-built application.
 
 ## What was new in 0.3.0
 
@@ -585,13 +594,13 @@ faster; the same actions remain available on screen.
 | --- | --- |
 | **Module registry** | Add, edit, remove and pin services. Name, URL, category, colour, glyph and brand-icon validation. Search, category filters, recents, starter catalogue, duplicate-safe IDs. |
 | **Vexium** | Chat with a local Ollama or LM Studio runtime over its OpenAI-compatible API, or a GGUF file Kryvex starts with the llama.cpp CPU runtime it now bundles. Offline app answers and a search fallback when no model is loaded, streamed replies, Stop, runtime/address/model settings. Loopback http only; prompts stay in the session and no key or weights are stored. |
-| **Home board** | Greeting and clock plus four widgets drawn from one small registry: opt-in Open-Meteo weather with a ten-minute cache and °C/°F, an optional Wellness card, sticky notes (off until the note button beside the heart opens them) and a board guide. Each card can be shown or hidden, moved up or down inside its column, or switched between the main and side column from the Widgets picker, which numbers the visible cards in display order. The guide column collapses when it has no card, and the order survives restarts. |
+| **Home board** | Greeting and clock plus six widgets drawn from one small registry: opt-in Open-Meteo weather with a ten-minute cache and °C/°F, an optional Wellness card, sticky notes (off until the note button beside the heart opens them), a local calculator with a safe arithmetic parser, a currency converter using ECB reference rates via Frankfurter, and a board guide. Each card can be shown or hidden, moved up or down inside its column, or switched between the main and side column from the Widgets picker, which numbers the visible cards in display order. The guide column collapses when it has no card, and the order survives restarts. |
 | **Wellness (off by default)** | A heart beside the Widgets button opens one optional intake form: units, height, weight, birth year, activity, an optional note, water and sleep goals. Water, hours slept, weight, calories and one tiny daily task are then logged by hand; XP, levels and a streak are recomputed from that log, never stored. BMI and a calorie estimate are labelled as estimates, and the whole block is one local state subtree with no network calls. |
 | **Resource monitor** | CPU, system memory, the Chromium GPU process and per-service/per-process usage, in the sidebar or a full view. Samples only while visible, and every module row has a two-press **Kill** that force-closes its guests without touching another service. |
 | **VPN** | Start and stop an OpenVPN tunnel from your own binary and profile, with DNS, proxy, extra flags and connect-on-launch. Dangerous helper flags are refused. |
 | **Search engines** | Worldwide, Chinese, Korean, Czech, Vietnamese and international engines shared by the address bar, Settings and Vexium. |
 | **Lexium** | Secret in-house language tool: Whisper transcription for imported MP3/WAV/M4A/OGG/FLAC/WebM/MP4 with timed segments and `.txt`/`.srt` export, LibreTranslate translation with automatic detection and a labelled public fallback, and Tesseract OCR that hands recognized text straight to the translator. Audio is decoded and resampled to 16 kHz mono WAV locally. |
-| **Media player** | Secret in-house player for local files and direct links, with a persistent queue, repeat off/all/one, shuffle, seek, volume, video stage and a docked transport bar. Platform URLs are classified and handed to their own module. |
+| **Media player** | Secret in-house player for local files, direct links, Spotify playlist previews and YouTube playlists/videos, with a queue, repeat off/all/one, shuffle, seek, volume, video stage and a docked transport bar. Spotify rows use public 30-second previews and link to the full track; YouTube rows use an embedded player through a loopback bridge and keep playing across view changes. Other platform pages are handed to their own module. |
 | **Spotify ads (off by default)** | A Service playback switch that mutes the Spotify module while its player labels an ad, including podcast ad breaks, returns the module to its own mute switch afterwards, and uses Spotify's own Skip ad control, or Next on a track, album or playlist page, at most once per twenty seconds. A podcast or unclear page is never advanced past the episode. Local only: it reads the page and changes no account, cookie or request, and unlabelled or unskippable ads still play. |
 | **8-bit emulator** | EmulatorJS cores for NES, SNES, Game Boy/Color, GBA, Master System, Game Gear, Genesis, 32X, SG-1000, WonderSwan, Atari 2600/7800/Lynx, PC Engine, Neo Geo Pocket and Virtual Boy. Local ROMs only. |
 | **Service catalogue** | 31 presets across communication (Discord, Steam, Messenger, WhatsApp, Telegram, Instagram, Gmail, X, Facebook), work (GitHub, Linear, Notion, Figma, Trello), AI (ChatGPT, Claude, Gemini, Copilot, Perplexity, Hugging Face, Freebuff), resources (FMHY, Ollama, Internet Archive) and media (Spotify, YouTube, Twitch, TikTok, SoundCloud, Vimeo, Reddit), with brand marks and honest notes about embedding limits. Presets can start a module muted, which TikTok, Twitch and Facebook use so their autoplaying feeds stay quiet. |
@@ -1099,9 +1108,7 @@ core themes, so a bad import cannot poison saved state.
 
 ## Architecture
 
-Kryvex is a purpose-built implementation (no third-party desktop workspace is
-vendored or rebranded) built around a small trusted main process and untrusted
-content:
+Kryvex is built around a small trusted main process and untrusted content:
 
 ```mermaid
 flowchart LR
@@ -1163,7 +1170,7 @@ electron/
   main.ts              window, state store, capture routine, IPC registration
   preload.ts           contextBridge API
   shield.ts            native uBO/EasyList engine, cache, session attachment
-  brave-rules.ts       tracking-parameter and HTTPS upgrade rules
+  url-privacy-rules.ts  tracking-parameter and HTTPS upgrade rules
   web-privacy.ts       combined webRequest pipeline, HTTPS fallback, seeds
   farbling-preload.ts  per-site canvas/WebGL/audio farbling in the main world
   extensions.ts        Chrome package installer + per-session loader
@@ -1312,26 +1319,16 @@ Known gaps are listed below rather than hidden. See
 [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) and
 [docs/ATTRIBUTION.md](docs/ATTRIBUTION.md).
 
-## Credits
+## Third-party work
 
 Kryvex is designed and built by [XiONDiGiTaL](https://github.com/XiONDiGiTaL)
 and [player529](https://github.com/player529).
 
-Kryvex takes **no credit** for the following work:
-
 - **uBlock Origin**: filter lists by Raymond Hill and contributors
-  ([gorhill/uBlock](https://github.com/gorhill/uBlock), GPL-3.0). Kryvex
-  downloads the lists at runtime and does not ship uBO code or claim
-  affiliation.
+  ([gorhill/uBlock](https://github.com/gorhill/uBlock), GPL-3.0), downloaded at
+  runtime.
 - **WebTorrent**: the embedded BitTorrent client
   ([webtorrent/webtorrent](https://github.com/webtorrent/webtorrent), MIT).
-  qBittorrent was used only as a feature reference for peer/speed terminology;
-  no qBittorrent code is included.
-- **Brave Browser / Brave Core**: feature reference for HTTPS upgrades,
-  tracking-parameter stripping, farbling and consent-banner filtering
-  ([brave/brave-browser](https://github.com/brave/brave-browser),
-  [brave/brave-core](https://github.com/brave/brave-core), MPL-2.0). No Brave
-  source code is copied; Kryvex implements small Electron-native equivalents.
 - **Ghostery Adblocker**: the filtering engine
   ([ghostery/adblocker](https://github.com/ghostery/adblocker), MPL-2.0).
 - **EasyList / EasyPrivacy / EasyList Cookie**: list maintainers
@@ -1340,7 +1337,7 @@ Kryvex takes **no credit** for the following work:
   ([simpleicons.org](https://simpleicons.org)); trademarks belong to their
   owners and identify the linked services only.
 
-The full license and modification notes are in
+The full dependency notices are in
 [docs/ATTRIBUTION.md](docs/ATTRIBUTION.md).
 
 ## Known limitations
@@ -1363,7 +1360,7 @@ The full license and modification notes are in
   farbling run as a preload wrapper, not a Chromium patch. It raises the cost of
   naive fingerprinting and is deliberately stable per site, but a determined
   page can detect that the APIs are wrapped. Native engine work would be
-  required for Brave-level guarantees.
+  required for native-engine guarantees.
 - **HTTPS upgrades cover top-level navigations.** Subresource upgrades,
   interstitial warnings and a full mixed-content policy are not implemented.
   The one-time HTTP fallback is silent; legacy sites are not blocked outright.
@@ -1374,17 +1371,17 @@ The full license and modification notes are in
   Web Store's own install button cannot run inside Electron; Kryvex shows its
   own install bar on detail pages instead. Extensions are third-party code and
   are not audited.
-- **Google sign-in inside a module is best-effort, not guaranteed.** Google
-  refuses its sign-in page in app-embedded browsers by policy, and no app can
-  promise otherwise. Kryvex now presents one consistent Chrome identity: a
-  Chrome user agent, `Sec-CH-UA` / `Sec-CH-UA-Mobile` / `Sec-CH-UA-Platform`
-  headers (Electron sends none) and a matching `navigator.userAgentData`,
-  which Electron omits entirely. On 2026-10-20 that identity reached Google's
-  sign-in form from inside a Kryvex guest instead of the refusal card. A stale
-  stored Google session is a separate failure: the refusal banner offers
-  **Reset session & retry**. If Google still refuses after that, the limit is
-  Google's, and **Open in my browser** is the route. Brave is a Chromium fork
-  rather than an embedded view, which is why it behaves differently.
+- **Google sign-in is still Google's decision.** Kryvex now passes the browser
+  check: on Google's account pages it reports the application's real user agent
+  instead of a Chrome one, because claiming Chrome from an engine that is not
+  Chrome is what produced "This browser or app may not be secure". Measured on
+  2026-10-23 with the same identifier step, the Chrome claim was refused and the
+  real agent reached the account check (captcha, then "Couldn't find this
+  account" for a fake address). What remains outside Kryvex's control is Google
+  itself: an account step can still ask for a captcha or a device check, a
+  stored session can go stale, and the company can tighten the gate again. The
+  refusal banner keeps **Reset session & retry**, and **Open in my browser** is
+  the route when a provider insists on its own browser.
 - **Parked service pages stay live, but Chromium still decides.** Every opened
   module stays mounted and hidden, and guest throttling is off by default so a
   chat client keeps its heartbeat. The Settings → Chromium switch still wins: if
@@ -1433,8 +1430,8 @@ The full license and modification notes are in
 ## License
 
 Code and brand assets are released under the [MIT License](LICENSE).
-Kryvex is an independent project; "element x529 / Kx" is a fictional brand
-device, not a claim about a chemical element. Third-party data and libraries
-retain their own licenses: see [docs/ATTRIBUTION.md](docs/ATTRIBUTION.md).
+"Element x529 / Kx" is a fictional brand device, not a claim about a chemical
+element. Third-party data and libraries retain their own licenses: see
+[docs/ATTRIBUTION.md](docs/ATTRIBUTION.md).
 
 <div align="center"><sub>KRYVEX · ELEMENT x529 · SHIELD · EXTENSIONS · DONKEY EDITION.</sub></div>

@@ -1,10 +1,10 @@
 /**
  * Rooms rules: everything that can be decided without a network or a DOM.
  *
- * A room id is a capability, not an identity: whoever has it can join, exactly
- * like a Kosmi invite link. Nothing here talks to a server, so the UI, the
- * store and the tests all share one definition of what a valid room, name,
- * message, tracker list or invite looks like.
+ * A room id is a capability, not an identity: whoever has it can join. Nothing
+ * here talks to a server, so the UI, the store and the tests all share one
+ * definition of what a valid room, name, message, tracker list or invite looks
+ * like.
  */
 
 /** Crockford base32 without the ambiguous letters. 26 chars ≈ 130 bits. */

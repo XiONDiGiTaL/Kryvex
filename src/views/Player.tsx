@@ -25,6 +25,7 @@ export function Player({
   const [linkError, setLinkError] = useState<string | null>(null);
   const [platform, setPlatform] = useState<{ name: string; url: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Borrow the engine while this page is open; it returns to its off-screen
   // host on unmount so playback never stops for a route change.
@@ -50,25 +51,70 @@ export function Player({
     }
   }
 
-  function submitLink(event: React.FormEvent) {
+  function originLabel(track: (typeof player.tracks)[number]): string {
+    if (track.origin === 'file') return t('LOCAL FILE');
+    if (track.origin === 'spotify') return t('SPOTIFY PREVIEW');
+    if (track.origin === 'youtube') return t('YOUTUBE');
+    return track.subtitle || t('DIRECT LINK');
+  }
+
+  function linkErrorMessage(reason: string): string {
+    if (reason === 'invalid') return t('That does not look like a link.');
+    if (reason === 'not-found') return t('That playlist is private, empty or unavailable.');
+    if (reason === 'empty') return t('There are no playable tracks in that playlist.');
+    if (reason === 'too-large') return t('That playlist is larger than the 500-track import limit.');
+    if (reason === 'offline') {
+      return t('Could not read that playlist. Check the link and your connection.');
+    }
+    if (reason === 'desktop-only') return t('Playlist import is available in the desktop app.');
+    if (reason === 'unavailable') return t('That playlist could not be read right now.');
+    return t('Point the player at a playlist, an audio or video file, or a direct media link.');
+  }
+
+  async function submitLink(event: React.FormEvent) {
     event.preventDefault();
     setPlatform(null);
     setLinkError(null);
-    const result = player.addLink(link);
-    if (result.ok) {
-      setLink('');
-      onToast(t('Link added to the queue.'), 'success');
-      return;
+    setSubmitting(true);
+    try {
+      const result = await player.addLink(link);
+      if (result.ok) {
+        setLink('');
+        if (result.kind === 'playlist') {
+          const name = result.title ?? t('Playlist');
+          if (result.added === 0) {
+            onToast(t('Those tracks are already in the queue.'), 'info');
+          } else if (result.skipped) {
+            onToast(
+              t('{count} tracks from {name} added · {skipped} skipped.', {
+                count: result.added,
+                name,
+                skipped: result.skipped,
+              }),
+              'success',
+            );
+          } else {
+            onToast(
+              t('{count} tracks from {name} added to the queue.', {
+                count: result.added,
+                name,
+              }),
+              'success',
+            );
+          }
+        } else {
+          onToast(t('Link added to the queue.'), 'success');
+        }
+        return;
+      }
+      if (result.reason === 'platform' && result.platform) {
+        setPlatform({ name: result.platform.name, url: result.platform.url });
+        return;
+      }
+      setLinkError(linkErrorMessage(result.reason));
+    } finally {
+      setSubmitting(false);
     }
-    if (result.reason === 'platform' && result.platform) {
-      setPlatform({ name: result.platform.name, url: result.platform.url });
-      return;
-    }
-    setLinkError(
-      result.reason === 'invalid'
-        ? t('That does not look like a link.')
-        : t('Point the player at an audio or video file, for example .mp3 or .mp4.'),
-    );
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
@@ -120,12 +166,20 @@ export function Player({
               </span>
               <strong title={current.title}>{current.title}</strong>
               <span className="mono player-now-meta">
-                {current.origin === 'file'
-                  ? `${t('LOCAL FILE')}${current.size ? ` · ${formatBytes(current.size)}` : ''}`
-                  : current.subtitle || t('DIRECT LINK')}
+                {originLabel(current)}
+                {current.subtitle && current.origin !== 'link' ? ` · ${current.subtitle}` : ''}
+                {current.origin === 'file' && current.size ? ` · ${formatBytes(current.size)}` : ''}
                 {' · '}
                 {current.kind === 'video' ? t('VIDEO') : t('AUDIO')}
               </span>
+              {current.externalUrl ? (
+                <button
+                  className="link player-now-link"
+                  onClick={() => onOpenLink(current.externalUrl ?? '')}
+                >
+                  {t('Open the full track')} <Icon name="external" size={12} />
+                </button>
+              ) : null}
             </div>
 
             <div className="player-controls">
@@ -207,9 +261,13 @@ export function Player({
             {player.error ? (
               <p className="player-error">
                 <Icon name="warning" size={14} />
-                {t(
-                  'This source refused to play. Direct links must point at the media file itself and allow cross-origin playback.',
-                )}
+                {current.origin === 'youtube'
+                  ? t('YouTube refused to play this video here. Open it in YouTube, or try another row.')
+                  : current.origin === 'spotify'
+                    ? t('Spotify did not provide a preview for this track. Open the full track in Spotify.')
+                    : t(
+                        'This source refused to play. Direct links must point at the media file itself and allow cross-origin playback.',
+                      )}
               </p>
             ) : null}
           </div>
@@ -256,17 +314,25 @@ export function Player({
               setLinkError(null);
               setPlatform(null);
             }}
-            placeholder={t('https://host/track.mp3')}
-            aria-label={t('Direct media link')}
+            placeholder={t('Spotify or YouTube playlist, or a direct media link')}
+            aria-label={t('Playlist or direct media link')}
             spellCheck={false}
           />
-          <button className="btn secondary" type="submit" disabled={!link.trim()}>
-            {t('Queue link')}
+          <button className="btn secondary" type="submit" disabled={!link.trim() || submitting}>
+            {submitting ? t('Loading…') : t('Queue link')}
           </button>
         </form>
       </div>
 
       {linkError ? <p className="player-inline-error">{linkError}</p> : null}
+      {player.tracks.some(track => track.origin === 'spotify') ? (
+        <p className="player-inline-note">
+          <Icon name="music" size={13} />
+          {t(
+            'Spotify rows play their public 30-second preview. Open the full track in Spotify for the whole song.',
+          )}
+        </p>
+      ) : null}
       {platform ? (
         <div className="player-platform">
           <Icon name="globe" size={16} />
@@ -302,7 +368,7 @@ export function Player({
         <EmptyState
           title={t('The queue is empty')}
           body={t(
-            'Import audio or video you already own, or paste a direct stream URL. YouTube, Spotify and Twitch pages open in their own modules instead.',
+            'Import a Spotify or YouTube playlist, open audio or video you already own, or paste a direct stream URL. Twitch and Vimeo pages still open in their own modules.',
           )}
           action={
             <button className="btn primary" onClick={() => fileInput.current?.click()}>
@@ -340,10 +406,27 @@ export function Player({
                 <strong title={track.title}>{track.title}</strong>
                 <span className="mono">
                   {track.kind === 'video' ? t('VIDEO') : t('AUDIO')} ·{' '}
-                  {track.origin === 'file' ? t('LOCAL') : track.subtitle || t('LINK')}
+                  {track.origin === 'file'
+                    ? t('LOCAL')
+                    : track.origin === 'spotify'
+                      ? t('SPOTIFY PREVIEW')
+                      : track.origin === 'youtube'
+                        ? t('YOUTUBE')
+                        : track.subtitle || t('LINK')}
+                  {track.subtitle && track.origin !== 'link' ? ` · ${track.subtitle}` : ''}
                   {track.size ? ` · ${formatBytes(track.size)}` : ''}
                 </span>
               </span>
+              {track.externalUrl ? (
+                <button
+                  className="icon-btn"
+                  onClick={() => onOpenLink(track.externalUrl ?? '')}
+                  aria-label={t('Open {name} in its service', { name: track.title })}
+                  title={t('Open the full track')}
+                >
+                  <Icon name="external" size={14} />
+                </button>
+              ) : null}
               <button
                 className="icon-btn danger"
                 onClick={() => player.remove(track.id)}

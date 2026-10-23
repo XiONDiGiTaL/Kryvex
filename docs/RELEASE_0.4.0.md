@@ -40,8 +40,6 @@ Download the installer, portable build and checksum list from the
   magnet and rechecks local pieces.
 - **Extensions:** install Chrome-compatible extensions from a Web Store page,
   `.zip`, `.crx` or folder, then enable, disable or remove them.
-- **Cleaner docs:** obsolete reference-analysis documents were removed; Kryvex
-  is documented as an independent application.
 
 ## Artifacts
 

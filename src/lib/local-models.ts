@@ -10,6 +10,12 @@ import type { ModelDownloadPhase, ModelMemoryEstimate } from '../types';
 
 const UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
 
+/** The readable filename without its directory or `.gguf` suffix. */
+export function modelFileLabel(value: string): string {
+  const name = value.split(/[\\/]/).pop() ?? '';
+  return name.replace(/\.gguf$/i, '') || name;
+}
+
 export function formatModelSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
   let value = bytes;

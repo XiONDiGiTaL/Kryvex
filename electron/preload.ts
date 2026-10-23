@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import type { PopupTabInfo, PopupTabRect } from './types';
+import type { PlaylistImportResult, PopupTabInfo, PopupTabRect } from './types';
 
 type DownloadState = 'progressing' | 'paused' | 'completed' | 'cancelled' | 'interrupted';
 
@@ -275,6 +275,10 @@ const api = {
     ipcRenderer.invoke('kryvex:weather:lookup', city, unit),
   weatherAt: (latitude: number, longitude: number, unit: 'c' | 'f'): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:weather:at', latitude, longitude, unit),
+  playlistResolve: (url: string): Promise<PlaylistImportResult> =>
+    ipcRenderer.invoke('kryvex:playlist:resolve', url),
+  playerEmbedUrl: (videoId: string, autoplay: boolean): Promise<string | null> =>
+    ipcRenderer.invoke('kryvex:player:embed-url', videoId, autoplay),
   resourcesSample: (services: Array<{ id: string; url: string }>): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:resources:sample', services),
   mediaList: (): Promise<unknown> => ipcRenderer.invoke('kryvex:media:list'),

@@ -17,6 +17,37 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
       'Las descargas de modelos están disponibles en la aplicación de escritorio.',
     'ALREADY INSTALLED': 'YA INSTALADO',
     STARTER: 'INICIAL',
+    'DEFAULT CORE': 'NÚCLEO PREDETERMINADO',
+    'VEXIUM CORE': 'VEXIUM CORE',
+    'Vexium Core is running': 'Vexium Core está en ejecución',
+    'Vexium Core is starting…': 'Vexium Core está iniciando…',
+    '{name} is configured, but the local server is stopped.':
+      '{name} está configurado, pero el servidor local está detenido.',
+    'Start Vexium Core': 'Iniciar Vexium Core',
+    'Download Vexium Core': 'Descargar Vexium Core',
+    Installed: 'Instalado',
+    'Not installed': 'No instalado',
+    'Active build': 'Compilación activa',
+    RUNNING: 'EN EJECUCIÓN',
+    STOPPED: 'DETENIDO',
+    STARTING: 'INICIANDO',
+    ERROR: 'ERROR',
+    'Install Vexium Core in Settings to start it here.':
+      'Instala Vexium Core en Ajustes para iniciarlo aquí.',
+    'Vexium Core is installed. Start it when you are ready; downloading never starts a server.':
+      'Vexium Core está instalado. Inícialo cuando quieras; la descarga nunca inicia un servidor.',
+    'Vexium Core is the supported local stack: the included llama.cpp runtime runs the reviewed Qwen2.5-1.5B-Instruct weights on loopback. Qwen and its Apache-2.0 licence stay visible; Kryvex packages the runtime and verifies the file, not the weights.':
+      'Vexium Core es la pila local compatible: el motor llama.cpp incluido ejecuta los pesos revisados de Qwen2.5-1.5B-Instruct en loopback. Qwen y su licencia Apache-2.0 siguen visibles; Kryvex empaqueta el motor y verifica el archivo, no los pesos.',
+    'Vexium Core is already running.': 'Vexium Core ya está en ejecución.',
+    'Vexium Core is serving on {url}.': 'Vexium Core sirve en {url}.',
+    '{name} is already serving on {url}.': '{name} ya sirve en {url}.',
+    'Run Vexium Core locally, or choose any .gguf you already have. The included llama.cpp runtime keeps inference on loopback; there is no account, key or cloud call.':
+      'Ejecuta Vexium Core en local o elige cualquier .gguf que ya tengas. El motor llama.cpp incluido mantiene la inferencia en loopback; no hay cuenta, clave ni llamada a la nube.',
+    'No model file chosen. Install Vexium Core below, or choose a .gguf you already have.':
+      'Ningún archivo de modelo elegido. Instala Vexium Core abajo o elige un .gguf que ya tengas.',
+    'Set up Vexium Core in Settings, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.':
+      'Configura Vexium Core en Ajustes, o inicia Ollama (ollama serve) o el servidor local de LM Studio y apunta Vexium a su puerto loopback.',
+    'Set up Vexium Core for real answers': 'Configurar Vexium Core para respuestas reales',
     Source: 'Origen',
     Revision: 'Revisión',
     File: 'Archivo',
@@ -83,6 +114,37 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     'Model downloads are available in the desktop app.': 'Modell-Downloads gibt es in der Desktop-App.',
     'ALREADY INSTALLED': 'BEREITS INSTALLIERT',
     STARTER: 'STARTMODELL',
+    'DEFAULT CORE': 'STANDARD-KERN',
+    'VEXIUM CORE': 'VEXIUM CORE',
+    'Vexium Core is running': 'Vexium Core läuft',
+    'Vexium Core is starting…': 'Vexium Core startet…',
+    '{name} is configured, but the local server is stopped.':
+      '{name} ist konfiguriert, aber der lokale Server ist gestoppt.',
+    'Start Vexium Core': 'Vexium Core starten',
+    'Download Vexium Core': 'Vexium Core herunterladen',
+    Installed: 'Installiert',
+    'Not installed': 'Nicht installiert',
+    'Active build': 'Aktiver Build',
+    RUNNING: 'LÄUFT',
+    STOPPED: 'GESTOPPT',
+    STARTING: 'STARTET',
+    ERROR: 'FEHLER',
+    'Install Vexium Core in Settings to start it here.':
+      'Installiere Vexium Core in den Einstellungen, um es hier zu starten.',
+    'Vexium Core is installed. Start it when you are ready; downloading never starts a server.':
+      'Vexium Core ist installiert. Starte es, wenn du bereit bist; ein Download startet nie einen Server.',
+    'Vexium Core is the supported local stack: the included llama.cpp runtime runs the reviewed Qwen2.5-1.5B-Instruct weights on loopback. Qwen and its Apache-2.0 licence stay visible; Kryvex packages the runtime and verifies the file, not the weights.':
+      'Vexium Core ist der unterstützte lokale Stack: Die mitgelieferte llama.cpp-Laufzeit führt die geprüften Qwen2.5-1.5B-Instruct-Gewichte auf Loopback aus. Qwen und die Apache-2.0-Lizenz bleiben sichtbar; Kryvex paketiert die Laufzeit und prüft die Datei, nicht die Gewichte.',
+    'Vexium Core is already running.': 'Vexium Core läuft bereits.',
+    'Vexium Core is serving on {url}.': 'Vexium Core bedient {url}.',
+    '{name} is already serving on {url}.': '{name} bedient bereits {url}.',
+    'Run Vexium Core locally, or choose any .gguf you already have. The included llama.cpp runtime keeps inference on loopback; there is no account, key or cloud call.':
+      'Führe Vexium Core lokal aus oder wähle eine eigene .gguf-Datei. Die mitgelieferte llama.cpp-Laufzeit hält Inferenz auf Loopback; kein Konto, kein Schlüssel, kein Cloud-Aufruf.',
+    'No model file chosen. Install Vexium Core below, or choose a .gguf you already have.':
+      'Keine Modelldatei gewählt. Installiere unten Vexium Core oder wähle eine eigene .gguf-Datei.',
+    'Set up Vexium Core in Settings, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.':
+      'Richte Vexium Core in den Einstellungen ein oder starte Ollama (ollama serve) bzw. den lokalen LM-Studio-Server und verweise Vexium auf dessen Loopback-Port.',
+    'Set up Vexium Core for real answers': 'Vexium Core für echte Antworten einrichten',
     Source: 'Quelle',
     Revision: 'Revision',
     File: 'Datei',
@@ -150,6 +212,37 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
       "Les téléchargements de modèles sont disponibles dans l'application de bureau.",
     'ALREADY INSTALLED': 'DÉJÀ INSTALLÉ',
     STARTER: 'MODÈLE DE DÉPART',
+    'DEFAULT CORE': 'NOYAU PAR DÉFAUT',
+    'VEXIUM CORE': 'VEXIUM CORE',
+    'Vexium Core is running': 'Vexium Core est en cours d’exécution',
+    'Vexium Core is starting…': 'Vexium Core démarre…',
+    '{name} is configured, but the local server is stopped.':
+      '{name} est configuré, mais le serveur local est arrêté.',
+    'Start Vexium Core': 'Démarrer Vexium Core',
+    'Download Vexium Core': 'Télécharger Vexium Core',
+    Installed: 'Installé',
+    'Not installed': 'Non installé',
+    'Active build': 'Build actif',
+    RUNNING: 'EN COURS',
+    STOPPED: 'ARRÊTÉ',
+    STARTING: 'DÉMARRAGE',
+    ERROR: 'ERREUR',
+    'Install Vexium Core in Settings to start it here.':
+      'Installez Vexium Core dans les réglages pour le démarrer ici.',
+    'Vexium Core is installed. Start it when you are ready; downloading never starts a server.':
+      'Vexium Core est installé. Démarrez-le quand vous êtes prêt ; un téléchargement ne démarre jamais un serveur.',
+    'Vexium Core is the supported local stack: the included llama.cpp runtime runs the reviewed Qwen2.5-1.5B-Instruct weights on loopback. Qwen and its Apache-2.0 licence stay visible; Kryvex packages the runtime and verifies the file, not the weights.':
+      'Vexium Core est la pile locale prise en charge : le runtime llama.cpp inclus exécute les poids vérifiés de Qwen2.5-1.5B-Instruct sur loopback. Qwen et sa licence Apache-2.0 restent visibles ; Kryvex fournit le runtime et vérifie le fichier, pas les poids.',
+    'Vexium Core is already running.': 'Vexium Core est déjà en cours d’exécution.',
+    'Vexium Core is serving on {url}.': 'Vexium Core sert sur {url}.',
+    '{name} is already serving on {url}.': '{name} sert déjà sur {url}.',
+    'Run Vexium Core locally, or choose any .gguf you already have. The included llama.cpp runtime keeps inference on loopback; there is no account, key or cloud call.':
+      'Exécutez Vexium Core localement ou choisissez un fichier .gguf existant. Le runtime llama.cpp inclus garde l’inférence sur loopback ; aucun compte, clé ni appel cloud.',
+    'No model file chosen. Install Vexium Core below, or choose a .gguf you already have.':
+      'Aucun fichier de modèle choisi. Installez Vexium Core ci-dessous ou choisissez un fichier .gguf existant.',
+    'Set up Vexium Core in Settings, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.':
+      'Configurez Vexium Core dans les réglages, ou démarrez Ollama (ollama serve) ou le serveur local LM Studio et pointez Vexium vers son port loopback.',
+    'Set up Vexium Core for real answers': 'Configurer Vexium Core pour de vraies réponses',
     Source: 'Source',
     Revision: 'Révision',
     File: 'Fichier',

@@ -29,6 +29,9 @@ describe('feature copy', () => {
     expect(makeI18n('es').t('RUN A MODEL FILE')).toBe('EJECUTAR UN ARCHIVO DE MODELO');
     expect(makeI18n('de').t('Start server')).toBe('Server starten');
     expect(makeI18n('fr').t('Choose model…')).toBe('Choisir un modèle…');
+    expect(makeI18n('es').t('Start Vexium Core')).toBe('Iniciar Vexium Core');
+    expect(makeI18n('de').t('Download Vexium Core')).toBe('Vexium Core herunterladen');
+    expect(makeI18n('fr').t('Vexium Core is running')).toContain('Vexium Core');
 
     expect(makeI18n('fr').t('{count} rule(s) are on hold until scriptlet rules are allowed.', { count: 3 }))
       .toBe('3 règle(s) en attente jusqu’à autoriser les scriptlets.');

@@ -47,7 +47,7 @@ Download the installer, portable build and checksum list from the
   git checkouts open the release page.
 - **Everything from 0.5.0 included:** download-location picker, WebTorrent queue
   that restores paused, the browser library, session restore, find-in-page,
-  zoom, microphone/camera prompts, Brave-style privacy protections, Chrome
+  zoom, microphone/camera prompts, privacy protections, Chrome
   extension loading and Windows default-browser setup.
 
 ## Artifacts

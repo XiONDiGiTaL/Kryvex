@@ -1,9 +1,8 @@
 # Roadmap (acceptance-gated)
 
 - **M0** ✅ env audit + `X:\Veyra` created, REA untouched, gh auth confirmed.
-- **M1** ✅ 8 analysis docs written from verified source; `gh repo view`
-  outcome recorded.
-- **M2** ✅ pnpm 12.3.4 + install/typecheck/test executed in the upstream clone
+- **M1** ✅ 8 analysis docs written; `gh repo view` outcome recorded.
+- **M2** ✅ pnpm 12.3.4 + install/typecheck/test executed in the project checkout
   with results logged. Perf numbers deferred to M8 (documented).
 - **M3** ✅ Kryvex identity (tile logo, variants, `BRAND.md`, tokens, six
   themes, PNG 16–512, 7-size ICO) plus a working Electron/React shell (ED-008),

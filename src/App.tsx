@@ -33,6 +33,7 @@ import {
   updateSettings,
 } from './lib/store';
 import { loadState, saveState, saveStateNow } from './lib/storage';
+import { shouldAutoStartCore } from './lib/vexium-core';
 import { clearWallpaper, importWallpaper, loadWallpaper } from './lib/wallpaper';
 import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
 import { makeId, partitionFor } from './lib/services';
@@ -285,6 +286,28 @@ export default function App() {
       }
     })();
   }, []);
+
+  // Vexium Core picks a fresh loopback port on every launch, so a profile that
+  // selected it holds a stale address until the server reports the new one.
+  // Starting it once here is what makes the first visit read RUNTIME ONLINE.
+  const coreStarted = useRef(false);
+  useEffect(() => {
+    if (!ready || coreStarted.current || !isElectron || !window.kryvex) return;
+    if (state.settings.assistant.provider !== 'local') return;
+    coreStarted.current = true;
+    const bridge = window.kryvex;
+    void (async () => {
+      const status = await bridge.modelStatus().catch(() => null);
+      if (!shouldAutoStartCore({ provider: 'local', status })) return;
+      const next = await bridge.modelStart().catch(() => null);
+      if (!next || next.phase !== 'running' || !next.baseUrl) return;
+      setState(current =>
+        updateSettings(current, {
+          assistant: { ...current.settings.assistant, baseUrl: next.baseUrl, model: '' },
+        }),
+      );
+    })();
+  }, [isElectron, ready, state.settings.assistant.provider]);
 
   useEffect(() => {
     const onHash = () => setRoute(parseHash(window.location.hash));
@@ -1099,6 +1122,11 @@ export default function App() {
           <Assistant
             state={state}
             isElectron={isElectron}
+            onAssistantChange={patch =>
+              updateSettingsPatch({
+                assistant: { ...state.settings.assistant, ...patch },
+              })
+            }
             onOpenSettings={() => navigate('settings?section=assistant')}
             onSearch={query =>
               openExternalTab(

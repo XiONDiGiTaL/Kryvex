@@ -8,18 +8,29 @@ import type { RepeatMode } from '../types';
  */
 
 export type MediaKind = 'audio' | 'video';
-export type MediaOrigin = 'file' | 'link';
+export type MediaOrigin = 'file' | 'link' | 'spotify' | 'youtube';
+export type PlayerPlatform = 'spotify' | 'youtube';
 
 export interface PlayerTrack {
   id: string;
   title: string;
   subtitle: string;
-  /** Blob URL for an imported file, or the http(s) link itself. */
+  /**
+   * Blob URL for a file, the direct media URL for a link, a Spotify preview MP3,
+   * or the watch page for a YouTube row (played through its embed).
+   */
   url: string;
   kind: MediaKind;
   origin: MediaOrigin;
   size: number;
   addedAt: number;
+  /** Present on imported platform rows. */
+  platform?: PlayerPlatform;
+  /** Public track or video page, for the full version in its own service. */
+  externalUrl?: string;
+  /** YouTube video id or Spotify track id. */
+  sourceId?: string;
+  durationMs?: number;
 }
 
 export type PlatformId = 'youtube' | 'spotify' | 'twitch' | 'soundcloud' | 'vimeo';
@@ -82,6 +93,67 @@ const PLATFORM_HOSTS: Array<{ id: PlatformId; name: string; hosts: string[]; url
     url: 'https://vimeo.com',
   },
 ];
+
+export type PlaylistTarget = {
+  provider: PlayerPlatform;
+  kind: 'playlist' | 'album' | 'track' | 'video';
+  id: string;
+};
+
+/**
+ * The links the importer can resolve into rows. This mirrors the main-process
+ * classifier, but only has to recognise a target; the main process remains the
+ * authority on whether the page is public and has playable entries.
+ */
+export function playlistTargetFor(input: string): PlaylistTarget | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  let url: URL;
+  try {
+    url = new URL(/^[a-z][\w+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+  const host = url.hostname.toLowerCase();
+  const onHost = (domain: string) => host === domain || host.endsWith(`.${domain}`);
+
+  if (onHost('open.spotify.com') || onHost('play.spotify.com')) {
+    const parts = url.pathname.split('/').filter(Boolean);
+    if (parts[0]?.startsWith('intl-')) parts.shift();
+    const [kind, id] = parts;
+    if (!id || !/^[A-Za-z0-9]{10,64}$/.test(id)) return null;
+    if (kind !== 'playlist' && kind !== 'album' && kind !== 'track') return null;
+    return { provider: 'spotify', kind, id };
+  }
+
+  if (onHost('youtube.com') || onHost('youtu.be')) {
+    if (onHost('youtu.be')) {
+      const id = url.pathname.split('/').filter(Boolean)[0] ?? '';
+      return /^[A-Za-z0-9_-]{11}$/.test(id)
+        ? { provider: 'youtube', kind: 'video', id }
+        : null;
+    }
+    const parts = url.pathname.split('/').filter(Boolean);
+    if (parts[0] === 'playlist') {
+      const id = url.searchParams.get('list') ?? '';
+      return /^[A-Za-z0-9_-]{10,100}$/.test(id)
+        ? { provider: 'youtube', kind: 'playlist', id }
+        : null;
+    }
+    const id =
+      parts[0] === 'watch'
+        ? url.searchParams.get('v') ?? ''
+        : parts[0] === 'shorts' || parts[0] === 'embed' || parts[0] === 'live'
+          ? parts[1] ?? ''
+          : '';
+    return /^[A-Za-z0-9_-]{11}$/.test(id)
+      ? { provider: 'youtube', kind: 'video', id }
+      : null;
+  }
+
+  return null;
+}
 
 export function platformFor(url: string): Platform | null {
   let host = '';

@@ -1,19 +1,49 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 
 /**
  * Gives guest pages the browser identity their user agent already claims.
  *
  * Kryvex sends a plain desktop Chrome user agent, but Chromium inside Electron
- * does not expose `navigator.userAgentData` at all. A page that reads the UA
- * and then finds the client-hint API missing is looking at a browser that
- * cannot exist: real Chrome has both. Google's sign-in page is the loudest
- * example: it refuses the flow with "This browser or app may not be secure".
+ * reports itself as the Chromium brand in `navigator.userAgentData` and sends
+ * no client hints. A page that reads the UA and then finds a different product
+ * in the hints is looking at a browser that cannot exist: real Chrome has both
+ * halves saying the same thing. Google's sign-in page is the loudest example:
+ * it refuses the flow with "This browser or app may not be secure".
  *
  * This patch only makes the two halves agree. It does not hide that Kryvex is
  * an app: the engine, the process model and everything a page can observe
- * about an embedded view stay what they are.
+ * about an embedded view stay what they are. The object it installs copies the
+ * shape of Chrome's own: an accessor on `Navigator.prototype` that returns a
+ * cached `NavigatorUAData`, not an own property holding a plain object.
+ *
+ * Sign-in providers that check the engine themselves are excluded; see
+ * `shimAllowed` below and the user-agent switch in `identity.ts`.
  */
-const major = (String(process.versions.chrome || '').split('.')[0] ?? '').replace(/\D/g, '') || '152';
+
+/**
+ * Google's account pages verify the engine before they accept a sign-in and
+ * refuse one that claims to be Chrome, so they are left unpatched and run
+ * under the application's own user agent instead. The main process owns that
+ * list; a page that cannot be asked keeps the patch.
+ */
+function shimAllowed(): boolean {
+  let host = '';
+  try {
+    const page = globalThis as unknown as { location?: { hostname?: string } };
+    host = String(page.location?.hostname ?? '');
+  } catch {
+    return true;
+  }
+  try {
+    return ipcRenderer.sendSync('kryvex:identity:allow', host) !== false;
+  } catch {
+    return true;
+  }
+}
+
+const chromeVersion = String(process.versions.chrome ?? '');
+const fullVersion = /^\d+(?:\.\d+)*$/.test(chromeVersion) ? chromeVersion : '';
+const major = (fullVersion.split('.')[0] ?? '').replace(/\D/g, '') || '152';
 
 const platformName =
   process.platform === 'darwin' ? 'macOS' : process.platform === 'win32' ? 'Windows' : 'Linux';
@@ -21,18 +51,21 @@ const platformName =
 const platformVersion =
   process.platform === 'darwin' ? '14.0.0' : process.platform === 'win32' ? '15.0.0' : '6.5.0';
 
-try {
-  contextBridge.executeInMainWorld({
-    func: installBrowserIdentity,
-    args: [major, platformName, platformVersion],
-  });
-} catch {
-  // A build without main-world execution keeps the plain Electron surface.
+if (shimAllowed()) {
+  try {
+    contextBridge.executeInMainWorld({
+      func: installBrowserIdentity,
+      args: [major, fullVersion || `${major}.0.0.0`, platformName, platformVersion],
+    });
+  } catch {
+    // A build without main-world execution keeps the plain Electron surface.
+  }
 }
 
 /** Serialized into the page's main world; keep it self-contained. */
 function installBrowserIdentity(
   chromeMajor: string,
+  chromeFullVersion: string,
   platform: string,
   platformVersion: string,
 ): void {
@@ -52,8 +85,8 @@ function installBrowserIdentity(
     { brand: 'Not(A:Brand', version: '24' },
   ];
   const fullVersionList = [
-    { brand: 'Google Chrome', version: `${chromeMajor}.0.0.0` },
-    { brand: 'Chromium', version: `${chromeMajor}.0.0.0` },
+    { brand: 'Google Chrome', version: chromeFullVersion },
+    { brand: 'Chromium', version: chromeFullVersion },
     { brand: 'Not(A:Brand', version: '24.0.0.0' },
   ];
 
@@ -66,15 +99,25 @@ function installBrowserIdentity(
     model: '',
     platform,
     platformVersion,
-    uaFullVersion: `${chromeMajor}.0.0.0`,
+    uaFullVersion: chromeFullVersion,
     wow64: false,
   };
 
-  const uaData = {
-    brands,
-    mobile: false,
-    platform,
-    getHighEntropyValues(hints: string[]) {
+  // Chrome hands back a `NavigatorUAData`; a plain object literal here is an
+  // anomaly an account-protection script can read straight off `Object.
+  // getPrototypeOf`. Keeping the class name, the `toStringTag` and the
+  // prototype accessor below makes the surface match the one Chrome exposes.
+  class NavigatorUAData {
+    get brands(): Array<{ brand: string; version: string }> {
+      return brands;
+    }
+    get mobile(): boolean {
+      return false;
+    }
+    get platform(): string {
+      return platform;
+    }
+    getHighEntropyValues(hints: string[]): Promise<Record<string, unknown>> {
       const result: Record<string, unknown> = { brands, mobile: false, platform };
       for (const hint of Array.isArray(hints) ? hints : []) {
         if (Object.prototype.hasOwnProperty.call(highEntropy, hint)) {
@@ -82,22 +125,34 @@ function installBrowserIdentity(
         }
       }
       return Promise.resolve(result);
-    },
-    toJSON() {
+    }
+    toJSON(): Record<string, unknown> {
       return { brands, mobile: false, platform };
-    },
-  };
-
+    }
+  }
   try {
-    Object.defineProperty(nav, 'userAgentData', {
-      value: uaData,
-      configurable: true,
-      enumerable: true,
-      writable: false,
+    Object.defineProperty(NavigatorUAData.prototype, Symbol.toStringTag, {
+      value: 'NavigatorUAData',
     });
   } catch {
+    /* a frozen built-in keeps the class without the tag */
+  }
+
+  const uaData = new NavigatorUAData();
+  const descriptor = {
+    configurable: true,
+    enumerable: true,
+    get() {
+      return uaData;
+    },
+  };
+  const owner =
+    ((root.Navigator as { prototype?: object } | undefined)?.prototype as object | undefined) ?? nav;
+  try {
+    Object.defineProperty(owner, 'userAgentData', descriptor);
+  } catch {
     try {
-      nav.userAgentData = uaData;
+      Object.defineProperty(nav, 'userAgentData', descriptor);
     } catch {
       return;
     }

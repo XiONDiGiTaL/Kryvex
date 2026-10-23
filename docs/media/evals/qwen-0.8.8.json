@@ -1,0 +1,637 @@
+{
+  "kind": "vexium-starter-quality",
+  "version": "0.8.8",
+  "recordedAt": "2026-10-23T10:54:39.739Z",
+  "host": {
+    "platform": "win32",
+    "release": "10.0.26100",
+    "version": "Windows 11 Pro",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 7 5700X3D 8-Core Processor           ",
+    "cores": 16,
+    "memoryBytes": 34282172416,
+    "node": "v24.19.0"
+  },
+  "runtime": {
+    "binary": "C:\\Kryvex\\resources\\bin\\llama-server.exe",
+    "version": "version: 0.7.0-dev (build 11835, commit f64a49819)\nbuilt with Clang 20.1.8 for Windows x86_64",
+    "release": "b11835",
+    "commit": "f64a49819",
+    "context": 4096,
+    "port": 8099,
+    "loadMs": 1578
+  },
+  "model": {
+    "path": "X:\\KryvexData\\models\\qwen2.5-1.5b-instruct.gguf",
+    "bytes": 1117320736,
+    "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+    "name": "qwen2.5-1.5b-instruct"
+  },
+  "sampling": {
+    "temperature": 0,
+    "seed": 42,
+    "stream": false,
+    "cachePrompt": false
+  },
+  "memory": {
+    "afterLoad": {
+      "workingSetBytes": 1803083776,
+      "peakWorkingSetBytes": 1803083776
+    },
+    "afterPrompts": {
+      "workingSetBytes": 1911336960,
+      "peakWorkingSetBytes": 1911336960
+    }
+  },
+  "prompts": [
+    {
+      "id": "en-chat",
+      "area": "English chat",
+      "language": "en",
+      "maxTokens": 180,
+      "turns": [
+        {
+          "user": "In two sentences, explain what a local language model is and give one benefit of running one on your own computer.",
+          "reply": "A local language model is a type of language model that is trained on a specific language and is used to generate text in that language. Running a local language model on your own computer can provide faster and more efficient language processing, as it avoids the need to download and store large language models from the internet.",
+          "finishReason": "stop",
+          "wallMs": 3146,
+          "usage": {
+            "completion_tokens": 62,
+            "prompt_tokens": 52,
+            "total_tokens": 114,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 52,
+            "prompt_ms": 355.204,
+            "prompt_per_token_ms": 6.830846153846154,
+            "prompt_per_second": 146.39474780689406,
+            "predicted_n": 62,
+            "predicted_ms": 2778.124,
+            "predicted_per_token_ms": 45.54301639344262,
+            "predicted_per_second": 21.957263246708933
+          },
+          "structure": {
+            "sentences": 2,
+            "bullets": 0,
+            "words": 58
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 2,
+        "bullets": 0,
+        "words": 58
+      }
+    },
+    {
+      "id": "en-rewrite",
+      "area": "Rewriting",
+      "language": "en",
+      "maxTokens": 120,
+      "turns": [
+        {
+          "user": "Rewrite the following sentence so it is clearer, without changing its meaning. Reply with the rewritten sentence only: The update, which was released on Tuesday, fixes a bug where the app would sometimes fail to save settings when the network dropped.",
+          "reply": "The update, released on Tuesday, addresses a bug that caused the app to fail to save settings when the network connection was lost.",
+          "finishReason": "stop",
+          "wallMs": 1813,
+          "usage": {
+            "completion_tokens": 27,
+            "prompt_tokens": 77,
+            "total_tokens": 104,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 77,
+            "prompt_ms": 539.992,
+            "prompt_per_token_ms": 7.012883116883116,
+            "prompt_per_second": 142.59470510674234,
+            "predicted_n": 27,
+            "predicted_ms": 1267.078,
+            "predicted_per_token_ms": 48.73376923076923,
+            "predicted_per_second": 20.51965230238391
+          },
+          "structure": {
+            "sentences": 1,
+            "bullets": 0,
+            "words": 23
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 1,
+        "bullets": 0,
+        "words": 23
+      }
+    },
+    {
+      "id": "en-summary",
+      "area": "Grounded summary",
+      "language": "en",
+      "maxTokens": 220,
+      "turns": [
+        {
+          "user": "Summarize the following in exactly three bullet points, each under 15 words. Do not add facts that are not in the text.\n\nKryvex can run a GGUF model on the user's own machine. The installer includes a CPU runtime, but the weights are a separate download. The model server binds to 127.0.0.1, so requests do not leave the computer. Users can stop the server at any time, and the app never starts it automatically.",
+          "reply": "- Kryvex runs GGUF models on user's machine.\n- Installer includes CPU runtime, separate weights download.\n- Model server binds to 127.0.0.1, no external requests.\n- Users can stop server at any time, no automatic start.",
+          "finishReason": "stop",
+          "wallMs": 3465,
+          "usage": {
+            "completion_tokens": 58,
+            "prompt_tokens": 131,
+            "total_tokens": 189,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 131,
+            "prompt_ms": 751.921,
+            "prompt_per_token_ms": 5.739854961832061,
+            "prompt_per_second": 174.22043007177615,
+            "predicted_n": 58,
+            "predicted_ms": 2705.331,
+            "predicted_per_token_ms": 47.46194736842106,
+            "predicted_per_second": 21.069510533091883
+          },
+          "structure": {
+            "sentences": 7,
+            "bullets": 4,
+            "words": 36
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 7,
+        "bullets": 4,
+        "words": 36
+      }
+    },
+    {
+      "id": "en-uncertainty",
+      "area": "Uncertainty",
+      "language": "en",
+      "maxTokens": 200,
+      "turns": [
+        {
+          "user": "I have 8 GB of RAM and a four-year-old laptop CPU. Can I run a 1.5B Q4 model comfortably? Answer in three sentences and state what you cannot know.",
+          "reply": "Yes, you can run a 1.5B Q4 model comfortably on your 8 GB of RAM and a four-year-old laptop CPU. However, you cannot know the exact performance or efficiency of the model on your specific hardware, as it depends on the specific architecture and optimizations of the model and your hardware. Additionally, you cannot know the exact memory usage or performance of the model on your hardware, as it can vary based on the specific implementation and optimizations of the model.",
+          "finishReason": "stop",
+          "wallMs": 5074,
+          "usage": {
+            "completion_tokens": 98,
+            "prompt_tokens": 69,
+            "total_tokens": 167,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 69,
+            "prompt_ms": 437.887,
+            "prompt_per_token_ms": 6.346188405797101,
+            "prompt_per_second": 157.57489946036307,
+            "predicted_n": 98,
+            "predicted_ms": 4629.539,
+            "predicted_per_token_ms": 47.727206185567006,
+            "predicted_per_second": 20.952410164381376
+          },
+          "structure": {
+            "sentences": 4,
+            "bullets": 0,
+            "words": 81
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 4,
+        "bullets": 0,
+        "words": 81
+      }
+    },
+    {
+      "id": "en-conversation",
+      "area": "Conversation memory",
+      "language": "en",
+      "maxTokens": 240,
+      "turns": [
+        {
+          "user": "I am planning a trip to Berlin in March. Remember that I prefer museums to nightlife.",
+          "reply": "Berlin is a fantastic city for both museums and nightlife, so you should have a great time! Here are some suggestions for museums and events you might enjoy:\n\nMuseums:\n1. The Museum Island: This is a UNESCO World Heritage site with several world-renowned museums, including the Prussian State Museum, the Museum Island, and the Pergamon Museum.\n2. The Berlin State Gallery: This is one of the largest art galleries in Europe, with a collection of over 200,000 works of art.\n3. The Berlinische Galerie: This is a museum dedicated to the history of Berlin, with a collection of over 100,000 works of art.\n4. The Berlinische Galerie: This is a museum dedicated to the history of Berlin, with a collection of over 100,000 works of art.\n5. The Berlinische Galerie: This is a museum dedicated to the history of Berlin, with a collection of over 100,000 works of art.\n\nEvents:\n1. The Berlinale: This is the world's largest film festival, held annually in February and March.",
+          "finishReason": "length",
+          "wallMs": 13949,
+          "usage": {
+            "completion_tokens": 240,
+            "prompt_tokens": 47,
+            "total_tokens": 287,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 47,
+            "prompt_ms": 445.764,
+            "prompt_per_token_ms": 9.484340425531915,
+            "prompt_per_second": 105.43695767266983,
+            "predicted_n": 240,
+            "predicted_ms": 13496.922,
+            "predicted_per_token_ms": 56.4724769874477,
+            "predicted_per_second": 17.707741068667357
+          },
+          "structure": {
+            "sentences": 13,
+            "bullets": 6,
+            "words": 166
+          }
+        },
+        {
+          "user": "What should I prioritize on my first afternoon? Answer in two sentences.",
+          "reply": "On your first afternoon in Berlin, prioritize visiting the Museum Island, starting with the Prussian State Museum and the Pergamon Museum. This will give you a strong foundation in Berlin's cultural heritage.",
+          "finishReason": "stop",
+          "wallMs": 5013,
+          "usage": {
+            "completion_tokens": 41,
+            "prompt_tokens": 311,
+            "total_tokens": 352,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 311,
+            "prompt_ms": 1926.418,
+            "prompt_per_token_ms": 6.194270096463022,
+            "prompt_per_second": 161.4395214330431,
+            "predicted_n": 41,
+            "predicted_ms": 3080.37,
+            "predicted_per_token_ms": 77.00925,
+            "predicted_per_second": 12.985453046224967
+          },
+          "structure": {
+            "sentences": 2,
+            "bullets": 0,
+            "words": 32
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 2,
+        "bullets": 0,
+        "words": 32
+      }
+    },
+    {
+      "id": "es-chat",
+      "area": "Spanish reply",
+      "language": "es",
+      "maxTokens": 220,
+      "turns": [
+        {
+          "user": "Responde en español. ¿Qué ventaja tiene ejecutar un modelo de lenguaje en tu propio ordenador? Usa exactamente dos frases.",
+          "reply": "1. **Reducción de latencia**: Cuando ejecutas un modelo de lenguaje en tu propio ordenador, puedes reducir significativamente la latencia entre el momento en que se genera el texto y el momento en que se muestra en la interfaz de usuario. Esto es especialmente útil en aplicaciones de chatbot o asistentes virtuales, donde la respuesta debe ser instantánea.\n\n2. **Optimización de recursos**: Tu ordenador puede optimizar mejor el uso de recursos, como la memoria y la CPU, ya que no hay que compartir estos recursos con otros procesos. Esto puede resultar en un mejor rendimiento general y en una mayor capacidad de procesamiento.",
+          "finishReason": "stop",
+          "wallMs": 7885,
+          "usage": {
+            "completion_tokens": 143,
+            "prompt_tokens": 60,
+            "total_tokens": 203,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 60,
+            "prompt_ms": 647.601,
+            "prompt_per_token_ms": 10.79335,
+            "prompt_per_second": 92.64964075101798,
+            "predicted_n": 143,
+            "predicted_ms": 7227.69,
+            "predicted_per_token_ms": 50.89922535211267,
+            "predicted_per_second": 19.646664425286644
+          },
+          "structure": {
+            "sentences": 6,
+            "bullets": 2,
+            "words": 102
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 6,
+        "bullets": 2,
+        "words": 102
+      }
+    },
+    {
+      "id": "de-chat",
+      "area": "German reply",
+      "language": "de",
+      "maxTokens": 220,
+      "turns": [
+        {
+          "user": "Antworte auf Deutsch. Welchen Vorteil hat es, ein Sprachmodell auf dem eigenen Computer auszuführen? Verwende genau zwei Sätze.",
+          "reply": "Es gibt mehrere Vorteile, wenn ein Sprachmodell auf Ihrem eigenen Computer auszuführen ist:\n\n1. **Faster Reaktionszeit**: Der Sprachmodell-Server ist nicht immer verfügbar oder kann zu langen Wartepunkten führen. Wenn Sie das Modell auf Ihrem eigenen Computer ausführen, können Sie schnell und effizient sprechen.\n\n2. **Kontextabhängige Reaktion**: Sprachmodell-Server können nicht kontextabhängig reagieren, da sie keine Informationen über Ihre Umgebung haben. Wenn Sie das Modell auf Ihrem eigenen Computer ausführen, können Sie kontextabhängige Antworten und Reaktionen erhalten.",
+          "finishReason": "stop",
+          "wallMs": 9093,
+          "usage": {
+            "completion_tokens": 143,
+            "prompt_tokens": 66,
+            "total_tokens": 209,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 66,
+            "prompt_ms": 442.225,
+            "prompt_per_token_ms": 6.700378787878789,
+            "prompt_per_second": 149.24529368534115,
+            "predicted_n": 143,
+            "predicted_ms": 8645.092,
+            "predicted_per_token_ms": 60.88092957746479,
+            "predicted_per_second": 16.42550478352341
+          },
+          "structure": {
+            "sentences": 6,
+            "bullets": 2,
+            "words": 75
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 6,
+        "bullets": 2,
+        "words": 75
+      }
+    },
+    {
+      "id": "fr-chat",
+      "area": "French reply",
+      "language": "fr",
+      "maxTokens": 220,
+      "turns": [
+        {
+          "user": "Réponds en français. Quel est l'avantage d'exécuter un modèle de langage sur son propre ordinateur ? Utilise exactement deux phrases.",
+          "reply": "L'avantage d'exécuter un modèle de langage sur son propre ordinateur est que cela permet de maximiser la précision et la fiabilité du modèle. De plus, cela offre une flexibilité accrue pour l'adaptation et la personalisation du modèle aux besoins spécifiques de l'utilisateur.",
+          "finishReason": "stop",
+          "wallMs": 7065,
+          "usage": {
+            "completion_tokens": 69,
+            "prompt_tokens": 65,
+            "total_tokens": 134,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 65,
+            "prompt_ms": 510.793,
+            "prompt_per_token_ms": 7.858353846153847,
+            "prompt_per_second": 127.25311427525436,
+            "predicted_n": 69,
+            "predicted_ms": 6549.478,
+            "predicted_per_token_ms": 96.31585294117647,
+            "predicted_per_second": 10.382506819627459
+          },
+          "structure": {
+            "sentences": 2,
+            "bullets": 0,
+            "words": 42
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 2,
+        "bullets": 0,
+        "words": 42
+      }
+    },
+    {
+      "id": "arithmetic",
+      "area": "Arithmetic",
+      "language": "en",
+      "maxTokens": 20,
+      "turns": [
+        {
+          "user": "A user has 3 apples, buys 5 more, gives away 2, then buys 12. How many apples does the user have now? Reply with the number only.",
+          "reply": "14",
+          "finishReason": "stop",
+          "wallMs": 557,
+          "usage": {
+            "completion_tokens": 3,
+            "prompt_tokens": 67,
+            "total_tokens": 70,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 67,
+            "prompt_ms": 478.773,
+            "prompt_per_token_ms": 7.145865671641792,
+            "prompt_per_second": 139.94105766198177,
+            "predicted_n": 3,
+            "predicted_ms": 73.393,
+            "predicted_per_token_ms": 36.6965,
+            "predicted_per_second": 27.25055523006281
+          },
+          "structure": {
+            "sentences": 0,
+            "bullets": 0,
+            "words": 1
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 0,
+        "bullets": 0,
+        "words": 1
+      }
+    },
+    {
+      "id": "app-no-context",
+      "area": "App help without retrieval",
+      "language": "en",
+      "maxTokens": 180,
+      "turns": [
+        {
+          "user": "In Kryvex, which exact button opens the local model server? If you do not have Kryvex documentation in this conversation, say that you cannot verify it instead of guessing.",
+          "reply": "I cannot verify the exact button in Kryvex that opens the local model server as I don't have access to the documentation or specific details about the interface. However, I can provide some general information about Kryvex and model servers.\n\nKryvex is a software tool used for managing and deploying machine learning models. It typically includes a user interface where you can interact with the model server. The model server is responsible for hosting and serving the trained models.\n\nIf you are trying to open the local model server in Kryvex, you might need to look for a button or option labeled \"Start Server,\" \"Run Model,\" or \"Launch Model\" in the Kryvex interface. These buttons are usually located in the main menu or under the \"Settings\" or \"Model\" section.\n\nSince I don't have access to the specific documentation or interface of Kryv",
+          "finishReason": "length",
+          "wallMs": 8889,
+          "usage": {
+            "completion_tokens": 180,
+            "prompt_tokens": 68,
+            "total_tokens": 248,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 68,
+            "prompt_ms": 387.81,
+            "prompt_per_token_ms": 5.703088235294118,
+            "prompt_per_second": 175.34359609086926,
+            "predicted_n": 180,
+            "predicted_ms": 8484.965,
+            "predicted_per_token_ms": 47.40203910614525,
+            "predicted_per_second": 21.096138876235788
+          },
+          "structure": {
+            "sentences": 7,
+            "bullets": 0,
+            "words": 142
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 7,
+        "bullets": 0,
+        "words": 142
+      }
+    },
+    {
+      "id": "app-grounded",
+      "area": "App help with retrieval text",
+      "language": "en",
+      "maxTokens": 120,
+      "turns": [
+        {
+          "user": "Using only this text, answer in one sentence: \"Settings > Vexium > Start server starts the local model on 127.0.0.1.\" Which button starts the local model, and where is it?",
+          "reply": "The button that starts the local model is \"Start server\" in the Vexium settings, and it starts the local model on 127.0.0.1.",
+          "finishReason": "stop",
+          "wallMs": 2251,
+          "usage": {
+            "completion_tokens": 38,
+            "prompt_tokens": 76,
+            "total_tokens": 114,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 76,
+            "prompt_ms": 462.547,
+            "prompt_per_token_ms": 6.0861447368421056,
+            "prompt_per_second": 164.30762711681191,
+            "predicted_n": 38,
+            "predicted_ms": 1782.49,
+            "predicted_per_token_ms": 48.17540540540541,
+            "predicted_per_second": 20.75747970535599
+          },
+          "structure": {
+            "sentences": 4,
+            "bullets": 0,
+            "words": 22
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 4,
+        "bullets": 0,
+        "words": 22
+      }
+    },
+    {
+      "id": "current-facts",
+      "area": "Current facts",
+      "language": "en",
+      "maxTokens": 100,
+      "turns": [
+        {
+          "user": "Who won the 2026 FIFA World Cup? If you do not have that information, say so in one sentence instead of guessing.",
+          "reply": "I'm sorry, but I don't have the current information about the winner of the 2026 FIFA World Cup. I can't make guesses or speculate about future events.",
+          "finishReason": "stop",
+          "wallMs": 2127,
+          "usage": {
+            "completion_tokens": 38,
+            "prompt_tokens": 58,
+            "total_tokens": 96,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 58,
+            "prompt_ms": 352.529,
+            "prompt_per_token_ms": 6.078086206896551,
+            "prompt_per_second": 164.52547166332414,
+            "predicted_n": 38,
+            "predicted_ms": 1771.448,
+            "predicted_per_token_ms": 47.87697297297298,
+            "predicted_per_second": 20.886867692418857
+          },
+          "structure": {
+            "sentences": 2,
+            "bullets": 0,
+            "words": 27
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 2,
+        "bullets": 0,
+        "words": 27
+      }
+    },
+    {
+      "id": "format",
+      "area": "Formatting",
+      "language": "en",
+      "maxTokens": 120,
+      "turns": [
+        {
+          "user": "List exactly three bullet points, each no longer than 12 words, naming one benefit of local inference. No introduction and no conclusion.",
+          "reply": "- Faster response times\n- Reduced latency\n- Lower bandwidth usage",
+          "finishReason": "stop",
+          "wallMs": 1081,
+          "usage": {
+            "completion_tokens": 14,
+            "prompt_tokens": 57,
+            "total_tokens": 71,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 57,
+            "prompt_ms": 484.963,
+            "prompt_per_token_ms": 8.508122807017545,
+            "prompt_per_second": 117.53473976365207,
+            "predicted_n": 14,
+            "predicted_ms": 585.835,
+            "predicted_per_token_ms": 45.064230769230775,
+            "predicted_per_second": 22.19054853329009
+          },
+          "structure": {
+            "sentences": 0,
+            "bullets": 3,
+            "words": 11
+          }
+        }
+      ],
+      "structure": {
+        "sentences": 0,
+        "bullets": 3,
+        "words": 11
+      }
+    }
+  ]
+}

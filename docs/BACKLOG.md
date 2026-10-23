@@ -2,13 +2,13 @@
 
 ## Now (M3+: product)
 M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
-- [x] All M1 analysis docs written from the cloned source.
+- [x] All M1 analysis docs written.
 - [x] Name screen: Veyra rejected, Gatherium superseded, Kryvex selected
   (high risk: ED-002); `kryvex` repo-existence check still pending.
-- [x] Baseline M2 green: install, typecheck, tests, no upstream edits.
+- [x] Baseline M2 green: install, typecheck, tests, no edits outside the project.
 - [x] Kryvex identity: tile logo, small/tray/mono SVGs, `BRAND.md`, tokens,
   6 themes, PNG 16–512 + 7-size ICO, visual QA sheet.
-- [x] Init `X:\Veyra` git repo, `.gitignore`, fork `package.json` ids,
+- [x] Init `X:\Veyra` git repo, `.gitignore`, set `package.json` ids,
   product name, and icons into the source tree.
 - [x] About/attribution page following `brand/BRAND.md` copy rules, including
   developer links to XiONDiGiTaL and player529.
@@ -16,7 +16,7 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
   quick-help dialog and 0.3.0 Windows Setup/Portable release.
 - [x] Browser library: downloads with live actions, searchable history,
   bookmark list, direct URL deep links and opt-in Windows default-browser setup.
-- [x] Brave-style privacy baseline: HTTPS upgrades with one-time fallback,
+- [x] Browser privacy baseline: HTTPS upgrades with one-time fallback,
   tracking-parameter stripping, per-site fingerprint farbling, EasyList Cookie,
   independent privacy switches and a live verification harness.
 - [x] Browser session restore, persistent download history, find-in-page and
@@ -56,4 +56,4 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
 - No pushes to any remote until `gh repo view`/create + secret scan + build
   + tests pass. No force-push, no history destruction.
 - No C: writes beyond documented tool caches; keep build artifacts out of git.
-- Never claim Midori integration, test passes, or measurements without proof.
+- Never claim an integration, test pass, or measurement without proof.

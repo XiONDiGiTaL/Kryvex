@@ -45,8 +45,8 @@ Download the installer, portable build and checksum list from the
 Everything from 0.6.0 is included: kept-alive service apps with native
 notifications, unread badges, sign-in popups and per-service session clearing;
 the 27-service catalogue; in-app updates with mandatory checksum verification;
-the browser library, find/zoom, session restore, Brave-style privacy
-protections, media permission prompts, the persisted torrent queue, Chrome
+the browser library, find/zoom, session restore, privacy protections, media
+permission prompts, the persisted torrent queue, Chrome
 extension loading and the download-location picker.
 
 ## Artifacts

@@ -7,7 +7,8 @@ import type {
   WebContents,
 } from 'electron';
 import type { ElectronBlocker } from '@ghostery/adblocker-electron';
-import { canonicalUrl, stripTrackingParams, upgradeToHttps } from './brave-rules';
+import { isSignInHost } from './sign-in-hosts';
+import { canonicalUrl, stripTrackingParams, upgradeToHttps } from './url-privacy-rules';
 
 export interface PrivacyOptions {
   httpsUpgrade: boolean;
@@ -102,6 +103,15 @@ class WebPrivacy {
       if (!sender || sender.getType() !== 'webview') return 0;
     } catch {
       return 0;
+    }
+
+    // Google's account pages decide whether the browser is trustworthy. A
+    // wrapped canvas or audio call is exactly what that check looks for, so
+    // the sign-in surface keeps the engine stock and gets no noise at all.
+    try {
+      if (isSignInHost(new URL(sender.getURL()).hostname)) return 0;
+    } catch {
+      /* a page between navigations keeps its normal seed */
     }
 
     let key = typeof site === 'string' ? site.slice(0, 2048) : '';

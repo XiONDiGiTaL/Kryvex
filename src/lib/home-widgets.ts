@@ -9,31 +9,44 @@ import type { HomeSettings, HomeWidgetArea, HomeWidgetId } from '../types';
  * source of truth for visibility; `showTasks` is the sticky notes flag and is
  * kept under its historical name so an existing state file keeps working.
  */
-export const HOME_WIDGETS: HomeWidgetId[] = ['weather', 'wellness', 'notes', 'guide'];
+export const HOME_WIDGETS: HomeWidgetId[] = [
+  'weather',
+  'wellness',
+  'notes',
+  'calculator',
+  'guide',
+  'currency',
+];
 
 export const HOME_WIDGET_LABELS: Record<HomeWidgetId, string> = {
   weather: 'Weather',
   wellness: 'Wellness',
   notes: 'Sticky notes',
+  calculator: 'Calculator',
+  currency: 'Currency converter',
   guide: 'Board guide',
 };
 
 /** Which persisted boolean turns each widget on. */
 export const HOME_WIDGET_FLAGS: Record<
   HomeWidgetId,
-  'showWeather' | 'showWellness' | 'showTasks' | 'showGuide'
+  'showWeather' | 'showWellness' | 'showTasks' | 'showCalculator' | 'showCurrency' | 'showGuide'
 > = {
   weather: 'showWeather',
   wellness: 'showWellness',
   notes: 'showTasks',
+  calculator: 'showCalculator',
+  currency: 'showCurrency',
   guide: 'showGuide',
 };
 
-/** The guide starts in the narrow column; everything else starts in the main one. */
+/** The guide and converter start in the narrow column; everything else in the main one. */
 export const HOME_WIDGET_DEFAULT_AREAS: Record<HomeWidgetId, HomeWidgetArea> = {
   weather: 'main',
   wellness: 'main',
   notes: 'main',
+  calculator: 'main',
+  currency: 'side',
   guide: 'side',
 };
 
@@ -108,7 +121,10 @@ export function moveWidgetWithinArea(
 }
 
 export function widgetEnabled(
-  home: Pick<HomeSettings, 'showWeather' | 'showWellness' | 'showTasks' | 'showGuide'>,
+  home: Pick<
+    HomeSettings,
+    'showWeather' | 'showWellness' | 'showTasks' | 'showCalculator' | 'showCurrency' | 'showGuide'
+  >,
   id: HomeWidgetId,
 ): boolean {
   return home[HOME_WIDGET_FLAGS[id]] === true;
@@ -117,7 +133,14 @@ export function widgetEnabled(
 export function visibleWidgets(
   home: Pick<
     HomeSettings,
-    'showWeather' | 'showWellness' | 'showTasks' | 'showGuide' | 'widgetOrder' | 'widgetAreas'
+    | 'showWeather'
+    | 'showWellness'
+    | 'showTasks'
+    | 'showCalculator'
+    | 'showCurrency'
+    | 'showGuide'
+    | 'widgetOrder'
+    | 'widgetAreas'
   >,
   area: HomeWidgetArea,
 ): HomeWidgetId[] {

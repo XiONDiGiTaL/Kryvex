@@ -36,9 +36,15 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
           <span className="mono player-bar-meta">
             {player.error
               ? t('That track could not be played.')
-              : `${current.origin === 'file' ? t('LOCAL') : current.subtitle || t('STREAM')} · ${
-                  player.index + 1
-                }/${player.tracks.length}`}
+              : `${current.origin === 'file'
+                  ? t('LOCAL')
+                  : current.origin === 'spotify'
+                    ? t('SPOTIFY PREVIEW')
+                    : current.origin === 'youtube'
+                      ? t('YOUTUBE')
+                      : current.subtitle || t('STREAM')} · ${player.index + 1}/${
+                  player.tracks.length
+                }`}
           </span>
         </div>
       </div>

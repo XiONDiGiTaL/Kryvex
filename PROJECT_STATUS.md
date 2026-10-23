@@ -1,16 +1,16 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.8.8, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.8.9, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
 sessions and per-service session clearing. It also has rooms with presence,
-chat and screen share, Vexium talking to a local model over loopback, a
+chat and screen share, Vexium Core running a reviewed local model over loopback, a
 first-run theme gallery, an opt-in wallpaper backdrop and a restorable browser
 session, a persistent download history, find-in-page and page zoom,
 history/bookmarks, a persisted torrent queue that restores paused, a Chromium
 engine panel that exposes real launch switches and page preferences,
-microphone/camera prompts for web calls, Brave-style HTTPS upgrades,
+microphone/camera prompts for web calls, HTTPS upgrades,
 tracking-parameter stripping, per-site fingerprint farbling and a shared
 download location. Four in-house secret tools sit beside the modules: Lexium,
 the media player, the gated 8-bit emulator and Disk pulse, a local drive
@@ -31,11 +31,10 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
 - [x] **M0: Environment & safety audit.** Verified storage, git, Node 24.19.0,
   gh auth as XiONDiGiTaL. `X:\REA` untouched.
-- [x] **M1: Requirements and reference research.** Reviewed comparable
-  modular-workspace patterns without copying code; the independent-shell
-  decision is recorded in `docs/ENGINEERING_DECISIONS.md`.
+- [x] **M1: Requirements and research.** Requirements and the shell decision
+  are recorded in `docs/ENGINEERING_DECISIONS.md`.
 - [x] **M2: Reproducible baseline.** pnpm 12.3.4 (local tool dir; corepack
-  blocked by EPERM), install/typecheck/test run in the reference clone.
+  blocked by EPERM), install/typecheck/test run in the project checkout.
 - [x] **M3: Identity & shell.** Periodic-table tile logo, small/tray/mono
   variants, `brand/BRAND.md`, `brand/tokens.json`, `brand/themes.json` (schema
   v3, 78 catalogue themes in eight families), PNG 16–512, 7-resolution
@@ -109,7 +108,18 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   **0.8.4**, **0.8.5**, **0.8.6**, **0.8.7** and **0.8.8** Setup and Portable EXEs are built by GitHub Actions on their `v*` tags
   (**0.8.5**, **0.8.6**, **0.8.7** and **0.8.8** were also built and installed locally before their
   tags, and their published EXEs were re-downloaded and hash-verified
-  afterwards); the
+  afterwards); **0.8.9** (Vexium Core auto-start, the Vexium page status card,
+  the one-time move off Ollama's default, Spotify and YouTube playlist import,
+  the Google account-page sign-in fix, and the Home calculator and converter)
+  was built locally and committed on 2026-10-23 before its tag:
+  `release/Kryvex-Setup-0.8.9-x64.exe` (`beef57815f77cbbd…`, 128.1 MiB) and
+  `release/Kryvex-Portable-0.8.9-x64.exe` (`e51968fa55404748…`, 127.9 MiB),
+  both `ProductVersion 0.8.9`, `NotSigned`. The Setup EXE was run silently over
+  the existing 0.8.8 install at `C:\Kryvex`, which now reports 0.8.9 and starts
+  Vexium Core on launch. Its release record and installer wizard capture are
+  committed (`docs/RELEASE_0.8.9.md`,
+  `docs/media/releases/0.8.9-wizard/`), `pnpm release:check` passes for 0.8.9,
+  and the `v0.8.9` tag is pushed so the workflow rebuilds and publishes it. The
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
   `package:win`, writes `SHA256SUMS.txt` and publishes the release, and it now
   refuses a tag whose release record carries no installer wizard capture
@@ -123,11 +133,41 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.8
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
-  in-app updater accepts it.
+  in-app updater accepts it. The installable PWA is published from the
+  `gh-pages` branch of the same repository and serves
+  `https://xiondigital.net/Kryvex/`, rebuilt for each release (0.8.9 as of this
+  record).
 - [ ] **M11: Final review.** README with real screenshots, banner,
   feature/security/limitation sections, honest testing docs and 0.3.0–0.8.8
   release records are in place. Outstanding: engineering report and
   a signed public release.
+
+## Fixed (2026-10-23, Google sign-in browser check)
+
+Google's account pages refuse a browser that claims to be Chrome from an engine
+they can tell is not Chrome: the identifier step lands on
+`/v3/signin/rejected` with "This browser or app may not be secure". The refusal
+was reproduced without credentials and bisected in a real guest (fresh profile,
+`persist:svc-*` partition, trusted key events through
+`webContents.sendInputEvent`):
+
+- a Chrome user agent, with or without client hints and the identity preload,
+  was refused every time;
+- the application's own agent (`Kryvex/... Electron/44.9.3`) reached Google's
+  account step: a captcha, then "Couldn't find this account" for the fake
+  identifier.
+
+Kryvex now stands aside on `accounts.google.*`, `myaccount.google.*` and
+`accounts.youtube.com`: requests carry the application's own user agent with no
+`Sec-CH-UA` hints, the guest switches its agent per navigation
+(`electron/identity.ts`), and neither the identity preload nor the fingerprint
+farbling is installed there. Every other page keeps the Chrome identity.
+
+Checks: `npm run typecheck` exit 0; `npm test` exit 0, **571/571** in 57 files
+(adds `tests/sign-in-hosts.test.ts` and two `withApplicationUserAgent` cases);
+`npm run build` exit 0; `npm run verify:identity` PASS with the new shape
+assertions; an end-to-end guest reached the account step. Not run: a real
+account sign-in, a captcha solve, or another provider.
 
 ## Fixed (2026-10-21, error dialog on close)
 
@@ -572,7 +612,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   URL drain; dev run did not change the system default.
 - Live module probe: `https://sohbet.xiondigital.net/` loaded with
   `loading: false` inside a `persist:svc-*` webview.
-- Repository scan: no tracked `node_modules`, build output, upstream checkout,
+- Repository scan: no tracked `node_modules`, build output, temporary checkout,
   env files or credential patterns; README image references all resolve.
 - Dev-only Vite defect found and fixed: brand JSON cannot be imported while
   `brand/` is configured as `publicDir`; `publicDir` is now disabled, the logo
@@ -604,8 +644,8 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 - Some third-party services resist embedding (strict SSO, user-agent checks,
   or a server-side session reset); “Open externally” is the supported escape
   hatch. Discord's own token invalidation is outside the app's control.
-- BetterDiscord/Vencord/AyuGram-style injection is deliberately not shipped;
-  compounds and a gated emulator are designed but not built (see
+- Client-mod injection is deliberately not shipped; compounds and a gated
+  emulator are designed but not built (see
   `docs/PLATFORM_PLAN.md`). Local models ship as the GGUF runner above; the
   installer now includes the llama.cpp CPU runtime, while weights remain a
   separate, reviewed download.
@@ -618,6 +658,17 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 0.8.8 is published from the `v0.8.8` tag with the Setup, Portable and checksum
 assets, so installed 0.8.7 builds pick up the bundled llama.cpp runtime, the
 rearrangeable Home widgets, the service-dock volume and repeat controls, and the
-opt-in Spotify ad guard through **Settings → Updates**. Next: code signing, the
-PWA client on Android (no APK), and the compound manifest and permission sheet
-described in `docs/PLATFORM_PLAN.md` before adding any branded add-on.
+opt-in Spotify ad guard through **Settings → Updates**. 0.8.9 is built locally
+(both EXEs above) and exercised from `release/win-unpacked` against a copied
+profile: Vexium Core started itself on launch, the Vexium card reached RUNNING
+with the active build, Stop then Start went RUNNING → STOPPED → RUNNING, and a
+streamed reply arrived (`docs/TESTING.md`). The Setup EXE then replaced the 0.8.8
+copy at `C:\Kryvex` with 0.8.9, and the installed app was checked the same way:
+Settings shows 0.8.9 and Vexium Core starts itself. The record and wizard
+capture are in place and `pnpm release:check` passes, so cutting `v0.8.9` is the
+remaining step before publication. The web build was refreshed too: `gh-pages`
+serves 0.8.9 with the cache name `kryvex-web-0.8.9-v1`, and a cold visit to
+`https://xiondigital.net/Kryvex/#/settings` reports `v0.8.9`. Next: code
+signing, the PWA client on Android (no APK), and the compound manifest and
+permission sheet described in `docs/PLATFORM_PLAN.md` before adding any branded
+add-on.

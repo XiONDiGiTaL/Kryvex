@@ -25,12 +25,14 @@ import { diskService } from './disk-service';
 import { downloads } from './downloads';
 import { extensions } from './extensions';
 import { configurePrivacySwitches, hardenSession } from './hardening';
-import { ensureBrowserIdentity } from './identity';
+import { ensureBrowserIdentity, followUserAgent } from './identity';
 import { localModel } from './local-model';
 import { media } from './media';
 import { modelManager } from './model-download';
 import { notifications } from './notifications';
 import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
+import { playlistImporter } from './playlist';
+import { playerEmbed } from './player-embed';
 import { permissions } from './permissions';
 import { popupTabs } from './popup-tabs';
 import { fetchFeed } from './rss';
@@ -39,8 +41,9 @@ import { vpn } from './vpn';
 import { weather } from './weather';
 import { isSafePartition } from './privacy';
 import { serviceSessions } from './service-sessions';
+import { isSignInHost } from './sign-in-hosts';
 import { spotifyAds } from './spotify-ads';
-import { stableUserAgent } from './user-agent';
+import { rememberApplicationAgent, stableUserAgent } from './user-agent';
 import {
   MIN_WINDOW_SIZE,
   PREFERRED_WINDOW_SIZE,
@@ -77,7 +80,10 @@ notifications.configure();
 
 // Service modules must look like a normal Chromium browser. Electron's
 // default agent advertises "Electron/x", which several web clients treat as an
-// unsupported browser and answer with forced sign-outs or broken OAuth.
+// unsupported browser and answer with forced sign-outs or broken OAuth. The
+// original value is kept: Google's account pages verify the browser and need
+// the agent that names the product Kryvex actually is.
+rememberApplicationAgent(app.userAgentFallback);
 app.userAgentFallback = stableUserAgent(process.platform, process.versions.chrome);
 
 // Integration harnesses use an isolated profile so they never read or write the
@@ -253,6 +259,7 @@ function hardenWebContents(): void {
     // own window.open calls go to the system browser rather than stacking
     // unknown windows inside the app.
     contents.on('did-create-window', window => {
+      followUserAgent(window.webContents);
       // A popup tab keeps the window-open policy above, so a link opened from
       // inside it stays in Kryvex too.
       if (popupTabs.claim(window, contents)) return;
@@ -359,6 +366,7 @@ function createWindow(): BrowserWindow {
 
   win.webContents.on('did-attach-webview', (_event, contents) => {
     trackChromiumGuest(contents);
+    followUserAgent(contents);
     serviceSessions.applyTo(contents);
     serviceSessions.observeGuest(contents);
     media.track(contents);
@@ -425,6 +433,12 @@ function torrentResult(ok: boolean, message: string): TorrentResult {
 }
 
 function registerIpc(): void {
+  // The identity preload asks this before it patches a page. Google's account
+  // pages stand aside: they verify the engine, so they get it unpatched and
+  // under the application's own user agent.
+  ipcMain.on('kryvex:identity:allow', (event, host: unknown) => {
+    event.returnValue = !isSignInHost(typeof host === 'string' ? host : '');
+  });
   ipcMain.handle('kryvex:state:load', (event) => (isShellSender(event) ? readState() : null));
   ipcMain.handle('kryvex:state:save', (event, state: unknown) =>
     isShellSender(event) ? writeState(state) : false,
@@ -725,6 +739,14 @@ function registerIpc(): void {
   );
   ipcMain.handle('kryvex:weather:at', (event, latitude: unknown, longitude: unknown, unit: unknown) =>
     isShellSender(event) ? weather.at(latitude, longitude, unit) : { ok: false, error: 'invalid' },
+  );
+  // Playlist pages are fetched here so the renderer never needs a CORS proxy
+  // or credentials. Only normalized track rows cross the bridge.
+  ipcMain.handle('kryvex:playlist:resolve', (event, url: unknown) =>
+    isShellSender(event) ? playlistImporter.resolve(url) : { ok: false, error: 'unavailable' },
+  );
+  ipcMain.handle('kryvex:player:embed-url', (event, videoId: unknown, autoplay: unknown) =>
+    isShellSender(event) ? playerEmbed.url(videoId, autoplay) : null,
   );
   ipcMain.handle('kryvex:resources:sample', (event, services: unknown) =>
     isShellSender(event) ? resources.sample(services) : null,
@@ -1061,6 +1083,8 @@ if (!gotLock) {
     downloads.trackSession(session.defaultSession);
     hardenWebContents();
     partyInit();
+    // The YouTube bridge needs an http origin; a file:// shell gets Error 153.
+    await playerEmbed.start().catch(() => undefined);
     registerIpc();
     updater.init();
     // Register the Windows activation hook before the first toast can appear.
@@ -1110,6 +1134,7 @@ if (!gotLock) {
   // a wedged store can never trap the app.
   let flushed = false;
   app.on('before-quit', event => {
+    playerEmbed.dispose();
     void torrents.shutdown();
     void localModel.dispose();
     if (flushed) return;

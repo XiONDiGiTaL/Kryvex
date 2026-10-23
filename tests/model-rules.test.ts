@@ -6,6 +6,7 @@ import {
   formatMemoryEstimate,
   formatModelSize,
   isActivePhase,
+  modelFileLabel,
 } from '../src/lib/local-models';
 import { MODEL_CATALOGUE, catalogueEntry } from '../electron/model-catalogue';
 import {
@@ -37,8 +38,20 @@ describe('the shipped catalogue', () => {
   it('contains one reviewed artifact', () => {
     expect(MODEL_CATALOGUE).toHaveLength(1);
     expect(starter.id).toBe('qwen2.5-1.5b-instruct');
+    expect(starter.productName).toBe('Vexium Core');
+    expect(starter.name).toBe('Qwen2.5-1.5B-Instruct');
     expect(catalogueEntry(starter.id)).toBe(starter);
     expect(catalogueEntry('something-else')).toBeUndefined();
+  });
+
+  it('reads a configured model filename without its directory or suffix', () => {
+    expect(modelFileLabel('C:\\Users\\xiond\\AppData\\Roaming\\Kryvex\\models\\qwen2.5-1.5b-instruct.gguf')).toBe(
+      'qwen2.5-1.5b-instruct',
+    );
+    expect(modelFileLabel('/home/user/models/Llama-3.2-3B.Q4_K_M.GGUF')).toBe(
+      'Llama-3.2-3B.Q4_K_M',
+    );
+    expect(modelFileLabel('')).toBe('');
   });
 
   it('passes its own validation and pins the researched artifact', () => {

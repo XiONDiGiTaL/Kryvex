@@ -65,20 +65,6 @@ Deleting a system-essential file is prevented structurally: it is not reachable
 by any target id. If a future rule were to include one, the protected-root check
 would still refuse it and the file would be counted as skipped.
 
-## Licence boundaries of the reference projects
-
-The tool was designed after reviewing three projects, but only one permits
-adaptation:
-
-| Project | Licence | What Kryvex took |
-| --- | --- | --- |
-| [Cleanmgr+](https://github.com/builtbybel/CleanmgrPlus) | Custom EULA: personal use, **no modification or derivative works** | Feature ideas only; no code. |
-| [CleanManager](https://github.com/patrickleehua/CleanManager) | MIT | Category checklist and "see before you delete" flow; no code copied verbatim. |
-| [SquirrelDisk](https://github.com/adileo/squirreldisk) | AGPL-3.0 | Analyzer/tree-map idea only; no code, because AGPL would relicense Kryvex. |
-
-The analyzer is a folder-size walker in Kryvex's own worker thread, not a port of
-any of them. See [ATTRIBUTION.md](ATTRIBUTION.md).
-
 ## Verification
 
 - `tests/disk-rules.test.ts`: containment, prefix siblings, protected roots,

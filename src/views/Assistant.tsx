@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AssistantDelta, AssistantMessage, PersistedState } from '../types';
+import type {
+  AssistantDelta,
+  AssistantMessage,
+  AssistantSettings,
+  PersistedState,
+} from '../types';
 import { useI18n } from '../lib/i18n';
 import { openExternalUrl } from '../lib/external';
 import {
@@ -9,6 +14,8 @@ import {
   useAssistantRuntime,
 } from '../lib/assistant';
 import { VEXEL_GREETING, looksUnsure, offlineReply } from '../lib/vexel';
+import { formatModelSize } from '../lib/local-models';
+import { installedCoreFor, useVexiumCore } from '../lib/vexium-core';
 import { Icon } from '../components/ui';
 
 type ChatMessage = AssistantMessage & { search?: string };
@@ -29,15 +36,18 @@ export function Assistant({
   isElectron,
   onOpenSettings,
   onSearch,
+  onAssistantChange,
 }: {
   state: PersistedState;
   isElectron: boolean;
   onOpenSettings: () => void;
   onSearch: (query: string) => void;
+  onAssistantChange: (patch: Partial<AssistantSettings>) => void;
 }) {
   const { t } = useI18n();
   const settings = state.settings.assistant;
   const runtime = useAssistantRuntime(settings);
+  const core = useVexiumCore(isElectron);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -175,6 +185,35 @@ export function Assistant({
   const canSend = !requestId && draft.trim().length > 0;
   const offline = !model || status !== 'online';
 
+  // Vexium Core is the default provider, so its state belongs on this page:
+  // what is installed, which build is running, and one button to start it.
+  const corePhase = core.status?.phase ?? 'idle';
+  const coreConfigured = Boolean(core.status?.path);
+  const coreInstalled = installedCoreFor(core.installed, core.status?.path ?? '');
+  const coreLabel = !coreConfigured
+    ? t('Not installed')
+    : corePhase === 'running'
+      ? t('RUNNING')
+      : corePhase === 'starting'
+        ? t('STARTING')
+        : corePhase === 'error'
+          ? t('ERROR')
+          : t('STOPPED');
+  const showCore = isElectron && (settings.provider === 'local' || coreConfigured);
+
+  async function startCore() {
+    const next = await core.start();
+    if (next?.phase === 'running' && next.baseUrl) {
+      onAssistantChange({ provider: 'local', baseUrl: next.baseUrl, model: '' });
+      runtime.refresh();
+    }
+  }
+
+  async function stopCore() {
+    const next = await core.stop();
+    if (next && next.baseUrl === '') runtime.refresh();
+  }
+
   return (
     <section className="view assistant-view">
       <header className="view-head">
@@ -203,7 +242,7 @@ export function Assistant({
             {settings.provider === 'lmstudio'
               ? 'LM STUDIO'
               : settings.provider === 'local'
-                ? t('MODEL FILE')
+                ? t('VEXIUM CORE')
                 : 'OLLAMA'}
           </span>
           <button className="btn ghost small" onClick={onOpenSettings}>
@@ -224,12 +263,73 @@ export function Assistant({
         </div>
       </header>
 
+      {showCore ? (
+        <div className="assistant-core" data-testid="vexium-core">
+          <div className="assistant-core-head">
+            <span className="mono assistant-core-kicker">{t('VEXIUM CORE')}</span>
+            <span
+              className={`mono assistant-core-state is-${coreConfigured ? corePhase : 'idle'}`}
+              data-testid="vexium-core-state"
+            >
+              {coreLabel}
+            </span>
+          </div>
+          <dl className="assistant-core-facts">
+            <div>
+              <dt>{t('Installed')}</dt>
+              <dd>
+                {coreInstalled
+                  ? `${coreInstalled.name} · ${formatModelSize(coreInstalled.bytes)}`
+                  : coreConfigured
+                    ? core.status?.name
+                    : t('Not installed')}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('Active build')}</dt>
+              <dd>
+                {core.status?.path
+                  ? `${core.status.name} · ${core.status.ctxSize} ${t('context')}${
+                      core.status.baseUrl ? ` · ${core.status.baseUrl}` : ''
+                    }`
+                  : t('Not installed')}
+              </dd>
+            </div>
+          </dl>
+          <div className="assistant-core-actions">
+            {corePhase === 'running' ? (
+              <button className="btn secondary small" disabled={core.busy} onClick={() => void stopCore()}>
+                {t('Stop server')}
+              </button>
+            ) : (
+              <button
+                className="btn primary small"
+                disabled={core.busy || !coreConfigured || corePhase === 'starting'}
+                onClick={() => void startCore()}
+              >
+                {corePhase === 'starting' ? t('Vexium Core is starting…') : t('Start Vexium Core')}
+              </button>
+            )}
+            {!coreConfigured ? (
+              <button className="btn ghost small" onClick={onOpenSettings}>
+                {t('Install Vexium Core in Settings to start it here.')}
+              </button>
+            ) : null}
+          </div>
+          {core.error ? (
+            <p className="assistant-core-error" role="alert">
+              {core.error}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {status === 'offline' ? (
         <div className="assistant-notice" role="status" data-testid="runtime-offline">
           <strong>{t('No local runtime is answering.')}</strong>
           <p>
             {t(
-              'Start Ollama (ollama serve) and pull a model, or start the LM Studio local server, then point Vexium at its loopback port in Settings.',
+              'Set up Vexium Core in Settings, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.',
             )}
           </p>
           <div className="assistant-notice-actions">
@@ -294,7 +394,7 @@ export function Assistant({
             </div>
             {offline ? (
               <button className="link assistant-get-model" onClick={onOpenSettings}>
-                {t('Load a local model for real answers')} <Icon name="chevron" size={12} />
+                {t('Set up Vexium Core for real answers')} <Icon name="chevron" size={12} />
               </button>
             ) : null}
           </div>

@@ -121,21 +121,24 @@ describe('model listing', () => {
 });
 
 describe('assistant settings', () => {
-  it('falls back to Ollama for unknown providers and empty addresses', () => {
+  it('falls back to Vexium Core for unknown providers and empty addresses', () => {
     expect(sanitizeAssistant(null)).toEqual({
-      provider: 'ollama',
-      baseUrl: 'http://127.0.0.1:11434',
+      provider: 'local',
+      baseUrl: 'http://127.0.0.1:8080',
       model: '',
+      migrated: true,
     });
     expect(sanitizeAssistant({ provider: 'cloud', baseUrl: '   ', model: 'x' })).toEqual({
-      provider: 'ollama',
-      baseUrl: 'http://127.0.0.1:11434',
+      provider: 'local',
+      baseUrl: 'http://127.0.0.1:8080',
       model: 'x',
+      migrated: true,
     });
     expect(sanitizeAssistant({ provider: 'lmstudio', baseUrl: 'http://127.0.0.1:1234' })).toEqual({
       provider: 'lmstudio',
       baseUrl: 'http://127.0.0.1:1234',
       model: '',
+      migrated: true,
     });
   });
 
@@ -144,19 +147,48 @@ describe('assistant settings', () => {
     // survive with the provider instead of falling back to Ollama's 11434.
     expect(
       sanitizeAssistant({ provider: 'local', baseUrl: 'http://127.0.0.1:51234', model: '' }),
-    ).toEqual({ provider: 'local', baseUrl: 'http://127.0.0.1:51234', model: '' });
+    ).toEqual({
+      provider: 'local',
+      baseUrl: 'http://127.0.0.1:51234',
+      model: '',
+      migrated: true,
+    });
+  });
+
+  it('moves an untouched Ollama default to Vexium Core once', () => {
+    const migrated = sanitizeAssistant({
+      provider: 'ollama',
+      baseUrl: 'http://127.0.0.1:11434',
+      model: '',
+    });
+    expect(migrated).toEqual({
+      provider: 'local',
+      baseUrl: 'http://127.0.0.1:8080',
+      model: '',
+      migrated: true,
+    });
+    // Once the flag is saved, choosing Ollama again is kept.
+    expect(
+      sanitizeAssistant({
+        provider: 'ollama',
+        baseUrl: 'http://127.0.0.1:11434',
+        model: '',
+        migrated: true,
+      }).provider,
+    ).toBe('ollama');
   });
 
   it('strips control characters from a saved model id', () => {
     expect(sanitizeAssistant({ provider: 'ollama', model: 'bad\u0007id' }).model).toBe('');
   });
 
-  it('defaults older saved state to the local Ollama runtime', () => {
+  it('defaults older saved state to the first-party Vexium Core runtime', () => {
     const state = sanitizeState({ settings: { themeId: 'kryvex-dark' } });
     expect(state.settings.assistant).toEqual({
-      provider: 'ollama',
-      baseUrl: 'http://127.0.0.1:11434',
+      provider: 'local',
+      baseUrl: 'http://127.0.0.1:8080',
       model: '',
+      migrated: true,
     });
   });
 });

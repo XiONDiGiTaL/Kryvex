@@ -5,7 +5,7 @@ import {
   sameSite,
   stripTrackingParams,
   upgradeToHttps,
-} from '../electron/brave-rules';
+} from '../electron/url-privacy-rules';
 
 describe('stripTrackingParams', () => {
   it('removes campaign and click identifiers but keeps functional parameters', () => {
