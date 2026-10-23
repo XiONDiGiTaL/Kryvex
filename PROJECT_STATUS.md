@@ -111,15 +111,15 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   afterwards); **0.8.9** (Vexium Core auto-start, the Vexium page status card,
   the one-time move off Ollama's default, Spotify and YouTube playlist import,
   the Google account-page sign-in fix, and the Home calculator and converter)
-  was built locally and committed on 2026-10-23 before its tag:
-  `release/Kryvex-Setup-0.8.9-x64.exe` (`beef57815f77cbbd…`, 128.1 MiB) and
-  `release/Kryvex-Portable-0.8.9-x64.exe` (`e51968fa55404748…`, 127.9 MiB),
-  both `ProductVersion 0.8.9`, `NotSigned`. The Setup EXE was run silently over
-  the existing 0.8.8 install at `C:\Kryvex`, which now reports 0.8.9 and starts
-  Vexium Core on launch. Its release record and installer wizard capture are
-  committed (`docs/RELEASE_0.8.9.md`,
-  `docs/media/releases/0.8.9-wizard/`), `pnpm release:check` passes for 0.8.9,
-  and the `v0.8.9` tag is pushed so the workflow rebuilds and publishes it. The
+  was tagged on 2026-10-23 and published by the workflow as the stable
+  [v0.8.9 release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.9)
+  (run `39979410726`, 2m44s). Its local build had already replaced the 0.8.8 copy
+  at `C:\Kryvex`, which reported 0.8.9 and started Vexium Core on launch, and the
+  tag was gated on the commit that carries its release record and installer
+  wizard capture (`docs/RELEASE_0.8.9.md`,
+  `docs/media/releases/0.8.9-wizard/`); both published EXEs were then
+  re-downloaded and `sha256sum -c SHA256SUMS.txt` verifies both, each reporting
+  `ProductVersion 0.8.9`. The
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
   `package:win`, writes `SHA256SUMS.txt` and publishes the release, and it now
   refuses a tag whose release record carries no installer wizard capture
@@ -130,7 +130,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10: Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.8
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.9
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it. The installable PWA is published from the
@@ -138,7 +138,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   `https://xiondigital.net/Kryvex/`, rebuilt for each release (0.8.9 as of this
   record).
 - [ ] **M11: Final review.** README with real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.8
+  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.9
   release records are in place. Outstanding: engineering report and
   a signed public release.
 
@@ -658,17 +658,18 @@ account sign-in, a captcha solve, or another provider.
 0.8.8 is published from the `v0.8.8` tag with the Setup, Portable and checksum
 assets, so installed 0.8.7 builds pick up the bundled llama.cpp runtime, the
 rearrangeable Home widgets, the service-dock volume and repeat controls, and the
-opt-in Spotify ad guard through **Settings → Updates**. 0.8.9 is built locally
-(both EXEs above) and exercised from `release/win-unpacked` against a copied
-profile: Vexium Core started itself on launch, the Vexium card reached RUNNING
-with the active build, Stop then Start went RUNNING → STOPPED → RUNNING, and a
-streamed reply arrived (`docs/TESTING.md`). The Setup EXE then replaced the 0.8.8
-copy at `C:\Kryvex` with 0.8.9, and the installed app was checked the same way:
-Settings shows 0.8.9 and Vexium Core starts itself. The record and wizard
-capture are in place and `pnpm release:check` passes, so cutting `v0.8.9` is the
-remaining step before publication. The web build was refreshed too: `gh-pages`
-serves 0.8.9 with the cache name `kryvex-web-0.8.9-v1`, and a cold visit to
-`https://xiondigital.net/Kryvex/#/settings` reports `v0.8.9`. Next: code
-signing, the PWA client on Android (no APK), and the compound manifest and
-permission sheet described in `docs/PLATFORM_PLAN.md` before adding any branded
-add-on.
+opt-in Spotify ad guard through **Settings → Updates**. 0.8.9 is published from
+the `v0.8.9` tag, so installed 0.8.8 builds also pick up
+Vexium Core as the local stack the app starts and names on its own page, Spotify
+and YouTube playlist import in the player, the Google account-page sign-in fix,
+and the Home calculator and ECB converter. That converter's endpoint moved to
+`api.frankfurter.dev` after the published web build exposed the old host's CORS
+failure; the web bundle was rebuilt and republished with the fix. The local EXEs
+were exercised from `release/win-unpacked` against a copied profile — Vexium Core
+started itself, the card went RUNNING → STOPPED → RUNNING, and a streamed reply
+arrived — and the installed copy at `C:\Kryvex` showed 0.8.9 and started the
+runtime on launch (`docs/TESTING.md`). The published assets match
+`SHA256SUMS.txt`, and `gh-pages` serves 0.8.9 with the cache name
+`kryvex-web-0.8.9-v1`. Next: code signing, the PWA client on Android (no APK),
+and the compound manifest and permission sheet described in
+`docs/PLATFORM_PLAN.md` before adding any branded add-on.

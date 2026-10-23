@@ -9,10 +9,10 @@ browser Kryvex really is, adds a calculator and a currency converter to the Home
 board, and measures the starter model on the shipped runtime. Everything in
 0.8.8 is included.
 
-The assets are attached to the
-[Kryvex 0.8.9 release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.9)
-once the tag is cut; this record and its wizard capture are committed before
-the tag, so the release workflow has both to check (`pnpm release:check`).
+The assets are attached to the published, stable
+[Kryvex 0.8.9 release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.8.9).
+This record and its wizard capture were committed before the tag, so the
+release workflow had both to check (`pnpm release:check`).
 
 ## What changed
 
@@ -81,25 +81,23 @@ the tag, so the release workflow has both to check (`pnpm release:check`).
 
 ## Artifacts
 
-Built locally on 2026-10-23 with `pnpm package:win`, which is the pair the
-wizard was captured against:
+Built by the tag-triggered workflow (run
+[39979410726](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/39979410726),
+commit `5d1d948`) on `windows-latest` and attached to the published release:
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.8.9-x64.exe` | 134,345,077 B (128.11 MiB) | `beef57815f77cbbdf59d3e8176c15379766462d78166263694bc22f68c426a1e` |
-| `Kryvex-Portable-0.8.9-x64.exe` | 134,107,934 B (127.89 MiB) | `e51968fa5540474801e5ec9892cd908283779185a306487ecade032f7486ff15` |
+| `Kryvex-Setup-0.8.9-x64.exe` | 134,257,313 B (128.04 MiB) | `81059d4dd90ae33b807af46984925437652d354cd8e7b4400bdef482f0259f9d` |
+| `Kryvex-Portable-0.8.9-x64.exe` | 134,020,092 B (127.81 MiB) | `1f3ec163b80e02b4b868155b858296ad6071b46f1304c01cdc0226801bdbc0ad` |
 
-Both report `ProductVersion 0.8.9` and are **unsigned**. The tag-triggered
-workflow rebuilds both on `windows-latest`, writes `SHA256SUMS.txt` and attaches
-the assets; its digests are recorded here once the release exists.
+`SHA256SUMS.txt` (189 B) carries both digests. The updater ignores a release
+whose installer has no matching entry. Both EXEs are **unsigned**. Both
+published EXEs were downloaded from `releases/download/v0.8.9/` and
+`sha256sum -c SHA256SUMS.txt` verifies both; each reports `ProductVersion
+0.8.9`.
 
-These two EXEs were produced before the Home converter's endpoint fix below:
-their bundled renderer still asks `api.frankfurter.app`. A local rebuild after
-the fix failed in `electron-builder` (EPERM renaming `win-unpacked` inside `X:`)
-and was not retried into a published artifact, so the tagged source is what the
-workflow builds and publishes. The packaged
-tree is about 467 MB, of which 44 MB is the bundled llama.cpp runtime, and the
-wizard reports **Space required: 465.7 MB**.
+The packaged tree is about 467 MB, of which 44 MB is the bundled llama.cpp
+runtime, and the wizard reports **Space required: 465.7 MB**.
 
 ## Install
 
@@ -121,7 +119,8 @@ wizard reports **Space required: 465.7 MB**.
   installed-model lookup.
 - `npm run audit:i18n`: clean; no hardcoded UI strings in 38 renderer files.
 - `npm run build`: exit 0 before packaging.
-- `pnpm package:win`: exit 0; both 0.8.9 EXEs above were produced.
+- `pnpm package:win`: exit 0 locally before the tag, which is the pair the
+  wizard capture above was taken from.
 - The **packaged app** (`release/win-unpacked/Kryvex.exe`, bundled runtime
   `b11835`, real 1,117,320,736-byte `qwen2.5-1.5b-instruct.gguf`) was driven
   over `--remote-debugging-port` with a copied profile: the chip reached
@@ -141,6 +140,11 @@ wizard reports **Space required: 465.7 MB**.
   captured, the install page ran for 23,012 ms, the installer exited 0, and the
   capture was archived under `docs/media/releases/0.8.9-wizard/`.
 - `node scripts/check-release-record.cjs`: PASS for 0.8.9.
+- **The tag-triggered workflow** (run
+  [39979410726](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/39979410726))
+  passed every step in 2m44s: the tag/`package.json` check, `release:check`,
+  `audit:deps`, typecheck, tests, the one-time-code relay, `package:win`,
+  checksums and the publish step.
 - **Playlists and the YouTube bridge**: a live Spotify embed page parsed to 50
   tracks with preview URLs, a YouTube playlist page plus one continuation gave
   100 + 82 rows, the built app imported both, the bridge served the selected

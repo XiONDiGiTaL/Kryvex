@@ -1852,3 +1852,35 @@ shape the card reads (`rates[to]`, `date`) is unchanged.
 Not run: the desktop build was not re-exercised for this fix; the widget uses the
 same `fetch` in both, and the failure was a browser CORS rule rather than an
 Electron difference.
+
+## 0.8.9 tag and published build: 2026-10-23
+
+The release record, wizard capture, web rebuild and the converter fix were
+committed to `main` as `5d1d948`, and `v0.8.9` was cut from it.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` before the commit | exit 0 |
+| `npm test` before the commit | exit 0, **583/583** across 58 files |
+| `npm run audit:i18n` | clean, 38 renderer files |
+| `node scripts/check-release-record.cjs` | PASS for 0.8.9 |
+| `npm run build:web` + `check-web-build.cjs` | PASS, 1.3 MiB, `assets/index-GS008kh0.js` |
+| Workflow run 39979410726 | success in 2m44s: tag/version check, `release:check`, `audit:deps`, typecheck, tests, one-time-code relay, `package:win`, checksums, publish |
+| Release state | `v0.8.9` published, `isDraft: false`, `isPrerelease: false` |
+
+Published assets, downloaded from `releases/download/v0.8.9/`:
+
+| Asset | Bytes | SHA-256 | `ProductVersion` |
+| --- | --- | --- | --- |
+| `Kryvex-Setup-0.8.9-x64.exe` | 134,257,313 | `81059d4dd90ae33b807af46984925437652d354cd8e7b4400bdef482f0259f9d` | 0.8.9 |
+| `Kryvex-Portable-0.8.9-x64.exe` | 134,020,092 | `1f3ec163b80e02b4b868155b858296ad6071b46f1304c01cdc0226801bdbc0ad` | 0.8.9 |
+
+`sha256sum -c SHA256SUMS.txt` reports OK for both, so the digests the updater
+checks are the digests of the files a user downloads.
+
+**Not run:** the published EXEs were not installed and launched again; the
+locally built 0.8.9 pair had already been installed over 0.8.8 and exercised
+(above), and the workflow build differs only by its CI environment. A local
+`electron-builder` rebuild after the converter fix failed with
+`EPERM` renaming `release/win-unpacked` on `X:`, which is why no local 0.8.9 EXE
+contains that one-line fix; the tag build does.
