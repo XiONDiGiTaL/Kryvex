@@ -20,6 +20,8 @@
  * because a green check that never executed is worse than a red one.
  */
 const { spawnSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const GATED = new Set(['high', 'critical']);
 
@@ -70,12 +72,33 @@ function isReviewDate(value) {
 }
 
 /**
+ * Where GitHub should attach the annotation: this script, on the line holding
+ * the exception's id, so the warning opens next to the date it is talking about
+ * rather than on the workflow file that happened to call the gate. Actions
+ * wants a repository-relative path with forward slashes on every platform.
+ */
+function annotationTarget(entry) {
+  const root = path.resolve(__dirname, '..');
+  const relative =
+    path.relative(root, __filename).split(path.sep).join('/') || 'scripts/audit-deps.cjs';
+  try {
+    const lines = fs.readFileSync(__filename, 'utf8').split(/\r?\n/);
+    const index = lines.findIndex(line => line.includes(`id: '${entry.id}'`));
+    return index >= 0 ? `${relative},line=${index + 1}` : relative;
+  } catch {
+    return relative;
+  }
+}
+
+/**
  * Says an exception is about to lapse, on the run rather than only on the day
  * it turns red. Under Actions the line is also an annotation, so it lands on
  * the run summary instead of scrolling past in the log.
  */
-function warnExpiring(message) {
-  if (process.env.GITHUB_ACTIONS === 'true') console.log(`::warning::${message}`);
+function warnExpiring(entry, message) {
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    console.log(`::warning file=${annotationTarget(entry)}::${message}`);
+  }
   console.warn(`  EXPIRING     ${message}`);
 }
 
@@ -113,6 +136,7 @@ function checkExceptions() {
     );
     if (days <= WARN_DAYS) {
       warnExpiring(
+        entry,
         `${id} (${entry.module}) review is due ${due(days)}, on ${reviewBy}; re-check it in scripts/audit-deps.cjs before then.`,
       );
     }
