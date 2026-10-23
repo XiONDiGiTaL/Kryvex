@@ -118,6 +118,12 @@ whose installer has no matching entry. Both EXEs are **unsigned**.
   `window.kryvex.appInfo()` returned `{version: "0.8.7", electron: "44.2.0",
   chrome: "152.0.7977.76", node: "24.20.0", packaged: true}`, and `#/disk`
   rendered Disk pulse with its disclaimer gate and the protected-folder list.
+- **Self-update from the published 0.8.6.** An installed `0.8.6.0` was updated
+  through the app's own Updates panel: the feed offered 0.8.7, **Download
+  update** fetched the installer and its SHA-256 matched `SHA256SUMS.txt`, the
+  app quit with code 0, the wizard ran (five pages, install page 39,940 ms, exit
+  0), and `C:\Kryvex\Kryvex.exe` reports `0.8.7.0` and boots. Details:
+  [TESTING.md](TESTING.md).
 - `node scripts/check-release-record.cjs` — PASS for 0.8.7.
 
 ## Wizard capture

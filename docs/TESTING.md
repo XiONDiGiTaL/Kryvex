@@ -1309,3 +1309,28 @@ the root survive, and a path or unknown id is refused before any unlink.
 `tests/disk-scan.test.ts` covers the scan body the worker thread runs: target
 sizing with the age filter, unavailable caches, an aborted signal returning
 cancelled with zero sizes, and real `statfs` health.
+
+## Self-update 0.8.6 → 0.8.7 — 2026-10-22
+
+The published chain, driven through the app's own Updates panel rather than a
+loopback fixture. The machine already had 0.8.6 installed at `C:\Kryvex`, so the
+test downgraded it first: the published `Kryvex-Setup-0.8.6-x64.exe` (SHA-256
+`5eb83690…` matched against the 0.8.6 `SHA256SUMS.txt`) was installed with
+`/S /D=C:\Kryvex`, and `C:\Kryvex\Kryvex.exe` then reported `0.8.6.0`.
+
+`node scripts/verify-self-update.cjs --exe C:\Kryvex\Kryvex.exe` then launched
+that build with an isolated profile and pressed the real buttons:
+
+| Check | Result | Detail |
+| --- | --- | --- |
+| live feed check | PASS | `0.8.6.0` installed, feed offered `Kryvex 0.8.7 is available.` |
+| installer download | PASS | `Kryvex-Setup-0.8.7-x64.exe`, 120,492,592 B |
+| checksum | PASS | downloaded SHA-256 `79653c01a0f93ba17f7b25b6446183037cc7a5d2c5b9f6a344775c0c40c96daa` equals the published `SHA256SUMS.txt` entry |
+| app quit | PASS | `{code: 0}`, so NSIS could replace the files |
+| installer wizard | PASS | five pages, install page ran 39,940 ms, exit 0 |
+| version after | PASS | `C:\Kryvex\Kryvex.exe` reports `0.8.7.0` |
+| relaunch | PASS | the updated build boots with an isolated profile and `appInfo()` returns `{version: "0.8.7", packaged: true}` |
+
+The download landed in the isolated `%APPDATA%\Kryvex\updates` and was removed
+with the profile. Four Kryvex processes the installer relaunched were closed
+afterwards; no Kryvex or setup processes were left running.
