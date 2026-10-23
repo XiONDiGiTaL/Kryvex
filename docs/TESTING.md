@@ -1382,3 +1382,11 @@ high, `ip` (GHSA-2p57-rm9w-gvfp), reached as
 version and `bittorrent-tracker` calls only `ip.toString` from the tracker
 *server* parser, which this app never runs, so the vulnerable `isPublic` path is
 never reached.
+
+`pnpm audit:deps` (`scripts/audit-deps.cjs`) is the standing replacement for the
+Dependabot alerts, which are disabled on the repository: it runs `pnpm audit`
+across every scope, fails on high and critical advisories, and carries the `ip`
+advisory above as its only exception. Checked on 2026-10-22 — PASS with the
+exception printed, exit 1 with the exception removed, and exit 1 when `pnpm` is
+not on PATH, so a broken audit cannot report success. CI runs it before
+typecheck.

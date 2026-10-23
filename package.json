@@ -23,6 +23,7 @@
     "test": "vitest run",
     "build:web": "vite build --outDir dist-web && node scripts/check-web-build.cjs",
     "capture": "node scripts/capture.mjs",
+    "audit:deps": "node scripts/audit-deps.cjs",
     "audit:i18n": "node scripts/audit-i18n.cjs",
     "package:dir": "pnpm build && electron-builder --dir",
     "package:win": "pnpm build && electron-builder --publish never",

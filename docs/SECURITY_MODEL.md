@@ -117,6 +117,21 @@ These protections are independent of ad/tracker blocking and have their own
 switches in Settings. Brave source code is not copied; see
 `docs/ATTRIBUTION.md`.
 
+## Dependency advisories
+
+Dependabot alerts are disabled on the repository, so the lockfile is checked by
+a CI gate instead: `pnpm audit:deps` (`scripts/audit-deps.cjs`) runs `pnpm audit`
+over every scope — Electron is a dev dependency but ships as the shell — and
+fails the build on any high or critical advisory. Advisories that cannot be
+fixed and cannot be reached are listed inside the script with the reason they
+are carried; the run prints each exception and warns when one stops matching.
+It fails closed: when the audit cannot run, the build goes red instead of
+quietly passing.
+
+The gate is narrow by design. It only sees advisories that are already
+published, so a compromised or hijacked package version is still a supply-chain
+risk it cannot detect.
+
 ## Not yet implemented
 
 - Per-module permission scopes and persisted site grants (media grants are
@@ -136,7 +151,7 @@ switches in Settings. Brave source code is not copied; see
 - Safe Browsing. Electron does not expose Chromium's Safe Browsing protocol or
   Brave's proxy, so Kryvex makes no malicious-site reputation claim.
 - A UI for per-site exceptions to referrer trimming or GPC.
-- `pnpm audit` run, packaged-app ASAR integrity checks, CSP for the renderer.
+- Packaged-app ASAR integrity checks, CSP for the renderer.
 - macOS/Linux sandbox validation.
 
 ## Verification plan
