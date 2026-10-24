@@ -123,22 +123,18 @@ export function clientHintPlatform(platform: string): string {
   return 'Linux';
 }
 
-export function withChromeClientHints(
+/**
+ * Writes the three low-entropy hints every Chromium browser sends, and fills
+ * the full-version hints only when the site asked for them.
+ */
+function writeClientHints(
   headers: Record<string, string>,
-  chromeVersion: string,
-  platform: string = 'Windows',
+  brands: string,
+  fullList: string,
+  fullVersion: string,
+  platform: string,
 ): Record<string, string> {
   const next = { ...headers };
-  const major = (String(chromeVersion).split('.')[0] ?? '').replace(/\D/g, '');
-  if (!major) return next;
-
-  const brands = `"Google Chrome";v="${major}", "Chromium";v="${major}", "Not(A:Brand";v="24"`;
-  const fullList = `"Google Chrome";v="${major}.0.0.0", "Chromium";v="${major}.0.0.0", "Not(A:Brand";v="24.0.0.0"`;
-  const platformValue = `"${platform}"`;
-
-  // Chrome sends the three low-entropy hints on every request. Electron sends
-  // none, so they are added rather than only rewritten: a Chrome user agent
-  // with no client hints is a combination real Chrome never produces.
   const ua = findHeader(next, 'sec-ch-ua');
   if (ua) next[ua] = brands;
   else next['Sec-CH-UA'] = brands;
@@ -148,14 +144,56 @@ export function withChromeClientHints(
   else next['Sec-CH-UA-Mobile'] = '?0';
 
   const platformHeader = findHeader(next, 'sec-ch-ua-platform');
-  if (platformHeader) next[platformHeader] = platformValue;
-  else next['Sec-CH-UA-Platform'] = platformValue;
+  if (platformHeader) next[platformHeader] = `"${platform}"`;
+  else next['Sec-CH-UA-Platform'] = `"${platform}"`;
 
-  // Full-version hints are request-only, so they are filled in when a site
-  // asked for them and never invented.
-  const fullVersion = findHeader(next, 'sec-ch-ua-full-version');
-  if (fullVersion) next[fullVersion] = `"${major}.0.0.0"`;
-  const fullVersionList = findHeader(next, 'sec-ch-ua-full-version-list');
-  if (fullVersionList) next[fullVersionList] = fullList;
+  const versionHeader = findHeader(next, 'sec-ch-ua-full-version');
+  if (versionHeader) next[versionHeader] = fullVersion;
+  const versionList = findHeader(next, 'sec-ch-ua-full-version-list');
+  if (versionList) next[versionList] = fullList;
   return next;
+}
+
+export function withChromeClientHints(
+  headers: Record<string, string>,
+  chromeVersion: string,
+  platform: string = 'Windows',
+): Record<string, string> {
+  const major = (String(chromeVersion).split('.')[0] ?? '').replace(/\D/g, '');
+  if (!major) return { ...headers };
+
+  return writeClientHints(
+    headers,
+    `"Google Chrome";v="${major}", "Chromium";v="${major}", "Not(A:Brand";v="24"`,
+    `"Google Chrome";v="${major}.0.0.0", "Chromium";v="${major}.0.0.0", "Not(A:Brand";v="24.0.0.0"`,
+    `"${major}.0.0.0"`,
+    platform,
+  );
+}
+
+/**
+ * The hint set of a Chromium build that does not claim to be Chrome.
+ *
+ * This is the engine's own brand list, not a guess: Electron's native
+ * `navigator.userAgentData` reports `Not?A_Brand` and `Chromium` for the running
+ * version, so a page that compares the headers with `userAgentData` finds the
+ * same two brands in the same order, and neither says Google Chrome.
+ */
+export function withChromiumClientHints(
+  headers: Record<string, string>,
+  chromeVersion: string,
+  platform: string = 'Windows',
+): Record<string, string> {
+  const version = String(chromeVersion ?? '').trim();
+  const major = (version.split('.')[0] ?? '').replace(/\D/g, '');
+  if (!major) return { ...headers };
+  const full = /^\d+(?:\.\d+)+$/.test(version) ? version : `${major}.0.0.0`;
+
+  return writeClientHints(
+    headers,
+    `"Not?A_Brand";v="24", "Chromium";v="${major}"`,
+    `"Not?A_Brand";v="24.0.0.0", "Chromium";v="${full}"`,
+    `"${full}"`,
+    platform,
+  );
 }

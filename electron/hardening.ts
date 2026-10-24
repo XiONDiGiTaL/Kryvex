@@ -1,8 +1,13 @@
 import { app, type MediaAccessPermissionRequest, type Session } from 'electron';
 import { permissions } from './permissions';
-import { clientHintPlatform, withChromeClientHints, withPrivacyHeaders } from './privacy';
+import {
+  clientHintPlatform,
+  withChromeClientHints,
+  withChromiumClientHints,
+  withPrivacyHeaders,
+} from './privacy';
 import { isGoogleSite } from './sign-in-hosts';
-import { applicationUserAgent, withApplicationUserAgent } from './user-agent';
+import { applicationUserAgent, chromiumUserAgent, withUserAgent } from './user-agent';
 
 /**
  * Chromium hardening for Kryvex sessions.
@@ -73,22 +78,25 @@ export function hardenSession(ses: Session): void {
 
   ses.webRequest.onBeforeSendHeaders((details, callback) => {
     const privateHeaders = withPrivacyHeaders(details.requestHeaders, details.url);
-    // Google's account pages check the browser against the identity it
-    // claims, and a Chrome agent from an engine that is not Chrome is refused
-    // outright. Google therefore gets the application's real agent and no
-    // client hints — on its account hosts *and* on its products, so a sign-in
-    // that starts on Gmail and returns from the account host never changes
-    // browser halfway through. Everything else keeps the Chrome agent with
-    // matching hints, because a Chrome user agent with no hints is a
-    // combination real Chrome never produces.
+    // Google's account pages check the browser against the identity it claims.
+    // A Chrome agent from an engine that is not Chrome is refused outright, and
+    // one that names the Electron shell is treated as an embedded browser;
+    // reporting the bare Chromium engine is what got through in measurement.
+    // Google therefore gets that agent with Chromium's own brand list — on its
+    // account hosts *and* on its products, so a sign-in that starts on Gmail and
+    // returns from the account host never changes browser halfway through.
+    // Everything else keeps the Chrome agent with matching hints, because a
+    // Chrome user agent with no hints is a combination real Chrome never
+    // produces.
+    const platform = clientHintPlatform(process.platform);
     callback({
       requestHeaders: isGoogleUrl(details.url)
-        ? withApplicationUserAgent(privateHeaders, applicationUserAgent())
-        : withChromeClientHints(
-            privateHeaders,
+        ? withChromiumClientHints(
+            withUserAgent(privateHeaders, chromiumUserAgent(applicationUserAgent())),
             process.versions.chrome,
-            clientHintPlatform(process.platform),
-          ),
+            platform,
+          )
+        : withChromeClientHints(privateHeaders, process.versions.chrome, platform),
     });
   });
 }

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { Session, WebContents } from 'electron';
 import { isGoogleSite } from './sign-in-hosts';
-import { applicationUserAgent, stableUserAgent } from './user-agent';
+import { applicationUserAgent, chromiumUserAgent, stableUserAgent } from './user-agent';
 
 /**
  * Registers the identity preload once per session.
@@ -32,6 +32,11 @@ function chromeAgent(): string {
   return stableUserAgent(process.platform, process.versions.chrome);
 }
 
+/** The engine naming only itself; see `chromiumUserAgent`. */
+function chromiumAgent(): string {
+  return chromiumUserAgent(applicationUserAgent()) || chromeAgent();
+}
+
 function apply(contents: WebContents, url: string): void {
   let google = false;
   try {
@@ -40,7 +45,7 @@ function apply(contents: WebContents, url: string): void {
     return;
   }
   try {
-    contents.setUserAgent(google ? applicationUserAgent() || chromeAgent() : chromeAgent());
+    contents.setUserAgent(google ? chromiumAgent() : chromeAgent());
   } catch {
     /* a contents that is already gone needs nothing */
   }
@@ -50,8 +55,9 @@ function apply(contents: WebContents, url: string): void {
  * Keeps one guest's user agent honest for the site family it is on.
  *
  * Google is the exception that proves the rule: its account pages verify the
- * browser and refuse an engine that claims to be Chrome, so Google hosts
- * report the application's own agent. That decision follows the *host family*
+ * browser and refuse an engine that claims to be Chrome, and treat one that
+ * announces the Electron shell as an embedded browser, so Google hosts report
+ * the bare Chromium agent. That decision follows the *host family*
  * rather than the individual page, because a sign-in starts on Gmail or
  * YouTube, redirects to the account host for the password and returns to the
  * product. Changing identity at any point in that round trip is exactly what

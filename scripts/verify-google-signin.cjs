@@ -118,11 +118,16 @@ async function type(contents, value) {
 async function identityOf(contents) {
   return contents.executeJavaScript(`(() => {
     const data = navigator.userAgentData;
+    const chromeObject = globalThis.chrome || {};
     return {
       userAgent: navigator.userAgent,
       ownProperty: Object.prototype.hasOwnProperty.call(navigator, 'userAgentData'),
       brands: data ? data.brands.map(entry => entry.brand) : null,
       platform: data ? data.platform : null,
+      chromeApp: typeof chromeObject.app?.getDetails,
+      chromeCsi: typeof chromeObject.csi,
+      chromeLoadTimes: typeof chromeObject.loadTimes,
+      webdriver: navigator.webdriver,
     };
   })()`);
 }
@@ -143,7 +148,8 @@ async function main() {
 
   app.setName('Kryvex');
   rememberApplicationAgent(app.userAgentFallback);
-  const applicationAgent = app.userAgentFallback;
+  const { chromiumUserAgent } = require(path.join(process.cwd(), 'dist-electron', 'user-agent.js'));
+  const googleAgent = chromiumUserAgent(app.userAgentFallback);
   app.userAgentFallback = stableUserAgent(process.platform, process.versions.chrome);
 
   ipcMain.on('kryvex:farbling:seed', event => {
@@ -198,9 +204,14 @@ async function main() {
   const startHost = new URL(guest.getURL()).hostname;
   log(`landed on ${guest.getURL()}`);
   check(
-    'Google pages get the application agent',
-    start.userAgent === applicationAgent,
+    'Google pages get the bare Chromium agent',
+    start.userAgent === googleAgent,
     `${start.userAgent}`,
+  );
+  check(
+    'the agent does not announce the shell',
+    !/Kryvex|Electron/.test(start.userAgent),
+    start.userAgent,
   );
   check(
     'Google did not bounce the browser to its refusal step',
@@ -215,11 +226,20 @@ async function main() {
     );
   }
   check('the Chrome patch is not installed on a Google page', start.ownProperty === false);
+  check(
+    'window.chrome has the surface Google reads',
+    start.chromeApp === 'function' && start.chromeCsi === 'function' && start.chromeLoadTimes === 'function',
+    `app=${start.chromeApp} csi=${start.chromeCsi} loadTimes=${start.chromeLoadTimes}`,
+  );
+  check('navigator.webdriver is false', start.webdriver === false, String(start.webdriver));
 
   if (isGoogleSite(startHost) === false) {
     check('the page is on the Google identity path', false, startHost);
     return finish(1);
   }
+
+  const flow = (guest.getURL().match(/flowName=(\w+)/) ?? [])[1] ?? 'unknown';
+  log(`Google served the ${flow} flow`);
 
   const landing = await text(guest);
   if (REFUSAL.test(landing)) {

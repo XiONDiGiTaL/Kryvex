@@ -1963,3 +1963,41 @@ built desktop app over CDP, in a disposable profile with `startView: home`:
 **Not run:** a YouTube playlist import (the Spotify provider answered first and
 the check stops at the first success), playback of the queued rows, and a signed
 -out/in state change on the installed copy.
+
+## Which identity Google's sign-in accepts (2026-10-24)
+
+The 10-24 fix removed the mid-flow identity swap but kept the agent that named
+Kryvex, and Google answered with its *lite* sign-in flow (`WebLiteSignIn`), the
+one it serves to browsers it does not trust to finish a sign-in. So the identity
+was measured properly: one Electron process, one partition per variant, one
+throwaway identifier submitted with real key events, and Google's answer read
+from the URL and the page.
+
+| Variant | User agent | Client hints | `window.chrome` | Answer |
+| --- | --- | --- | --- | --- |
+| `app` | `Kryvex/0.8.9 … Electron/44.9.3` | none | absent | accepted, `WebLiteSignIn` |
+| `chrome` | `Chrome/152.0.0.0` | Google Chrome | absent | refused, `/signin/rejected` |
+| `chromium` | `Chrome/152.0.7977.167` | Chromium | absent | refused, `/signin/rejected` |
+| `chrome-deep` | `Chrome/152.0.0.0` | Google Chrome | present | accepted, `GlifWebSignIn` |
+| `chromium-deep` | `Chrome/152.0.7977.167` | Chromium | present | accepted, `GlifWebSignIn` |
+
+The brand claim was not the differentiator; the two refusals are exactly the two
+variants without `chrome.app`, `chrome.csi` and `chrome.loadTimes`. Electron
+ships an empty `chrome` object, and Google reads that as an embedded view.
+
+Shipped: the bare Chromium agent (`chromiumUserAgent`), Chromium's own brand list
+(`withChromiumClientHints`), the `chrome` surface plus `navigator.webdriver ===
+false` in the preload for every guest, and no `userAgentData` patch on Google
+because the engine's own brands already match there.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 for renderer and main |
+| `npm test` | exit 0, **591/591** across 58 files; `tests/user-agent.test.ts` now covers `chromiumUserAgent`, and `tests/privacy.test.ts` covers the Chromium hint set |
+| `npm run verify:identity` | **PASS**; loopback guest keeps Chrome brands, hints and native-looking wrappers, and now also proves `window.chrome.app/csi/loadTimes/runtime` are callable and `navigator.webdriver` is false |
+| `npm run verify:google` | **PASS**, 10/10 live: landed on `/v3/signin/identifier?…flowName=GlifWebSignIn`, agent `Chrome/152.0.7977.167 Safari/537.36` with no `Kryvex`/`Electron` token, `userAgentData` `Not?A_Brand / Chromium`, `chrome.app/csi/loadTimes` callable, `webdriver false`, identifier accepted, and the `mail.google.com → accounts.google.com → workspace.google.com` return leg carried one unchanged agent |
+
+**Not run, plainly.** No real account was signed in, so the password and
+post-password checks are still unmeasured, and no captcha was solved. Only Gmail
+(the account host and the return leg) and YouTube were probed. The full flow is
+Google's regular one, which is a classification change, not a guarantee.

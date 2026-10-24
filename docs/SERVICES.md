@@ -102,35 +102,45 @@ module's own session is not transferred.
 
 ### Google's own account pages
 
-Google's account pages verify the browser before they accept a sign-in, and the
-check is about the claim, not the engine: a user agent that says `Chrome/152`
-while the engine is not Chrome is sent to `/v3/signin/rejected` with "This
-browser or app may not be secure". The same engine naming itself is let through
-to the account step.
+Google's account pages verify the browser before they accept a sign-in. The
+check reads more than the user agent: a Chrome claim from an engine that is not
+Chrome is refused, and so is a guest missing the `window.chrome` surface every
+Chromium browser exposes.
 
-Measured on 2026-10-23 in a Kryvex guest against `accounts.google.com`, with one
-identifier submit per run:
+Measured on 2026-10-24 in a Kryvex guest against `accounts.google.com`, one
+throwaway identifier per run, one process, one partition per variant. "Full"
+means Google served its regular sign-in flow (`GlifWebSignIn`); "lite" is the
+reduced flow it serves to a browser it will not let finish a sign-in:
 
-| User agent | Client hints | Identity shim | Result |
-| --- | --- | --- | --- |
-| Chrome (reduced) | Chrome | on | refused |
-| Chrome (reduced) | Chrome | off | refused |
-| Chrome (full version) | Chrome | on | refused |
-| Electron (real) | Chrome | on | account check |
-| Electron (real) | none | off | account check |
+| Identity | User agent | Hints | `window.chrome` | Google's answer |
+| --- | --- | --- | --- | --- |
+| application agent | `Kryvex/0.8.9 … Electron/…` | none | absent | accepted, lite flow |
+| Chrome claim | `Chrome/152.0.0.0` | Google Chrome | absent | **refused** |
+| bare Chromium | `Chrome/152.0.7977.167` | Chromium | absent | **refused** |
+| Chrome claim | `Chrome/152.0.0.0` | Google Chrome | present | accepted, full flow |
+| bare Chromium | `Chrome/152.0.7977.167` | Chromium | present | accepted, full flow |
 
-So the claim was the whole problem, and correctness beats disguise. Kryvex
-changes four things for Google's hosts — the account hosts *and* the products a
-sign-in returns to:
+The differentiator was not the brand claim: the two refused rows are exactly the
+two without `chrome.app`, `chrome.csi` and `chrome.loadTimes`. Electron exposes an
+empty `chrome` object, and its absence is what marks a guest as an embedded
+view.
 
-- requests carry the application's own user agent (`electron/user-agent.ts`
-  keeps the value Electron started with) and no `Sec-CH-UA` hints, because a
-  hint asserts the Chrome brand at the header level;
+So Kryvex reports the browser it actually is, with that surface in place:
+
+- `chromiumUserAgent` (`electron/user-agent.ts`) removes the shell's own product
+  tokens from Electron's agent and leaves the plain Chromium agent: platform,
+  engine, and a Chrome-versioned token. Nothing claims to be Google Chrome and
+  nothing announces Electron;
+- `withChromiumClientHints` (`electron/privacy.ts`) sends the engine's own brand
+  list — `Not?A_Brand` and `Chromium` — which is exactly what Electron's native
+  `navigator.userAgentData` reports, so headers and JavaScript agree;
+- the identity preload installs `chrome.app`, `chrome.csi`, `chrome.loadTimes` and
+  `chrome.runtime`, plus a prototype-level `navigator.webdriver === false`, in
+  **every** guest;
 - the guest's user agent follows the site family in `electron/identity.ts`, so
-  `navigator.userAgent` and the request agree on every Google host;
-- the identity preload is not installed: the page gets Chromium's own
-  `navigator.userAgentData` instead of a Chrome-shaped one, which matches the
-  agent it is told;
+  `navigator.userAgent` and the requests agree on every Google host;
+- the `userAgentData` patch is skipped on Google, because there the engine's own
+  brands already match the agent and a Chrome-shaped object would contradict it;
 - fingerprint farbling is not installed on the account hosts
   (`fingerprintSeed` returns 0 there), so their canvas, WebGL and audio calls are
   the engine's own.
@@ -141,10 +151,10 @@ sign-in returns to:
 `mail.google.com` and Kryvex on `accounts.google.com`. A sign-in is a round trip
 — product, account host, product again — so that made the browser change in the
 middle of its own flow, exactly where Google's post-password risk check runs.
-`isGoogleSite` in `electron/sign-in-hosts.ts` now covers the whole family
+`isGoogleSite` in `electron/sign-in-hosts.ts` covers the whole family
 (`google.com` and its country domains, `youtube.com`, and Google's CDNs), and
 `hardening.ts`, `identity.ts` and the identity preload all ask that one
-question. A hop anywhere in a Google sign-in now carries the same agent.
+question. A hop anywhere in a Google sign-in carries the same agent.
 
 The shield stands aside for the account surface too: a blocked subresource
 there fails a sign-in with no message, so `web-privacy.ts` hands requests to

@@ -113,6 +113,7 @@ async function main() {
 
   const identity = await guest.executeJavaScript(`(async () => {
     const ua = navigator.userAgentData;
+    const chromeObject = globalThis.chrome || {};
     const own = Object.prototype.hasOwnProperty.call(navigator, 'userAgentData');
     const accessor = Object.getOwnPropertyDescriptor(Navigator.prototype, 'userAgentData');
     const high = ua && ua.getHighEntropyValues
@@ -129,6 +130,13 @@ async function main() {
       mobile: ua ? ua.mobile : null,
       platform: ua ? ua.platform : null,
       high,
+      chromeSurface: {
+        app: typeof chromeObject.app?.getDetails,
+        csi: typeof chromeObject.csi,
+        loadTimes: typeof chromeObject.loadTimes,
+        runtime: typeof chromeObject.runtime?.sendMessage,
+      },
+      webdriver: navigator.webdriver,
       wrappers: {
         canvasRead: text(CanvasRenderingContext2D.prototype.getImageData),
         canvasExport: text(HTMLCanvasElement.prototype.toDataURL),
@@ -164,6 +172,11 @@ async function main() {
   if (identity.high.uaFullVersion !== process.versions.chrome) {
     return fail(`uaFullVersion was ${identity.high.uaFullVersion}, not the running ${process.versions.chrome}`);
   }
+  for (const [name, kind] of Object.entries(identity.chromeSurface)) {
+    if (kind !== 'function') return fail(`window.chrome.${name} is ${String(kind)}, not callable`);
+  }
+  if (identity.webdriver !== false) return fail('navigator.webdriver is not false');
+  log('window.chrome exposes app, csi, loadTimes and runtime');
   if (identity.ownProperty) return fail('userAgentData is an own property, so the shim is visible');
   if (!identity.accessorOnPrototype) return fail('Navigator.prototype has no userAgentData accessor');
   if (identity.constructorName !== 'NavigatorUAData') {
@@ -215,6 +228,21 @@ async function main() {
     if (isGoogleSite(host)) return fail(`${host} claimed the Google identity`);
   }
   log('Google account and product hosts share one identity; other sites keep Chrome');
+
+  // The Google identity is the engine naming only itself, with the engine's own
+  // brand list on the wire — nothing claims to be Google Chrome.
+  const { chromiumUserAgent } = require(path.join(process.cwd(), 'dist-electron', 'user-agent.js'));
+  const { withChromiumClientHints } = require(path.join(process.cwd(), 'dist-electron', 'privacy.js'));
+  const shellAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Kryvex/0.8.9 Chrome/${process.versions.chrome} Electron/44.9.3 Safari/537.36`;
+  const bare = chromiumUserAgent(shellAgent);
+  if (/Kryvex|Electron/.test(bare) || !/Chrome\//.test(bare)) {
+    return fail(`the Chromium agent is ${bare}`);
+  }
+  const googleHints = withChromiumClientHints({}, process.versions.chrome);
+  if (/Google Chrome/.test(googleHints['Sec-CH-UA'])) {
+    return fail(`Google client hints claim Chrome: ${googleHints['Sec-CH-UA']}`);
+  }
+  log(`Google identity: ${bare.replace(/^.*Gecko\) /, '')} · ${googleHints['Sec-CH-UA']}`);
 
   win.destroy();
   server.close();

@@ -7,6 +7,7 @@ import {
   normalizeHttpOrigin,
   trimCrossOriginReferrer,
   withChromeClientHints,
+  withChromiumClientHints,
   withPrivacyHeaders,
 } from '../electron/privacy';
 
@@ -54,6 +55,36 @@ describe('withChromeClientHints', () => {
   it('ignores a version it cannot read', () => {
     const headers = { 'sec-ch-ua': '"Chromium";v="152"' };
     expect(withChromeClientHints(headers, '')).toEqual(headers);
+  });
+});
+
+describe('withChromiumClientHints', () => {
+  it('reports the engine own brands, never Google Chrome', () => {
+    const next = withChromiumClientHints({ Accept: 'text/html' }, '152.0.7977.167', 'Windows');
+    expect(next['Sec-CH-UA']).toBe('"Not?A_Brand";v="24", "Chromium";v="152"');
+    expect(next['Sec-CH-UA']).not.toContain('Google Chrome');
+    expect(next['Sec-CH-UA-Mobile']).toBe('?0');
+    expect(next['Sec-CH-UA-Platform']).toBe('"Windows"');
+    expect(next.Accept).toBe('text/html');
+  });
+
+  it('fills the full-version hints only when the request carries them', () => {
+    const bare = withChromiumClientHints({}, '152.0.7977.167');
+    expect(bare['Sec-CH-UA-Full-Version-List']).toBeUndefined();
+    expect(bare['Sec-CH-UA-Full-Version']).toBeUndefined();
+
+    const asked = withChromiumClientHints(
+      { 'sec-ch-ua-full-version-list': '"Chromium";v="152.0.0.0"' },
+      '152.0.7977.167',
+    );
+    expect(asked['sec-ch-ua-full-version-list']).toBe(
+      '"Not?A_Brand";v="24.0.0.0", "Chromium";v="152.0.7977.167"',
+    );
+  });
+
+  it('ignores a version it cannot read', () => {
+    const headers = { 'sec-ch-ua': '"Chromium";v="152"' };
+    expect(withChromiumClientHints(headers, '')).toEqual(headers);
   });
 });
 

@@ -163,14 +163,29 @@ one question, so every hop of a sign-in carries the same agent.
 stripping still apply. The IPC gate the preload asks was renamed
 `kryvex:identity:chrome` to match what it now decides.
 
-`scripts/verify-google-signin.cjs` (`npm run verify:google`) is the new release
-check. Against the live site, on 2026-10-24: the identifier step loaded (not
-`/v3/signin/rejected`), the account host saw the application agent with
-Chromium's own `userAgentData` and no Chrome patch, a throwaway identifier
-reached "Couldn't find this account" through real key events, every hop of the
-`mail.google.com` → `accounts.google.com` round trip kept the same agent, and
-`www.youtube.com` served its ordinary page under that agent. 7/7. Also:
-`npm run typecheck` exit 0, `npm test` 11/11 on the sign-in and user-agent files,
+The identity itself was then measured instead of guessed: five variants, one
+partition each, one throwaway identifier submitted per variant. The Chrome claim
+and a plain Chromium agent were both refused while they were missing the
+`window.chrome` surface, and both were accepted — with Google's *full*
+`GlifWebSignIn` flow instead of the reduced `WebLiteSignIn` one — once
+`chrome.app`, `chrome.csi` and `chrome.loadTimes` existed. Electron ships an
+empty `chrome` object, and that is what Google reads as an embedded view.
+
+So Google hosts now report the bare Chromium agent (`chromiumUserAgent` strips
+the `Kryvex/…` and `Electron/…` tokens; nothing claims to be Google Chrome),
+with Chromium's own brand list on the wire (`withChromiumClientHints`), while the
+preload installs the `chrome` surface and `navigator.webdriver === false` in
+every guest. No `userAgentData` patch on Google, where the engine's own brands
+already agree.
+
+`scripts/verify-google-signin.cjs` (`npm run verify:google`) is the release
+check. Against the live site on 2026-10-24: `/v3/signin/identifier?…
+flowName=GlifWebSignIn` loaded (not `/v3/signin/rejected`), the agent was
+`Chrome/152.0.7977.167 Safari/537.36` with no shell token, `userAgentData` was
+`Not?A_Brand / Chromium`, `chrome.app/csi/loadTimes` were callable, `webdriver`
+was false, the identifier was accepted, and every hop of the `mail.google.com` →
+`accounts.google.com` → `workspace.google.com` return leg kept the same agent.
+10/10. Also: `npm run typecheck` exit 0, `npm test` 591/591,
 `npm run verify:identity` PASS. Not run: a real account sign-in or a captcha.
 
 ## Fixed (2026-10-23, Google sign-in browser check) — superseded above

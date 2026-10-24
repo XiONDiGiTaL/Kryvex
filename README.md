@@ -400,12 +400,16 @@ with lists you chose. Kryvex still hosts nothing and uploads nothing.
   `getHighEntropyValues` and `Sec-CH-UA` on the wire, so sites stop treating a
   module as an anonymous Electron window. Fingerprint farbling still hides its
   JavaScript wrappers from `Function.prototype.toString`.
-  Google is the exception. Its pages verify the engine, and a page that claims
-  Chrome while failing Chrome's checks is refused, so every Google host runs
-  under Kryvex's real user agent with no client hints and no identity shim —
-  Gmail and YouTube included, because a sign-in leaves the product for
-  `accounts.google.com` and comes back, and one browser must be the same browser
-  at both ends.
+  Google is the exception, and it reads deeper than the agent: a Chrome claim
+  from an engine that is not Chrome is refused, and so is a guest missing the
+  `window.chrome` surface every Chromium browser exposes. Kryvex therefore runs
+  Google hosts under the plain Chromium agent — the engine's own product tokens
+  with the shell's `Kryvex/…` and `Electron/…` removed — with Chromium's own
+  client hints, and installs `chrome.app`, `chrome.csi`, `chrome.loadTimes`,
+  `chrome.runtime` and a prototype `navigator.webdriver === false` in every
+  guest. Gmail and YouTube are included, because a sign-in leaves the product
+  for `accounts.google.com` and comes back, and one browser must be the same
+  browser at both ends.
 - **My filters:** the shield accepts the uBlock Origin syntax people already
   paste: `||ads.example.com^`, `example.com##.ad`, `example.com##+js(…)`, and
   compiles it from the cached lists, so applying needs no download. Scriptlets
@@ -1373,15 +1377,15 @@ The full dependency notices are in
   own install bar on detail pages instead. Extensions are third-party code and
   are not audited.
 - **Google sign-in is still Google's decision.** Kryvex now passes the browser
-  check and keeps one identity while it does: every Google host reports the
-  application's real user agent instead of a Chrome one, because claiming Chrome
-  from an engine that is not Chrome is what produced "This browser or app may
-  not be secure". Measured on 2026-10-23 with the same identifier step, the
-  Chrome claim was refused and the real agent reached the account check
-  (captcha, then "Couldn't find this account" for a fake address);
-  `pnpm verify:google` re-runs that probe, and on 2026-10-24 it also confirmed
-  the agent is unchanged across the Gmail → account host → Gmail round trip.
-  What remains outside Kryvex's control is Google itself: an account step can still ask for a captcha or a device check, a
+  check and is served Google's full sign-in flow rather than the reduced one it
+  gives embedded views: every Google host reports the bare Chromium agent and
+  carries the `window.chrome` surface, since a Chrome claim from an engine that
+  is not Chrome is refused and a missing `chrome` object marks the guest as an
+  embedded view. Measured on 2026-10-24 across five identity variants with one
+  identifier submit each — the two refusals were exactly the two without
+  `chrome.app` — and `pnpm verify:google` re-runs that probe, including the
+  Gmail → account host round trip. What remains outside Kryvex's control is
+  Google itself: an account step can still ask for a captcha or a device check, a
   stored session can go stale, and the company can tighten the gate again. The
   refusal banner keeps **Reset session & retry**, and **Open in my browser** is
   the route when a provider insists on its own browser.
