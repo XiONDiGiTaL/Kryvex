@@ -11,7 +11,7 @@ service also finishes that sign-in inside its own module instead of in a stray
 window. Everything in 0.8.9 is included.
 
 The assets are attached to the published, stable
-[Kryvex 0.9.0 release](https://github.com/XiONDiTaL/Kryvex/releases/tag/v0.9.0).
+[Kryvex 0.9.0 release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.9.0).
 This record and its wizard capture were committed before the tag, so the
 release workflow had both to check (`pnpm release:check`).
 
@@ -136,6 +136,13 @@ runtime, and the wizard reports **Space required: 465.6 MB**.
   the Gmail module read `https://mail.google.com/mail/u/0/#inbox`
   (`Inbox - <account> - Gmail`, compose control present, no refusal) inside its
   own frame.
+- **The web client** was rebuilt with `pnpm build:web` (`check-web-build`: PASS,
+  1.3 MiB, `assets/index-HSssHscJ.js`), published to `gh-pages` as commit
+  `56398b1`, and served from `https://xiondigital.net/Kryvex/`. Its worker cache
+  is now `kryvex-web-0.9.0-v1`, so a browser holding the 0.8.9 cache drops it on
+  activation. Live, the page reports **v0.9.0**, the service worker is active on
+  `/Kryvex/sw.js` with the new cache holding the shell, both hashed assets and
+  the icons, and no console error was logged. Details: [TESTING.md](TESTING.md).
 
 ## Wizard capture
 

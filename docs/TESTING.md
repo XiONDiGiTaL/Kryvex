@@ -2070,6 +2070,26 @@ session therefore loads and stays inside the module frame, which is the step
 
 **Not run:** a fresh credential entry inside the frame after the release (the
 persistent partition was already signed in, so this pass exercised the session
-restore rather than the password and mobile-verification steps), the Gmail
-module on a second machine, and the `gh-pages` web bundle, which still serves
-0.8.9 until it is rebuilt.
+restore rather than the password and mobile-verification steps) and the Gmail
+module on a second machine. The `gh-pages` bundle was rebuilt and published
+separately; see the section below.
+
+## 0.9.0 web bundle published: 2026-10-24
+
+The published PWA was still serving its 0.8.9 bundle, so the same renderer was
+rebuilt from `main` and pushed to `gh-pages`. The only source change needed was
+the worker's cache name, which still read `kryvex-web-0.8.9-v1` and would have
+kept the old shell in place for a browser that already had it.
+
+| Check | Result |
+| --- | --- |
+| `pnpm build:web` | exit 0: `assets/index-HSssHscJ.js` (1,092.95 kB) and `assets/index-C71yy4YJ.css` (180.61 kB); `check-web-build` PASS (1.3 MiB, 4/4 manifest icons) |
+| service worker | `public/sw.js` names `kryvex-web-0.9.0-v1`; the build copied it unchanged |
+| Local serve (`python -m http.server 4173 -d dist-web`) | `#/settings` reported `v0.9.0`, the worker was active at `/sw.js`, and `caches.keys()` held only `kryvex-web-0.9.0-v1` |
+| `gh-pages` publish | commit `56398b1`; the branch holds exactly the `dist-web` tree plus `.nojekyll`, with `assets/index-GS008kh0.js` replaced by `index-HSssHscJ.js` |
+| Live HTML | `https://xiondigital.net/Kryvex/` served `index-HSssHscJ.js` and `index-C71yy4YJ.css` on the first poll after the push |
+| Live app | `#/settings` reported `v0.9.0` beside the `WEB` badge; the worker was active on `https://xiondigital.net/Kryvex/sw.js`, its cache held `./`, `index.html`, both hashed assets, the manifest and the icons, and a reload logged no console error and no failed same-origin request |
+
+The only failed request on the live page is `https://example.com/favicon.ico`
+(`ERR_BLOCKED_BY_ORB`), which comes from the default service list and predates
+this publish.
