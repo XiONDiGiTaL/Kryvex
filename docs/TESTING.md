@@ -2060,6 +2060,16 @@ The record, the matrix harness and the wizard capture were committed as
 | `Kryvex-Setup-0.9.0-x64.exe` | 134,259,751 | `28f3da2a3e51b65113c557b639998d0ce470ebb32451d5603ae87211b9e7d8bb` |
 | `Kryvex-Portable-0.9.0-x64.exe` | 134,022,614 | `db90684966530c020b449499fa443b691b94f5359b415389d2fbb91c85f76d26` |
 
-**Not run:** a fresh sign-in inside the frame after the release (the account was
-already signed in), the Gmail module on a second machine, and the `gh-pages` web
-bundle, which still serves 0.8.9 until it is rebuilt.
+Re-checked live on the installed 0.9.0 over CDP (`127.0.0.1:9360`, the app left
+running from the install): the Gmail module's guest sits at
+`https://mail.google.com/mail/u/0/#inbox`, `document.title` reads
+`Inbox - <account> - Gmail`, 50 inbox rows (`tr.zA`) are rendered, a **Compose**
+control is present, and no `Sign in` control is in the page. The signed-in
+session therefore loads and stays inside the module frame, which is the step
+0.8.9 broke by handing the finish to a standalone window.
+
+**Not run:** a fresh credential entry inside the frame after the release (the
+persistent partition was already signed in, so this pass exercised the session
+restore rather than the password and mobile-verification steps), the Gmail
+module on a second machine, and the `gh-pages` web bundle, which still serves
+0.8.9 until it is rebuilt.
