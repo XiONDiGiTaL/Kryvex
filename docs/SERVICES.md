@@ -100,6 +100,28 @@ This is what makes "Sign in with Google/Microsoft/Apple" work inside a module.
 If a provider insists on a native app handoff, use **Open externally**; the
 module's own session is not transferred.
 
+### A Google service signs itself in without leaving the module
+
+Google's products sign in with cookies, not with an opener handshake. When a
+Google page inside a module opens Google's account pages, the module's own frame
+navigates there instead of a window being created: the account pages render in
+the service stage, the sign-in completes, and Google redirects back to the
+product in that same frame. A popup would have signed the user in and then shown
+Gmail in a stray window while the module itself stayed on its signed-out page —
+which is exactly what happened before `electron/service-signin.ts`.
+
+Other providers keep the real popup, because they answer through
+`window.opener`, but their result is folded back rather than left in a window:
+
+- a service popup that reaches the opener's own site closes, and its page loads
+  in the module;
+- a popup that visited a sign-in host refreshes the module when it closes,
+  because the cookies it earned are what unlock the page.
+
+`signsInWithin` and `returnsToOpener` are pure and covered by
+`tests/service-signin.test.ts`; the wiring is the window-open handler and the
+`did-create-window` hook in `electron/main.ts`.
+
 ### Google's own account pages
 
 Google's account pages verify the browser before they accept a sign-in. The

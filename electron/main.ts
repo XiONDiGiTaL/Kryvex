@@ -41,6 +41,7 @@ import { vpn } from './vpn';
 import { weather } from './weather';
 import { isSafePartition } from './privacy';
 import { serviceSessions } from './service-sessions';
+import { followServicePopup, signsInWithin } from './service-signin';
 import { isGoogleSite } from './sign-in-hosts';
 import { spotifyAds } from './spotify-ads';
 import { rememberApplicationAgent, stableUserAgent } from './user-agent';
@@ -223,10 +224,25 @@ function hardenWebContents(): void {
       ) {
         return { action: 'deny' };
       }
-      // Sign-in providers (Google, Microsoft, Apple, passkeys) finish in a
-      // popup and hand the result back to the opener. A service module gets a
-      // real child window on its own persistent session; a browser tab still
-      // hands the link to the system browser.
+      // A Google product signing itself in does not need a window at all: the
+      // account pages set cookies on the module's own session, so they run in
+      // the module's frame and the flow ends on the page it started from. A
+      // popup here would sign the user in and then show the product in a stray
+      // window while the module stayed on its signed-out page.
+      if (
+        contents.getType() === 'webview' &&
+        serviceSessions.isServiceSession(contents.session) &&
+        isSafeUrl(url) &&
+        signsInWithin(contents.getURL(), url)
+      ) {
+        void contents.loadURL(url).catch(() => undefined);
+        return { action: 'deny' };
+      }
+      // Other sign-in providers (Microsoft, Apple, passkeys, a third-party
+      // "Sign in with Google") finish in a popup and hand the result back to
+      // the opener, so they keep one. A service module gets a real child window
+      // on its own persistent session; a browser tab still hands the link to
+      // the system browser.
       if (
         contents.getType() === 'webview' &&
         serviceSessions.isServiceSession(contents.session) &&
@@ -263,6 +279,11 @@ function hardenWebContents(): void {
       // A popup tab keeps the window-open policy above, so a link opened from
       // inside it stays in Kryvex too.
       if (popupTabs.claim(window, contents)) return;
+      // A service's sign-in window returns its result to the module instead of
+      // staying a stray window that shows the product.
+      if (contents.getType() === 'webview' && serviceSessions.isServiceSession(contents.session)) {
+        followServicePopup(contents, window.webContents);
+      }
       const popup = window.webContents;
       popup.setWindowOpenHandler(({ url }) => {
         if (isSafeUrl(url)) void shell.openExternal(url);

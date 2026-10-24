@@ -142,6 +142,35 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   release records are in place. Outstanding: engineering report and
   a signed public release.
 
+## Fixed (2026-10-24, a service signs in inside its own module)
+
+With the browser check passed, a real Gmail sign-in went through — mobile
+verification included — but it happened in its own window, and that window ended
+up showing the inbox while the Gmail module behind it still showed the
+signed-out page. The module never reloaded, and the user's session existed
+somewhere they were not looking.
+
+`electron/service-signin.ts` (new) handles both halves:
+
+- a Google product page that opens Google's account pages now navigates the
+  module's own frame (`signsInWithin`), because the sign-in is cookie-based and
+  needs no `window.opener`;
+- a service popup that reaches the opener's own site closes and its page loads in
+  the module (`returnsToOpener`), and a popup that visited a sign-in host
+  refreshes the module when it closes.
+
+Third-party "Sign in with Google" is untouched: those flows answer through the
+opener and keep their real popup. Wired in the window-open handler and the
+`did-create-window` hook of `electron/main.ts`; rules covered by
+`tests/service-signin.test.ts`.
+
+Verified in the built app with a disposable profile and a seeded Gmail module:
+the guest sits at `accounts.google.com/v3/signin/identifier?…
+flowName=GlifWebSignIn`, the identifier input renders inside
+`.service-frame.is-active webview`, and no stray window exists. Not run: a
+completed in-frame sign-in (it needs the account's phone verification), a
+YouTube module sign-in, or the popup-fold path end to end.
+
 ## Fixed (2026-10-24, one identity per Google site family)
 
 0.8.9 fixed Google's *account* pages and left the products alone, so a Gmail

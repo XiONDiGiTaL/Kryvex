@@ -2001,3 +2001,40 @@ because the engine's own brands already match there.
 post-password checks are still unmeasured, and no captcha was solved. Only Gmail
 (the account host and the return leg) and YouTube were probed. The full flow is
 Google's regular one, which is a classification change, not a guarantee.
+
+## A Google service signs in inside its own module (2026-10-24)
+
+The identity work fixed the browser check, and a real sign-in then exposed the
+next gap: Gmail's account flow opened as its own window, the user finished it
+there with phone verification, and the window ended up showing the inbox while
+the Gmail module behind it still showed its signed-out page. The module never
+learned that a session now existed.
+
+`electron/service-signin.ts` puts the flow back in the frame:
+
+- a Google product page opening Google's account pages navigates the module's own
+  frame instead of creating a window — the sign-in is cookie-based and needs no
+  opener;
+- a service popup that reaches the opener's own site closes and its page loads in
+  the module;
+- a popup that visited a sign-in host refreshes the module when it closes, so the
+  cookies it earned are reflected in the stage.
+
+Verified in the built app, disposable profile, Gmail service seeded into the
+state, driven over CDP:
+
+| Check | Observed |
+| --- | --- |
+| The module opens Google's sign-in in its own frame | guest at `https://accounts.google.com/v3/signin/identifier?continue=https://mail.google.com/…&flowName=GlifWebSignIn` |
+| The form renders there | `input[name="identifier"]` present inside `.service-frame.is-active webview` |
+| No stray window | no `page` target outside the module carried `mail.google.com` or `accounts.google.com` (only an `accounts.youtube.com` iframe, which is part of the page) |
+
+| Also run | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm test` | exit 0; adds `tests/service-signin.test.ts` (5 cases: Google-in-frame, third-party OAuth left alone, lookalike hosts, popup return matching) |
+
+**Not run:** a completed sign-in inside the frame (that needs the account's phone
+verification, which only the account owner can do), a YouTube module sign-in, and
+the popup-fold path end to end — its rules are unit-tested, but no live provider
+was driven through it.
