@@ -1,7 +1,7 @@
 {
   "name": "kryvex",
   "productName": "Kryvex",
-  "version": "0.8.9",
+  "version": "0.9.0",
   "description": "A modular desktop workspace that brings independent web services, a browser and shared tools into one engineered surface.",
   "license": "MIT",
   "author": {
@@ -50,6 +50,7 @@
     "verify:wallpaper": "pnpm build && node scripts/verify-wallpaper-ui.cjs",
     "verify:identity": "pnpm build && electron scripts/verify-browser-identity.cjs",
     "verify:google": "pnpm build && electron scripts/verify-google-signin.cjs",
+    "verify:identity-matrix": "pnpm build && electron scripts/verify-identity-matrix.cjs",
     "verify:shield-filters": "pnpm build && electron scripts/verify-shield-filters.cjs",
     "verify:service-ux": "pnpm build && node scripts/verify-service-ux.cjs",
     "verify:model": "pnpm build && electron scripts/verify-local-model.cjs",

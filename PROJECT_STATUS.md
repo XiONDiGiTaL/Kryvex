@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.8.9, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.0, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -119,7 +119,10 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   wizard capture (`docs/RELEASE_0.8.9.md`,
   `docs/media/releases/0.8.9-wizard/`); both published EXEs were then
   re-downloaded and `sha256sum -c SHA256SUMS.txt` verifies both, each reporting
-  `ProductVersion 0.8.9`. The
+  `ProductVersion 0.8.9`. **0.9.0** (the Chromium sign-in identity, the `window.chrome`
+  surface, one identity per Google site family, and a Google service signing in
+  inside its own module) was tagged on 2026-10-24 and gated the same way, on
+  `docs/RELEASE_0.9.0.md` and `docs/media/releases/0.9.0-wizard/`. The
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
   `package:win`, writes `SHA256SUMS.txt` and publishes the release, and it now
   refuses a tag whose release record carries no installer wizard capture
@@ -130,15 +133,15 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10: Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.8.9
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.0
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it. The installable PWA is published from the
   `gh-pages` branch of the same repository and serves
   `https://xiondigital.net/Kryvex/`, rebuilt for each release (0.8.9 as of this
-  record).
+  record; the 0.9.0 web bundle is a separate rebuild).
 - [ ] **M11: Final review.** README with real screenshots, banner,
-  feature/security/limitation sections, honest testing docs and 0.3.0–0.8.9
+  feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and
   a signed public release.
 
@@ -729,6 +732,16 @@ account sign-in, a captcha solve, or another provider.
 - “Kryvex” clearance unresolved (above).
 
 ## Next concrete action
+
+0.9.0 is published from the `v0.9.0` tag: Google hosts report the bare Chromium
+agent with Chromium's own client hints and the `window.chrome` surface, which is
+what moved Google from its reduced `WebLiteSignIn` flow to the regular
+`GlifWebSignIn` one, and a Google service now finishes its sign-in inside its own
+module instead of in a stray window. Verified against the live site (10/10 on
+`pnpm verify:google`, five variants on `pnpm verify:identity-matrix`) and on the
+installed build, where the Gmail module read `mail.google.com/mail/u/0/#inbox`
+after a real sign-in with mobile verification. Next: confirm a fresh sign-in
+end to end in the frame, then code signing.
 
 0.8.8 is published from the `v0.8.8` tag with the Setup, Portable and checksum
 assets, so installed 0.8.7 builds pick up the bundled llama.cpp runtime, the
