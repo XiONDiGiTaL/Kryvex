@@ -58,17 +58,20 @@ release workflow had both to check (`pnpm release:check`).
 
 ## Artifacts
 
-Built by the tag-triggered workflow on `windows-latest` and attached to the
-published release:
+Built by the tag-triggered workflow (run
+[40094955810](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40094955810),
+commit `93e3c10`) on `windows-latest` and attached to the published release:
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.9.0-x64.exe` | 134,259,365 B (128.04 MiB) | `3e852d2c46265fc98ffdd61ffe710f8bd17cb0952b5c09c241e351501eeef13b` |
-| `Kryvex-Portable-0.9.0-x64.exe` | 134,022,152 B (127.82 MiB) | `011e88576dc2013cf19fd44fed0b9430306705a1ae8284562e5539d79e7922af` |
+| `Kryvex-Setup-0.9.0-x64.exe` | 134,259,751 B (128.04 MiB) | `28f3da2a3e51b65113c557b639998d0ce470ebb32451d5603ae87211b9e7d8bb` |
+| `Kryvex-Portable-0.9.0-x64.exe` | 134,022,614 B (127.82 MiB) | `db90684966530c020b449499fa443b691b94f5359b415389d2fbb91c85f76d26` |
 
-The digests above are the locally built pair the wizard capture was taken from;
-the CI pair carries its own digests in `SHA256SUMS.txt`, added to this record
-after the run. Both EXEs are **unsigned**. The updater ignores a release whose
+`SHA256SUMS.txt` (189 B) carries both digests. Both published EXEs were
+downloaded from `releases/download/v0.9.0/`, `sha256sum -c SHA256SUMS.txt`
+verifies both, and each reports `ProductVersion 0.9.0`. The locally built pair
+the wizard capture was taken from differs from the CI pair only by the build
+environment. Both EXEs are **unsigned**. The updater ignores a release whose
 installer has no matching entry.
 
 The packaged tree is about 465 MB, of which 44 MB is the bundled llama.cpp
@@ -123,6 +126,16 @@ runtime, and the wizard reports **Space required: 465.6 MB**.
   under `docs/media/releases/0.9.0-wizard/`, and the installed
   `C:\Kryvex\Kryvex.exe` reports `ProductVersion 0.9.0`.
 - `node scripts/check-release-record.cjs`: PASS for 0.9.0.
+- **The tag-triggered workflow** (run
+  [40094955810](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40094955810))
+  finished **success**: tag/`package.json` check, `release:check`, `audit:deps`,
+  typecheck, tests, `package:win`, checksums and publish. `v0.9.0` is published,
+  stable, with the Setup, Portable and `SHA256SUMS.txt` assets.
+- **The published installer over the 0.8.9 copy**: installed silently at
+  `C:\Kryvex`, `ProductVersion 0.9.0`, launched, Vexium Core started with it, and
+  the Gmail module read `https://mail.google.com/mail/u/0/#inbox`
+  (`Inbox - <account> - Gmail`, compose control present, no refusal) inside its
+  own frame.
 
 ## Wizard capture
 

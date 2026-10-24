@@ -121,8 +121,12 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   re-downloaded and `sha256sum -c SHA256SUMS.txt` verifies both, each reporting
   `ProductVersion 0.8.9`. **0.9.0** (the Chromium sign-in identity, the `window.chrome`
   surface, one identity per Google site family, and a Google service signing in
-  inside its own module) was tagged on 2026-10-24 and gated the same way, on
-  `docs/RELEASE_0.9.0.md` and `docs/media/releases/0.9.0-wizard/`. The
+  inside its own module)  was tagged on 2026-10-24 (run `40094955810`, success) and gated the same way, on
+  `docs/RELEASE_0.9.0.md` and `docs/media/releases/0.9.0-wizard/`; the published
+  Setup was then installed over the 0.8.9 copy at `C:\Kryvex`, reported 0.9.0,
+  started Vexium Core, and its Gmail module read
+  `mail.google.com/mail/u/0/#inbox` inside its own frame, and both published EXEs
+  were re-downloaded with `sha256sum -c SHA256SUMS.txt` verifying both. The
   workflow checks the tag against `package.json`, runs typecheck and tests, runs
   `package:win`, writes `SHA256SUMS.txt` and publishes the release, and it now
   refuses a tag whose release record carries no installer wizard capture
@@ -139,7 +143,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   in-app updater accepts it. The installable PWA is published from the
   `gh-pages` branch of the same repository and serves
   `https://xiondigital.net/Kryvex/`, rebuilt for each release (0.8.9 as of this
-  record; the 0.9.0 web bundle is a separate rebuild).
+  record; the 0.9.0 web bundle is a separate rebuild and is not published yet).
 - [ ] **M11: Final review.** README with real screenshots, banner,
   feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and

@@ -2038,3 +2038,28 @@ state, driven over CDP:
 verification, which only the account owner can do), a YouTube module sign-in, and
 the popup-fold path end to end — its rules are unit-tested, but no live provider
 was driven through it.
+
+## 0.9.0 release: tag, publish and the published install (2026-10-24)
+
+The record, the matrix harness and the wizard capture were committed as
+`93e3c10`, tagged `v0.9.0`, and published by the workflow.
+
+| Check | Result |
+| --- | --- |
+| `node scripts/check-release-record.cjs 0.9.0` | PASS, 11/11 lines |
+| Wizard capture | 4 pages, installer exit 0, install page ran 24,501 ms, archived under `docs/media/releases/0.9.0-wizard/` |
+| `npm test` | 596/596 across 59 files |
+| Workflow run [40094955810](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40094955810) | success |
+| Release state | `v0.9.0` published, `isDraft: false`, `isPrerelease: false` |
+| Published assets | downloaded, `sha256sum -c SHA256SUMS.txt` OK for both, each `ProductVersion 0.9.0` |
+| Installed over the 0.8.9 copy | `C:\Kryvex\Kryvex.exe` 0.9.0, launched, Vexium Core started |
+| Gmail module in the installed build | `mail.google.com/mail/u/0/#inbox`, `Inbox - <account> - Gmail`, compose present, no refusal |
+
+| Asset | Bytes | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.0-x64.exe` | 134,259,751 | `28f3da2a3e51b65113c557b639998d0ce470ebb32451d5603ae87211b9e7d8bb` |
+| `Kryvex-Portable-0.9.0-x64.exe` | 134,022,614 | `db90684966530c020b449499fa443b691b94f5359b415389d2fbb91c85f76d26` |
+
+**Not run:** a fresh sign-in inside the frame after the release (the account was
+already signed in), the Gmail module on a second machine, and the `gh-pages` web
+bundle, which still serves 0.8.9 until it is rebuilt.
