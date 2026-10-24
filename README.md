@@ -400,11 +400,12 @@ with lists you chose. Kryvex still hosts nothing and uploads nothing.
   `getHighEntropyValues` and `Sec-CH-UA` on the wire, so sites stop treating a
   module as an anonymous Electron window. Fingerprint farbling still hides its
   JavaScript wrappers from `Function.prototype.toString`.
-  Google's own account pages are the exception. They verify the engine, and a
-  page that claims Chrome while failing Chrome's checks is refused, so
-  `accounts.google.*` runs under Kryvex's real user agent with no client hints,
-  no identity shim and no farbling. Signing in there now reaches Google's form
-  and its account step instead of the refusal card.
+  Google is the exception. Its pages verify the engine, and a page that claims
+  Chrome while failing Chrome's checks is refused, so every Google host runs
+  under Kryvex's real user agent with no client hints and no identity shim —
+  Gmail and YouTube included, because a sign-in leaves the product for
+  `accounts.google.com` and comes back, and one browser must be the same browser
+  at both ends.
 - **My filters:** the shield accepts the uBlock Origin syntax people already
   paste: `||ads.example.com^`, `example.com##.ad`, `example.com##+js(…)`, and
   compiles it from the cached lists, so applying needs no download. Scriptlets
@@ -1372,13 +1373,15 @@ The full dependency notices are in
   own install bar on detail pages instead. Extensions are third-party code and
   are not audited.
 - **Google sign-in is still Google's decision.** Kryvex now passes the browser
-  check: on Google's account pages it reports the application's real user agent
-  instead of a Chrome one, because claiming Chrome from an engine that is not
-  Chrome is what produced "This browser or app may not be secure". Measured on
-  2026-10-23 with the same identifier step, the Chrome claim was refused and the
-  real agent reached the account check (captcha, then "Couldn't find this
-  account" for a fake address). What remains outside Kryvex's control is Google
-  itself: an account step can still ask for a captcha or a device check, a
+  check and keeps one identity while it does: every Google host reports the
+  application's real user agent instead of a Chrome one, because claiming Chrome
+  from an engine that is not Chrome is what produced "This browser or app may
+  not be secure". Measured on 2026-10-23 with the same identifier step, the
+  Chrome claim was refused and the real agent reached the account check
+  (captcha, then "Couldn't find this account" for a fake address);
+  `pnpm verify:google` re-runs that probe, and on 2026-10-24 it also confirmed
+  the agent is unchanged across the Gmail → account host → Gmail round trip.
+  What remains outside Kryvex's control is Google itself: an account step can still ask for a captcha or a device check, a
   stored session can go stale, and the company can tighten the gate again. The
   refusal banner keeps **Reset session & retry**, and **Open in my browser** is
   the route when a provider insists on its own browser.

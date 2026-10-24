@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { Session, WebContents } from 'electron';
-import { isSignInHost } from './sign-in-hosts';
+import { isGoogleSite } from './sign-in-hosts';
 import { applicationUserAgent, stableUserAgent } from './user-agent';
 
 /**
@@ -33,28 +33,33 @@ function chromeAgent(): string {
 }
 
 function apply(contents: WebContents, url: string): void {
-  let signIn = false;
+  let google = false;
   try {
-    signIn = isSignInHost(new URL(url).hostname);
+    google = isGoogleSite(new URL(url).hostname);
   } catch {
     return;
   }
   try {
-    contents.setUserAgent(signIn ? applicationUserAgent() || chromeAgent() : chromeAgent());
+    contents.setUserAgent(google ? applicationUserAgent() || chromeAgent() : chromeAgent());
   } catch {
     /* a contents that is already gone needs nothing */
   }
 }
 
 /**
- * Keeps one guest's user agent honest while it visits a sign-in provider.
+ * Keeps one guest's user agent honest for the site family it is on.
  *
- * Google's account pages verify the browser and refuse an engine that claims
- * to be Chrome, so the guest reports the application's own agent on those
- * pages and the Chrome agent everywhere else. `will-navigate` and
- * `will-redirect` both fire before the navigation commits, so the document
- * that arrives sees the same agent the request carried; `did-navigate` covers
- * a history restore that skipped both.
+ * Google is the exception that proves the rule: its account pages verify the
+ * browser and refuse an engine that claims to be Chrome, so Google hosts
+ * report the application's own agent. That decision follows the *host family*
+ * rather than the individual page, because a sign-in starts on Gmail or
+ * YouTube, redirects to the account host for the password and returns to the
+ * product. Changing identity at any point in that round trip is exactly what
+ * makes Google treat the returning visit as a different browser.
+ *
+ * `will-navigate` and `will-redirect` both fire before the navigation commits,
+ * so the document that arrives sees the same agent the request carried;
+ * `did-navigate` covers a history restore that skipped both.
  */
 export function followUserAgent(contents: WebContents): void {
   if (followed.has(contents)) return;

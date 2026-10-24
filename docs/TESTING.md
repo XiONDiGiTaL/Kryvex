@@ -1884,3 +1884,82 @@ locally built 0.8.9 pair had already been installed over 0.8.8 and exercised
 `electron-builder` rebuild after the converter fix failed with
 `EPERM` renaming `release/win-unpacked` on `X:`, which is why no local 0.8.9 EXE
 contains that one-line fix; the tag build does.
+
+## Google sign-in: one identity per site family (2026-10-24)
+
+The 0.8.9 fix changed identity per *host*, which meant a Gmail sign-in claimed
+Chrome on `mail.google.com`, reported Kryvex on `accounts.google.com`, and
+claimed Chrome again on the way back. Google's post-password risk check runs
+across exactly that round trip, where a browser that changes product is easy to
+read as a different browser than the one that just authenticated. The identity
+rule now follows the site family instead: `isGoogleSite` covers `google.com` and
+its country domains, `youtube.com` and Google's CDNs, and `hardening.ts`,
+`identity.ts` and the identity preload all ask that one question. The shield also
+stands aside for the account hosts, because a blocked subresource there fails a
+sign-in without a message.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 for renderer and main |
+| `npm test` (sign-in and user-agent files) | exit 0, 11/11; `tests/sign-in-hosts.test.ts` now covers the family rule and its lookalikes |
+| `npm run build` | exit 0 |
+| `npm run verify:identity` | **PASS**; a loopback guest still reports `Google Chrome / Chromium / Not(A:Brand`, Chrome `Sec-CH-UA` on the wire, native-looking farbling wrappers, seed 0 for `accounts.google.com`, and the new assertions that `accounts.google.com`, `mail.google.com`, `www.youtube.com` and `google.com` share one identity while `example.com`, `notgoogle.com` and `accounts.google.com.evil.test` do not |
+| `npm run verify:google` | **PASS**, 7/7 against the live site; details below |
+
+`scripts/verify-google-signin.cjs` is new. It opens the real
+`accounts.google.com` in a guest with the production plumbing and reads what
+Google can see, rather than asserting what the rules decided:
+
+| Check | Observed |
+| --- | --- |
+| Landed on the identifier step | `/v3/signin/identifier?service=mail…`, not `/v3/signin/rejected` |
+| `navigator.userAgent` on the account host | the application agent (`Kryvex/… Electron/…`), no Chrome claim |
+| `navigator.userAgentData` | Chromium's own (`Not?A_Brand / Chromium`), no own property, so the Chrome patch is off |
+| One throwaway identifier submitted with real key events | "Couldn't find this account" — Google's account step, not the refusal card |
+| Return leg `mail.google.com` → `accounts.google.com` → … | every hop carried the same agent |
+| `www.youtube.com` under the same agent | ordinary YouTube page, title `YouTube`, no unsupported-browser notice |
+
+The probe writes `.tmp-google-signin.log` and is release-time only; it talks to
+the internet whereas the rest of the suite does not.
+
+**Not run, plainly.** No real Google account signed in, so the password and
+post-password checks remain unmeasured; no captcha was solved; only Gmail and
+YouTube were probed. Google can change the gate at any time, and the Google
+family now reports an Electron agent on its product pages as well as its account
+pages — the trade that keeps one identity across the flow.
+
+## Published 0.8.9 install, local packaging and the desktop tools (2026-10-24)
+
+Three checks that the release record had left open, run after the identity fix.
+
+| Check | Result |
+| --- | --- |
+| Published `Kryvex-Setup-0.8.9-x64.exe` re-downloaded and hashed | `81059d4d…9f9d`, matching `SHA256SUMS.txt` |
+| Silently installed over the existing `C:\Kryvex` copy | new `Kryvex.exe` written at 07:32 with `ProductVersion 0.8.9`; the uninstall entry reads "Kryvex 0.8.9" |
+| Launched from the installed copy | `Kryvex.exe` window titled **Kryvex**, still running after 12 s |
+| Vexium Core starts on launch | `llama-server.exe` as a child of the app, `--model …\models\qwen2.5-1.5b-instruct.gguf --port 14988`; `/health` answers `200` and `/v1/models` lists that file |
+
+Local packaging had been failing with `EPERM` on `release/win-unpacked`, and the
+first attempt here failed earlier still: `electron-builder` picked the pnpm
+collector from the lockfile, and `pnpm list` was not on `PATH`, so the collector
+reported "No JSON content found in output". `pnpm@10.34.8` is now installed into
+the user npm prefix. After that, `npx electron-builder --publish never` built
+`Kryvex-Setup-0.8.9-x64.exe` (134,257,576 B) and
+`Kryvex-Portable-0.8.9-x64.exe` (134,020,431 B), and deleting
+`release/win-unpacked` and rebuilding `--dir` succeeded again, so the EPERM
+rename no longer occurs.
+
+The Home currency card and the player's playlist import were then driven in the
+built desktop app over CDP, in a disposable profile with `startView: home`:
+
+| Check | Observed |
+| --- | --- |
+| Saved pair restored | `USD → BRL` |
+| Live rate | `1 USD = 5.0465 BRL · Oct 23`, `$100.00 = R$504.65`, which matches the rate |
+| Edit the amount | `$250.00 = R$1,261.63`, recomputed in place |
+| Switch the target | `1 USD = 0.89342 EUR`, a second fetch from the same host |
+| Spotify playlist import | 50 rows queued from `37i9dQZF1DXcBWIGoYBM5M`, toast "50 tracks from Today's Top Hits added to the queue", rows such as `01 Housewife AUDIO · SPOTIFY PREVIEW · Tate McRae` |
+
+**Not run:** a YouTube playlist import (the Spotify provider answered first and
+the check stops at the first success), playback of the queued rows, and a signed
+-out/in state change on the installed copy.

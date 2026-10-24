@@ -3,12 +3,11 @@ import { contextBridge, ipcRenderer } from 'electron';
 /**
  * Gives guest pages the browser identity their user agent already claims.
  *
- * Kryvex sends a plain desktop Chrome user agent, but Chromium inside Electron
- * reports itself as the Chromium brand in `navigator.userAgentData` and sends
- * no client hints. A page that reads the UA and then finds a different product
- * in the hints is looking at a browser that cannot exist: real Chrome has both
- * halves saying the same thing. Google's sign-in page is the loudest example:
- * it refuses the flow with "This browser or app may not be secure".
+ * Kryvex sends a plain desktop Chrome user agent to ordinary sites, but
+ * Chromium inside Electron reports itself as the Chromium brand in
+ * `navigator.userAgentData` and sends no client hints. A page that reads the UA
+ * and then finds a different product in the hints is looking at a browser that
+ * cannot exist: real Chrome has both halves saying the same thing.
  *
  * This patch only makes the two halves agree. It does not hide that Kryvex is
  * an app: the engine, the process model and everything a page can observe
@@ -16,17 +15,19 @@ import { contextBridge, ipcRenderer } from 'electron';
  * shape of Chrome's own: an accessor on `Navigator.prototype` that returns a
  * cached `NavigatorUAData`, not an own property holding a plain object.
  *
- * Sign-in providers that check the engine themselves are excluded; see
- * `shimAllowed` below and the user-agent switch in `identity.ts`.
+ * Google is excluded. Its pages get the application's own agent, so claiming
+ * Chrome in `userAgentData` there would recreate the mismatch this patch
+ * exists to remove, in the opposite direction; see `chromeIdentity` below and
+ * the per-family user agent in `identity.ts`.
  */
 
 /**
- * Google's account pages verify the engine before they accept a sign-in and
- * refuse one that claims to be Chrome, so they are left unpatched and run
- * under the application's own user agent instead. The main process owns that
- * list; a page that cannot be asked keeps the patch.
+ * Google verifies the engine before it accepts a sign-in and refuses one that
+ * claims to be Chrome, so its whole family of hosts runs unpatched under the
+ * application's own user agent. The main process owns that list; a page that
+ * cannot be asked keeps the patch.
  */
-function shimAllowed(): boolean {
+function chromeIdentity(): boolean {
   let host = '';
   try {
     const page = globalThis as unknown as { location?: { hostname?: string } };
@@ -35,7 +36,7 @@ function shimAllowed(): boolean {
     return true;
   }
   try {
-    return ipcRenderer.sendSync('kryvex:identity:allow', host) !== false;
+    return ipcRenderer.sendSync('kryvex:identity:chrome', host) !== false;
   } catch {
     return true;
   }
@@ -51,7 +52,7 @@ const platformName =
 const platformVersion =
   process.platform === 'darwin' ? '14.0.0' : process.platform === 'win32' ? '15.0.0' : '6.5.0';
 
-if (shimAllowed()) {
+if (chromeIdentity()) {
   try {
     contextBridge.executeInMainWorld({
       func: installBrowserIdentity,

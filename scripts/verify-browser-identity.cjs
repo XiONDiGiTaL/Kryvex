@@ -51,10 +51,12 @@ async function main() {
   const { hardenSession } = require(path.join(process.cwd(), 'dist-electron', 'hardening.js'));
   const { ensureBrowserIdentity } = require(path.join(process.cwd(), 'dist-electron', 'identity.js'));
   const { webPrivacy } = require(path.join(process.cwd(), 'dist-electron', 'web-privacy.js'));
-  const { isSignInHost } = require(path.join(process.cwd(), 'dist-electron', 'sign-in-hosts.js'));
+  const { isGoogleSite, isSignInHost } = require(
+    path.join(process.cwd(), 'dist-electron', 'sign-in-hosts.js'),
+  );
 
-  // The identity preload asks before it patches a page; a sign-in provider is
-  // answered with "no", everything else with "yes".
+  // The identity preload asks before it patches a page; Google is answered
+  // with "no", everything else with "yes".
 
   let headers = {};
   const server = http.createServer((request, response) => {
@@ -73,8 +75,8 @@ async function main() {
   ipcMain.on('kryvex:farbling:seed', event => {
     event.returnValue = 0x9e3779b9;
   });
-  ipcMain.on('kryvex:identity:allow', (event, host) => {
-    event.returnValue = !isSignInHost(String(host ?? ''));
+  ipcMain.on('kryvex:identity:chrome', (event, host) => {
+    event.returnValue = !isGoogleSite(String(host ?? ''));
   });
 
   const partition = 'persist:svc-identity-check';
@@ -202,6 +204,17 @@ async function main() {
   if (pageSeed === 0) return fail('an ordinary page lost its farbling seed');
   if (isSignInHost('accounts.google.com') === false) return fail('the sign-in host rule is missing');
   log(`sign-in surface is stock; an ordinary page still has seed ${pageSeed}`);
+
+  // One identity per site family: the account host and the product it returns
+  // to must both leave the Chrome patch off, or a sign-in changes browser in
+  // the middle of its own round trip.
+  for (const host of ['accounts.google.com', 'mail.google.com', 'www.youtube.com', 'google.com']) {
+    if (!isGoogleSite(host)) return fail(`${host} is not on the Google identity path`);
+  }
+  for (const host of ['example.com', 'notgoogle.com', 'accounts.google.com.evil.test']) {
+    if (isGoogleSite(host)) return fail(`${host} claimed the Google identity`);
+  }
+  log('Google account and product hosts share one identity; other sites keep Chrome');
 
   win.destroy();
   server.close();

@@ -1,7 +1,7 @@
 import { app, type MediaAccessPermissionRequest, type Session } from 'electron';
 import { permissions } from './permissions';
 import { clientHintPlatform, withChromeClientHints, withPrivacyHeaders } from './privacy';
-import { isSignInHost } from './sign-in-hosts';
+import { isGoogleSite } from './sign-in-hosts';
 import { applicationUserAgent, withApplicationUserAgent } from './user-agent';
 
 /**
@@ -28,9 +28,9 @@ export function configurePrivacySwitches(): void {
   app.commandLine.appendSwitch('disable-domain-reliability');
 }
 
-function isSignInUrl(url: string): boolean {
+function isGoogleUrl(url: string): boolean {
   try {
-    return isSignInHost(new URL(url).hostname);
+    return isGoogleSite(new URL(url).hostname);
   } catch {
     return false;
   }
@@ -75,12 +75,14 @@ export function hardenSession(ses: Session): void {
     const privateHeaders = withPrivacyHeaders(details.requestHeaders, details.url);
     // Google's account pages check the browser against the identity it
     // claims, and a Chrome agent from an engine that is not Chrome is refused
-    // outright. They get the application's real agent instead; everything else
-    // keeps the Chrome one and its matching client hints, because the user
-    // agent claims Chrome and the hints must agree with it or sites see two
-    // different browsers in one request.
+    // outright. Google therefore gets the application's real agent and no
+    // client hints — on its account hosts *and* on its products, so a sign-in
+    // that starts on Gmail and returns from the account host never changes
+    // browser halfway through. Everything else keeps the Chrome agent with
+    // matching hints, because a Chrome user agent with no hints is a
+    // combination real Chrome never produces.
     callback({
-      requestHeaders: isSignInUrl(details.url)
+      requestHeaders: isGoogleUrl(details.url)
         ? withApplicationUserAgent(privateHeaders, applicationUserAgent())
         : withChromeClientHints(
             privateHeaders,

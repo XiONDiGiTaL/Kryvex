@@ -142,7 +142,38 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   release records are in place. Outstanding: engineering report and
   a signed public release.
 
-## Fixed (2026-10-23, Google sign-in browser check)
+## Fixed (2026-10-24, one identity per Google site family)
+
+0.8.9 fixed Google's *account* pages and left the products alone, so a Gmail
+sign-in claimed Chrome on `mail.google.com`, reported Kryvex on
+`accounts.google.com`, and claimed Chrome again on the way back. Google's
+post-password risk check sits across that round trip: a browser that changes
+product between the password and the return is easy to read as a different
+browser than the one that authenticated. A second, smaller gap: the shield
+processed every request on the session with no exemption for the account hosts,
+so a list rule catching one of Google's own scripts could fail a sign-in with no
+message.
+
+`isGoogleSite` (`electron/sign-in-hosts.ts`) now answers for the whole family —
+`google.com` and its country domains, `youtube.com`, `youtu.be` and Google's
+CDNs — and `hardening.ts`, `identity.ts` and the identity preload all ask that
+one question, so every hop of a sign-in carries the same agent.
+`web-privacy.ts` hands requests to `accounts.google.*`, `myaccount.google.*` and
+`accounts.youtube.com` straight through; HTTPS upgrade and tracking-parameter
+stripping still apply. The IPC gate the preload asks was renamed
+`kryvex:identity:chrome` to match what it now decides.
+
+`scripts/verify-google-signin.cjs` (`npm run verify:google`) is the new release
+check. Against the live site, on 2026-10-24: the identifier step loaded (not
+`/v3/signin/rejected`), the account host saw the application agent with
+Chromium's own `userAgentData` and no Chrome patch, a throwaway identifier
+reached "Couldn't find this account" through real key events, every hop of the
+`mail.google.com` → `accounts.google.com` round trip kept the same agent, and
+`www.youtube.com` served its ordinary page under that agent. 7/7. Also:
+`npm run typecheck` exit 0, `npm test` 11/11 on the sign-in and user-agent files,
+`npm run verify:identity` PASS. Not run: a real account sign-in or a captcha.
+
+## Fixed (2026-10-23, Google sign-in browser check) — superseded above
 
 Google's account pages refuse a browser that claims to be Chrome from an engine
 they can tell is not Chrome: the identifier step lands on

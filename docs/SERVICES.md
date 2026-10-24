@@ -120,27 +120,41 @@ identifier submit per run:
 | Electron (real) | none | off | account check |
 
 So the claim was the whole problem, and correctness beats disguise. Kryvex
-changes four things for `accounts.google.*`, `myaccount.google.*` and
-`accounts.youtube.com` only:
+changes four things for Google's hosts — the account hosts *and* the products a
+sign-in returns to:
 
 - requests carry the application's own user agent (`electron/user-agent.ts`
   keeps the value Electron started with) and no `Sec-CH-UA` hints, because a
   hint asserts the Chrome brand at the header level;
-- the guest's user agent is switched per navigation in `electron/identity.ts`,
-  so `navigator.userAgent` and the request agree on those pages and the Chrome
-  agent returns the moment the flow leaves them;
+- the guest's user agent follows the site family in `electron/identity.ts`, so
+  `navigator.userAgent` and the request agree on every Google host;
 - the identity preload is not installed: the page gets Chromium's own
   `navigator.userAgentData` instead of a Chrome-shaped one, which matches the
   agent it is told;
-- fingerprint farbling is not installed (`fingerprintSeed` returns 0 for those
-  hosts), so canvas, WebGL and audio calls are the engine's own.
+- fingerprint farbling is not installed on the account hosts
+  (`fingerprintSeed` returns 0 there), so their canvas, WebGL and audio calls are
+  the engine's own.
 
-A Google *product* page (Gmail, YouTube) is an ordinary site and keeps the
-Chrome identity and the full privacy treatment; only the account surface stands
-aside. What Google still decides is the account step itself: a captcha, a
-device check, or a tighter gate. The notice in the service view covers a
-refusal that comes back anyway and offers **Reset session & retry** and
-**Open in my browser**.
+### One identity per site family, not per page
+
+0.8.9 changed identity per *host*, which left the flow claiming Chrome on
+`mail.google.com` and Kryvex on `accounts.google.com`. A sign-in is a round trip
+— product, account host, product again — so that made the browser change in the
+middle of its own flow, exactly where Google's post-password risk check runs.
+`isGoogleSite` in `electron/sign-in-hosts.ts` now covers the whole family
+(`google.com` and its country domains, `youtube.com`, and Google's CDNs), and
+`hardening.ts`, `identity.ts` and the identity preload all ask that one
+question. A hop anywhere in a Google sign-in now carries the same agent.
+
+The shield stands aside for the account surface too: a blocked subresource
+there fails a sign-in with no message, so `web-privacy.ts` hands requests to
+`accounts.google.*`, `myaccount.google.*` and `accounts.youtube.com` straight
+through. HTTPS upgrade and tracking-parameter stripping still apply.
+
+What Google still decides is the account step itself: a captcha, a device
+check, or a tighter gate. The notice in the service view covers a refusal that
+comes back anyway and offers **Reset session & retry** and **Open in my
+browser**.
 
 ## Unread badges
 
@@ -197,7 +211,8 @@ app and asserts:
 - an auth popup opens on the same session and sees the same cookie;
 - `(7) Fixture` reaches the toolbar, the sidebar and the window title;
 - the toolbar lock button clears the session and the reload has no cookie;
-- the guest reports a Chrome user agent with no Electron token;
+- the guest reports a Chrome user agent with no Electron token on a non-Google
+  origin (Google hosts are checked by `scripts/verify-google-signin.cjs`);
 - the stage fills the window, with the guest at 1192×770 in a 1440×900 window.
 
 Results are recorded in [TESTING.md](TESTING.md).

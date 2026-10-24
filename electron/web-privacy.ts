@@ -194,7 +194,11 @@ class WebPrivacy {
       callback({ redirectURL: rewritten });
       return;
     }
-    if (!entry.blocker) {
+    // A blocked subresource on an account page is a sign-in that fails with no
+    // explanation: Google's own flow loads its scripts from the same host it
+    // authenticates against, and list rules written for the product sites can
+    // catch one of them. The shield stands aside for the account surface.
+    if (!entry.blocker || this.isSignInRequest(details.url)) {
       callback({});
       return;
     }
@@ -202,6 +206,14 @@ class WebPrivacy {
       entry.blocker.onBeforeRequest(details, callback);
     } catch {
       callback({});
+    }
+  }
+
+  private isSignInRequest(url: string): boolean {
+    try {
+      return isSignInHost(new URL(url).hostname);
+    } catch {
+      return false;
     }
   }
 

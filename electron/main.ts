@@ -41,7 +41,7 @@ import { vpn } from './vpn';
 import { weather } from './weather';
 import { isSafePartition } from './privacy';
 import { serviceSessions } from './service-sessions';
-import { isSignInHost } from './sign-in-hosts';
+import { isGoogleSite } from './sign-in-hosts';
 import { spotifyAds } from './spotify-ads';
 import { rememberApplicationAgent, stableUserAgent } from './user-agent';
 import {
@@ -81,8 +81,8 @@ notifications.configure();
 // Service modules must look like a normal Chromium browser. Electron's
 // default agent advertises "Electron/x", which several web clients treat as an
 // unsupported browser and answer with forced sign-outs or broken OAuth. The
-// original value is kept: Google's account pages verify the browser and need
-// the agent that names the product Kryvex actually is.
+// original value is kept: Google's pages verify the browser and accept the
+// agent that names the product Kryvex actually is, so Google hosts get it.
 rememberApplicationAgent(app.userAgentFallback);
 app.userAgentFallback = stableUserAgent(process.platform, process.versions.chrome);
 
@@ -433,11 +433,11 @@ function torrentResult(ok: boolean, message: string): TorrentResult {
 }
 
 function registerIpc(): void {
-  // The identity preload asks this before it patches a page. Google's account
-  // pages stand aside: they verify the engine, so they get it unpatched and
-  // under the application's own user agent.
-  ipcMain.on('kryvex:identity:allow', (event, host: unknown) => {
-    event.returnValue = !isSignInHost(typeof host === 'string' ? host : '');
+  // The identity preload asks this before it patches a page. Google stands
+  // aside as one family: its pages verify the engine, so account hosts and
+  // products alike run unpatched under the application's own user agent.
+  ipcMain.on('kryvex:identity:chrome', (event, host: unknown) => {
+    event.returnValue = !isGoogleSite(typeof host === 'string' ? host : '');
   });
   ipcMain.handle('kryvex:state:load', (event) => (isShellSender(event) ? readState() : null));
   ipcMain.handle('kryvex:state:save', (event, state: unknown) =>
