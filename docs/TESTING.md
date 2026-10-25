@@ -2156,3 +2156,41 @@ Not exercised here, and therefore not claimed as working:
   itself is not installed on this machine.
 - The visualizer with a real audio file in a browser (the canvas needs a playing
   element and an audio graph).
+
+## 0.9.x close-out: link play, floating modules, translation sweep
+
+Run on 2026-10-25 in `X:\Veyra`, Node 24.19.0, Windows 11, on the working tree
+that became this commit.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer typecheck | `npx tsc --noEmit -p tsconfig.json` | exit 0 |
+| Main-process typecheck | `npx tsc --noEmit -p tsconfig.electron.json` | exit 0 |
+| Full suite | `npx vitest run` | **679/679** across 66 files |
+| Netplay rules | `npx vitest run tests/netplay.test.ts` | 12/12 — pad packing in W3C order, analogue trigger threshold, neutral/disconnected pads, axis clamping, payload sanitising, chunked cartridge round trip, a holey transfer refused, the 16 MB ceiling, and the frame document's pad/snapshot/restore hooks |
+| Floating geometry | `npx vitest run tests/floating.test.ts` | 7/7 — default rect fits the viewport, minimum size, title bar stays reachable in every direction, drag/resize clamping, cascade, inline style |
+| Translation coverage | `npx vitest run tests/i18n-coverage.test.ts` | 5/5 — backlog ratcheted to es 41 / de 68 / fr 56, every new string translated |
+| Production build | `npx vite build` | exit 0, `dist/assets/index-edne1GkB.js` 1,303 kB |
+
+### Floating modules, driven in a browser
+
+`npx vite --port 4197` served the renderer; the desktop browser panel opened
+`#/services`, GitHub was opened, and **Float this module** was pressed:
+
+- the route fell back to `#/services` and the stage reported
+  `service-stage is-idle has-float`, so the rest of the workspace stayed usable;
+- the frame was `position: fixed` at 364,368 with 514×793, `opacity: 1`,
+  `pointer-events: auto`, `z-index: 41`, with the drag grip and resize handle
+  present;
+- a pointer drag from the grip moved the window to 284,328 (80 px left, 40 px
+  up), read back from `getBoundingClientRect`;
+- **Dock this module** removed `.is-floating`, navigated to
+  `#/service/s-starter-3`, and the stage returned to `has-active`;
+- the console held no error, only Vite's connect line.
+
+The emulator page in the same run rendered the **LINK PLAY** panel with the
+no-room state and an **Open Rooms** action. A real two-machine session was not
+driven: it needs two clients, a reachable room relay and a cartridge, and none
+of those exist in this environment. The pad packing, chunk assembly, pad
+injection and state snapshot/restore paths are what the tests above cover; the
+transport itself is the same action set Rooms already uses.

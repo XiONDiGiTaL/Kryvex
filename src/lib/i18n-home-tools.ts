@@ -47,8 +47,8 @@ export const homeToolsCopy: Record<'es' | 'de' | 'fr', Record<string, string>> =
       'Las filas de Spotify reproducen su avance público de 30 segundos. Abre la canción completa en Spotify para oírla entera.',
     'Spotify or YouTube playlist, or a direct media link':
       'Playlist de Spotify o YouTube, o un enlace directo al medio',
-    'Playlist or direct media link': 'Enlace de playlist o medio directo',
-    Playlist: 'Playlist',
+    'Playlist or direct media link': 'Enlace de lista de reproducción o medio directo',
+    Playlist: 'Lista de reproducción',
     'Those tracks are already in the queue.': 'Esas canciones ya están en la cola.',
     '{count} tracks from {name} added · {skipped} skipped.':
       '{count} canciones de {name} añadidas · {skipped} omitidas.',
@@ -121,7 +121,7 @@ export const homeToolsCopy: Record<'es' | 'de' | 'fr', Record<string, string>> =
     'Spotify or YouTube playlist, or a direct media link':
       'Spotify- oder YouTube-Playlist oder ein direkter Medienlink',
     'Playlist or direct media link': 'Playlist- oder direkter Medienlink',
-    Playlist: 'Playlist',
+    Playlist: 'Wiedergabeliste',
     'Those tracks are already in the queue.': 'Diese Titel sind bereits in der Warteschlange.',
     '{count} tracks from {name} added · {skipped} skipped.':
       '{count} Titel aus {name} hinzugefügt · {skipped} übersprungen.',
@@ -193,8 +193,8 @@ export const homeToolsCopy: Record<'es' | 'de' | 'fr', Record<string, string>> =
       'Les lignes Spotify jouent leur aperçu public de 30 secondes. Ouvrez le titre complet dans Spotify pour écouter tout le morceau.',
     'Spotify or YouTube playlist, or a direct media link':
       'Playlist Spotify ou YouTube, ou lien direct vers le média',
-    'Playlist or direct media link': 'Lien de playlist ou média direct',
-    Playlist: 'Playlist',
+    'Playlist or direct media link': 'Lien de liste de lecture ou média direct',
+    Playlist: 'Liste de lecture',
     'Those tracks are already in the queue.': 'Ces titres sont déjà dans la file.',
     '{count} tracks from {name} added · {skipped} skipped.':
       '{count} titres de {name} ajoutés · {skipped} ignorés.',

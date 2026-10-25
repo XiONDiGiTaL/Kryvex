@@ -1,0 +1,505 @@
+/**
+ * French sweep: the historical backlog that predates the coverage ratchet.
+ * Values identical to their key are tokens that are intentionally not
+ * translated (product names, units, protocol labels).
+ */
+export const sweepFr: Record<string, string> = {
+  '! Your rules go here\n||ads.example.com^\nwww.youtube.com##ytd-ad-slot-renderer':
+    '! Vos règles vont ici\n||ads.example.com^\nwww.youtube.com##ytd-ad-slot-renderer',
+  '250 ml': '250 ml',
+  '8-BIT MODE': 'MODE 8 BITS',
+  'A calmer home, built into the shell': 'Un accueil plus calme, intégré au shell',
+  'A checkpoint from the host did not fit this core. Ask for the cartridge again.':
+    'Un point de contrôle de l’hôte ne correspondait pas à ce cœur. Redemandez la cartouche.',
+  'A local cartridge slot for files you already own. Nothing is uploaded, indexed or streamed, and Kryvex does not provide ROMs.':
+    'Un logement de cartouche local pour les fichiers que vous possédez déjà. Rien n’est envoyé, indexé ni diffusé, et Kryvex ne fournit aucune ROM.',
+  'A read-only analyzer with a guarded cleaner. Nothing leaves the machine, and system paths are never candidates.':
+    'Un analyseur en lecture seule avec un nettoyeur protégé. Rien ne quitte la machine et les chemins système ne sont jamais proposés.',
+  'A transparent overlay only; it never touches the game output.':
+    'Une simple couche transparente ; elle ne touche jamais à la sortie du jeu.',
+  'A tunnel needs the OpenVPN TAP/TUN driver and, on Windows, usually administrator rights. Kryvex reports OpenVPN’s own output and stops the process when you disconnect or quit.':
+    'Un tunnel nécessite le pilote TAP/TUN d’OpenVPN et, sous Windows, généralement des droits d’administrateur. Kryvex affiche la sortie d’OpenVPN et arrête le processus à la déconnexion ou à la fermeture.',
+  AUDIO: 'AUDIO',
+  Accent: 'Accent',
+  'Accent 2': 'Accent 2',
+  'Add task': 'Ajouter une tâche',
+  'Adds an Activity button to the header and a detailed pop-up panel.':
+    'Ajoute un bouton Activité à l’en-tête et un panneau détaillé.',
+  'Already installed': 'Déjà installé',
+  Analyze: 'Analyser',
+  Architecture: 'Architecture',
+  'Ask GitHub shortly after launch and every six hours. Downloads never start without you.':
+    'Interroge GitHub peu après le lancement puis toutes les six heures. Les téléchargements ne démarrent jamais sans vous.',
+  'Asking the host for the cartridge…': 'Demande de la cartouche à l’hôte…',
+  'Atari 8-bit computers, Pokemon Mini and Arduboy have no EmulatorJS core here, so those formats are not offered.':
+    'Les ordinateurs Atari 8 bits, Pokemon Mini et Arduboy n’ont pas de cœur EmulatorJS ici, ces formats ne sont donc pas proposés.',
+  'Audio and video pause while another view is open.':
+    'L’audio et la vidéo se mettent en pause tant qu’une autre vue est ouverte.',
+  'Audio and video pause while this view is hidden.':
+    'L’audio et la vidéo se mettent en pause tant que cette vue est masquée.',
+  'BIOS (OPTIONAL)': 'BIOS (FACULTATIF)',
+  'BIOS file ready. Reload the game to use it.':
+    'Fichier BIOS prêt. Rechargez le jeu pour l’utiliser.',
+  BMI: 'IMC',
+  'BOARD GUIDE': 'GUIDE DU TABLEAU',
+  BUILD: 'BUILD',
+  'BUILT IN · LOCAL FILES': 'INTÉGRÉ · FICHIERS LOCAUX',
+  'Before you clean anything': 'Avant de nettoyer quoi que ce soit',
+  'Before you load a cartridge': 'Avant de charger une cartouche',
+  BitTorrent: 'BitTorrent',
+  'Board settings': 'Réglages du tableau',
+  Browser: 'Navigateur',
+  CAPTURE: 'CAPTURE',
+  CARTRIDGE: 'CARTOUCHE',
+  CAUTION: 'ATTENTION',
+  CHROMIUM: 'CHROMIUM',
+  'CLEANUP PLAN': 'PLAN DE NETTOYAGE',
+  CODE: 'CODE',
+  COMPOSITING: 'COMPOSITION',
+  'CORE ERROR': 'ERREUR DU CŒUR',
+  CPU: 'CPU',
+  'CPU, memory and GPU-process bars under your pinned services.':
+    'Barres CPU, mémoire et processus GPU sous vos services épinglés.',
+  'CRT scanlines': 'Lignes de balayage CRT',
+  'Cartridge received. The host’s game is now your game.':
+    'Cartouche reçue. Le jeu de l’hôte est maintenant le vôtre.',
+  'Choose BIOS': 'Choisir le BIOS',
+  'Choose Home widgets': 'Choisir les widgets d’accueil',
+  'Choose a BIOS file': 'Choisir un fichier BIOS',
+  'Choose a ROM': 'Choisir une ROM',
+  'Choose a console': 'Choisir une console',
+  'Choose a file from the cartridge slot. The emulator core is fetched from the official EmulatorJS CDN on first use.':
+    'Choisissez un fichier dans le logement de cartouche. Le cœur de l’émulateur est récupéré depuis le CDN officiel d’EmulatorJS à la première utilisation.',
+  'Choose executable': 'Choisir l’exécutable',
+  'Choose profile': 'Choisir le profil',
+  'Chrome Web Store': 'Chrome Web Store',
+  Chromium: 'Chromium',
+  'City for weather': 'Ville pour la météo',
+  'City or town': 'Ville ou village',
+  'Clean permanently': 'Nettoyer définitivement',
+  'Clean {size}': 'Nettoyer {size}',
+  Cleaning: 'Nettoyage',
+  'Close private tabs': 'Fermer les onglets privés',
+  'Closing Kryvex to install…': 'Fermeture de Kryvex pour installer…',
+  'Collapse media controls': 'Réduire les commandes multimédia',
+  Color: 'Couleur',
+  'Color {value}': 'Couleur {value}',
+  'Conditions by Open-Meteo · only the place you choose leaves this device':
+    'Données Open-Meteo · seul le lieu choisi quitte cet appareil',
+  'Confirm killing {name}': 'Confirmer l’arrêt de {name}',
+  Connect: 'Connecter',
+  'Connect on launch': 'Connecter au démarrage',
+  'Connected to the host. Waiting for the cartridge…':
+    'Connecté à l’hôte. En attente de la cartouche…',
+  'Connecting…': 'Connexion…',
+  Console: 'Console',
+  'Custom filter rules': 'Règles de filtre personnalisées',
+  'DNS servers': 'Serveurs DNS',
+  'DONKEY EDITION': 'ÉDITION DONKEY',
+  DOWNLOADS: 'TÉLÉCHARGEMENTS',
+  DRIVE: 'DISQUE',
+  'Deletion bypasses the Recycle Bin. Files removed here cannot be restored from Kryvex.':
+    'La suppression contourne la Corbeille. Les fichiers retirés ici ne peuvent pas être restaurés depuis Kryvex.',
+  Desktop: 'Bureau',
+  'Desktop notifications are on for this service.':
+    'Les notifications de bureau sont activées pour ce service.',
+  Disconnect: 'Déconnecter',
+  'Disk pulse runs in the desktop app: the web build has no filesystem access.':
+    'Disk Pulse s’exécute dans l’application de bureau : la version web n’a pas accès au système de fichiers.',
+  'Disk pulse scans your drives locally and can permanently delete the cache and temporary files you select.':
+    'Disk Pulse analyse vos disques localement et peut supprimer définitivement le cache et les fichiers temporaires que vous sélectionnez.',
+  'Dock this module': 'Ancrer ce module',
+  'Download the installer, then Kryvex verifies it against the release checksum.':
+    'Téléchargez l’installateur, puis Kryvex le vérifie avec la somme de contrôle de la version.',
+  'Downloading Kryvex {version}…': 'Téléchargement de Kryvex {version}…',
+  Downloads: 'Téléchargements',
+  'Drag this window': 'Déplacer cette fenêtre',
+  'Drag to move · arrows to nudge': 'Glissez pour déplacer · flèches pour ajuster',
+  'Drag to resize': 'Glissez pour redimensionner',
+  'Drive usage pulse': 'Pouls d’utilisation du disque',
+  'Drive used': 'Disque utilisé',
+  'Drop a ROM here': 'Déposez une ROM ici',
+  'ELEMENT x529 / Kx': 'ÉLÉMENT x529 / Kx',
+  'ELEMENT x529 · Kx': 'ÉLÉMENT x529 · Kx',
+  'EMULATION SETTINGS': 'RÉGLAGES D’ÉMULATION',
+  ERROR: 'ERREUR',
+  'Emulator screen': 'Écran de l’émulateur',
+  'Enable the resource manager': 'Activer le gestionnaire de ressources',
+  'Enables the controls below. The tunnel only starts when you press Connect.':
+    'Active les commandes ci-dessous. Le tunnel ne démarre qu’en appuyant sur Connecter.',
+  'End link play': 'Terminer le jeu en réseau',
+  Error: 'Erreur',
+  'Expand media controls': 'Développer les commandes multimédia',
+  Extensions: 'Extensions',
+  'Extra OpenVPN arguments': 'Arguments OpenVPN supplémentaires',
+  'Extracted text': 'Texte extrait',
+  FREE: 'LIBRE',
+  'Feels {temp}': 'Ressenti {temp}',
+  'Flags that run another program are refused.':
+    'Les options qui lancent un autre programme sont refusées.',
+  'Float this module': 'Détacher ce module',
+  'Float this module over the workspace': 'Détacher ce module au-dessus de l’espace de travail',
+  'Force close': 'Forcer la fermeture',
+  'Force close this service': 'Forcer la fermeture de ce service',
+  'Freed {size}.': '{size} libérés.',
+  'GPU PROCESS': 'PROCESSUS GPU',
+  'GPU process': 'Processus GPU',
+  Gamepad: 'Manette',
+  'Google blocks sign-in in app-embedded browsers. Kryvex already reports one consistent Chrome identity, so if this card still appears the refusal is Google’s policy, not a missing setting. A stale Google session makes it worse: clearing it and signing in fresh often gets further.':
+    'Google bloque la connexion dans les navigateurs intégrés aux applications. Kryvex présente déjà une identité Chrome cohérente ; si cette carte apparaît encore, le refus relève de la politique de Google et non d’un réglage manquant. Une session Google périmée aggrave la chose : la vider et se reconnecter va souvent plus loin.',
+  'Got it': 'Compris',
+  Hardware: 'Matériel',
+  'Hide resource manager': 'Masquer le gestionnaire de ressources',
+  'Hide resources': 'Masquer les ressources',
+  'Hide sticky notes': 'Masquer les notes',
+  'Hide the resource manager': 'Masquer le gestionnaire de ressources',
+  'Home board': 'Tableau d’accueil',
+  'Home widgets': 'Widgets d’accueil',
+  'Host this cartridge': 'Héberger cette cartouche',
+  'Humidity {value}%': 'Humidité {value} %',
+  'I understand': 'Je comprends',
+  'INSERT CARTRIDGE': 'INSÉRER UNE CARTOUCHE',
+  'INSTALLED RAM': 'RAM INSTALLÉE',
+  Imperial: 'Impérial',
+  'Installed builds can replace themselves with a checksum-verified release installer. Portable builds download and verify the EXE, then ask you to run it. A git checkout is never modified.':
+    'Les versions installées peuvent se remplacer par un installateur vérifié par somme de contrôle. Les versions portables téléchargent et vérifient l’EXE, puis vous demandent de l’exécuter. Un checkout git n’est jamais modifié.',
+  'It draws over your active theme with a translucent pane, so the workspace still looks like Kryvex rather than a page pasted on top of it.':
+    'Il se dessine sur votre thème actif avec un volet translucide, pour que l’espace de travail ressemble toujours à Kryvex et non à une page collée dessus.',
+  'Join a room first: Rooms is the link between the two machines.':
+    'Rejoignez d’abord une salle : Salons est le lien entre les deux machines.',
+  'Join as player 2': 'Rejoindre en joueur 2',
+  'KRYVEX / PROCESS ACTIVITY': 'KRYVEX / ACTIVITÉ DES PROCESSUS',
+  'KRYVEX CPU': 'CPU KRYVEX',
+  'KRYVEX MEMORY': 'MÉMOIRE KRYVEX',
+  'KRYVEX START / ELEMENT x529': 'DÉMARRAGE KRYVEX / ÉLÉMENT x529',
+  'Keep running in the background': 'Continuer en arrière-plan',
+  'Keep {name} running': 'Garder {name} en marche',
+  Kill: 'Arrêter',
+  'Kill {name}': 'Arrêter {name}',
+  'Kill?': 'Arrêter ?',
+  'Kryvex CPU': 'CPU de Kryvex',
+  'Kryvex asks GitHub Releases for the newest published version. Only the public release feed is contacted.':
+    'Kryvex demande à GitHub Releases la dernière version publiée. Seul le flux public des versions est contacté.',
+  'Kryvex could not read a console header from this file, and the extension is used by more than one system. Pick the console this ROM belongs to and it will start that core.':
+    'Kryvex n’a pas pu lire d’en-tête de console dans ce fichier, et l’extension est utilisée par plusieurs systèmes. Choisissez la console de cette ROM et ce cœur démarrera.',
+  'Kryvex does not host, provide or link to ROMs, and does not promote piracy. Use only ROMs and BIOS files you are legally entitled to use.':
+    'Kryvex n’héberge, ne fournit ni ne référence de ROMs et ne fait pas la promotion du piratage. N’utilisez que des ROMs et fichiers BIOS que vous avez le droit légal d’utiliser.',
+  'Kryvex does not provide, host, link to or endorse ROMs, BIOS files or any copyrighted game data. The emulator only plays files you already have, and you are responsible for having the legal right to use them.':
+    'Kryvex ne fournit, n’héberge, ne référence ni ne cautionne de ROMs, de fichiers BIOS ou de données de jeu protégées. L’émulateur ne lit que les fichiers que vous possédez déjà, et vous êtes responsable du droit de les utiliser.',
+  'Kryvex memory': 'Mémoire de Kryvex',
+  'Kryvex {version} is ready to install.': 'Kryvex {version} est prêt à être installé.',
+  LINK: 'LIEN',
+  'LINK PLAY': 'JEU EN RÉSEAU',
+  LIVE: 'EN DIRECT',
+  'LOADING CORE…': 'CHARGEMENT DU CŒUR…',
+  LOCAL: 'LOCAL',
+  'LOW SPACE': 'ESPACE FAIBLE',
+  Leechers: 'Leechers',
+  Lexium: 'Lexium',
+  'Lexium tools': 'Outils Lexium',
+  Licence: 'Licence',
+  'Link play ended.': 'Jeu en réseau terminé.',
+  'Links and junctions are never followed, files in use are skipped, and system categories that need elevation are not offered in this build.':
+    'Les liens et jonctions ne sont jamais suivis, les fichiers utilisés sont ignorés, et les catégories système nécessitant une élévation ne sont pas proposées dans cette version.',
+  'Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket and Virtual Boy files you already own.':
+    'Chargez des fichiers Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket et Virtual Boy que vous possédez déjà.',
+  'Load ROM': 'Charger une ROM',
+  'Load a cartridge before hosting a link session.':
+    'Chargez une cartouche avant d’héberger une session en réseau.',
+  'Local conditions': 'Conditions locales',
+  MODULES: 'MODULES',
+  MUTED: 'MUET',
+  Magnet: 'Aimant',
+  Main: 'Principal',
+  'Map what fills the drive, read its health as a pulse, then clear caches and temp files behind a typed confirmation.':
+    'Cartographiez ce qui remplit le disque, lisez son état comme un pouls, puis videz les caches et fichiers temporaires après une confirmation saisie.',
+  'Mark “{text}” done': 'Marquer « {text} » comme faite',
+  'Mark “{text}” open': 'Marquer « {text} » comme à faire',
+  Memory: 'Mémoire',
+  Microphone: 'Microphone',
+  'More settings': 'Plus de réglages',
+  'Move {name} down': 'Descendre {name}',
+  'Move {name} to the main column': 'Mettre {name} dans la colonne principale',
+  'Move {name} to the side column': 'Mettre {name} dans la colonne latérale',
+  'Move {name} up': 'Monter {name}',
+  'Mute sound': 'Couper le son',
+  'Mute {name}': 'Couper {name}',
+  'NEEDS ELEVATION': 'ÉLÉVATION REQUISE',
+  'NES · SNES · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy':
+    'NES · SNES · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy',
+  'NOT FOUND': 'INTROUVABLE',
+  Name: 'Nom',
+  Network: 'Réseau',
+  'New task': 'Nouvelle tâche',
+  'No ROM loaded': 'Aucune ROM chargée',
+  'No answer from the server. Start it, check the address, and allow localhost requests if a browser blocks the connection. An HTTPS page cannot call a plain http:// server on your network, so use https:// or run the client locally.':
+    'Aucune réponse du serveur. Démarrez-le, vérifiez l’adresse et autorisez les requêtes localhost si un navigateur bloque la connexion. Une page HTTPS ne peut pas appeler un serveur http:// de votre réseau : utilisez https:// ou lancez le client en local.',
+  'No downloads · no catalogue · everything stays on this machine':
+    'Aucun téléchargement · aucun catalogue · tout reste sur cette machine',
+  'No launch switches: every Chromium default is in effect.':
+    'Aucun commutateur de lancement : tous les réglages par défaut de Chromium s’appliquent.',
+  'No room is open. Rooms is the link between the two machines.':
+    'Aucune salle n’est ouverte. Salons est le lien entre les deux machines.',
+  'No scan yet. Nothing is selected, and nothing can be cleaned before a scan.':
+    'Pas encore d’analyse. Rien n’est sélectionné et rien ne peut être nettoyé avant une analyse.',
+  'No service pages are open. Open a module to see its processes here.':
+    'Aucune page de service n’est ouverte. Ouvrez un module pour voir ses processus ici.',
+  'No tunnel is running.': 'Aucun tunnel n’est actif.',
+  'Not chosen': 'Non choisi',
+  'Nothing is scanned, uploaded or cleaned until you press a button.':
+    'Rien n’est analysé, envoyé ou nettoyé tant que vous n’appuyez pas sur un bouton.',
+  'Nothing was removed.': 'Rien n’a été supprimé.',
+  Notifications: 'Notifications',
+  'Notifications are hidden for this service.': 'Les notifications sont masquées pour ce service.',
+  'Notifications for {name}': 'Notifications pour {name}',
+  OFFLINE: 'HORS LIGNE',
+  ONLINE: 'EN LIGNE',
+  OPTIONAL: 'FACULTATIF',
+  'Only caches, temp files and diagnostics from the list below can be touched.':
+    'Seuls les caches, fichiers temporaires et diagnostics de la liste ci-dessous peuvent être touchés.',
+  'Only processes that belong to Kryvex are counted. GPU is Chromium’s GPU process; Windows does not expose total GPU utilisation to Electron.':
+    'Seuls les processus appartenant à Kryvex sont comptés. GPU est le processus GPU de Chromium ; Windows n’expose pas l’utilisation totale du GPU à Electron.',
+  'Open Rooms': 'Ouvrir Salons',
+  'Open the resource manager': 'Ouvrir le gestionnaire de ressources',
+  'OpenVPN executable': 'Exécutable OpenVPN',
+  'OpenVPN is connecting…': 'OpenVPN se connecte…',
+  'OpenVPN profile': 'Profil OpenVPN',
+  'OpenVPN project': 'Projet OpenVPN',
+  'Optional http, https or socks5 proxy used by OpenVPN.':
+    'Proxy http, https ou socks5 facultatif utilisé par OpenVPN.',
+  'Options for {name}': 'Options pour {name}',
+  'PARTITION {partition}': 'PARTITION {partition}',
+  'PAUSE WHEN HIDDEN': 'PAUSE SI MASQUÉ',
+  PROCESSES: 'PROCESSUS',
+  'Passed to OpenVPN as --dhcp-option DNS entries.':
+    'Transmis à OpenVPN comme entrées --dhcp-option DNS.',
+  Pause: 'Pause',
+  Peers: 'Pairs',
+  'Permanently remove these files?': 'Supprimer définitivement ces fichiers ?',
+  'Pin a reminder for today. It stays on this machine.':
+    'Épinglez un rappel pour aujourd’hui. Il reste sur cette machine.',
+  'Player 1 · host': 'Joueur 1 · hôte',
+  'Player 2': 'Joueur 2',
+  'Player 2 · guest': 'Joueur 2 · invité',
+  'Playing in {name}': 'Lecture dans {name}',
+  Playlist: 'Liste de lecture',
+  'Point Kryvex at your own OpenVPN executable and .ovpn profile, then start and stop the tunnel here. Kryvex bundles no VPN binary or driver and never reroutes traffic silently.':
+    'Indiquez à Kryvex votre propre exécutable OpenVPN et votre profil .ovpn, puis démarrez et arrêtez le tunnel ici. Kryvex n’embarque aucun binaire ni pilote VPN et ne redirige jamais le trafic en silence.',
+  'Pop-up': 'Fenêtre surgissante',
+  'Press again to force-close this service': 'Appuyez encore pour forcer la fermeture de ce service',
+  Proc: 'Proc',
+  'Process metrics are available in the desktop app.':
+    'Les métriques de processus sont disponibles dans l’application de bureau.',
+  Proxy: 'Proxy',
+  'READING THE DRIVE…': 'LECTURE DU DISQUE…',
+  RESOURCES: 'RESSOURCES',
+  'RUN ANALYZE TO MAP THE DRIVE': 'LANCER L’ANALYSE POUR CARTOGRAPHIER LE DISQUE',
+  'RUNNING · {system}': 'EN COURS · {system}',
+  Ratio: 'Ratio',
+  'Reading process metrics…': 'Lecture des métriques de processus…',
+  Reconnect: 'Reconnecter',
+  'Refresh conditions': 'Actualiser les conditions',
+  'Refresh weather': 'Actualiser la météo',
+  'Reload the core': 'Recharger le cœur',
+  'Remove “{text}”': 'Supprimer « {text} »',
+  'Removed {files} files ({size}). {skipped} were in use or protected.':
+    '{files} fichiers supprimés ({size}). {skipped} étaient utilisés ou protégés.',
+  'Repeat is on': 'La répétition est active',
+  'Repeat this clip': 'Répéter ce clip',
+  'Resize this window': 'Redimensionner cette fenêtre',
+  'Resource manager': 'Gestionnaire de ressources',
+  'Resource settings': 'Réglages des ressources',
+  'Resource usage': 'Utilisation des ressources',
+  'Restart core': 'Redémarrer le cœur',
+  Revision: 'Révision',
+  'Room chat': 'Chat du salon',
+  SAFE: 'SÛR',
+  'SECRET SERVICE / 8-BIT MODE': 'SERVICE SECRET / MODE 8 BITS',
+  'SECRET SERVICE / IN-HOUSE · x530': 'SERVICE SECRET / INTERNE · x530',
+  'SECRET SERVICE / IN-HOUSE · x531': 'SERVICE SECRET / INTERNE · x531',
+  'SECRET SERVICE / x533': 'SERVICE SECRET / x533',
+  'SHA-256': 'SHA-256',
+  'SHARED CARTRIDGE FORMAT': 'FORMAT DE CARTOUCHE PARTAGÉ',
+  SHARING: 'PARTAGE',
+  STANDBY: 'EN ATTENTE',
+  START: 'DÉMARRAGE',
+  'STICKY NOTES': 'NOTES',
+  STREAM: 'FLUX',
+  'STUN / TURN': 'STUN / TURN',
+  Scan: 'Analyser',
+  'Scan finished.': 'Analyse terminée.',
+  'Scan stopped early.': 'L’analyse s’est arrêtée avant la fin.',
+  Scanning: 'Analyse en cours',
+  Screen: 'Écran',
+  'Screen size': 'Taille de l’écran',
+  'Screenshots, photos of signs, chat captures. Read on this device.':
+    'Captures d’écran, photos de panneaux, images de chat. Lues sur cet appareil.',
+  'Search region': 'Région de recherche',
+  'Search the web for “{query}”': 'Rechercher « {query} » sur le Web',
+  'Secret emulator': 'Émulateur secret',
+  'Secret storage tool': 'Outil de stockage secret',
+  Service: 'Service',
+  Services: 'Services',
+  'Session stays warm, like a desktop chat app.':
+    'La session reste chaude, comme dans une application de chat de bureau.',
+  'Set a city for local conditions': 'Définir une ville pour les conditions locales',
+  'Show desktop notifications from this service.':
+    'Afficher les notifications de bureau de ce service.',
+  'Show sticky notes': 'Afficher les notes',
+  'Show the Home board': 'Afficher le tableau d’accueil',
+  'Shows which service pages are using CPU and memory, plus the whole-app totals. Values come from Electron’s own process metrics, sampled only while the monitor is visible.':
+    'Montre quelles pages de service utilisent le CPU et la mémoire, plus les totaux de l’application. Les valeurs viennent des métriques de processus d’Electron, échantillonnées uniquement quand le moniteur est visible.',
+  Side: 'Latéral',
+  'Silences this service without changing the site’s own setting.':
+    'Coupe ce service sans changer le réglage du site lui-même.',
+  'Sits over the theme with a translucent pane instead of replacing it.':
+    'Se pose sur le thème avec un volet translucide au lieu de le remplacer.',
+  Software: 'Logiciel',
+  'Some Game Boy Advance, Lynx and PC Engine titles need their own BIOS or firmware dump.':
+    'Certains titres Game Boy Advance, Lynx et PC Engine nécessitent leur propre dump de BIOS ou de firmware.',
+  'Sound, notifications and background behavior':
+    'Son, notifications et comportement en arrière-plan',
+  Source: 'Source',
+  'Special Donkey Edition': 'Édition spéciale Donkey',
+  'Special XiØN Edition': 'Édition spéciale XiØN',
+  'Sticky notes are local state, written to the same JSON file as everything else.':
+    'Les notes sont un état local, écrit dans le même fichier JSON que le reste.',
+  'Stop scan': 'Arrêter l’analyse',
+  Surface: 'Surface',
+  'Switch media source': 'Changer de source média',
+  THEMES: 'THÈMES',
+  'THIS APP ONLY': 'CETTE APPLICATION UNIQUEMENT',
+  TORRENTS: 'TORRENTS',
+  TOTAL: 'TOTAL',
+  'Temperature unit': 'Unité de température',
+  Text: 'Texte',
+  'Text found in the image appears here. You can edit it before translating.':
+    'Le texte trouvé dans l’image apparaît ici. Vous pouvez le modifier avant de traduire.',
+  'That BIOS file is larger than 8 MB.': 'Ce fichier BIOS dépasse 8 Mo.',
+  'That city could not be found.': 'Cette ville est introuvable.',
+  'That download is larger than the updater allows.':
+    'Ce téléchargement dépasse ce que le programme de mise à jour autorise.',
+  'The VPN action could not be completed.': 'L’action VPN n’a pas pu être terminée.',
+  'The VPN profile could not start automatically.':
+    'Le profil VPN n’a pas pu démarrer automatiquement.',
+  'The VPN tunnel is up.': 'Le tunnel VPN est actif.',
+  'The cartridge did not arrive complete. Ask the host to send it again.':
+    'La cartouche n’est pas arrivée complète. Demandez à l’hôte de la renvoyer.',
+  'The city itself is set on the weather card, where it can be checked.':
+    'La ville se règle sur la carte météo, où elle peut être vérifiée.',
+  'The cleanup stopped before it finished.': 'Le nettoyage s’est arrêté avant la fin.',
+  'The clock and greeting follow your system language and time.':
+    'L’horloge et le message suivent la langue et l’heure de votre système.',
+  'The emulator could not start': 'L’émulateur n’a pas pu démarrer',
+  'The file was verified. Portable builds cannot replace themselves, so close Kryvex and run the new EXE.':
+    'Le fichier a été vérifié. Les versions portables ne peuvent pas se remplacer : fermez Kryvex et lancez le nouvel EXE.',
+  'The first scan is the safest time to look: nothing is deleted by scanning.':
+    'La première analyse est le moment le plus sûr pour regarder : analyser ne supprime rien.',
+  'The global notification switch in Settings is off.':
+    'L’interrupteur global des notifications dans les Réglages est désactivé.',
+  'The installer was verified. Kryvex closes, runs it, and you can reopen when it finishes.':
+    'L’installateur a été vérifié. Kryvex se ferme, l’exécute, et vous pouvez rouvrir à la fin.',
+  'The main process did not answer the drive check.':
+    'Le processus principal n’a pas répondu au contrôle du disque.',
+  'The main process did not answer the scan.': 'Le processus principal n’a pas répondu à l’analyse.',
+  'The number is the order. Arrows move a card in its column, and Main or Side moves it across.':
+    'Le nombre est l’ordre. Les flèches déplacent une carte dans sa colonne, et Principal ou Latéral la fait changer de colonne.',
+  'The other player left the link.': 'L’autre joueur a quitté le lien.',
+  'The release data did not match the expected format.':
+    'Les données de version ne correspondaient pas au format attendu.',
+  'The room closed, so the link ended.': 'Le salon s’est fermé, le lien a donc pris fin.',
+  'The scan failed before it could finish.': 'L’analyse a échoué avant la fin.',
+  'The verified installer is starting. Your services, tabs and settings stay in place.':
+    'L’installateur vérifié démarre. Vos services, onglets et réglages restent en place.',
+  Theme: 'Thème',
+  Themes: 'Thèmes',
+  'This cannot be undone and the files do not go to the Recycle Bin. Programs rebuild caches on their next start, but a session that is open right now may need a refresh.':
+    'Cette action est irréversible et les fichiers ne vont pas à la Corbeille. Les programmes reconstruisent les caches au prochain démarrage, mais une session ouverte maintenant peut nécessiter un rafraîchissement.',
+  'This checkout is updated with git. Packaged installers are on the release page.':
+    'Ce checkout se met à jour avec git. Les installateurs empaquetés sont sur la page des versions.',
+  'This release has no installer for this build. Use the release page.':
+    'Cette version n’a pas d’installateur pour cette compilation. Utilisez la page des versions.',
+  'This service is muted.': 'Ce service est en sourdine.',
+  'This usually takes a moment. Nothing is downloaded yet.':
+    'Cela prend généralement un instant. Rien n’a encore été téléchargé.',
+  Trackers: 'Traqueurs',
+  Transcript: 'Transcription',
+  'Two machines, one cartridge: the host sends the game, both seats play through the same room, and the host’s save state keeps the two cores together. Player 2 needs a controller; the host can use the keyboard.':
+    'Deux machines, une cartouche : l’hôte envoie le jeu, les deux places jouent via le même salon, et l’état sauvegardé de l’hôte garde les deux cœurs synchronisés. Le joueur 2 a besoin d’une manette ; l’hôte peut utiliser le clavier.',
+  'Type CLEAN to confirm': 'Saisissez NETTOYER pour confirmer',
+  URL: 'URL',
+  USED: 'UTILISÉ',
+  'Unknown module': 'Module inconnu',
+  Update: 'Mettre à jour',
+  'Usage bars in the sidebar': 'Barres d’utilisation dans la barre latérale',
+  'Usage by service': 'Utilisation par service',
+  'Use OpenVPN': 'Utiliser OpenVPN',
+  'Use a connected controller. Remap buttons in the core’s own menu.':
+    'Utilisez une manette connectée. Remappez les boutons dans le menu du cœur.',
+  'Used when the address bar is not a URL. Choose a region to narrow the list.':
+    'Utilisé quand la barre d’adresse n’est pas une URL. Choisissez une région pour réduire la liste.',
+  'VEXIUM CORE': 'CŒUR VEXIUM',
+  VIDEO: 'VIDÉO',
+  'VPN OFF': 'VPN DÉSACTIVÉ',
+  'Vexium is running in built-in mode.': 'Vexium fonctionne en mode intégré.',
+  Volume: 'Volume',
+  'WHERE THE SPACE GOES': 'OÙ VA L’ESPACE',
+  'Waiting for player 2. Share the room link from Rooms.':
+    'En attente du joueur 2. Partagez le lien du salon depuis Salons.',
+  'Weather is fetched by the main process from Open-Meteo with no key. Only the place you choose is sent: a city name on lookup, then its coordinates when the card refreshes. Tasks never leave this device.':
+    'Le processus principal récupère la météo depuis Open-Meteo sans clé. Seul le lieu choisi est envoyé : un nom de ville à la recherche, puis ses coordonnées au rafraîchissement de la carte. Les tâches ne quittent jamais cet appareil.',
+  'Weather is keyless Open-Meteo data for the place you choose, cached for ten minutes.':
+    'La météo sont des données Open-Meteo sans clé pour le lieu choisi, mises en cache dix minutes.',
+  'Weather is unavailable right now.': 'La météo est indisponible pour le moment.',
+  'Weather is unreachable right now.': 'La météo est injoignable pour le moment.',
+  Web: 'Web',
+  Widgets: 'Widgets',
+  'Widgets shows, hides and moves each card; the note button beside the heart opens sticky notes.':
+    'Widgets affiche, masque et déplace chaque carte ; le bouton note à côté du cœur ouvre les notes.',
+  'Wind {wind}': 'Vent {wind}',
+  'Windows does not expose total GPU utilization to Electron, so the GPU figure is the Chromium GPU process’s CPU and memory rather than a device-wide percentage.':
+    'Windows n’expose pas l’utilisation totale du GPU à Electron : le chiffre GPU correspond au CPU et à la mémoire du processus GPU de Chromium, pas à un pourcentage global.',
+  'Windows, Program Files, ProgramData, your desktop, documents, downloads, pictures, videos, music and roaming app data are refused even if a rule asks for them.':
+    'Windows, Program Files, ProgramData, votre bureau, documents, téléchargements, images, vidéos, musique et données d’application itinérantes sont refusés même si une règle les demande.',
+  'YOU · SHARING': 'VOUS · PARTAGE',
+  YOUTUBE: 'YOUTUBE',
+  You: 'Vous',
+  'You can keep sourcing GGUF builds yourself: Hugging Face, Ollama’s library, LM Studio’s catalogue. Kryvex never uploads or redistributes them.':
+    'Vous pouvez continuer à trouver des builds GGUF vous-même : Hugging Face, la bibliothèque d’Ollama, le catalogue de LM Studio. Kryvex ne les envoie ni ne les redistribue jamais.',
+  Zoom: 'Zoom',
+  modules: 'modules',
+  'or click to choose a file': 'ou cliquez pour choisir un fichier',
+  unknown: 'inconnu',
+  'x530 / LANGUAGE': 'x530 / LANGUE',
+  'x531 / MEDIA': 'x531 / MÉDIAS',
+  'x533 / STORAGE': 'x533 / STOCKAGE',
+  '{count} FEEDS': '{count} FLUX',
+  '{count} MODULES': '{count} MODULES',
+  '{count} OPEN': '{count} OUVERTS',
+  '{count} SERVICES': '{count} SERVICES',
+  '{count} SOURCES{errors}': '{count} SOURCES{errors}',
+  '{count} TORRENTS': '{count} TORRENTS',
+  '{count} threads': '{count} fils',
+  '{count} trackers': '{count} traqueurs',
+  '{into} / {span} XP': '{into} / {span} XP',
+  '{logged} / {goal} ml': '{logged} / {goal} ml',
+  '{name} core': 'cœur {name}',
+  '{name} is a web page, not a media file, so it cannot feed this player. Open it in its own tab: the audio keeps playing there.':
+    '{name} est une page web, pas un fichier média : elle ne peut pas alimenter ce lecteur. Ouvrez-la dans son propre onglet : l’audio continue d’y jouer.',
+  '{name} is not running.': '{name} n’est pas en cours d’exécution.',
+  '{name} joined as player 2. Sending the cartridge…':
+    '{name} a rejoint en joueur 2. Envoi de la cartouche…',
+  '{name} joined, but this cartridge is too large to send. Both players can load the same file instead.':
+    '{name} a rejoint, mais cette cartouche est trop lourde à envoyer. Les deux joueurs peuvent charger le même fichier.',
+  '{name} loaded. The core starts on the canvas.':
+    '{name} chargé. Le cœur démarre sur le canevas.',
+  '{name} options': 'Options de {name}',
+  '{name} was force-closed.': '{name} a été fermé de force.',
+  '{percent}% FULL': '{percent} % PLEIN',
+  '{received} of {total} · the SHA-256 checksum is verified before install.':
+    '{received} sur {total} · la somme SHA-256 est vérifiée avant l’installation.',
+  '{share}% of {total} RAM': '{share} % de {total} de RAM',
+  '{size} across {count} categories': '{size} répartis sur {count} catégories',
+  '{total} XP': '{total} XP',
+  '{value} kcal': '{value} kcal',
+};

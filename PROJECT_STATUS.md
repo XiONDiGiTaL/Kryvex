@@ -846,3 +846,32 @@ windows, per-service pinnable secret tools, and a translation sweep of the ~380
 pre-existing strings. Remote control is limited to Kryvex app captures, and the
 rooms evidence is code plus single-client checks only.
 
+## Directive close-out: link play, floating modules, translation sweep
+
+The last three items the tester directive left open are in, and the batch that
+preceded them was verified again rather than assumed.
+
+- **Emulator link play.** Two copies of Kryvex play one cartridge through the
+  Rooms transport, with no relay of ours. The host sends the cartridge once
+  (base64 chunks, reassembled only when every chunk arrived), streams its own
+  pad, and hands the guest a save state every 1.5 s; the guest restores those
+  checkpoints and streams its pad back. Both cores see two standard-mapping
+  pads even when the machine has one controller, because the frame's
+  `navigator.getGamepads` is patched for the session and restored afterwards.
+  Seats, chunk assembly and the pad packing are pure functions in
+  `src/lib/netplay.ts` with tests; `electron/party.ts` carries the action.
+- **Floating modules.** Any open service can be detached from the stage into a
+  movable, resizable window that stays over the workspace while another view is
+  used. The `<webview>` is never re-parented, so the session, media and scroll
+  position survive the move. Geometry rules (minimum size, title-bar
+  reachability, cascade, resize) are in `src/lib/floating.ts` with tests.
+- **Translation sweep.** The historical backlog is translated: the counts fell
+  from 383/408/395 to 41/68/56, and the remainder is a documented list of
+  product names, protocol tokens, units and words that are already the same in
+  the target language. See `docs/I18N.md`.
+- **Verification.** `npm run typecheck` is clean for both projects, `npm test`
+  is 679/679 across 66 files, and the production renderer build succeeds.
+
+Still open, unchanged: code signing, a real two-machine link-play session and a
+second account for the Google sign-in path, remote control beyond Kryvex's own
+captures, and the per-service pinnable secret tools.

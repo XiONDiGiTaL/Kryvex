@@ -275,6 +275,43 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
     Object.defineProperty(window, 'indexedDB', { configurable: true, value: undefined });
   } catch (error) {}
 
+  // Link play: the shell reads the real controller (it owns the window that
+  // receives focus) and posts both seats here, so the core sees two pads even
+  // when this machine only has one. Nothing is patched until a link session
+  // starts, and cancelling restores whatever handler was in place before.
+  var netplayPads = null;
+  var netplayInputInstalled = false;
+  function netplayPad(index, frame) {
+    var mask = frame && typeof frame.buttons === 'number' ? frame.buttons : 0;
+    var buttons = [];
+    for (var button = 0; button < 16; button += 1) {
+      var pressed = (mask & (1 << button)) !== 0;
+      buttons.push({ pressed: pressed, touched: pressed, value: pressed ? 1 : 0 });
+    }
+    return {
+      id: 'Kryvex link pad ' + (index + 1),
+      index: index,
+      connected: true,
+      mapping: 'standard',
+      timestamp: (window.performance && performance.now) ? performance.now() : Date.now(),
+      axes: [
+        frame && typeof frame.axesX === 'number' ? frame.axesX : 0,
+        frame && typeof frame.axesY === 'number' ? frame.axesY : 0,
+      ],
+      buttons: buttons,
+      hapticActuators: [],
+    };
+  }
+  function installNetplayInput() {
+    if (netplayInputInstalled) return;
+    netplayInputInstalled = true;
+    var previous = navigator.getGamepads;
+    navigator.getGamepads = function () {
+      if (!netplayPads) return previous ? previous.call(navigator) : [];
+      return [netplayPads[0], netplayPads[1]];
+    };
+  }
+
   function post(type, payload) {
     var message = payload || {};
     message.type = type;
@@ -512,6 +549,43 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
     } catch (error) {}
   }
 
+  function netplaySnapshot(requestId) {
+    var ejs = core();
+    if (!ejs || !ejs.gameManager) {
+      post('kryvex-netplay-missed', { requestId: requestId });
+      return;
+    }
+    var state;
+    try {
+      state = ejs.gameManager.getState();
+    } catch (error) {
+      post('kryvex-netplay-missed', { requestId: requestId });
+      return;
+    }
+    if (!state || !state.length) {
+      post('kryvex-netplay-missed', { requestId: requestId });
+      return;
+    }
+    post('kryvex-netplay-state', { requestId: requestId, data: state });
+  }
+
+  // A guest restores the host's checkpoint without touching its saved states:
+  // link play has its own timeline and must never overwrite a manual save.
+  function netplayRestore(data) {
+    var ejs = core();
+    if (!ejs || !ejs.gameManager || !data) return;
+    try {
+      ejs.gameManager.loadState(new Uint8Array(data));
+      if (pausedByShell && typeof ejs.play === 'function') {
+        ejs.play(true);
+        pausedByShell = false;
+      }
+      post('kryvex-netplay-restored', {});
+    } catch (error) {
+      post('kryvex-netplay-restore-failed', {});
+    }
+  }
+
   window.addEventListener('message', function (event) {
     var data = event.data;
     if (!data || typeof data.type !== 'string') return;
@@ -545,6 +619,26 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
     }
     if (data.type === 'kryvex-mute') {
       shellMute(data.muted !== false);
+      return;
+    }
+    if (data.type === 'kryvex-netplay') {
+      if (!data.active) {
+        netplayPads = null;
+        return;
+      }
+      installNetplayInput();
+      netplayPads = [
+        netplayPad(0, data.pads && data.pads[0] ? data.pads[0] : null),
+        netplayPad(1, data.pads && data.pads[1] ? data.pads[1] : null),
+      ];
+      return;
+    }
+    if (data.type === 'kryvex-netplay-snapshot') {
+      netplaySnapshot(data.requestId);
+      return;
+    }
+    if (data.type === 'kryvex-netplay-restore') {
+      netplayRestore(data.data);
       return;
     }
     if (data.type === 'kryvex-battery-save') {

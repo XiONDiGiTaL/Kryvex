@@ -1,5 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Service } from '../types';
+import {
+  cascadeFloat,
+  clampFloatRect,
+  defaultFloatRect,
+  dragFloat,
+  floatWindowStyle,
+  resizeFloat,
+  type FloatRect,
+} from '../lib/floating';
 import { CATEGORIES, partitionFor } from '../lib/services';
 import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
@@ -39,6 +48,8 @@ interface StageProps {
   onTitle: (service: Service, title: string) => void;
   onUpdateService: (service: Service, patch: Partial<Service>) => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  /** Bring a floated module back into the stage as the open view. */
+  onActivate: (id: string) => void;
 }
 
 /**
@@ -69,34 +80,156 @@ export function ServiceStage({
   onTitle,
   onUpdateService,
   onToast,
+  onActivate,
 }: StageProps) {
   const active = services.find(service => service.id === activeId) ?? null;
   const open = openIds
     .map(id => services.find(service => service.id === id))
     .filter((service): service is Service => Boolean(service));
 
+  /**
+   * A floated module keeps its place over the whole workspace while the user
+   * works somewhere else. The geometry is session state, not a setting: a
+   * window that reappears at a stale coordinate after a restart would be worse
+   * than one that opens where the stage puts it.
+   */
+  const [floats, setFloats] = useState<Record<string, { rect: FloatRect; z: number }>>({});
+  const zTop = useRef(40);
+
+  const viewport = useCallback(
+    () => ({ width: window.innerWidth, height: window.innerHeight }),
+    [],
+  );
+
+  const raise = useCallback((id: string) => {
+    setFloats(current => {
+      const entry = current[id];
+      if (!entry) return current;
+      const top = Math.max(0, ...Object.values(current).map(item => item.z));
+      if (entry.z >= top) return current;
+      zTop.current += 1;
+      return { ...current, [id]: { rect: entry.rect, z: zTop.current } };
+    });
+  }, []);
+
+  const floatService = useCallback(
+    (service: Service) => {
+      setFloats(current => {
+        if (current[service.id]) return current;
+        const bounds = viewport();
+        const index = Object.keys(current).length;
+        const rect = cascadeFloat(defaultFloatRect(bounds), index, bounds);
+        zTop.current += 1;
+        return { ...current, [service.id]: { rect, z: zTop.current } };
+      });
+      // The stage behind a floated module should not keep the module docked.
+      onBack();
+    },
+    [onBack, viewport],
+  );
+
+  const dockService = useCallback(
+    (service: Service) => {
+      setFloats(current => {
+        if (!current[service.id]) return current;
+        const next = { ...current };
+        delete next[service.id];
+        return next;
+      });
+      onActivate(service.id);
+    },
+    [onActivate],
+  );
+
+  const moveFloat = useCallback(
+    (id: string, dx: number, dy: number) => {
+      setFloats(current => {
+        const entry = current[id];
+        if (!entry) return current;
+        return { ...current, [id]: { ...entry, rect: dragFloat(entry.rect, dx, dy, viewport()) } };
+      });
+    },
+    [viewport],
+  );
+
+  const resizeFloatWindow = useCallback(
+    (id: string, dx: number, dy: number) => {
+      setFloats(current => {
+        const entry = current[id];
+        if (!entry) return current;
+        return { ...current, [id]: { ...entry, rect: resizeFloat(entry.rect, dx, dy, viewport()) } };
+      });
+    },
+    [viewport],
+  );
+
+  // A closed module cannot leave a window behind, and a resized app window must
+  // not push a float out of reach.
+  useEffect(() => {
+    setFloats(current => {
+      const next: typeof current = {};
+      let changed = false;
+      for (const [id, entry] of Object.entries(current)) {
+        if (!openIds.includes(id)) {
+          changed = true;
+          continue;
+        }
+        const rect = clampFloatRect(entry.rect, viewport());
+        if (
+          rect.x !== entry.rect.x ||
+          rect.y !== entry.rect.y ||
+          rect.width !== entry.rect.width ||
+          rect.height !== entry.rect.height
+        ) {
+          changed = true;
+          next[id] = { ...entry, rect };
+        } else {
+          next[id] = entry;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [openIds, viewport]);
+
   if (open.length === 0) return null;
 
+  const floatingCount = Object.keys(floats).length;
+
   return (
-    <section className={`service-stage ${active ? 'has-active' : 'is-idle'}`} aria-hidden={!active}>
-      {open.map(service => (
-        <ServiceFrame
-          key={`${service.id}-${reloadTokens[service.id] ?? 0}-${engineRevision}`}
-          service={service}
-          active={service.id === activeId}
-          isElectron={isElectron}
-          unread={unread[service.id] ?? 0}
-          notifications={notifications}
-          mark={mark}
-          onBack={onBack}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onClearSession={onClearSession}
-          onTitle={title => onTitle(service, title)}
-          onUpdateService={patch => onUpdateService(service, patch)}
-          onToast={onToast}
-        />
-      ))}
+    <section
+      className={`service-stage ${active ? 'has-active' : 'is-idle'} ${
+        floatingCount > 0 ? 'has-float' : ''
+      }`}
+      aria-hidden={!active && floatingCount === 0}
+    >
+      {open.map(service => {
+        const float = service.id === activeId ? undefined : floats[service.id];
+        return (
+          <ServiceFrame
+            key={`${service.id}-${reloadTokens[service.id] ?? 0}-${engineRevision}`}
+            service={service}
+            active={service.id === activeId}
+            floating={float ? float.rect : null}
+            floatZ={float ? float.z : 0}
+            isElectron={isElectron}
+            unread={unread[service.id] ?? 0}
+            notifications={notifications}
+            mark={mark}
+            onBack={onBack}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onClearSession={onClearSession}
+            onTitle={title => onTitle(service, title)}
+            onUpdateService={patch => onUpdateService(service, patch)}
+            onToast={onToast}
+            onFloat={() => floatService(service)}
+            onDock={() => dockService(service)}
+            onFloatFocus={() => raise(service.id)}
+            onFloatDrag={(dx, dy) => moveFloat(service.id, dx, dy)}
+            onFloatResize={(dx, dy) => resizeFloatWindow(service.id, dx, dy)}
+          />
+        );
+      })}
     </section>
   );
 }
@@ -104,6 +237,8 @@ export function ServiceStage({
 function ServiceFrame({
   service,
   active,
+  floating,
+  floatZ,
   isElectron,
   unread,
   notifications,
@@ -115,9 +250,17 @@ function ServiceFrame({
   onTitle,
   onUpdateService,
   onToast,
+  onFloat,
+  onDock,
+  onFloatFocus,
+  onFloatDrag,
+  onFloatResize,
 }: {
   service: Service;
   active: boolean;
+  /** A floated box, or null when the module fills the stage. */
+  floating: FloatRect | null;
+  floatZ: number;
   isElectron: boolean;
   unread: number;
   notifications: boolean;
@@ -129,6 +272,11 @@ function ServiceFrame({
   onTitle: (title: string) => void;
   onUpdateService: (patch: Partial<Service>) => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  onFloat: () => void;
+  onDock: () => void;
+  onFloatFocus: () => void;
+  onFloatDrag: (dx: number, dy: number) => void;
+  onFloatResize: (dx: number, dy: number) => void;
 }) {
   const t = useT();
   const controller = useRef<WebviewElement | null>(null);
@@ -295,17 +443,96 @@ function ServiceFrame({
   const notificationsOn = notifications && service.notifications !== false;
   const pauseWhenInactive = service.persistence === 'pause';
 
+  // Pointer capture keeps a drag alive over the guest: the webview would
+  // otherwise swallow every move once the pointer crossed into it.
+  function beginDrag(event: React.PointerEvent<HTMLElement>) {
+    if (!floating) return;
+    event.preventDefault();
+    let lastX = event.clientX;
+    let lastY = event.clientY;
+    const move = (next: PointerEvent) => {
+      onFloatDrag(next.clientX - lastX, next.clientY - lastY);
+      lastX = next.clientX;
+      lastY = next.clientY;
+    };
+    const stop = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+  }
+
+  function beginResize(event: React.PointerEvent<HTMLElement>) {
+    if (!floating) return;
+    event.preventDefault();
+    event.stopPropagation();
+    let lastX = event.clientX;
+    let lastY = event.clientY;
+    const move = (next: PointerEvent) => {
+      onFloatResize(next.clientX - lastX, next.clientY - lastY);
+      lastX = next.clientX;
+      lastY = next.clientY;
+    };
+    const stop = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+  }
+
   return (
     <div
       className={`service-frame ${active ? 'is-active' : ''} ${
         !active && pauseWhenInactive ? 'is-parked' : ''
-      }`}
+      } ${floating ? 'is-floating' : ''}`}
+      style={floating ? floatWindowStyle(floating, floatZ) : undefined}
       data-service={service.id}
-      aria-hidden={!active}
-      inert={!active}
+      aria-hidden={!active && !floating}
+      inert={!active && !floating}
+      onPointerDown={() => {
+        if (floating) onFloatFocus();
+      }}
     >
       <header className="service-toolbar">
-        <button className="icon-btn" onClick={onBack} aria-label={t('Back to services')} title={t('Back')}>
+        {floating ? (
+          <span
+            className="service-float-grip"
+            role="separator"
+            aria-label={t('Drag this window')}
+            title={t('Drag to move · arrows to nudge')}
+            tabIndex={0}
+            onPointerDown={beginDrag}
+            onKeyDown={event => {
+              const step = event.shiftKey ? 32 : 8;
+              const moves: Record<string, [number, number]> = {
+                ArrowLeft: [-step, 0],
+                ArrowRight: [step, 0],
+                ArrowUp: [0, -step],
+                ArrowDown: [0, step],
+              };
+              const move = moves[event.key];
+              if (!move) return;
+              event.preventDefault();
+              onFloatDrag(move[0], move[1]);
+            }}
+          >
+            <span />
+            <span />
+            <span />
+          </span>
+        ) : null}
+        <button
+          className="icon-btn"
+          onClick={floating ? onDock : onBack}
+          aria-label={t('Back to services')}
+          title={t('Back')}
+        >
           <Icon name="back" size={16} />
         </button>
 
@@ -372,6 +599,15 @@ function ServiceFrame({
           >
             <Icon name="external" size={14} />
             {t('Open externally')}
+          </button>
+          <button
+            className="icon-btn"
+            onClick={floating ? onDock : onFloat}
+            title={floating ? t('Dock this module') : t('Float this module over the workspace')}
+            aria-label={floating ? t('Dock this module') : t('Float this module')}
+            aria-pressed={Boolean(floating)}
+          >
+            <Icon name={floating ? 'monitor' : 'layers'} size={16} />
           </button>
           <button
             className="icon-btn"
@@ -571,6 +807,28 @@ function ServiceFrame({
           </div>
         ) : null}
       </div>
+
+      {floating ? (
+        <span
+          className="service-float-resize"
+          role="separator"
+          aria-label={t('Resize this window')}
+          title={t('Drag to resize')}
+          tabIndex={0}
+          onPointerDown={beginResize}
+          onKeyDown={event => {
+            const step = event.shiftKey ? 32 : 8;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+              event.preventDefault();
+              onFloatResize(event.key === 'ArrowRight' ? step : 0, event.key === 'ArrowDown' ? step : 0);
+            }
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+              event.preventDefault();
+              onFloatResize(event.key === 'ArrowLeft' ? -step : 0, event.key === 'ArrowUp' ? -step : 0);
+            }
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -52,8 +52,16 @@ export function translatedKeys(source: string): string[] {
 const sources = files(ROOT).map(path => readFileSync(path, 'utf8'));
 const keys = [...new Set(sources.flatMap(translatedKeys))].sort();
 
-/** Measured when the audit landed; only lower these numbers. */
-const BACKLOG: Record<'es' | 'de' | 'fr', number> = { es: 383, de: 408, fr: 395 };
+/**
+ * Measured after the 0.9.x sweep. Only lower these numbers.
+ *
+ * What remains is deliberately not translated: product and protocol tokens
+ * (`SHA-256`, `STUN / TURN`, `VEXIUM CORE`), units (`250 ml`, `kcal`), names
+ * (`YOUTUBE`, `Lexium`), and words that are already correct in the target
+ * language (`Color` in Spanish, `Browser` in German). `docs/I18N.md` keeps the
+ * list and the reasoning.
+ */
+const BACKLOG: Record<'es' | 'de' | 'fr', number> = { es: 41, de: 68, fr: 56 };
 
 const ADDED = [
   'VISUALIZER',
@@ -104,6 +112,17 @@ const ADDED = [
   'Save states',
   'Quick save',
   'Quick load',
+  'Host this cartridge',
+  'Join as player 2',
+  'End link play',
+  'Link play ended.',
+  'Float this module',
+  'Dock this module',
+  'Drag this window',
+  'Drag to resize',
+  'Player 1 · host',
+  'Player 2 · guest',
+  'No room is open. Rooms is the link between the two machines.',
 ];
 
 describe('translation coverage', () => {

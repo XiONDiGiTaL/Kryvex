@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ChangeEvent,
+} from 'react';
 import type { EmulatorSettings, EmulatorSystem } from '../types';
 import { useT } from '../lib/i18n';
-import { openExternalUrl } from '../lib/external';
 import type { LifecycleVerdict } from '../lib/lifecycle';
 import {
   ROM_ACCEPT,
@@ -12,6 +19,7 @@ import {
   emulatorHostDocument,
   emulatorRequestId,
   identifyRomSystem,
+  isEmulatorSystem,
   romValidation,
   systemLabel,
   systemNote,
@@ -36,6 +44,19 @@ import {
   deleteState,
   type SaveDirectoryHandle,
 } from '../lib/emulator-saves';
+import { partySession, type NetplayMessage } from '../lib/party';
+import {
+  NEUTRAL_PAD,
+  NETPLAY_PAD_HEARTBEAT_MS,
+  NETPLAY_STATE_INTERVAL_MS,
+  joinRom,
+  padFromGamepad,
+  pickLocalPad,
+  romFitsNetplay,
+  samePad,
+  splitRom,
+  type NetplayPad,
+} from '../lib/netplay';
 import { Icon } from '../components/ui';
 
 interface LoadedRom {
@@ -95,6 +116,7 @@ export function Emulator({
   lifecycle,
   onUpdate,
   onBack,
+  onOpenRooms,
   onToast,
 }: {
   settings: EmulatorSettings;
@@ -102,6 +124,7 @@ export function Emulator({
   lifecycle: LifecycleVerdict;
   onUpdate: (patch: Partial<EmulatorSettings>) => void;
   onBack: () => void;
+  onOpenRooms: () => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
 }) {
   const t = useT();
@@ -210,6 +233,213 @@ export function Emulator({
     [hostReady, post, rom, t, onToast],
   );
 
+  /**
+   * Link play.
+   *
+   * The room already in use is the session, so this never joins or leaves one:
+   * chat, a share and a game can all run together. The host is authoritative —
+   * it streams the cartridge once, then its pads and a periodic save state —
+   * and the guest restores those checkpoints into its own core. Both sides see
+   * a local picture, so a late packet costs a correction, not a freeze.
+   */
+  const party = useSyncExternalStore(partySession.subscribe, partySession.getSnapshot);
+  const [netRole, setNetRole] = useState<'host' | 'guest' | null>(null);
+  const [netNote, setNetNote] = useState<string | null>(null);
+  const net = useRef({
+    role: null as 'host' | 'guest' | null,
+    peer: null as string | null,
+    pads: [NEUTRAL_PAD, NEUTRAL_PAD] as [NetplayPad, NetplayPad],
+    sent: [NEUTRAL_PAD, NEUTRAL_PAD] as [NetplayPad, NetplayPad],
+    lastPadAt: 0,
+    frame: 0,
+    rom: null as (string | null)[] | null,
+    state: null as (string | null)[] | null,
+  });
+
+  const postPads = useCallback(() => {
+    post({ type: 'kryvex-netplay', active: true, pads: net.current.pads });
+  }, [post]);
+
+  const startPadLoop = useCallback(() => {
+    cancelAnimationFrame(net.current.frame);
+    const tick = () => {
+      const role = net.current.role;
+      if (!role) return;
+      const pad = padFromGamepad(pickLocalPad(navigator.getGamepads?.() ?? null));
+      const seat = role === 'host' ? 0 : 1;
+      const now = performance.now();
+      if (
+        !samePad(pad, net.current.sent[seat]) ||
+        now - net.current.lastPadAt >= NETPLAY_PAD_HEARTBEAT_MS
+      ) {
+        net.current.lastPadAt = now;
+        net.current.sent[seat] = pad;
+        net.current.pads[seat] = pad;
+        postPads();
+        void partySession.sendNetplay({ kind: 'pad', pad });
+      }
+      net.current.frame = requestAnimationFrame(tick);
+    };
+    net.current.frame = requestAnimationFrame(tick);
+  }, [postPads]);
+
+  const sendChunked = useCallback(
+    async (kind: 'rom' | 'state', buffer: ArrayBuffer, meta: Partial<NetplayMessage> = {}) => {
+      const chunks = splitRom(buffer);
+      for (let index = 0; index < chunks.length; index += 1) {
+        if (net.current.role !== 'host') return;
+        const sent = await partySession.sendNetplay({
+          kind,
+          role: 'host',
+          seq: index,
+          total: chunks.length,
+          data: chunks[index],
+          ...meta,
+        });
+        if (!sent) return;
+      }
+    },
+    [],
+  );
+
+  const stopNetplay = useCallback(
+    (note?: string) => {
+      if (net.current.role) {
+        void partySession.sendNetplay({ kind: 'bye', role: net.current.role });
+      }
+      partySession.onNetplay = null;
+      cancelAnimationFrame(net.current.frame);
+      net.current.role = null;
+      net.current.peer = null;
+      net.current.pads = [NEUTRAL_PAD, NEUTRAL_PAD];
+      net.current.sent = [NEUTRAL_PAD, NEUTRAL_PAD];
+      net.current.rom = null;
+      net.current.state = null;
+      post({ type: 'kryvex-netplay', active: false });
+      setNetRole(null);
+      setNetNote(note ?? null);
+    },
+    [post],
+  );
+
+  const collectChunks = useCallback((slot: 'rom' | 'state', message: NetplayMessage) => {
+    if (message.total <= 0) return null;
+    if (message.seq === 0 || !net.current[slot] || net.current[slot]!.length !== message.total) {
+      net.current[slot] = new Array<string | null>(message.total).fill(null);
+    }
+    const bucket = net.current[slot]!;
+    bucket[message.seq] = message.data;
+    if (bucket.some(item => item === null)) return null;
+    net.current[slot] = null;
+    return bucket as string[];
+  }, []);
+
+  const handleNetplay = useCallback(
+    (message: NetplayMessage) => {
+      const role = net.current.role;
+      if (!role) return;
+      if (message.kind === 'hello') {
+        if (message.role === role) return;
+        net.current.peer = message.peerId;
+        if (role === 'host') {
+          const label = message.name || t('Player 2');
+          setNetNote(t('{name} joined as player 2. Sending the cartridge…', { name: label }));
+          if (rom) {
+            if (romFitsNetplay(rom.buffer.byteLength)) {
+              void sendChunked('rom', rom.buffer, {
+                gameName: rom.name,
+                system: rom.system,
+                gameKey: rom.gameKey,
+              });
+            } else {
+              setNetNote(
+                t('{name} joined, but this cartridge is too large to send. Both players can load the same file instead.', {
+                  name: label,
+                }),
+              );
+            }
+          }
+          postPads();
+        } else {
+          setNetNote(t('Connected to the host. Waiting for the cartridge…'));
+        }
+        return;
+      }
+      if (message.kind === 'bye') {
+        net.current.peer = null;
+        net.current.pads = role === 'host' ? [net.current.pads[0], NEUTRAL_PAD] : [NEUTRAL_PAD, net.current.pads[1]];
+        postPads();
+        setNetNote(t('The other player left the link.'));
+        return;
+      }
+      if (message.kind === 'rom') {
+        if (role !== 'guest') return;
+        const chunks = collectChunks('rom', message);
+        if (!chunks) return;
+        const bytes = joinRom(chunks);
+        if (!bytes || bytes.length === 0) {
+          setNetNote(t('The cartridge did not arrive complete. Ask the host to send it again.'));
+          return;
+        }
+        const buffer = bytes.buffer.slice(
+          bytes.byteOffset,
+          bytes.byteOffset + bytes.byteLength,
+        ) as ArrayBuffer;
+        const next = isEmulatorSystem(message.system)
+          ? message.system
+          : (identifyRomSystem(buffer) ?? 'nes');
+        loadRom(message.gameName || 'linked.rom', buffer, next);
+        setNetNote(t('Cartridge received. The host’s game is now your game.'));
+        return;
+      }
+      if (message.kind === 'state') {
+        if (role !== 'guest') return;
+        const chunks = collectChunks('state', message);
+        if (!chunks) return;
+        const bytes = joinRom(chunks);
+        if (!bytes) return;
+        // A checkpoint that arrives while the guest's own core is still
+        // starting is dropped rather than applied: the next one is 1.5 s away.
+        if (!running || !hostReady) return;
+        post({ type: 'kryvex-netplay-restore', data: bytes });
+        return;
+      }
+      if (message.kind === 'pad') {
+        const seat = message.role === 'host' ? 0 : 1;
+        if (seat === (role === 'host' ? 0 : 1)) return;
+        net.current.pads[seat] = message.pad;
+        postPads();
+      }
+    },
+    [collectChunks, hostReady, post, postPads, rom, running, sendChunked, t],
+  );
+
+  useEffect(() => {
+    if (!netRole) return;
+    partySession.onNetplay = handleNetplay;
+    return () => {
+      if (partySession.onNetplay === handleNetplay) partySession.onNetplay = null;
+    };
+  }, [handleNetplay, netRole]);
+
+  // A room that closes takes the link with it; the pads must not stay frozen.
+  useEffect(() => {
+    if (netRole && party.status !== 'joined') stopNetplay(t('The room closed, so the link ended.'));
+  }, [netRole, party.status, stopNetplay, t]);
+
+  useEffect(() => () => stopNetplay(), [stopNetplay]);
+
+  // The host hands over a checkpoint on a slow clock: often enough to correct
+  // drift, rare enough that a save state never becomes video traffic.
+  useEffect(() => {
+    if (netRole !== 'host' || !running) return;
+    const timer = window.setInterval(() => {
+      if (net.current.role !== 'host' || !net.current.peer) return;
+      post({ type: 'kryvex-netplay-snapshot', requestId: emulatorRequestId() });
+    }, NETPLAY_STATE_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [netRole, post, running]);
+
   const newest = useMemo(
     () => states.find(record => record.kind === 'quick') ?? states[0] ?? null,
     [states],
@@ -273,6 +503,20 @@ export function Emulator({
         case 'kryvex-load-failed':
           onToast(t(data.message ?? 'That state could not be loaded.'), 'danger');
           break;
+        case 'kryvex-netplay-state': {
+          if (net.current.role !== 'host' || !net.current.peer || !data.data) return;
+          const bytes = new Uint8Array(data.data);
+          if (bytes.length === 0) return;
+          const buffer = bytes.buffer.slice(
+            bytes.byteOffset,
+            bytes.byteOffset + bytes.byteLength,
+          ) as ArrayBuffer;
+          void sendChunked('state', buffer);
+          break;
+        }
+        case 'kryvex-netplay-restore-failed':
+          setNetNote(t('A checkpoint from the host did not fit this core. Ask for the cartridge again.'));
+          break;
         case 'kryvex-save-failed':
           onToast(t(data.message ?? 'That state could not be saved.'), 'danger');
           break;
@@ -312,7 +556,7 @@ export function Emulator({
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [newest, onToast, post, refreshStates, remember, rom, t]);
+  }, [newest, onToast, post, refreshStates, remember, rom, sendChunked, t]);
 
   // A host reload resets the frame; the next ROM has to be sent again.
   useEffect(() => {
@@ -489,6 +733,57 @@ export function Emulator({
     await deleteState(record.id).catch(() => undefined);
     if (rom) await refreshStates(rom.gameKey);
     onToast(t('State deleted.'), 'info');
+  }
+
+  function startHosting() {
+    if (!rom) {
+      onToast(t('Load a cartridge before hosting a link session.'), 'warning');
+      return;
+    }
+    if (!running) {
+      onToast(t('Wait for the core to finish starting.'), 'info');
+      return;
+    }
+    if (party.status !== 'joined') {
+      onToast(t('Join a room first: Rooms is the link between the two machines.'), 'warning');
+      return;
+    }
+    net.current.role = 'host';
+    net.current.peer = null;
+    net.current.rom = null;
+    net.current.state = null;
+    setNetRole('host');
+    setNetNote(t('Waiting for player 2. Share the room link from Rooms.'));
+    startPadLoop();
+    void partySession.sendNetplay({
+      kind: 'hello',
+      role: 'host',
+      name: party.selfName || 'Host',
+      gameKey: rom.gameKey,
+      system: rom.system,
+      gameName: rom.name,
+    });
+  }
+
+  function startJoining() {
+    if (party.status !== 'joined') {
+      onToast(t('Join a room first: Rooms is the link between the two machines.'), 'warning');
+      return;
+    }
+    net.current.role = 'guest';
+    net.current.peer = null;
+    net.current.rom = null;
+    net.current.state = null;
+    setNetRole('guest');
+    setNetNote(t('Asking the host for the cartridge…'));
+    startPadLoop();
+    void partySession.sendNetplay({
+      kind: 'hello',
+      role: 'guest',
+      name: party.selfName || 'Player 2',
+      gameKey: '',
+      system: '',
+    });
   }
 
   const quick = states.find(record => record.kind === 'quick') ?? null;
@@ -870,18 +1165,49 @@ export function Emulator({
           </label>
 
           <div className="emulator-netplay">
-            <span className="mono emulator-side-label">{t('NETPLAY')}</span>
-            <p>
-              {t(
-                'Kryvex does not offer netplay yet: the core can share a game, but only through a relay server we do not ship. Two controllers on this machine already work, and the core’s own menu handles button mapping.',
-              )}
-            </p>
-            <button
-              className="link"
-              onClick={() => openExternalUrl('https://emulatorjs.org/docs/faq/')}
-            >
-              {t('EmulatorJS support notes')} <Icon name="external" size={11} />
-            </button>
+            <span className="mono emulator-side-label">{t('LINK PLAY')}</span>
+            {netRole ? (
+              <>
+                <p className="mono emulator-netplay-role">
+                  {netRole === 'host' ? t('Player 1 · host') : t('Player 2 · guest')}
+                  {party.roomId ? ` · ${party.roomId.slice(0, 6)}…` : ''}
+                </p>
+                {netNote ? <p>{netNote}</p> : null}
+                <button className="btn ghost small" onClick={() => stopNetplay(t('Link play ended.'))}>
+                  <Icon name="close" size={12} /> {t('End link play')}
+                </button>
+              </>
+            ) : (
+              <>
+                <p>
+                  {t(
+                    'Two machines, one cartridge: the host sends the game, both seats play through the same room, and the host’s save state keeps the two cores together. Player 2 needs a controller; the host can use the keyboard.',
+                  )}
+                </p>
+                {party.status === 'joined' ? (
+                  <div className="emulator-netplay-actions">
+                    <button
+                      className="btn secondary small"
+                      disabled={!rom || !running}
+                      onClick={startHosting}
+                    >
+                      <Icon name="play" size={12} /> {t('Host this cartridge')}
+                    </button>
+                    <button className="btn ghost small" onClick={startJoining}>
+                      {t('Join as player 2')}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mono">{t('No room is open. Rooms is the link between the two machines.')}</p>
+                    <button className="link" onClick={onOpenRooms}>
+                      {t('Open Rooms')} <Icon name="back" size={11} />
+                    </button>
+                  </>
+                )}
+                {netNote ? <p>{netNote}</p> : null}
+              </>
+            )}
           </div>
 
           <p className="emulator-note">

@@ -1088,6 +1088,7 @@ export default function App() {
           onTitle={handleServiceTitle}
           onUpdateService={updateServiceFlags}
           onToast={pushToast}
+          onActivate={id => navigate(`#/service/${id}`)}
         />
 
         <KeepAlive
@@ -1100,6 +1101,7 @@ export default function App() {
             lifecycle={emulatorLifecycle}
             onUpdate={updateEmulator}
             onBack={() => navigate('services')}
+            onOpenRooms={() => navigate('rooms')}
             onToast={pushToast}
           />
         </KeepAlive>

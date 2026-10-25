@@ -10,6 +10,9 @@ import { homeToolsCopy } from './i18n-home-tools';
 import { lifecycleCopy } from './i18n-lifecycle';
 import { currencyCopy } from './i18n-currency';
 import { sessionCopy } from './i18n-session';
+import { sweepEs } from './i18n-sweep-es';
+import { sweepDe } from './i18n-sweep-de';
+import { sweepFr } from './i18n-sweep-fr';
 
 export const LANGUAGES: ReadonlyArray<{ id: LanguageSetting; label: string }> = [
   { id: 'system', label: 'System language' },
@@ -2816,6 +2819,11 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
     language === 'en'
       ? {}
       : {
+          // The sweep is the oldest copy in the app: it exists so the
+          // pre-ratchet backlog stops falling back to English. Every newer
+          // catalogue below overrides it, so a string never regresses to the
+          // sweep's wording once a feature module owns it.
+          ...(language === 'es' ? sweepEs : language === 'de' ? sweepDe : sweepFr),
           ...translations[language],
           ...supplement[language],
           ...mediaAndTorrent[language],

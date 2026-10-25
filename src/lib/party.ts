@@ -7,6 +7,7 @@ import {
   sanitizeDisplayName,
   shortPeerId,
 } from './party-rules';
+import { sanitizePad, type NetplayPad } from './netplay';
 
 /**
  * Rooms session.
@@ -109,6 +110,41 @@ interface ShareMeta {
   label?: string;
 }
 
+/**
+ * Netplay rides the same room as chat and the share. One action carries every
+ * frame kind so ordering is preserved and a late hello cannot overtake a ROM
+ * chunk from the same sender.
+ */
+interface NetplayPayload {
+  [key: string]: string | number;
+  kind: string;
+  role: string;
+  name: string;
+  gameKey: string;
+  system: string;
+  gameName: string;
+  seq: number;
+  total: number;
+  data: string;
+  buttons: number;
+  axesX: number;
+  axesY: number;
+}
+
+export interface NetplayMessage {
+  kind: 'hello' | 'rom' | 'pad' | 'state' | 'bye';
+  role: 'host' | 'guest' | '';
+  name: string;
+  gameKey: string;
+  system: string;
+  gameName: string;
+  seq: number;
+  total: number;
+  data: string;
+  pad: NetplayPad;
+  peerId: string;
+}
+
 const APP_ID = 'kryvex-rooms-v1';
 
 const EMPTY: PartyState = {
@@ -138,6 +174,7 @@ export class PartySession {
   private sendPresence: ((payload: PresencePayload) => Promise<void>) | null = null;
   private sendControl: ((payload: ControlPayload) => Promise<void>) | null = null;
   private sendInput: ((payload: InputPayload) => Promise<void>) | null = null;
+  private sendNetplayAction: ((payload: NetplayPayload) => Promise<void>) | null = null;
   private names = new Map<string, HelloPayload>();
   private sharing = new Set<string>();
   private lastRoom: { id: string; settings: PartySettings; name: string } | null = null;
@@ -146,6 +183,8 @@ export class PartySession {
    * The view installs it; the session never injects input by itself.
    */
   onInput: ((event: InputEvent) => void) | null = null;
+  /** Sink for a link-play frame; a view without an emulator ignores it. */
+  onNetplay: ((message: NetplayMessage) => void) | null = null;
 
   getSnapshot = (): PartyState => this.state;
 
@@ -271,6 +310,41 @@ export class PartySession {
           this.set({ control: null });
         },
       });
+      const netplay = room.makeAction<NetplayPayload>('netplay', {
+        onMessage: (payload, context) => {
+          const kind = payload?.kind;
+          if (
+            kind !== 'hello' &&
+            kind !== 'rom' &&
+            kind !== 'pad' &&
+            kind !== 'state' &&
+            kind !== 'bye'
+          ) {
+            return;
+          }
+          this.onNetplay?.(
+            {
+              kind,
+              role:
+                payload?.role === 'host' || payload?.role === 'guest' ? payload.role : '',
+              name: typeof payload?.name === 'string' ? payload.name.slice(0, 40) : '',
+              gameKey: typeof payload?.gameKey === 'string' ? payload.gameKey.slice(0, 120) : '',
+              system: typeof payload?.system === 'string' ? payload.system.slice(0, 24) : '',
+              gameName:
+                typeof payload?.gameName === 'string' ? payload.gameName.slice(0, 120) : '',
+              seq: Number.isFinite(payload?.seq) ? Math.max(0, Math.floor(Number(payload.seq))) : 0,
+              total: Number.isFinite(payload?.total)
+                ? Math.max(0, Math.floor(Number(payload.total)))
+                : 0,
+              // A state or ROM frame is capped so one sender cannot pour
+              // unbounded memory into a receiver that never asked for it.
+              data: typeof payload?.data === 'string' ? payload.data.slice(0, 200_000) : '',
+              pad: sanitizePad(payload),
+              peerId: context.peerId,
+            },
+          );
+        },
+      });
       const input = room.makeAction<InputPayload>('input', {
         onMessage: (payload, context) => {
           // Input is accepted only from the peer this client granted control to.
@@ -296,6 +370,7 @@ export class PartySession {
       this.sendPresence = payload => presence.send(payload);
       this.sendControl = payload => control.send(payload);
       this.sendInput = payload => input.send(payload);
+      this.sendNetplayAction = payload => netplay.send(payload);
 
       room.onPeerJoin = peerId => {
         this.names.set(peerId, {
@@ -456,6 +531,34 @@ export class PartySession {
   }
 
   /**
+   * One link-play frame. The room is the session, so this is a no-op until a
+   * room is joined and the transport is ready.
+   */
+  async sendNetplay(
+    payload: Partial<NetplayMessage> & { kind: NetplayMessage['kind'] },
+  ): Promise<boolean> {
+    if (!this.sendNetplayAction) return false;
+    const pad = sanitizePad(payload.pad);
+    // Awaited by the caller so numbered chunks leave in order; the pad only
+    // needs the promise to exist, not its result.
+    await this.sendNetplayAction({
+      kind: payload.kind,
+      role: payload.role ?? '',
+      name: payload.name ?? '',
+      gameKey: payload.gameKey ?? '',
+      system: payload.system ?? '',
+      gameName: payload.gameName ?? '',
+      seq: payload.seq ?? 0,
+      total: payload.total ?? 0,
+      data: payload.data ?? '',
+      buttons: pad.buttons,
+      axesX: pad.axesX,
+      axesY: pad.axesY,
+    });
+    return true;
+  }
+
+  /**
    * Rejoin after a relay failure. The room id and the chat log are kept: a
    * transient drop must not throw away the conversation or make the user join
    * by hand again.
@@ -485,6 +588,7 @@ export class PartySession {
     this.sendPresence = null;
     this.sendControl = null;
     this.sendInput = null;
+    this.sendNetplayAction = null;
     this.names.clear();
     this.sharing.clear();
     this.lastRoom = null;

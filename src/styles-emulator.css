@@ -362,6 +362,18 @@
   color: var(--ink-faint);
 }
 
+/* The panel is narrow: the two seats stack, and the room label is a caption. */
+.emulator-netplay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.emulator-netplay-role {
+  color: var(--accent) !important;
+  letter-spacing: 0.08em;
+}
+
 .emulator-netplay input {
   padding: 6px 8px;
   border: 1px solid var(--line-soft);
