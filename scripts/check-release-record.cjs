@@ -85,12 +85,36 @@ function checkVersion(version) {
 if (all) {
   const docs = fs
     .readdirSync(path.join(root, 'docs'))
-    .filter(name => /^RELEASE_\d+\.\d+\.\d+\.md$/.test(name))
+    // A hotfix keeps the version line and adds `-hotfix.N`, so its record is
+    // `RELEASE_0.9.3-hotfix.1.md` and still has to be found and ordered.
+    .filter(name => /^RELEASE_\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\.md$/.test(name))
     .map(name => name.replace(/^RELEASE_|\.md$/g, ''))
     .sort((a, b) => {
-      const left = a.split('.').map(Number);
-      const right = b.split('.').map(Number);
-      return left[0] - right[0] || left[1] - right[1] || left[2] - right[2];
+      const [leftCore, leftPre] = a.split('-');
+      const [rightCore, rightPre] = b.split('-');
+      const left = leftCore.split('.').map(Number);
+      const right = rightCore.split('.').map(Number);
+      const core = left[0] - right[0] || left[1] - right[1] || left[2] - right[2];
+      if (core !== 0) return core;
+      // The plain release comes before the hotfixes that patch it, and hotfixes
+      // order by their own suffix (`hotfix.2` after `hotfix.1`).
+      if (!leftPre || !rightPre) return (leftPre ? 1 : 0) - (rightPre ? 1 : 0);
+      const one = leftPre.split('.');
+      const two = rightPre.split('.');
+      for (let index = 0; index < Math.max(one.length, two.length); index += 1) {
+        const first = one[index];
+        const second = two[index];
+        if (first === undefined) return -1;
+        if (second === undefined) return 1;
+        const numericFirst = Number(first);
+        const numericSecond = Number(second);
+        const diff =
+          Number.isFinite(numericFirst) && Number.isFinite(numericSecond)
+            ? numericFirst - numericSecond
+            : first.localeCompare(second);
+        if (diff !== 0) return diff;
+      }
+      return 0;
     });
   for (const version of docs) checkVersion(version);
 } else {

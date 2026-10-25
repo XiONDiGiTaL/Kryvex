@@ -71,6 +71,16 @@ export function normalizeVersion(value: string): string | null {
   return parsed.pre ? `${base}-${parsed.pre.join('.')}` : base;
 }
 
+/**
+ * A `-hotfix.N` suffix marks a patch of the release in front of it, not a build
+ * that precedes it. The project keeps the version line still until 1.0 and ships
+ * small fixes as `0.9.3-hotfix.1`, `0.9.3-hotfix.2`, so a machine on `0.9.3`
+ * has to be offered its hotfix; ordinary semver would call the hotfix older.
+ */
+function isHotfix(parsed: ParsedVersion): boolean {
+  return parsed.pre?.[0] === 'hotfix';
+}
+
 function compareIdentifier(a: string, b: string): number {
   const numericA = /^\d+$/.test(a);
   const numericB = /^\d+$/.test(b);
@@ -89,7 +99,10 @@ export function compareVersions(a: string, b: string): number {
     const diff = (left.core[index] ?? 0) - (right.core[index] ?? 0);
     if (diff !== 0) return diff;
   }
-  // A prerelease is older than the matching final release.
+  // A same-version hotfix outranks the release it patches, and every other
+  // prerelease stays older than the final release.
+  if (isHotfix(left) && !isHotfix(right)) return 1;
+  if (!isHotfix(left) && isHotfix(right)) return -1;
   if (left.pre && !right.pre) return -1;
   if (!left.pre && right.pre) return 1;
   if (!left.pre || !right.pre) return 0;

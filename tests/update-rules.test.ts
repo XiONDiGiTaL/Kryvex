@@ -64,6 +64,21 @@ describe('version comparison', () => {
     expect(compareVersions('0.7.0', '0.7.0-beta.1')).toBeGreaterThan(0);
     expect(compareVersions('0.7.0-beta.2', '0.7.0-beta.10')).toBeLessThan(0);
   });
+
+  it('treats a hotfix as newer than the release it patches', () => {
+    expect(compareVersions('0.9.3-hotfix.1', '0.9.3')).toBeGreaterThan(0);
+    expect(compareVersions('0.9.3', '0.9.3-hotfix.1')).toBeLessThan(0);
+    expect(compareVersions('0.9.3-hotfix.10', '0.9.3-hotfix.2')).toBeGreaterThan(0);
+    expect(compareVersions('0.9.3-hotfix', '0.9.3-hotfix.1')).toBeLessThan(0);
+    expect(isNewer('0.9.3', 'v0.9.3-hotfix.1')).toBe(true);
+    expect(isNewer('0.9.3-hotfix.1', 'v0.9.3')).toBe(false);
+  });
+
+  it('keeps a hotfix below a newer version line', () => {
+    expect(compareVersions('0.9.3-hotfix.4', '0.9.4')).toBeLessThan(0);
+    expect(compareVersions('0.9.4', '0.9.3-hotfix.4')).toBeGreaterThan(0);
+    expect(compareVersions('0.9.3-hotfix.1', '0.9.2')).toBeGreaterThan(0);
+  });
 });
 
 describe('release parsing', () => {
@@ -82,6 +97,32 @@ describe('release parsing', () => {
     expect(parseRelease(release({ prerelease: true }))).toBeNull();
     expect(parseRelease(release({ tag_name: 'latest' }))).toBeNull();
     expect(parseRelease(null)).toBeNull();
+  });
+
+  it('accepts the assets of a hotfix release of the same version line', () => {
+    const tag = 'v0.9.3-hotfix.1';
+    const base = ASSET_BASE.replace('v0.6.1', tag);
+    const parsed = parseRelease(
+      release({
+        tag_name: tag,
+        assets: [
+          {
+            name: 'Kryvex-Setup-0.9.3-hotfix.1-x64.exe',
+            browser_download_url: `${base}/Kryvex-Setup-0.9.3-hotfix.1-x64.exe`,
+            size: 120_000_000,
+          },
+          {
+            name: 'Kryvex-Portable-0.9.3-hotfix.1-x64.exe',
+            browser_download_url: `${base}/Kryvex-Portable-0.9.3-hotfix.1-x64.exe`,
+            size: 119_000_000,
+          },
+          { name: 'SHA256SUMS.txt', browser_download_url: `${base}/SHA256SUMS.txt`, size: 200 },
+        ],
+      }),
+    );
+    expect(parsed?.version).toBe('0.9.3-hotfix.1');
+    expect(parsed?.setup?.name).toBe('Kryvex-Setup-0.9.3-hotfix.1-x64.exe');
+    expect(parsed?.portable?.name).toBe('Kryvex-Portable-0.9.3-hotfix.1-x64.exe');
   });
 
   it('drops assets from unknown hosts and mismatched versions', () => {

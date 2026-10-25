@@ -122,9 +122,49 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
 
    It fails if the tag does not match `package.json`, if the record has no
    wizard capture (`pnpm release:check`), or if an expected artifact is missing.
+6. A second job, `web`, then builds `dist-web/` and force-pushes it to
+   `gh-pages`, so the site at
+   `https://xiondigital.net/Kryvex/` and the phone's installable client carry the
+   same release. It runs after the Windows job, so a tag that fails its checks
+   never replaces the live site, and nothing needs republishing by hand.
 
 The GitHub release must remain **stable** (not a draft or prerelease) for the
 updater to see it, and it must be the latest stable release.
+
+### Versioning below 1.0
+
+1.0 is reserved for the first release whose features all work out of the box, so
+the version line is held still and a small fix does not move it. A fix ships as
+a **hotfix of the release it patches**, with a `-hotfix.N` suffix:
+
+| Part | Example |
+| --- | --- |
+| `package.json` | `"version": "0.9.3-hotfix.1"` |
+| Tag | `v0.9.3-hotfix.1` |
+| Record | `docs/RELEASE_0.9.3-hotfix.1.md` |
+| Capture | `docs/media/releases/0.9.3-hotfix.1-wizard/` |
+| Assets | `Kryvex-Setup-0.9.3-hotfix.1-x64.exe` and its Portable twin |
+
+The workflow already checks the tag against `package.json`, and
+`scripts/check-release-record.cjs` accepts a hotfix record both for the current
+version and when it scans every record with `--all`. Three rules make it reach
+users:
+
+- **Publish it as a stable release, not a prerelease.** The updater reads
+  `releases/latest`, which skips drafts and prereleases, and rejects any payload
+  marked `prerelease: true` regardless of its tag.
+- **The updater ranks the hotfix above its base.** `compareVersions()` treats
+  `0.9.3-hotfix.1` as newer than `0.9.3`, so an installed 0.9.3 is offered it,
+  while ordering it below the next version line (`0.9.4`) and above the previous
+  one (`0.9.2`). Hotfixes of the same release order by number.
+- **Expect the Windows version resource to read the version line.** A
+  `0.9.3-hotfix.1` payload packages as `ProductVersion 0.9.3.0` with the suffix
+  in `FileVersion`, so `scripts/verify-self-update.cjs` compares a hotfix build
+  on its version line. The app itself reports the full
+  `0.9.3-hotfix.1` from `package.json` in its header and Updates panel.
+
+Only a release that adds features moves `0.9.3` to `0.9.4`; 1.0 is the last
+step and is not reached by accumulation.
 
 To build locally:
 

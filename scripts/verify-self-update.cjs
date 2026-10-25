@@ -292,8 +292,19 @@ function normalizeVersion(value) {
     .replace(/(\.0)+$/, '');
 }
 
+/**
+ * A hotfix keeps the numeric version line in the Windows version resource:
+ * `0.9.3-hotfix.1` packages as `ProductVersion 0.9.3.0`, so the resource is
+ * compared on the version line whenever either side names a hotfix.
+ */
 function sameVersion(a, b) {
-  return normalizeVersion(a) === normalizeVersion(b) && normalizeVersion(a) !== '';
+  const left = normalizeVersion(a);
+  const right = normalizeVersion(b);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  if (!/-hotfix/.test(left) && !/-hotfix/.test(right)) return false;
+  const core = value => (/^(\d+\.\d+\.\d+)/.exec(value) || [])[1] || '';
+  return core(left) !== '' && core(left) === core(right);
 }
 
 function recordFileAfter(exe) {

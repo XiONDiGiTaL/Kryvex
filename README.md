@@ -119,7 +119,11 @@ and published on the
 [GitHub releases page](https://github.com/XiONDiGiTaL/Kryvex/releases/latest).
 Each release is built from the complete source tree by the tag-triggered
 workflow, and `SHA256SUMS.txt` covers its two artifacts, which the in-app
-updater requires.
+updater requires. The same tag rebuilds the web client and force-pushes it to
+`gh-pages`, so [https://xiondigital.net/Kryvex/](https://xiondigital.net/Kryvex/)
+carries the release too. Small fixes ship as a `-hotfix.N` of the release they
+patch rather than moving the version line toward 1.0; see
+[docs/UPDATES.md](docs/UPDATES.md#versioning-below-10).
 ### Updates
 
 Kryvex can update itself from this repository's public releases. **Settings →

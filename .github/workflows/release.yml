@@ -67,3 +67,45 @@ jobs:
             release/Kryvex-Setup-*-x64.exe
             release/Kryvex-Portable-*-x64.exe
             release/SHA256SUMS.txt
+
+  # The web client is the same renderer, so a tag must publish it too; it used to
+  # be rebuilt by hand after each release. It runs after the Windows job so a tag
+  # that fails its checks never replaces the live site.
+  web:
+    needs: windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build the web client
+        run: pnpm build:web
+
+      # `gh-pages` carries only build output and a `.nojekyll` marker: a fresh
+      # branch from `dist-web/`, force-pushed, so it never accumulates source,
+      # secrets or stale hashed assets from an older release.
+      - name: Publish the web client
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd dist-web
+          touch .nojekyll
+          git init -q
+          git checkout -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Publish Kryvex Web for ${GITHUB_REF_NAME#v}"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

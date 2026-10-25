@@ -780,7 +780,12 @@ the switch path reads **Vexium Core is starting…**; the docs now describe both
 upgrade paths as measured, with **Install Vexium Core 3B · 1.96 GiB** before the
 file is on disk and **Switch to Vexium Core 3B** after. Nothing else changed, and
 the web bundle was rebuilt and republished at 0.9.3 (`gh-pages` commit `b471451`,
-footer **v0.9.3**, cache `kryvex-web-0.9.3-v1`).
+footer **v0.9.3**, cache `kryvex-web-0.9.3-v1`). From here the version line is
+held: a small fix ships as a `-hotfix.N` of the release it patches
+(`0.9.3-hotfix.1`), the tag itself now rebuilds and publishes the web client, and
+1.0 is reserved for a major whose features all work out of the box. Policy:
+`docs/UPDATES.md`.
+
 0.9.2 is published from the `v0.9.2` tag with the Setup, Portable and checksum
 assets, carrying Vexium Core as the assistant the app installs from a first run
 (reviewed 3B weights, one identity prompt, deterministic maths/units/distance/
