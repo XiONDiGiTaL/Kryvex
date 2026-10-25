@@ -142,8 +142,9 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it. The installable PWA is published from the
   `gh-pages` branch of the same repository and serves
-  `https://xiondigital.net/Kryvex/`, rebuilt for each release (0.9.0 as of this
-  record, with the worker cache `kryvex-web-0.9.0-v1`).
+  `https://xiondigital.net/Kryvex/`, rebuilt for each release and for the 0.9.x
+  directive batch (0.9.0 as of this record, with the worker cache
+  `kryvex-web-0.9.0-v2`).
 - [ ] **M11: Final review.** README with real screenshots, banner,
   feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and
@@ -797,7 +798,8 @@ started itself, the card went RUNNING → STOPPED → RUNNING, and a streamed re
 arrived — and the installed copy at `C:\Kryvex` showed 0.8.9 and started the
 runtime on launch (`docs/TESTING.md`). The published assets match
 `SHA256SUMS.txt`, and `gh-pages` serves 0.9.0 with the cache name
-`kryvex-web-0.9.0-v1`. Next: code signing, the PWA client on Android (no APK),
+`kryvex-web-0.9.0-v2` (republished with the directive batch on 2026-10-25). Next:
+code signing, the PWA client on Android (no APK),
 and the compound manifest and permission sheet described in
 `docs/PLATFORM_PLAN.md` before adding any branded add-on.
 ## Directive batch: services, player, rooms, currency, type, Lexium

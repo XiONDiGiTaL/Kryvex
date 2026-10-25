@@ -2194,3 +2194,22 @@ driven: it needs two clients, a reachable room relay and a cartridge, and none
 of those exist in this environment. The pad packing, chunk assembly, pad
 injection and state snapshot/restore paths are what the tests above cover; the
 transport itself is the same action set Rooms already uses.
+
+### Web bundle republished with the directive batch (2026-10-25)
+
+- `pnpm build:web` — PASS, 1.5 MiB, `assets/index-CdNKanky.js`,
+  `assets/index-CZRARpKT.css`; `public/sw.js` now names the cache
+  `kryvex-web-0.9.0-v2` so a browser holding the previous shell replaces it.
+- Served locally at `http://127.0.0.1:4173/`: the worker reached `activated`,
+  and the cache held the shell, the manifest, both icons, the new JS and the new
+  CSS.
+- Published from a clean `dist-web/` checkout of `gh-pages` as commit
+  `e5343b6` ("Publish Kryvex Web for the 0.9.x directive batch"); the branch
+  still contains only built files and `.nojekyll`.
+- Live at `https://xiondigital.net/Kryvex/`: the HTML names
+  `assets/index-CdNKanky.js` and `assets/index-CZRARpKT.css`, `sw.js` reports
+  `kryvex-web-0.9.0-v2`, the worker is active with the same seven entries, and
+  the footer reads **v0.9.0**. `#/emulator` renders the **LINK PLAY** panel, and
+  **Float this module** on the GitHub module produced
+  `service-stage is-idle has-float` with the frame `position: fixed` at
+  364,387 × 515,830, `z-index: 41`. No console error and no failed request.
