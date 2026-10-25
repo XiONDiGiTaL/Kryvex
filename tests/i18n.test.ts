@@ -190,3 +190,44 @@ describe('extensionMessage', () => {
     );
   });
 });
+
+describe('service lifecycle copy', () => {
+  it('translates the five policies and the capability notes', () => {
+    const es = makeI18n('es');
+    expect(es.t('Keep running')).toBe('Seguir en ejecución');
+    expect(es.t('Pause on leave')).toBe('Pausar al salir');
+    expect(es.t('This service cannot suspend, so it stays in the background.')).toBe(
+      'Este servicio no puede suspenderse, así que sigue en segundo plano.',
+    );
+
+    const de = makeI18n('de');
+    expect(de.t('Service lifecycle')).toBe('Lebenszyklus der Dienste');
+    expect(de.t('Stop when leaving')).toBe('Beim Verlassen beenden');
+    expect(de.t('Now: {state}.', { state: de.t('Pause when idle') })).toBe(
+      'Jetzt: Bei Untätigkeit pausieren.',
+    );
+
+    const fr = makeI18n('fr');
+    expect(fr.t('Use the default')).toBe('Utiliser le comportement par défaut');
+    expect(fr.t('This service has no audio to silence, so it keeps running with sound.')).toContain(
+      'pas d’audio à couper',
+    );
+  });
+
+  it('translates the save panel and its failure messages', () => {
+    const es = makeI18n('es');
+    expect(es.t('SAVE STATES')).toBe('ESTADOS GUARDADOS');
+    expect(es.t('Quick save')).toBe('Guardado rápido');
+    expect(es.t('Saved {name}.', { name: 'Contra' })).toBe('Guardado Contra.');
+    expect(es.t('State restored.')).toBe('Estado restaurado.');
+
+    const de = makeI18n('de');
+    expect(de.t('Choose save folder…')).toBe('Speicherordner wählen…');
+    expect(de.t('Stored in this browser profile; it survives a reload.')).toContain('Browserprofil');
+
+    const fr = makeI18n('fr');
+    expect(fr.t('Quick load')).toBe('Chargement rapide');
+    expect(fr.t('Export')).toBe('Exporter');
+    expect(fr.t('This browser has no save folder picker.')).toContain('sélecteur');
+  });
+});

@@ -166,3 +166,26 @@ export function pressCalculatorKey(
   }
   return { expression: expression + key, evaluate: false };
 }
+
+/**
+ * Keyboard key → keypad key.
+ *
+ * `event.key` is already layout-independent for the numeric keypad: Num Lock
+ * on or off, the digits and operators arrive as `0`–`9`, `+`, `-`, `*`, `/` and
+ * `.`. The widget only listens while it has focus, so typing in a note or a
+ * filter never reaches the calculator.
+ */
+export function calculatorKeyFor(key: string): string | null {
+  if (/^[0-9]$/.test(key)) return key;
+  if (key === '.' || key === ',') return '.';
+  if (key === '*' || key === 'x' || key === 'X' || key === '×') return '×';
+  if (key === '/' || key === '÷') return '÷';
+  // A keyboard minus is ASCII; the keypad label is U+2212, and both arrive.
+  if (key === '-' || key === '−' || key === '–') return '−';
+  if (key === '+') return '+';
+  if (key === '(' || key === ')') return key;
+  if (key === '=' || key === 'Enter') return '=';
+  if (key === 'Backspace') return 'DEL';
+  if (key === 'Escape' || key === 'Delete') return 'AC';
+  return null;
+}

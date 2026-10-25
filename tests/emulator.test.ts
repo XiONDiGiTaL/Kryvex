@@ -135,6 +135,33 @@ describe('emulator ROM rules', () => {
     expect(identifyRomSystem(ngp.buffer)).toBeNull();
   });
 
+  it('routes the core’s save buttons through the shell, not Downloads', () => {
+    const html = emulatorHostDocument('');
+    // Loader hooks: registering one makes EmulatorJS skip its own handler, so
+    // the core's Save/Load State buttons act on Kryvex's store.
+    expect(html).toContain('EJS_onSaveState');
+    expect(html).toContain('EJS_onLoadState');
+    expect(html).toContain('EJS_onSaveSave');
+    expect(html).toContain('EJS_onLoadSave');
+    expect(html).toContain('gameManager.getState()');
+    expect(html).toContain('gameManager.loadState(new Uint8Array(data))');
+    // The message protocol the panel speaks.
+    for (const type of [
+      'kryvex-save-state',
+      'kryvex-state-thumb',
+      'kryvex-load-state',
+      'kryvex-battery-load',
+      'kryvex-pause',
+      'kryvex-resume',
+      'kryvex-mute',
+    ]) {
+      expect(html).toContain(type);
+    }
+    // Muting is a volume change, not a pause: the game keeps running.
+    expect(html).toContain('setVolume(0)');
+    expect(html).toContain('ejs.pause(true)');
+  });
+
   it('builds a host document with no bridge access and no remote core path override', () => {
     const html = emulatorHostDocument('');
     expect(html).toContain('kryvex-emulator-ready');

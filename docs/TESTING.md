@@ -2093,3 +2093,31 @@ kept the old shell in place for a browser that already had it.
 The only failed request on the live page is `https://example.com/favicon.ico`
 (`ERR_BLOCKED_BY_ORB`), which comes from the default service list and predates
 this publish.
+
+## Service lifecycle and emulator saves: 2026-10-24
+
+The lifecycle model, the emulator save store and the keyboard path were verified
+against the browser build served from `dist-web` on `127.0.0.1:4183`. The desktop
+shell was not rebuilt for this pass: no main-process code changed.
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck` (both projects) | exit 0, no diagnostics |
+| `pnpm test` | 60 files, 625 tests pass, including the new `service-lifecycle`, emulator-saves, calculator-keyboard and Yandex cases |
+| `pnpm build:web` + `check-web-build` | PASS, 1.4 MiB, manifest icons 4/4, hashed bundle `assets/index-BwG4LSYg.js` |
+| `pnpm audit:i18n` | no hardcoded UI strings in 39 renderer files |
+| Emulator pane after leaving `#/emulator` | Still in the DOM, `lifecycle-pane is-parked`, computed `position: fixed`, `opacity: 0`, and the same iframe element (`dataset.mark` survived) |
+| Default policy "Stop when leaving" | Pane unmounted on leave; returning remounted it |
+| Per-service override | `auto-pause` on the emulator overrode a `stop` default and kept it parked |
+| Settings → Service lifecycle | Five policies in the default select, four service rows with a live "Now: …" line, the idle row appears when any service uses `auto-pause`, and the override was written to `kryvex.state.v1` |
+| Frame protocol before a cartridge | `kryvex-save-state` answered `kryvex-save-failed` ("The game is still starting.") and raised the toast; `kryvex-pause`/`kryvex-mute` were no-ops; an unknown type was ignored |
+| Console | No errors after removing the redundant `allowFullScreen` attribute |
+| Calculator keyboard | Focused card, `1 2 * 3 - 4`, Enter → `32`; Escape cleared to `0`; a note or filter field keeps its own keys because the handler is on the card |
+| Yandex | Present as `yandex` in the Settings engine select; `searchUrl` encodes the query |
+| `docs/LIFECYCLE.md` | Documents states, policies, the capability table and the save model |
+
+**Not run:** a save/load round trip with a real ROM and core (it needs a
+cartridge the tester owns; the sandboxed frame only produces states once the core
+has started), the optional save folder against a real directory handle, a Disk
+pulse scan left running across a view change, a room held open across a view
+change, and the installer build.

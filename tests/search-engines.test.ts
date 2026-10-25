@@ -17,6 +17,7 @@ describe('search engine catalogue', () => {
       'duckduckgo',
       'google',
       'bing',
+      'yandex',
       'mojeek',
       'kagi',
       'swisscows',
@@ -72,5 +73,16 @@ describe('search engine catalogue', () => {
     expect(isSearchRegion('kr')).toBe(true);
     expect(isSearchRegion('global')).toBe(true);
     expect(isSearchRegion('mars')).toBe(false);
+  });
+});
+
+describe('Yandex', () => {
+  it('builds an encoded query URL and validates the id', () => {
+    expect(isSearchEngine('yandex')).toBe(true);
+    expect(searchEngine('yandex').name).toBe('Yandex');
+    expect(searchUrl('yandex', 'hello world & co')).toBe(
+      'https://yandex.com/search/?text=hello%20world%20%26%20co',
+    );
+    expect(enginesForRegion('global').map(engine => engine.id)).toContain('yandex');
   });
 });

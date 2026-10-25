@@ -64,6 +64,7 @@ import { cleanLanguage, cleanOcrLanguage, normalizeBaseUrl } from './lexium';
 import { clampVolume } from './player';
 import { isSearchEngine, isSearchRegion } from './search-engines';
 import { isEmulatorSystem } from './emulator';
+import { DEFAULT_LIFECYCLE, sanitizeLifecycle } from './lifecycle';
 import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
 import { themeGallerySeenValue } from './theme-gallery';
 import { isThemeId, sanitizeCustomTheme } from './themes';
@@ -535,6 +536,7 @@ function sanitizeSettings(raw: unknown): Settings {
     lexium: sanitizeLexium(raw.lexium),
     player: sanitizePlayer(raw.player),
     disk: sanitizeDisk(raw.disk),
+    lifecycle: sanitizeLifecycle(raw.lifecycle, base.lifecycle ?? DEFAULT_LIFECYCLE),
   };
 }
 

@@ -1514,6 +1514,23 @@ kbd {
   pointer-events: none;
 }
 
+/*
+ * A service parked by the lifecycle policy: still rendered, so its timers and
+ * animation frames keep their normal rate, but out of the way.
+ */
+.lifecycle-pane {
+  display: block;
+  min-height: 100%;
+}
+
+.lifecycle-pane.is-parked {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .service-frame {
   position: absolute;
   inset: 0;
@@ -4117,6 +4134,46 @@ select:hover {
   font-size: 11px;
   line-height: 1.6;
   color: var(--muted);
+}
+
+/* ------------------------------------------------------ service lifecycle --- */
+
+.lifecycle-services {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.lifecycle-group-label {
+  padding: 10px 0 4px;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
+}
+
+.lifecycle-effect {
+  display: block;
+  margin-top: 3px;
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.lifecycle-idle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lifecycle-idle input[type='number'] {
+  width: 76px;
+}
+
+.lifecycle-panel .setting-row + .setting-row {
+  border-top: 1px solid var(--line-soft);
 }
 
 .extension-actions {

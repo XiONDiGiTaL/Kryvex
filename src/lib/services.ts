@@ -13,6 +13,7 @@ import {
   DEFAULT_SEARCH_REGION,
   DEFAULT_VPN,
 } from './defaults';
+import { DEFAULT_LIFECYCLE } from './lifecycle';
 import { normalizeUrl } from './url';
 
 export const CATEGORIES: ReadonlyArray<{ id: ServiceCategory; label: string }> = [
@@ -208,6 +209,7 @@ export function starterState(): PersistedState {
       lexium: { ...DEFAULT_LEXIUM },
       player: { ...DEFAULT_PLAYER },
       disk: { ...DEFAULT_DISK },
+      lifecycle: { ...DEFAULT_LIFECYCLE, overrides: {} },
     },
     recent: [],
     browser: { tabs: [], activeTabId: null },

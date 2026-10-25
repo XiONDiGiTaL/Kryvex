@@ -41,6 +41,28 @@ export type ServiceCategory =
 
 export type ServicePersistence = 'keep' | 'pause';
 
+/**
+ * What a service does when it is no longer on screen.
+ *
+ * These are the five answers the lifecycle panel offers: keep it running,
+ * keep it running but silent, pause on leave, pause after a stretch of
+ * inactivity, or stop it outright. Pinning is unrelated: a pinned service is
+ * only one that is easy to reach, never one that must burn resources.
+ */
+export type LifecycleMode = 'keep' | 'mute' | 'pause' | 'auto-pause' | 'stop';
+
+/** Services that own a running process instead of a plain webview. */
+export type LifecycleServiceId = 'emulator' | 'disk' | 'rooms' | 'modules';
+
+export interface LifecycleSettings {
+  /** Applied to every service that does not override it. */
+  mode: LifecycleMode;
+  /** Minutes of inactivity before `auto-pause` suspends a service. */
+  idleMinutes: number;
+  /** Per-service exceptions; a missing entry inherits `mode`. */
+  overrides: Partial<Record<LifecycleServiceId, LifecycleMode>>;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -173,6 +195,7 @@ export type SearchEngine =
   | 'duckduckgo'
   | 'google'
   | 'bing'
+  | 'yandex'
   | 'mojeek'
   | 'kagi'
   | 'swisscows'
@@ -612,6 +635,8 @@ export interface Settings {
   player: PlayerSettings;
   /** Secret storage tool: the disclaimer is accepted once, not per visit. */
   disk: DiskSettings;
+  /** What happens to a service after the user navigates away from it. */
+  lifecycle: LifecycleSettings;
 }
 
 export interface DiskSettings {

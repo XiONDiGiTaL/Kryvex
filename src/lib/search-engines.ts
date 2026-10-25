@@ -56,6 +56,14 @@ export const SEARCH_ENGINES: ReadonlyArray<SearchEngineDef> = [
     template: 'https://www.bing.com/search?q={q}',
   },
   {
+    id: 'yandex',
+    name: 'Yandex',
+    host: 'yandex.com',
+    purpose: 'General search',
+    region: 'global',
+    template: 'https://yandex.com/search/?text={q}',
+  },
+  {
     id: 'mojeek',
     name: 'Mojeek',
     host: 'mojeek.com',

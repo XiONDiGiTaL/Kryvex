@@ -50,6 +50,16 @@ import {
 } from '../lib/assistant';
 import { WALLPAPER_ACCEPT } from '../lib/wallpaper';
 import {
+  IDLE_CHOICES,
+  LIFECYCLE_MODES,
+  LIFECYCLE_SERVICES,
+  MAX_IDLE_MINUTES,
+  MIN_IDLE_MINUTES,
+  clampIdleMinutes,
+  idleLabel,
+  lifecycleMode,
+} from '../lib/lifecycle';
+import {
   SEARCH_REGIONS,
   engineGroups,
   enginesForRegion,
@@ -2154,6 +2164,137 @@ export function Settings({
             </em>
           </label>
         </div>
+      </SettingsBlock>
+
+      <SettingsBlock
+        className="panel panel-wide lifecycle-panel"
+        id="lifecycle"
+        title={t('Service lifecycle')}
+        icon="layers"
+        meta={t(lifecycleMode(settings.lifecycle.mode).label)}
+      >
+        <p className="settings-copy">
+          {t(
+            'What happens to a service once you are looking somewhere else. Pinning a service only makes it easy to reach: it never starts it or keeps it running on its own.',
+          )}
+        </p>
+
+        <div className="setting-row">
+          <div>
+            <strong>{t('Default behaviour')}</strong>
+            <p>{t(lifecycleMode(settings.lifecycle.mode).detail)}</p>
+          </div>
+          <select
+            value={settings.lifecycle.mode}
+            aria-label={t('Default behaviour')}
+            onChange={event =>
+              onUpdate({
+                lifecycle: {
+                  ...settings.lifecycle,
+                  mode: event.target.value as (typeof LIFECYCLE_MODES)[number]['id'],
+                },
+              })
+            }
+          >
+            {LIFECYCLE_MODES.map(mode => (
+              <option key={mode.id} value={mode.id}>
+                {t(mode.label)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {settings.lifecycle.mode === 'auto-pause' ||
+        Object.values(settings.lifecycle.overrides).includes('auto-pause') ? (
+          <div className="setting-row">
+            <div>
+              <strong>{t('Pause after')}</strong>
+              <p>
+                {t('Currently {interval}. Any value from {min} to {max} minutes.', {
+                  interval: idleLabel(settings.lifecycle.idleMinutes),
+                  min: MIN_IDLE_MINUTES,
+                  max: MAX_IDLE_MINUTES,
+                })}
+              </p>
+            </div>
+            <div className="lifecycle-idle">
+              <div className="segmented" role="group" aria-label={t('Pause after')}>
+                {IDLE_CHOICES.map(minutes => (
+                  <button
+                    key={minutes}
+                    type="button"
+                    className={settings.lifecycle.idleMinutes === minutes ? 'is-active' : ''}
+                    aria-pressed={settings.lifecycle.idleMinutes === minutes}
+                    onClick={() =>
+                      onUpdate({
+                        lifecycle: { ...settings.lifecycle, idleMinutes: minutes },
+                      })
+                    }
+                  >
+                    {minutes < 60 ? t('{count}m', { count: minutes }) : t('{count}h', { count: minutes / 60 })}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="number"
+                min={MIN_IDLE_MINUTES}
+                max={MAX_IDLE_MINUTES}
+                value={settings.lifecycle.idleMinutes}
+                aria-label={t('Minutes before pausing')}
+                onChange={event =>
+                  onUpdate({
+                    lifecycle: {
+                      ...settings.lifecycle,
+                      idleMinutes: clampIdleMinutes(event.target.value, settings.lifecycle.idleMinutes),
+                    },
+                  })
+                }
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="lifecycle-services">
+          <span className="mono lifecycle-group-label">{t('PER SERVICE')}</span>
+          {LIFECYCLE_SERVICES.map(service => {
+            const override = settings.lifecycle.overrides[service.id];
+            const effective = lifecycleMode(override ?? settings.lifecycle.mode);
+            return (
+              <div className="setting-row" key={service.id} data-lifecycle={service.id}>
+                <div>
+                  <strong>{t(service.label)}</strong>
+                  <p>{t(service.detail)}</p>
+                  <em className="mono lifecycle-effect">
+                    {t('Now: {state}.', { state: t(effective.label) })}
+                  </em>
+                </div>
+                <select
+                  value={override ?? 'inherit'}
+                  aria-label={t('Lifecycle for {name}', { name: t(service.label) })}
+                  onChange={event => {
+                    const next = { ...settings.lifecycle.overrides };
+                    if (event.target.value === 'inherit') delete next[service.id];
+                    else next[service.id] = event.target.value as (typeof LIFECYCLE_MODES)[number]['id'];
+                    onUpdate({ lifecycle: { ...settings.lifecycle, overrides: next } });
+                  }}
+                >
+                  <option value="inherit">{t('Use the default')}</option>
+                  {LIFECYCLE_MODES.map(mode => (
+                    <option key={mode.id} value={mode.id}>
+                      {t(mode.label)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="settings-copy">
+          {t(
+            'A parked service stays loaded at zero opacity; a paused one is asked to suspend but keeps its memory. Only “stop” closes it, and reopening then starts from scratch.',
+          )}
+        </p>
       </SettingsBlock>
 
       <div className="settings-columns">

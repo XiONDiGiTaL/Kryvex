@@ -518,6 +518,130 @@
   }
 }
 
+/* ----------------------------------------------------------- save states --- */
+
+.emulator-screen-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.emulator-saves-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+
+.emulator-saves-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.emulator-saves-where {
+  margin: 3px 0 0;
+  font-size: 9px;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.emulator-saves-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.emulator-saves-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.emulator-save-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bg) 40%, transparent);
+}
+
+.emulator-save-thumb {
+  width: 46px;
+  height: 34px;
+  flex: none;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #05070a;
+  color: var(--ink-faint);
+  image-rendering: pixelated;
+}
+
+.emulator-save-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.emulator-save-copy strong {
+  font-size: 11px;
+}
+
+.emulator-save-copy .mono {
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+
+.emulator-save-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.emulator-save-actions .link {
+  font-size: 10px;
+}
+
+.emulator-saves-empty {
+  margin: 0;
+  padding: 10px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--ink-faint);
+}
+
+.emulator-saves-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.emulator-saves-foot .mono {
+  max-width: 62ch;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
 /* -------------------------------------------------------------- assistant --- */
 
 .assistant-greeting {

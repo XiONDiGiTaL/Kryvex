@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { useT } from '../lib/i18n';
 import {
+  calculatorKeyFor,
   evaluateCalculator,
   formatCalculatorValue,
   pressCalculatorKey,
@@ -84,8 +85,27 @@ export function CalculatorWidget() {
 
   const shown = failed ? t('Error') : (result ?? expression) || '0';
 
+  // Listening on the card itself means the keyboard only reaches the
+  // calculator while it has focus; a note or a filter field keeps its own keys.
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const key = calculatorKeyFor(event.key);
+    if (!key) return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    event.preventDefault();
+    press(key);
+  }
+
   return (
-    <div className="home-calculator">
+    <div
+      className="home-calculator"
+      tabIndex={0}
+      role="group"
+      aria-label={t('Calculator')}
+      aria-description={t(
+        'Click the calculator, then type: digits, operators, Enter to evaluate, Backspace to delete and Escape to clear.',
+      )}
+      onKeyDown={onKeyDown}
+    >
       <div className="home-card-head">
         <span className="mono">{t('CALCULATOR')}</span>
         <span className="mono">{t('LOCAL')}</span>

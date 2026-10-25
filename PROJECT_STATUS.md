@@ -149,6 +149,41 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   release records are in place. Outstanding: engineering report and
   a signed public release.
 
+## Fixed (2026-10-24, services stay alive when you look away)
+
+Two testers reported the same class of bug in different services: switching to
+another tab closed the emulator, discarded a Disk pulse scan and dropped a room.
+Each screen had grown its own answer.
+
+`src/lib/lifecycle.ts` is now the shared model — `active`, `background`,
+`paused`, `stopped` — with five policies (keep running, keep muted, pause on
+leave, pause when idle, stop when leaving), a global default and per-service
+overrides. `src/components/ServiceLifecycle.tsx` keeps a visited view mounted
+and parks it at zero opacity instead of unmounting it, because a display-none
+frame is a hidden page and Chromium throttles it. Each service declares what it
+can do; the resolver reports the closest safe behaviour when a request cannot be
+honoured, so Disk pulse says it cannot suspend rather than pretending, and Rooms
+stays connected instead of dropping the call.
+
+The emulator's save model was rebuilt on the same pass. Its sandbox is what
+keeps the third-party core away from the bridge, and it also meant EmulatorJS's
+"save to browser" wrote into a shim that discarded everything: the left-hand
+Save State button downloaded a file, and Load State could never find it.
+`EJS_onSaveState`/`EJS_onLoadState` now hand the bytes to the shell, and
+`src/lib/emulator-saves.ts` keeps them in IndexedDB — quick slot, named states
+with captured frames, twelve per cartridge, in-game `.srm` files kept
+separately, an optional save folder chosen once through the File System Access
+API, and explicit export/import. No save path touches Downloads unless the user
+asks to export.
+
+Settings gains **Service lifecycle** (default, idle interval, per-service row
+with a live "Now: …" line), translated in all four locales. Details and the
+capability table are in `docs/LIFECYCLE.md`.
+
+Still open from the same report: emulator netplay, the emulator HUD's theming
+pass, Lexium MP3 diagnostics, YouTube sizing, Spotify playlist import, room
+message history, Yandex and the calculator widget.
+
 ## Fixed (2026-10-24, a service signs in inside its own module)
 
 With the browser check passed, a real Gmail sign-in went through — mobile

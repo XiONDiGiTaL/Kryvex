@@ -7,6 +7,7 @@ import { browserCopy } from './i18n-browser';
 import { wellnessCopy } from './i18n-wellness';
 import { playbackCopy } from './i18n-playback';
 import { homeToolsCopy } from './i18n-home-tools';
+import { lifecycleCopy } from './i18n-lifecycle';
 
 export const LANGUAGES: ReadonlyArray<{ id: LanguageSetting; label: string }> = [
   { id: 'system', label: 'System language' },
@@ -2831,6 +2832,7 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           ...wellnessCopy[language],
           ...playbackCopy[language],
           ...homeToolsCopy[language],
+          ...lifecycleCopy[language],
         };
   return {
     language,

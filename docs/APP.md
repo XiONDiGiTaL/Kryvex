@@ -77,7 +77,10 @@ cleared when closed.
 3. **Active**: navigation events update the address display; the session is
    persistent for the lifetime of the profile.
 4. **Hidden**: leaving the view hides the frame. The guest keeps running, so
-   its gateway, timer and call survive a view change.
+   its gateway, timer and call survive a view change. The shared lifecycle in
+   `docs/LIFECYCLE.md` decides whether it stays in the background, is muted,
+   pauses after an idle interval or is closed; the per-module `persistence`
+   flag remains as the override for that module alone.
 5. **Ended**: only the app closing, an explicit session clear, removing the
    module, or the eight-frame LRU eviction unloads a guest. The partition and
    its cookies survive all of those except an explicit clear.

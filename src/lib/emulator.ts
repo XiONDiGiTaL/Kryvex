@@ -320,7 +320,35 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
     window.EJS_onGameStart = function () {
       post('kryvex-emulator-loaded', {});
     };
-    window.EJS_onLoadState = function () {};
+    // Registering these replaces the core's own download/browse behaviour:
+    // EmulatorJS skips its default handler as soon as a listener exists, so its
+    // Save State and Load State buttons act on the shell's store instead of
+    // dropping a file in Downloads and then failing to find it again.
+    window.EJS_onSaveState = function (payload) {
+      try {
+        if (!payload || !payload.state) {
+          post('kryvex-save-failed', { message: 'The core did not return a state.' });
+          return;
+        }
+        post('kryvex-state', {
+          requestId: 'core-' + Date.now(),
+          mode: 'manual',
+          state: payload.state,
+          thumb: payload.screenshot || null,
+        });
+      } catch (error) {
+        post('kryvex-save-failed', { message: String((error && error.message) || error) });
+      }
+    };
+    window.EJS_onLoadState = function () {
+      post('kryvex-load-request', {});
+    };
+    window.EJS_onSaveSave = function (payload) {
+      if (payload && payload.save) post('kryvex-battery', { data: payload.save });
+    };
+    window.EJS_onLoadSave = function () {
+      post('kryvex-battery-request', {});
+    };
 
     var script = document.createElement('script');
     script.src = DATA_PATH + 'loader.js';
@@ -331,13 +359,196 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
     setTimeout(function () { post('kryvex-emulator-running', {}); }, 1200);
   }
 
+  var pausedByShell = false;
+  var mutedByShell = false;
+  var preMute = 0.5;
+
+  function core() {
+    return window.EJS_emulator || null;
+  }
+
+  // A thumbnail is a nicety: the state is the part a restore needs, so a core
+  // that cannot draw one still saves.
+  function captureThumb(requestId) {
+    try {
+      var ejs = core();
+      if (!ejs || typeof ejs.takeScreenshot !== 'function') return;
+      if (!ejs.capture || !ejs.capture.photo) return;
+      Promise.resolve(
+        ejs.takeScreenshot(ejs.capture.photo.source, ejs.capture.photo.format, ejs.capture.photo.upscale),
+      )
+        .then(function (shot) {
+          if (shot && shot.blob) post('kryvex-state-thumb', { requestId: requestId, thumb: shot.blob });
+        })
+        .catch(function () {});
+    } catch (error) {}
+  }
+
+  function saveNow(requestId, mode) {
+    var ejs = core();
+    if (!booted || !ejs || !ejs.gameManager) {
+      post('kryvex-save-failed', { requestId: requestId, message: 'The game is still starting.' });
+      return;
+    }
+    var state;
+    try {
+      state = ejs.gameManager.getState();
+    } catch (error) {
+      post('kryvex-save-failed', {
+        requestId: requestId,
+        message: 'The core could not read its state. Save once the game has started.',
+      });
+      return;
+    }
+    if (!state || !state.length) {
+      post('kryvex-save-failed', { requestId: requestId, message: 'The core returned an empty state.' });
+      return;
+    }
+    post('kryvex-state', {
+      requestId: requestId,
+      mode: mode === 'quick' ? 'quick' : 'manual',
+      state: state,
+    });
+    captureThumb(requestId);
+  }
+
+  function applyState(requestId, data) {
+    var ejs = core();
+    if (!ejs || !ejs.gameManager || !data) {
+      post('kryvex-load-failed', { requestId: requestId, message: 'The core is not ready for that state.' });
+      return;
+    }
+    try {
+      ejs.gameManager.loadState(new Uint8Array(data));
+      if (pausedByShell && typeof ejs.play === 'function') {
+        ejs.play(true);
+        pausedByShell = false;
+      }
+      post('kryvex-state-loaded', { requestId: requestId });
+    } catch (error) {
+      post('kryvex-load-failed', {
+        requestId: requestId,
+        message: 'That state belongs to a different core or is damaged.',
+      });
+    }
+  }
+
+  // In-game battery saves (.srm) are what the game itself writes; they are kept
+  // apart from save states because only one of them is restorable by a core.
+  function applyBattery(data) {
+    var ejs = core();
+    if (!ejs || !ejs.gameManager || !data) {
+      post('kryvex-battery-failed', {});
+      return;
+    }
+    try {
+      var gm = ejs.gameManager;
+      var path = gm.getSaveFilePath();
+      var parts = path.split('/');
+      var prefix = '';
+      for (var index = 0; index < parts.length - 1; index += 1) {
+        if (parts[index] === '') continue;
+        prefix += '/' + parts[index];
+        if (!gm.FS.analyzePath(prefix).exists) gm.FS.mkdir(prefix);
+      }
+      if (gm.FS.analyzePath(path).exists) gm.FS.unlink(path);
+      gm.FS.writeFile(path, new Uint8Array(data));
+      gm.loadSaveFiles();
+      post('kryvex-battery-loaded', {});
+    } catch (error) {
+      post('kryvex-battery-failed', {});
+    }
+  }
+
+  function requestBattery() {
+    var ejs = core();
+    if (!ejs || !ejs.gameManager || typeof ejs.gameManager.getSaveFile !== 'function') {
+      post('kryvex-battery-failed', {});
+      return;
+    }
+    try {
+      Promise.resolve(ejs.gameManager.getSaveFile())
+        .then(function (file) {
+          if (file) post('kryvex-battery', { data: file });
+        })
+        .catch(function () {
+          post('kryvex-battery-failed', {});
+        });
+    } catch (error) {
+      post('kryvex-battery-failed', {});
+    }
+  }
+
+  function shellPause(paused) {
+    var ejs = core();
+    if (!ejs) return;
+    try {
+      if (paused) {
+        if (typeof ejs.pause === 'function') {
+          ejs.pause(true);
+          pausedByShell = true;
+        }
+      } else if (pausedByShell) {
+        if (typeof ejs.play === 'function') ejs.play(true);
+        pausedByShell = false;
+      }
+    } catch (error) {}
+  }
+
+  function shellMute(muted) {
+    var ejs = core();
+    if (!ejs || typeof ejs.setVolume !== 'function') return;
+    try {
+      if (muted) {
+        if (!mutedByShell) {
+          preMute = typeof ejs.volume === 'number' && ejs.volume > 0 ? ejs.volume : 0.5;
+          ejs.setVolume(0);
+          mutedByShell = true;
+        }
+      } else if (mutedByShell) {
+        ejs.setVolume(preMute || 0.5);
+        mutedByShell = false;
+      }
+    } catch (error) {}
+  }
+
   window.addEventListener('message', function (event) {
     var data = event.data;
-    if (!data || data.type !== 'kryvex-rom') return;
-    try {
-      start(data);
-    } catch (error) {
-      fail(String((error && error.message) || error));
+    if (!data || typeof data.type !== 'string') return;
+    if (data.type === 'kryvex-rom') {
+      try {
+        start(data);
+      } catch (error) {
+        fail(String((error && error.message) || error));
+      }
+      return;
+    }
+    if (data.type === 'kryvex-save-state') {
+      saveNow(data.requestId, data.mode);
+      return;
+    }
+    if (data.type === 'kryvex-load-state') {
+      applyState(data.requestId, data.data);
+      return;
+    }
+    if (data.type === 'kryvex-battery-load') {
+      applyBattery(data.data);
+      return;
+    }
+    if (data.type === 'kryvex-pause') {
+      shellPause(true);
+      return;
+    }
+    if (data.type === 'kryvex-resume') {
+      shellPause(false);
+      return;
+    }
+    if (data.type === 'kryvex-mute') {
+      shellMute(data.muted !== false);
+      return;
+    }
+    if (data.type === 'kryvex-battery-save') {
+      requestBattery();
     }
   });
 
@@ -354,4 +565,19 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
 
 export function emulatorGameId(name: string): number {
   return hashName(name) || 1;
+}
+
+/**
+ * The key saves hang off: one cartridge, one history.
+ *
+ * The size is part of it so two files with the same name but different dumps
+ * (a clean ROM and a patched hack, for instance) never load each other's states.
+ */
+export function emulatorGameKey(name: string, system: EmulatorSystem, bytes: number): string {
+  return `${system}:${hashName(name)}:${Math.max(0, Math.round(bytes))}`;
+}
+
+/** Requests a save/load round trip with a correlation id the shell can match. */
+export function emulatorRequestId(): string {
+  return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }

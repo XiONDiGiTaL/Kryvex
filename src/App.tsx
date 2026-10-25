@@ -52,6 +52,7 @@ import { Lexium } from './views/Lexium';
 import { Player } from './views/Player';
 import { DiskPulse } from './views/DiskPulse';
 import { PlayerProvider } from './components/PlayerProvider';
+import { KeepAlive, useLifecycle } from './components/ServiceLifecycle';
 import { PlayerBar } from './components/PlayerBar';
 import { ResourcePanel } from './components/ResourceMonitor';
 import { ServiceContextMenu, type ServiceMenuPoint } from './components/ServiceContextMenu';
@@ -775,6 +776,17 @@ export default function App() {
     ? state.services.find(service => service.id === route.serviceId)
     : undefined;
 
+  // Secret services that own a running process rather than a webview: the
+  // shared lifecycle decides whether they keep running, pause or stop when the
+  // user is looking somewhere else.
+  const emulatorLifecycle = useLifecycle(
+    'emulator',
+    route.view === 'emulator',
+    state.settings.lifecycle,
+  );
+  const diskLifecycle = useLifecycle('disk', route.view === 'disk', state.settings.lifecycle);
+  const roomsLifecycle = useLifecycle('rooms', route.view === 'rooms', state.settings.lifecycle);
+
   const requestedPanel = route.query.get('panel');
   const initialBrowserPanel: BrowserPanel | null =
     requestedPanel === 'downloads' || requestedPanel === 'history' || requestedPanel === 'bookmarks'
@@ -1067,6 +1079,39 @@ export default function App() {
           onToast={pushToast}
         />
 
+        <KeepAlive
+          id="emulator"
+          active={route.view === 'emulator'}
+          keep={emulatorLifecycle.keepMounted}
+        >
+          <Emulator
+            settings={state.settings.emulator}
+            lifecycle={emulatorLifecycle}
+            onUpdate={updateEmulator}
+            onBack={() => navigate('services')}
+            onToast={pushToast}
+          />
+        </KeepAlive>
+
+        <KeepAlive id="disk" active={route.view === 'disk'} keep={diskLifecycle.keepMounted}>
+          <DiskPulse
+            settings={state.settings.disk}
+            onUpdate={updateDisk}
+            onBack={() => navigate('services')}
+            onToast={pushToast}
+          />
+        </KeepAlive>
+
+        <KeepAlive id="rooms" active={route.view === 'rooms'} keep={roomsLifecycle.keepMounted}>
+          <Rooms
+            settings={state.settings.party}
+            isElectron={isElectron}
+            initialRoom={route.query.get('room')}
+            onUpdateParty={updateParty}
+            onToast={pushToast}
+          />
+        </KeepAlive>
+
         {route.serviceId ? (
           activeService ? null : (
             <div className="view">
@@ -1138,13 +1183,10 @@ export default function App() {
               )
             }
           />
-        ) : route.view === 'emulator' ? (
-          <Emulator
-            settings={state.settings.emulator}
-            onUpdate={updateEmulator}
-            onBack={() => navigate('services')}
-            onToast={pushToast}
-          />
+        ) : route.view === 'emulator' || route.view === 'disk' || route.view === 'rooms' ? (
+          // Rendered by the keep-alive panes below so the service survives a
+          // navigation instead of being destroyed with the route.
+          null
         ) : route.view === 'lexium' ? (
           <Lexium
             settings={state.settings.lexium}
@@ -1156,21 +1198,6 @@ export default function App() {
           <Player
             onBack={() => navigate('services')}
             onOpenLink={openExternalTab}
-            onToast={pushToast}
-          />
-        ) : route.view === 'disk' ? (
-          <DiskPulse
-            settings={state.settings.disk}
-            onUpdate={updateDisk}
-            onBack={() => navigate('services')}
-            onToast={pushToast}
-          />
-        ) : route.view === 'rooms' ? (
-          <Rooms
-            settings={state.settings.party}
-            isElectron={isElectron}
-            initialRoom={route.query.get('room')}
-            onUpdateParty={updateParty}
             onToast={pushToast}
           />
         ) : route.view === 'browser' ? (
