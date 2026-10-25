@@ -2301,3 +2301,13 @@ path but was not exercised.
   with the 0.9.1 worker, so a browser that visited earlier keeps its 0.9.1 cache
   name for up to four hours; navigation is network-first, so the page it renders
   is already the new build. No cache-purge capability is available here.
+| Tag | `git tag -a v0.9.2 && git push origin v0.9.2` | workflow run 40214015353, **success** |
+| Published assets | `gh release download v0.9.2` then `sha256sum -c SHA256SUMS.txt` | both OK; both report `ProductVersion 0.9.2` |
+
+The release is published and stable (run
+[40214015353](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40214015353),
+commit `fa401f4`) with `Kryvex-Setup-0.9.2-x64.exe` (134,313,756 B, SHA-256
+`fc5f372d…82deb9`), `Kryvex-Portable-0.9.2-x64.exe` (134,076,531 B, SHA-256
+`5eabc0a5…45568d`) and `SHA256SUMS.txt` (189 B). The local pair differs only by
+the build environment. Nothing was downloaded into the repository: the check
+used `.tmp-release-verify/`.

@@ -54,15 +54,26 @@ before the tag, so the workflow had both to check (`pnpm release:check`).
 Built locally by `pnpm package:win` from the working tree at `f9142b8` (no EPERM
 on `release/win-unpacked`), then installed by the wizard capture below:
 
-| File | Size | SHA-256 |
+| File | Local size | Local SHA-256 |
 | --- | --- | --- |
 | `Kryvex-Setup-0.9.2-x64.exe` | 134,313,725 B (128.09 MiB) | `8954ada3f831ef29ec22a3c2fbfeeb3d144a42b97e395e5c6ce6c489d819574f` |
 | `Kryvex-Portable-0.9.2-x64.exe` | 134,076,589 B (127.87 MiB) | `580baa2b9ae0540715fa3383ee9a8e020646ef29a55ffaa11896c7703eaabfeb` |
 
-The CI pair is built from the same sources by the tag workflow and carries its
-own hashes in the release's `SHA256SUMS.txt`; only the build environment
-differs. Both EXEs are **unsigned**, and the updater ignores a release whose
-installer has no matching checksum entry. The packaged tree is about 467 MB, of
+The tag-triggered workflow (run
+[40214015353](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40214015353),
+commit `fa401f4`) built the published pair on `windows-latest` from the same
+sources and attached it to the published, stable release:
+
+| File | Published size | Published SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.2-x64.exe` | 134,313,756 B (128.09 MiB) | `fc5f372dc2dff2674345aebfabfebb04c8327459136fb249235240f37582deb9` |
+| `Kryvex-Portable-0.9.2-x64.exe` | 134,076,531 B (127.87 MiB) | `5eabc0a526e75a2d9c68cb28ff5b102e0e9376d14aac16c67a63e56bb345568d` |
+
+Both published EXEs were downloaded from `releases/download/v0.9.2/`,
+`sha256sum -c SHA256SUMS.txt` verifies both (the file is 189 B), and each
+reports `ProductVersion 0.9.2`. They differ from the local pair only by the
+build environment. Both EXEs are **unsigned**, and the updater ignores a release
+whose installer has no matching checksum entry. The packaged tree is about 467 MB, of
 which 44 MB is the bundled llama.cpp runtime, and the wizard reports **Space
 required: 465.8 MB**. No model weights are bundled: the 2.1 GB core is fetched
 once, on the user's press, from the Vexium Core release.
@@ -106,7 +117,14 @@ once, on the user's press, from the Vexium Core release.
 - **Web client**: `gh-pages` pushed as commit `825f945`, the GitHub Pages build
   for that commit reports `built`, and the live site serves the new bundle with
   the footer reading **v0.9.2**.
-- `node scripts/check-release-record.cjs`: PASS for 0.9.2.
+- `pnpm release:check`: PASS for 0.9.2, 11/11.
+- **The tag-triggered workflow** (run
+  [40214015353](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40214015353))
+  finished **success**: tag/`package.json` check, `release:check`, `audit:deps`,
+  typecheck, tests, `package:win`, checksums and publish. `v0.9.2` is published,
+  stable, with the Setup, Portable and `SHA256SUMS.txt` assets.
+- **The published artifacts**: both EXEs downloaded from the release, both
+  digests match `SHA256SUMS.txt`, and both report `ProductVersion 0.9.2`.
 
 ## Wizard capture
 
