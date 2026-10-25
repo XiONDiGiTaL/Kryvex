@@ -7,6 +7,7 @@ import type {
   ServiceMediaState,
   ViewId,
 } from '../types';
+import { dropAnchor } from '../lib/store';
 import { getTheme } from '../lib/themes';
 import { useT } from '../lib/i18n';
 import type { MediaAction } from '../lib/media';
@@ -175,12 +176,16 @@ export function Sidebar({
   const dragId = useRef<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; after: boolean } | null>(null);
 
-  function dropPinned(id: string, after: boolean) {
+  function dropPinned(draggedId: string, targetId: string, after: boolean) {
     if (!onReorderPinned) return;
-    const index = pinned.findIndex(service => service.id === id);
-    const target = pinned[index + (after ? 1 : 0)];
-    const beforeId = target && target.id !== id ? target.id : null;
-    onReorderPinned(id, beforeId);
+    const anchor = dropAnchor(
+      pinned.map(service => service.id),
+      draggedId,
+      targetId,
+      after,
+    );
+    if (!anchor) return;
+    onReorderPinned(draggedId, anchor.beforeId);
   }
 
   return (
@@ -247,16 +252,13 @@ export function Sidebar({
                 onDrop={event => {
                   event.preventDefault();
                   const id = dragId.current;
-                  const target = dropTarget;
                   dragId.current = null;
                   setDropTarget(null);
-                  if (!id || !target || target.id !== service.id) return;
-                  dropPinned(id, target.after);
-                  if (target.after) {
-                    // Dropping past the last row still lands inside the list.
-                    const last = pinned[pinned.length - 1];
-                    if (last?.id === service.id) onReorderPinned?.(id, null);
-                  }
+                  if (!id) return;
+                  // Read the edge from the drop itself: `dropTarget` is state and
+                  // can still describe the previous row when the drop is quick.
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  dropPinned(id, service.id, event.clientY > rect.top + rect.height / 2);
                 }}
                 onDragEnd={() => {
                   dragId.current = null;
@@ -280,10 +282,15 @@ export function Sidebar({
                     const step = event.key === 'ArrowUp' ? -1 : 1;
                     const target = pinned[position + step];
                     if (!target) return;
-                    onReorderPinned(
+                    // Same anchor the mouse drop uses, one row away, so the two
+                    // paths can never disagree about where a row lands.
+                    const anchor = dropAnchor(
+                      pinned.map(item => item.id),
                       service.id,
-                      step < 0 ? target.id : pinned[position + 2]?.id ?? null,
+                      target.id,
+                      step > 0,
                     );
+                    if (anchor) onReorderPinned(service.id, anchor.beforeId);
                   }}
                   title={service.name}
                   aria-haspopup={onServiceMenu ? 'menu' : undefined}

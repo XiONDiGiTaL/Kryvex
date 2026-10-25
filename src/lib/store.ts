@@ -654,6 +654,29 @@ export function moveService(
   return { ...state, services: next };
 }
 
+/*
+ * Where a drop lands, expressed as the `beforeId` `moveService` wants.
+ *
+ * The list has to be read with the dragged row already lifted out of it — that
+ * is what the drop looks like to the user. Anchoring on the dragged row's own
+ * index instead made every upward drag resolve to "move to the end" and every
+ * downward drag resolve to "stay put", which is why rows could only ever go
+ * down. `null` beforeId means the end of the list; the returned null means the
+ * drop is meaningless (onto itself, or a row that is no longer there).
+ */
+export function dropAnchor(
+  ids: readonly string[],
+  draggedId: string,
+  targetId: string,
+  after: boolean,
+): { beforeId: string | null } | null {
+  if (draggedId === targetId) return null;
+  const rest = ids.filter(id => id !== draggedId);
+  const anchor = rest.indexOf(targetId);
+  if (anchor < 0) return null;
+  return { beforeId: rest[anchor + (after ? 1 : 0)] ?? null };
+}
+
 export function markOpened(state: PersistedState, id: string): PersistedState {
   if (!state.services.some(item => item.id === id)) return state;
   return {

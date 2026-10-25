@@ -5,7 +5,9 @@ import {
   addHistory,
   addService,
   clearHistory,
+  dropAnchor,
   markOpened,
+  moveService,
   newState,
   removeBookmark,
   removeFeed,
@@ -357,5 +359,63 @@ describe('operations', () => {
     });
     expect(rejected.settings.themeId).toBe('kryvex-dark');
     expect(rejected.settings.searchEngine).toBe('duckduckgo');
+  });
+});
+
+/*
+ * Pinned drag-and-drop. The regression these cover: the anchor used to be read
+ * from the dragged row's own index, which turned every upward drag into "move
+ * to the end" and every downward drag into "stay put".
+ */
+describe('pinned reordering', () => {
+  const order = ['a', 'b', 'c', 'd', 'e'];
+
+  function drop(draggedId: string, targetId: string, after: boolean): string[] {
+    const anchor = dropAnchor(order, draggedId, targetId, after);
+    if (!anchor) throw new Error('the drop was rejected');
+    const rest = order.filter(id => id !== draggedId);
+    const to = anchor.beforeId === null ? rest.length : rest.indexOf(anchor.beforeId);
+    return [...rest.slice(0, to), draggedId, ...rest.slice(to)];
+  }
+
+  it('moves a row up in front of the row it is dropped on', () => {
+    expect(drop('e', 'b', false)).toEqual(['a', 'e', 'b', 'c', 'd']);
+    expect(drop('d', 'a', false)).toEqual(['d', 'a', 'b', 'c', 'e']);
+    expect(drop('b', 'a', false)).toEqual(['b', 'a', 'c', 'd', 'e']);
+  });
+
+  it('moves a row down past the row it is dropped on', () => {
+    expect(drop('a', 'c', true)).toEqual(['b', 'c', 'a', 'd', 'e']);
+    expect(drop('b', 'd', true)).toEqual(['a', 'c', 'd', 'b', 'e']);
+    expect(drop('a', 'e', true)).toEqual(['b', 'c', 'd', 'e', 'a']);
+  });
+
+  it('leaves the order alone when a row is dropped where it already is', () => {
+    expect(drop('b', 'a', true)).toEqual(order);
+    expect(drop('b', 'c', false)).toEqual(order);
+    expect(drop('a', 'e', true)).toEqual(['b', 'c', 'd', 'e', 'a']);
+  });
+
+  it('rejects a drop onto itself or a row that is gone', () => {
+    expect(dropAnchor(order, 'c', 'c', false)).toBeNull();
+    expect(dropAnchor(order, 'c', 'c', true)).toBeNull();
+    expect(dropAnchor(order, 'c', 'zz', false)).toBeNull();
+  });
+
+  it('produces a beforeId moveService applies unchanged', () => {
+    const ids = ['s-a', 's-b', 's-c'];
+    const state: PersistedState = {
+      ...newState(),
+      services: ids.map((id, index) =>
+        makeService({ id, name: id, pinned: true, createdAt: index }),
+      ),
+    };
+    const pinned = state.services.filter(item => item.pinned).map(item => item.id);
+    expect(pinned).toEqual(ids);
+
+    const anchor = dropAnchor(pinned, 's-c', 's-a', false);
+    expect(anchor).not.toBeNull();
+    const moved = moveService(state, 's-c', anchor?.beforeId ?? null);
+    expect(moved.services.map(item => item.id)).toEqual(['s-c', 's-a', 's-b']);
   });
 });
