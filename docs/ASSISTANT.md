@@ -32,6 +32,16 @@ core is installed instead, the same button reads **Switch to Vexium Core 3B**.
 The Settings model manager keeps the separate Download and Start buttons, and a
 custom `.gguf` still uses Choose model and Start server.
 
+**First run insists on Vexium Core.** On a machine with no core, the Vexium page
+says **Vexium Core is not installed.**, states the one-time size, and offers the
+same install action in the empty thread, so the download happens inside the app.
+While the core is missing, the generic “no runtime is answering” notice and the
+Hugging Face **Get a model** link are suppressed: the app does not send a
+first-run user off to find some other local AI. Ollama, LM Studio and a custom
+GGUF stay reachable through Runtime settings for people who already run one.
+Until the core is installed the built-in responder still answers workspace
+tools and offers a web search.
+
 **Configured is not running.** When a file is selected but the local server is
 stopped, the Settings **Model** row names that file and offers **Start Vexium
 Core** beside the selector, rather than reporting “0 models” as if nothing were

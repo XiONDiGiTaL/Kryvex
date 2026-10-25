@@ -245,6 +245,9 @@ export function Assistant({
           ? t('ERROR')
           : t('STOPPED');
   const showCore = isElectron && (settings.provider === 'local' || coreConfigured);
+  // Kryvex's own model is the answer to "no runtime"; a first run should not
+  // send the user off to find a local AI instead.
+  const coreMissing = showCore && needsDownload;
 
   async function startCore() {
     const next = await core.start();
@@ -399,7 +402,7 @@ export function Assistant({
         </div>
       ) : null}
 
-      {status === 'offline' ? (
+      {status === 'offline' && !coreMissing ? (
         <div className="assistant-notice" role="status" data-testid="runtime-offline">
           <strong>{t('No local runtime is answering.')}</strong>
           <p>
@@ -414,12 +417,14 @@ export function Assistant({
             <button className="btn ghost small" onClick={onOpenSettings}>
               {t('Open runtime settings')}
             </button>
-            <button
-              className="btn ghost small"
-              onClick={() => openExternalUrl(MODEL_SOURCES.huggingface)}
-            >
-              <Icon name="external" size={13} /> {t('Get a model')}
-            </button>
+            {settings.provider === 'local' ? null : (
+              <button
+                className="btn ghost small"
+                onClick={() => openExternalUrl(MODEL_SOURCES.huggingface)}
+              >
+                <Icon name="external" size={13} /> {t('Get a model')}
+              </button>
+            )}
           </div>
         </div>
       ) : null}
@@ -442,10 +447,22 @@ export function Assistant({
               <Icon name="spark" size={26} />
             </span>
             {offline ? (
-              <>
-                <h2>{t('Vexium is running in built-in mode.')}</h2>
-                <p className="assistant-greeting">{t(VEXEL_GREETING)}</p>
-              </>
+              coreMissing ? (
+                <>
+                  <h2>{t('Vexium Core is not installed.')}</h2>
+                  <p>
+                    {t(
+                      'Kryvex downloads its own model once ({size}, checksum verified) from the Vexium Core release page, then runs it on this machine. Nothing is uploaded and no account is needed.',
+                      { size: DEFAULT_CORE_SIZE },
+                    )}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2>{t('Vexium is running in built-in mode.')}</h2>
+                  <p className="assistant-greeting">{t(VEXEL_GREETING)}</p>
+                </>
+              )
             ) : (
               <>
                 <h2>{t('Ask the model you already run.')}</h2>
@@ -468,9 +485,24 @@ export function Assistant({
               ))}
             </div>
             {offline ? (
-              <button className="link assistant-get-model" onClick={onOpenSettings}>
-                {t('Set up Vexium Core for real answers')} <Icon name="chevron" size={12} />
-              </button>
+              coreMissing ? (
+                <button
+                  className="btn primary small assistant-get-model"
+                  data-testid="vexium-core-empty-install"
+                  disabled={core.busy}
+                  onClick={() => void installCore()}
+                >
+                  {core.busy
+                    ? core.progress?.phase === 'verifying'
+                      ? t('Verifying the download…')
+                      : `${t('Downloading')} ${core.percent}%`
+                    : `${t('Install')} ${DEFAULT_CORE_LABEL} · ${DEFAULT_CORE_SIZE}`}
+                </button>
+              ) : (
+                <button className="link assistant-get-model" onClick={onOpenSettings}>
+                  {t('Set up Vexium Core for real answers')} <Icon name="chevron" size={12} />
+                </button>
+              )
             ) : null}
           </div>
         ) : (

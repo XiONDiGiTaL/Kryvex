@@ -123,6 +123,8 @@ const ADDED = [
   'Player 1 · host',
   'Player 2 · guest',
   'No room is open. Rooms is the link between the two machines.',
+  'Vexium Core is not installed.',
+  'Kryvex downloads its own model once ({size}, checksum verified) from the Vexium Core release page, then runs it on this machine. Nothing is uploaded and no account is needed.',
 ];
 
 describe('translation coverage', () => {

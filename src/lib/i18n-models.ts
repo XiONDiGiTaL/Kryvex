@@ -48,6 +48,9 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     'Set up Vexium Core in Settings, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.':
       'Configura Vexium Core en Ajustes, o inicia Ollama (ollama serve) o el servidor local de LM Studio y apunta Vexium a su puerto loopback.',
     'Set up Vexium Core for real answers': 'Configurar Vexium Core para respuestas reales',
+    'Vexium Core is not installed.': 'Vexium Core no está instalado.',
+    'Kryvex downloads its own model once ({size}, checksum verified) from the Vexium Core release page, then runs it on this machine. Nothing is uploaded and no account is needed.':
+      'Kryvex descarga su propio modelo una sola vez ({size}, suma de comprobación verificada) desde la página de versiones de Vexium Core y luego lo ejecuta en esta máquina. No se sube nada y no hace falta ninguna cuenta.',
     Source: 'Origen',
     Revision: 'Revisión',
     File: 'Archivo',
@@ -168,6 +171,9 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     'Set up Vexium Core in Settings, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.':
       'Richte Vexium Core in den Einstellungen ein oder starte Ollama (ollama serve) bzw. den lokalen LM-Studio-Server und verweise Vexium auf dessen Loopback-Port.',
     'Set up Vexium Core for real answers': 'Vexium Core für echte Antworten einrichten',
+    'Vexium Core is not installed.': 'Vexium Core ist nicht installiert.',
+    'Kryvex downloads its own model once ({size}, checksum verified) from the Vexium Core release page, then runs it on this machine. Nothing is uploaded and no account is needed.':
+      'Kryvex lädt sein eigenes Modell einmalig herunter ({size}, Prüfsumme verifiziert), von der Release-Seite von Vexium Core, und führt es danach auf diesem Rechner aus. Es wird nichts hochgeladen, und ein Konto ist nicht nötig.',
     Source: 'Quelle',
     Revision: 'Revision',
     File: 'Datei',
@@ -288,6 +294,9 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     'Set up Vexium Core in Settings, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.':
       'Configurez Vexium Core dans les réglages, ou démarrez Ollama (ollama serve) ou le serveur local LM Studio et pointez Vexium vers son port loopback.',
     'Set up Vexium Core for real answers': 'Configurer Vexium Core pour de vraies réponses',
+    'Vexium Core is not installed.': 'Vexium Core n’est pas installé.',
+    'Kryvex downloads its own model once ({size}, checksum verified) from the Vexium Core release page, then runs it on this machine. Nothing is uploaded and no account is needed.':
+      'Kryvex télécharge son propre modèle une seule fois ({size}, somme de contrôle vérifiée) depuis la page des versions de Vexium Core, puis l’exécute sur cette machine. Rien n’est envoyé et aucun compte n’est nécessaire.',
     Source: 'Source',
     Revision: 'Révision',
     File: 'Fichier',
