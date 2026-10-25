@@ -31,6 +31,9 @@ before the tag, so the workflow had both to check (`pnpm release:check`).
   the two-phase measurement in [TESTING.md](TESTING.md).
 - **Version 0.9.3.** `package.json`, the packaged `ProductVersion` and the web
   worker's cache name (`kryvex-web-0.9.3-v1`) all move together.
+- **Web client republished at 0.9.3.** `gh-pages` was rebuilt from the 0.9.3
+  sources as commit `b471451`, so the footer reads **v0.9.3** and the shell a
+  phone caches rotates to `kryvex-web-0.9.3-v1`.
 
 The code fix is commit `373566e`, measured on the installed 0.9.2 before this
 cut: Light → 3B downloaded, verified and started in 27.0 s from the button
@@ -97,6 +100,13 @@ release.
   captured, the install page ran for 19,685 ms, the installer exited 0, the
   capture was archived under `docs/media/releases/0.9.3-wizard/`, and the
   installed `C:\Kryvex\Kryvex.exe` now reports `ProductVersion 0.9.3.0`.
+- `pnpm build:web`: PASS (1.6 MiB), `scripts/check-web-build.cjs` PASS, bundle
+  `assets/index-JTz70_S8.js`, stylesheet `assets/index-D6pb3bHp.css`, worker
+  cache `kryvex-web-0.9.3-v1`.
+- **Web client**: `gh-pages` pushed as commit `b471451`, the GitHub Pages build
+  for that commit reports `built`, and the live site at
+  `https://xiondigital.net/Kryvex/` serves the 0.9.3 bundle with the footer
+  reading **v0.9.3** and `caches.keys()` reporting `kryvex-web-0.9.3-v1`.
 - `pnpm release:check`: PASS for 0.9.3, 11/11.
 - **The tag-triggered workflow** (run
   [40217680729](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40217680729))
@@ -132,9 +142,9 @@ Complete**, and the installer exited 0.
 - This release is one label and its documentation. The measured behaviour of the
   install and switch paths is unchanged from 0.9.2; the fix is what the button
   says while activation runs.
-- The published web bundle on `gh-pages` still reports **v0.9.2** and caches
-  under `kryvex-web-0.9.2-v1`. The 0.9.3 `sw.js` cache name is in the repository
-  and takes effect at the next `gh-pages` build, which this cut does not publish.
+- An already-installed PWA keeps the `kryvex-web-0.9.2-v1` cache until its
+  browser picks up the new `sw.js`; navigation is network-first, so the page
+  itself is the 0.9.3 build immediately and the footer reads **v0.9.3**.
 - Google still decides the account step, unchanged from 0.9.0; the service view
   offers **Reset session & retry** and **Open externally**.
 - A 3B model is still a small model. It is given deterministic tools for maths,

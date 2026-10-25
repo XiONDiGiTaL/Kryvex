@@ -143,7 +143,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   in-app updater accepts it. The installable PWA is published from the
   `gh-pages` branch of the same repository and serves
   `https://xiondigital.net/Kryvex/`, rebuilt for each release and for the 0.9.x
-  at 0.9.2 (worker cache `kryvex-web-0.9.2-v1`, footer **v0.9.2**).
+  at 0.9.3 (worker cache `kryvex-web-0.9.3-v1`, footer **v0.9.3**).
 - [ ] **M11: Final review.** README with real screenshots, banner,
   feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and
@@ -779,7 +779,8 @@ label now comes from the press (`coreBusyState()` in `src/lib/vexium-core.ts`), 
 the switch path reads **Vexium Core is starting…**; the docs now describe both
 upgrade paths as measured, with **Install Vexium Core 3B · 1.96 GiB** before the
 file is on disk and **Switch to Vexium Core 3B** after. Nothing else changed, and
-the published web bundle still reports 0.9.2 until `gh-pages` is rebuilt.
+the web bundle was rebuilt and republished at 0.9.3 (`gh-pages` commit `b471451`,
+footer **v0.9.3**, cache `kryvex-web-0.9.3-v1`).
 0.9.2 is published from the `v0.9.2` tag with the Setup, Portable and checksum
 assets, carrying Vexium Core as the assistant the app installs from a first run
 (reviewed 3B weights, one identity prompt, deterministic maths/units/distance/
@@ -813,8 +814,8 @@ were exercised from `release/win-unpacked` against a copied profile — Vexium C
 started itself, the card went RUNNING → STOPPED → RUNNING, and a streamed reply
 arrived — and the installed copy at `C:\Kryvex` showed 0.8.9 and started the
 runtime on launch (`docs/TESTING.md`). The published assets match
-`SHA256SUMS.txt`, and `gh-pages` serves 0.9.2 with the cache name
-`kryvex-web-0.9.2-v1` (republished at 0.9.2 on 2026-10-25). Next:
+`SHA256SUMS.txt`, and `gh-pages` serves 0.9.3 with the cache name
+`kryvex-web-0.9.3-v1` (republished at 0.9.3 on 2026-10-25). Next:
 code signing, the PWA client on Android (no APK),
 and the compound manifest and permission sheet described in
 `docs/PLATFORM_PLAN.md` before adding any branded add-on.
