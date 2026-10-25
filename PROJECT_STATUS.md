@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.1, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.2, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -137,13 +137,13 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10: Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.1
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.2
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it. The installable PWA is published from the
   `gh-pages` branch of the same repository and serves
   `https://xiondigital.net/Kryvex/`, rebuilt for each release and for the 0.9.x
-  at 0.9.1 (worker cache `kryvex-web-0.9.1-v1`, footer **v0.9.1**).
+  at 0.9.2 (worker cache `kryvex-web-0.9.2-v1`, footer **v0.9.2**).
 - [ ] **M11: Final review.** README with real screenshots, banner,
   feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and
@@ -772,10 +772,16 @@ account sign-in, a captcha solve, or another provider.
 
 ## Next concrete action
 
-0.9.1 is published from the `v0.9.1` tag with the Setup, Portable and checksum
-assets, carrying emulator link play, floating service windows and the completed
-translation sweep; installed 0.9.0 builds pick it up through **Settings →
-Updates**. 0.9.0 was published from the `v0.9.0` tag: Google hosts report the bare Chromium
+0.9.2 is published from the `v0.9.2` tag with the Setup, Portable and checksum
+assets, carrying Vexium Core as the assistant the app installs from a first run
+(reviewed 3B weights, one identity prompt, deterministic maths/units/distance/
+date tools) and the pinned-service drag that now works upward as well as down.
+The core is fetched once from `XiONDiGiTaL/Vexium-Core` with its byte count and
+checksum pinned in the app, so no weights are bundled and no other local runtime
+is advertised on a fresh install. 0.9.1 was published from the `v0.9.1` tag with
+emulator link play, floating service windows and the completed translation
+sweep; installed 0.9.0 builds pick it up through **Settings → Updates**.
+0.9.0 was published from the `v0.9.0` tag: Google hosts report the bare Chromium
 agent with Chromium's own client hints and the `window.chrome` surface, which is
 what moved Google from its reduced `WebLiteSignIn` flow to the regular
 `GlifWebSignIn` one, and a Google service now finishes its sign-in inside its own
@@ -799,8 +805,8 @@ were exercised from `release/win-unpacked` against a copied profile — Vexium C
 started itself, the card went RUNNING → STOPPED → RUNNING, and a streamed reply
 arrived — and the installed copy at `C:\Kryvex` showed 0.8.9 and started the
 runtime on launch (`docs/TESTING.md`). The published assets match
-`SHA256SUMS.txt`, and `gh-pages` serves 0.9.0 with the cache name
-`kryvex-web-0.9.1-v1` (republished at 0.9.1 on 2026-10-25). Next:
+`SHA256SUMS.txt`, and `gh-pages` serves 0.9.2 with the cache name
+`kryvex-web-0.9.2-v1` (republished at 0.9.2 on 2026-10-25). Next:
 code signing, the PWA client on Android (no APK),
 and the compound manifest and permission sheet described in
 `docs/PLATFORM_PLAN.md` before adding any branded add-on.

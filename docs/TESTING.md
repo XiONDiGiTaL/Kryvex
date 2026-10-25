@@ -2251,3 +2251,53 @@ separate verification steps, and the release workflow does not cover them.
   `sw.js` reports `kryvex-web-0.9.1-v1`, the worker is active with the same
   seven cache entries, the footer reads **v0.9.1**, **Float this module** still
   produces `service-stage is-idle has-float`, and the console is clean.
+
+## 0.9.2 release: Vexium Core from a first run (2026-10-25)
+
+`C:\Kryvex` was on 0.9.1 from the previous cut. This release carries the 3B core,
+the first-run install and the pinned upward drag.
+
+| Step | Command | Result |
+| --- | --- | --- |
+| Typecheck | `pnpm typecheck` | exit 0, renderer and `electron/` |
+| Suite | `npx vitest run` | 701/701 across 67 files |
+| Local package | `pnpm package:win` | exit 0, `Kryvex-Setup-0.9.2-x64.exe` (134,313,725 B) and `Kryvex-Portable-0.9.2-x64.exe` (134,076,589 B); no EPERM on `release/win-unpacked` |
+| Wizard capture | `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer release/Kryvex-Setup-0.9.2-x64.exe --version 0.9.2` | PASS — 4 pages, installer exit 0, install page ran 22,000 ms, archived under `docs/media/releases/0.9.2-wizard/` |
+| Record | `pnpm release:check` | PASS, 11/11 |
+| Installed copy | `(Get-Item 'C:\Kryvex\Kryvex.exe').VersionInfo.ProductVersion` | `0.9.2.0` |
+| Web build | `pnpm build:web` | PASS, 1.6 MiB, `assets/index-BsVxj6u-.js`, `assets/index-D6pb3bHp.css`, cache `kryvex-web-0.9.2-v1` |
+| Web published | `git -C ../Veyra-pages push origin HEAD:gh-pages` | commit `825f945`; Pages build for that commit `built` |
+
+The wizard ran against the existing per-user install in `C:\Kryvex` and upgraded
+it in place: page 1 offered "There is already a per-user installation.(C:\Kryvex)
+Will reinstall/upgrade." and page 2 reported **Space required: 465.8 MB**,
+**Space available: 54.9 GB**. `release/win-unpacked/Kryvex.exe` reports
+`0.9.2.0`. The harness closed four Kryvex processes the installer relaunched.
+
+**Vexium Core install from a first run**, driven in the packaged Electron build
+with a fresh `userData` over CDP, not a mocked bridge:
+
+| Step | Observed |
+| --- | --- |
+| Empty thread, no core | heading `Vexium Core is not installed.`, call to action `Install Vexium Core 3B · 1.96 GiB`, core card `Not installed`; no Hugging Face **Get a model** link and no "start Ollama or LM Studio" notice |
+| Press the call to action | 1.96 GiB fetched from `XiONDiGiTaL/Vexium-Core` release `v2`, SHA-256 verified, configured and started — 27 s to `RUNNING` |
+| Core card afterwards | `Vexium Core 3B · 1.96 GiB`, `vexium-core-3b · 4096 context · http://127.0.0.1:11534` |
+| Tool answer | "What is 18% of 240?" → **"18% of 240 is 43.2."** in 2.4 s |
+
+Not performed in this cut: pressing **Switch to Vexium Core 3B** on a machine
+that already has Vexium Core Light, which uses the same download and verification
+path but was not exercised.
+
+### Web client republished at 0.9.2 (2026-10-25)
+
+- Published to `gh-pages` as commit `825f945` ("Publish Kryvex Web for 0.9.2");
+  the branch still carries only built files and `.nojekyll`.
+- The GitHub Pages build for that commit reports `status: built`.
+- Live at `https://xiondigital.net/Kryvex/`: the HTML names
+  `assets/index-BsVxj6u-.js`, the footer reads **v0.9.2**, and
+  `https://xiondigital.net/Kryvex/sw.js?cb=…` reports
+  `kryvex-web-0.9.2-v1`. The bare `sw.js` URL was still answered from the
+  Cloudflare edge cache (`cf-cache-status: HIT`, `max-age=14400`, age 227 s)
+  with the 0.9.1 worker, so a browser that visited earlier keeps its 0.9.1 cache
+  name for up to four hours; navigation is network-first, so the page it renders
+  is already the new build. No cache-purge capability is available here.
