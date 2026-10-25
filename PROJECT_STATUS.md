@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.2, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.3, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -137,7 +137,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10: Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.2
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.3
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it. The installable PWA is published from the
@@ -772,6 +772,14 @@ account sign-in, a captcha solve, or another provider.
 
 ## Next concrete action
 
+0.9.3 is cut from the `v0.9.3` tag with the Setup, Portable and checksum assets:
+a correction release for the Vexium Core button, which on a machine that already
+held the 3B read "Downloading 0%" while it was only starting the server. The busy
+label now comes from the press (`coreBusyState()` in `src/lib/vexium-core.ts`), so
+the switch path reads **Vexium Core is starting…**; the docs now describe both
+upgrade paths as measured, with **Install Vexium Core 3B · 1.96 GiB** before the
+file is on disk and **Switch to Vexium Core 3B** after. Nothing else changed, and
+the published web bundle still reports 0.9.2 until `gh-pages` is rebuilt.
 0.9.2 is published from the `v0.9.2` tag with the Setup, Portable and checksum
 assets, carrying Vexium Core as the assistant the app installs from a first run
 (reviewed 3B weights, one identity prompt, deterministic maths/units/distance/
