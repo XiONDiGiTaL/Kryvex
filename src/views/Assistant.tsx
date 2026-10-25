@@ -16,9 +16,34 @@ import {
 import { VEXEL_GREETING, looksUnsure, offlineReply } from '../lib/vexel';
 import { formatModelSize } from '../lib/local-models';
 import { installedCoreFor, useVexiumCore } from '../lib/vexium-core';
+import { runWorkspaceTool } from '../lib/assistant-tools';
 import { Icon } from '../components/ui';
 
-type ChatMessage = AssistantMessage & { search?: string };
+type ChatMessage = AssistantMessage & { search?: string; tool?: string };
+
+/** The core the Vexium page installs when nothing is configured yet. */
+const DEFAULT_CORE_ID = 'vexium-core-3b';
+const DEFAULT_CORE_LABEL = 'Vexium Core 3B';
+const DEFAULT_CORE_SIZE = '1.96 GiB';
+
+/** Failure codes from the install path, in the words the card can show. */
+function coreErrorCopy(error: string): string {
+  switch (error) {
+    case 'download':
+      return 'The download did not finish. Check the connection and try again.';
+    case 'missing-file':
+      return 'The download finished but the file is not in the model library.';
+    case 'size':
+    case 'hash':
+      return 'The file did not match its pinned checksum, so it was discarded.';
+    case 'disk-space':
+      return 'Not enough free disk space for Vexium Core.';
+    case 'start':
+      return 'The file is installed but the runtime did not start.';
+    default:
+      return error;
+  }
+}
 
 const ERROR_COPY: Record<string, string> = {
   'invalid-url': 'That address is not a loopback runtime. Use http://127.0.0.1 with the port your runtime listens on.',
@@ -115,6 +140,17 @@ export function Assistant({
   }, []);
 
   function answerOffline(question: string) {
+    // A tool that can answer outright beats a guess, a model or a search:
+    // these are the questions a small local model gets wrong most often.
+    const tool = runWorkspaceTool(question);
+    if (tool) {
+      setError(null);
+      setMessages(list => [
+        ...list,
+        { role: 'assistant', content: tool.sentence, tool: t('WORKSPACE TOOL') },
+      ]);
+      return;
+    }
     const reply = offlineReply(question);
     setMessages(list => [
       ...list,
@@ -144,11 +180,15 @@ export function Assistant({
     setMessages([...next, { role: 'assistant', content: '' }]);
     activeRef.current = id;
     setRequestId(id);
+    // A deterministic answer is handed over as a verified fact, so the model
+    // explains it in its own words instead of recalculating it wrongly.
+    const fact = runWorkspaceTool(content);
     const result = await bridge.assistantChat({
       requestId: id,
       baseUrl: settings.baseUrl,
       model,
       messages: next,
+      ...(fact ? { facts: fact.sentence } : {}),
     });
     // A user cancel keeps whatever streamed so far and adds no error banner.
     if (!result.ok && result.error !== 'aborted') {
@@ -190,6 +230,11 @@ export function Assistant({
   const corePhase = core.status?.phase ?? 'idle';
   const coreConfigured = Boolean(core.status?.path);
   const coreInstalled = installedCoreFor(core.installed, core.status?.path ?? '');
+  // The strong core may sit installed but unused, or not installed at all;
+  // both cases get one button on this page, not a trip to Settings.
+  const defaultCore = core.installed.find(row => row.id === DEFAULT_CORE_ID && row.present);
+  const needsDownload = !defaultCore;
+  const usingLightCore = Boolean(defaultCore && core.status?.path !== defaultCore.path);
   const coreLabel = !coreConfigured
     ? t('Not installed')
     : corePhase === 'running'
@@ -209,6 +254,18 @@ export function Assistant({
     }
   }
 
+  async function installCore() {
+    const next = needsDownload
+      ? await core.install(DEFAULT_CORE_ID)
+      : defaultCore
+        ? await core.activate(defaultCore)
+        : null;
+    if (next?.phase === 'running' && next.baseUrl) {
+      onAssistantChange({ provider: 'local', baseUrl: next.baseUrl, model: '' });
+      runtime.refresh();
+    }
+  }
+
   async function stopCore() {
     const next = await core.stop();
     if (next && next.baseUrl === '') runtime.refresh();
@@ -222,7 +279,7 @@ export function Assistant({
           <h1>Vexium</h1>
           <p className="lede">
             {t(
-              'A first-party assistant that talks to a model runtime on this machine. No account, no key, no cloud call: Kryvex only reaches loopback.',
+              'A first-party assistant that runs its model on this machine and answers maths, units, distances and dates with its own tools. No account, no key, no cloud call: Kryvex only reaches loopback.',
             )}
           </p>
         </div>
@@ -297,7 +354,22 @@ export function Assistant({
             </div>
           </dl>
           <div className="assistant-core-actions">
-            {corePhase === 'running' ? (
+            {needsDownload || usingLightCore ? (
+              <button
+                className="btn primary small"
+                disabled={core.busy}
+                data-testid="vexium-core-install"
+                onClick={() => void installCore()}
+              >
+                {core.busy
+                  ? core.progress?.phase === 'verifying'
+                    ? t('Verifying the download…')
+                    : `${t('Downloading')} ${core.percent}%`
+                  : needsDownload
+                    ? `${t('Install')} ${DEFAULT_CORE_LABEL} · ${DEFAULT_CORE_SIZE}`
+                    : `${t('Switch to')} ${DEFAULT_CORE_LABEL}`}
+              </button>
+            ) : corePhase === 'running' ? (
               <button className="btn secondary small" disabled={core.busy} onClick={() => void stopCore()}>
                 {t('Stop server')}
               </button>
@@ -310,15 +382,18 @@ export function Assistant({
                 {corePhase === 'starting' ? t('Vexium Core is starting…') : t('Start Vexium Core')}
               </button>
             )}
-            {!coreConfigured ? (
-              <button className="btn ghost small" onClick={onOpenSettings}>
-                {t('Install Vexium Core in Settings to start it here.')}
-              </button>
-            ) : null}
+            <button className="btn ghost small" onClick={onOpenSettings}>
+              {t('Model settings')}
+            </button>
           </div>
+          {core.busy && needsDownload ? (
+            <div className="assistant-core-progress" role="progressbar" aria-valuenow={core.percent}>
+              <span style={{ width: `${core.percent}%` }} />
+            </div>
+          ) : null}
           {core.error ? (
             <p className="assistant-core-error" role="alert">
-              {core.error}
+              {t(coreErrorCopy(core.error))}
             </p>
           ) : null}
         </div>
@@ -329,7 +404,7 @@ export function Assistant({
           <strong>{t('No local runtime is answering.')}</strong>
           <p>
             {t(
-              'Set up Vexium Core in Settings, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.',
+              'Install Vexium Core above, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.',
             )}
           </p>
           <div className="assistant-notice-actions">
@@ -413,6 +488,9 @@ export function Assistant({
                     <span />
                     <span />
                   </span>
+                ) : null}
+                {message.tool ? (
+                  <span className="mono assistant-tool">{message.tool}</span>
                 ) : null}
                 {message.search ? (
                   <button

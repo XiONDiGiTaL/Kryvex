@@ -8,7 +8,12 @@ import {
   isActivePhase,
   modelFileLabel,
 } from '../src/lib/local-models';
-import { MODEL_CATALOGUE, catalogueEntry } from '../electron/model-catalogue';
+import {
+  LIGHT_MODEL_ID,
+  MODEL_CATALOGUE,
+  STARTER_MODEL_ID,
+  catalogueEntry,
+} from '../electron/model-catalogue';
 import {
   MAX_MODEL_BYTES,
   MAX_REDIRECTS,
@@ -29,19 +34,24 @@ import {
 
 // The catalogue is compiled in; the assertion only satisfies indexed access.
 const starter = MODEL_CATALOGUE[0] as CatalogueEntry;
+const light = MODEL_CATALOGUE[1] as CatalogueEntry;
 
 function copy(overrides: Partial<CatalogueEntry> = {}): CatalogueEntry {
   return { ...starter, ...overrides };
 }
 
 describe('the shipped catalogue', () => {
-  it('contains one reviewed artifact', () => {
-    expect(MODEL_CATALOGUE).toHaveLength(1);
-    expect(starter.id).toBe('qwen2.5-1.5b-instruct');
+  it('offers the 3B core first and the light core beside it', () => {
+    expect(MODEL_CATALOGUE).toHaveLength(2);
+    expect(starter.id).toBe(STARTER_MODEL_ID);
+    expect(starter.id).toBe('vexium-core-3b');
     expect(starter.productName).toBe('Vexium Core');
-    expect(starter.name).toBe('Qwen2.5-1.5B-Instruct');
+    expect(starter.name).toBe('Vexium Core 3B');
+    expect(light.id).toBe(LIGHT_MODEL_ID);
+    expect(light.productName).toBe('Vexium Core Light');
     expect(catalogueEntry(starter.id)).toBe(starter);
     expect(catalogueEntry('something-else')).toBeUndefined();
+    expect(MODEL_CATALOGUE.every(entry => validateCatalogueEntry(entry).length === 0)).toBe(true);
   });
 
   it('reads a configured model filename without its directory or suffix', () => {
@@ -56,17 +66,21 @@ describe('the shipped catalogue', () => {
 
   it('passes its own validation and pins the researched artifact', () => {
     expect(validateCatalogueEntry(starter)).toEqual([]);
-    expect(starter.revision).toBe('91cad51170dc346986eccefdc2dd33a9da36ead9');
-    expect(starter.bytes).toBe(1_117_320_736);
-    expect(starter.sha256).toBe('6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e');
+    expect(starter.revision).toBe('7dabda4d13d513e3e842b20f0d435c732f172cbe');
+    expect(starter.bytes).toBe(2_104_932_768);
+    expect(starter.sha256).toBe('626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d');
     expect(starter.licence).toBe('Apache-2.0');
     expect(starter.commercialUse).toBe(true);
     expect(starter.memory.maxBytes).toBeGreaterThan(starter.memory.minBytes);
   });
 
-  it('builds one HTTPS URL from the pinned revision', () => {
+  it('downloads its own release asset rather than the base model repository', () => {
     expect(catalogueUrl(starter)).toBe(
-      'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf',
+      'https://github.com/XiONDiGiTaL/Vexium-Core/releases/download/v2/vexium-core-3b-q4_k_m.gguf',
+    );
+    // The light entry has no redistributed asset, so it resolves to Hugging Face.
+    expect(catalogueUrl(light)).toBe(
+      'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct.gguf',
     );
   });
 
@@ -83,7 +97,7 @@ describe('the shipped catalogue', () => {
 });
 
 describe('host and URL policy', () => {
-  it('allows only the catalogue host and the measured CDN suffix', () => {
+  it('allows only the catalogue hosts and their measured CDN suffixes', () => {
     expect(isAllowedModelHost('huggingface.co')).toBe(true);
     expect(isAllowedModelHost('us.aws.cdn.hf.co')).toBe(true);
     expect(isAllowedModelHost('cdn-lfs.hf.co')).toBe(true);
@@ -91,6 +105,10 @@ describe('host and URL policy', () => {
     expect(isAllowedModelHost('hf.co')).toBe(false);
     expect(isAllowedModelHost('huggingface.co.evil.test')).toBe(false);
     expect(isAllowedModelHost('evilcdn.hf.co.attacker.test')).toBe(false);
+    expect(isAllowedModelHost('github.com')).toBe(true);
+    expect(isAllowedModelHost('objects.githubusercontent.com')).toBe(true);
+    expect(isAllowedModelHost('evilgithubusercontent.com')).toBe(false);
+    expect(isAllowedModelHost('github.com.evil.test')).toBe(false);
   });
 
   it('refuses anything but a plain HTTPS allowlisted URL', () => {
@@ -110,7 +128,16 @@ describe('host and URL policy', () => {
     expect(
       resolveRedirect(start, 'https://us.aws.cdn.hf.co/xet-bridge-us/file.gguf?token=abc'),
     ).toBe('https://us.aws.cdn.hf.co/xet-bridge-us/file.gguf?token=abc');
-    expect(resolveRedirect(start, '/xet/file.gguf')?.startsWith('https://huggingface.co/')).toBe(true);
+    expect(
+      resolveRedirect(start, 'https://release-assets.githubusercontent.com/file.gguf?sig=abc'),
+    ).toBe('https://release-assets.githubusercontent.com/file.gguf?sig=abc');
+    // A relative hop stays on the origin the download started from.
+    expect(resolveRedirect(start, '/xet/file.gguf')?.startsWith('https://github.com/')).toBe(true);
+    expect(
+      resolveRedirect(catalogueUrl(light), '/api/file.gguf')?.startsWith(
+        'https://huggingface.co/',
+      ),
+    ).toBe(true);
     expect(resolveRedirect(start, 'https://evil.example/file.gguf')).toBeNull();
     expect(resolveRedirect(start, 'http://us.aws.cdn.hf.co/file.gguf')).toBeNull();
     expect(resolveRedirect(start, 'https://cdn.hf.co.evil.example/file.gguf')).toBeNull();
@@ -203,8 +230,8 @@ describe('panel formatting', () => {
     expect(formatModelSize(0)).toBe('0 B');
     expect(formatModelSize(512)).toBe('512 B');
     expect(formatModelSize(1024)).toBe('1.00 KiB');
-    expect(formatModelSize(starter.bytes)).toBe('1.04 GiB');
-    expect(formatMemoryEstimate(starter.memory)).toBe('≈1.40 GiB–1.58 GiB');
+    expect(formatModelSize(starter.bytes)).toBe('1.96 GiB');
+    expect(formatMemoryEstimate(starter.memory)).toBe('≈2.42 GiB–2.98 GiB');
   });
 
   it('turns a failure code into one translatable sentence', () => {

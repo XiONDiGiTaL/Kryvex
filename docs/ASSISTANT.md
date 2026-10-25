@@ -2,10 +2,11 @@
 
 Vexium is Kryvex's first-party assistant surface. **Vexium Core** is the
 supported local stack: the Vexium surface, the llama.cpp CPU runtime included in
-the installer, and the reviewed Qwen2.5-1.5B-Instruct weights fetched once with
-the user's click. It never talks to a cloud endpoint. There is no account, no
-API key, no telemetry, no bundled weights and no prompt history on disk.
-Ollama, LM Studio and a custom GGUF remain available as alternative runtimes.
+the installer, and the reviewed Qwen2.5-3B-Instruct weights, published as
+Kryvex's own release asset and fetched once with the user's click. It never
+talks to a cloud endpoint. There is no account, no API key, no telemetry, no
+bundled weights and no prompt history on disk. Ollama, LM Studio and a custom
+GGUF remain available as alternative runtimes.
 
 ## Vexium Core
 
@@ -13,7 +14,8 @@ Ollama, LM Studio and a custom GGUF remain available as alternative runtimes.
 | --- | --- |
 | Surface | Vexium at `#/assistant`; the renderer never reaches the model server. |
 | Runtime | llama.cpp `b11835` (commit `f64a49819`), CPU build, shipped in `resources/bin`. |
-| Weights | `qwen2.5-1.5b-instruct-q4_k_m.gguf`, pinned revision and SHA-256 in `electron/model-catalogue.ts`. |
+| Weights | `vexium-core-3b-q4_k_m.gguf` (Qwen2.5-3B-Instruct, Q4_K_M), published on `XiONDiGiTaL/Vexium-Core` release `v2`; byte count and SHA-256 pinned in `electron/model-catalogue.ts`. |
+| Light core | `qwen2.5-1.5b-instruct.gguf` stays in the catalogue as **Vexium Core Light** for machines without the memory; its id and filename never change, so an existing install keeps working. |
 | Licence | Apache-2.0, with the Qwen publisher, repository and licence shown on the card and in the installed list. |
 | Default | New state uses the `local` provider at `http://127.0.0.1:8080`; an existing saved provider is preserved. |
 
@@ -22,11 +24,13 @@ keeps `Qwen2.5-1.5B-Instruct`, Qwen (Alibaba Cloud), the pinned revision and
 Apache-2.0 visible directly under it. Kryvex packages the runtime and verifies
 the downloaded file; it does not claim the weights as its own model.
 
-**One-click start.** After the explicit **Download Vexium Core** action, the
-card's **Start Vexium Core** button configures the installed path and starts the
-bundled runtime in one step, then points Vexium at the loopback port it chose.
-The download itself never starts a server. A custom `.gguf` still uses the
-Choose model and Start server path.
+**One-click install.** The Vexium page's core card carries **Install Vexium
+Core 3B · 1.96 GiB**: one press downloads the release asset with its progress
+bar and checksum check, configures the path and starts the runtime, then points
+Vexium at the loopback port it chose (`useVexiumCore().install`). When the light
+core is installed instead, the same button reads **Switch to Vexium Core 3B**.
+The Settings model manager keeps the separate Download and Start buttons, and a
+custom `.gguf` still uses Choose model and Start server.
 
 **Configured is not running.** When a file is selected but the local server is
 stopped, the Settings **Model** row names that file and offers **Start Vexium
@@ -95,6 +99,43 @@ seconds.
 Limits are enforced before anything leaves the app: at most 40 messages, 8,000
 characters per message, 24,000 total, the last message must be `user`, and a
 model id must be a non-empty string without control characters.
+
+## Identity and sampling
+
+The runtime never receives the conversation bare. `buildMessages()` in
+`electron/assistant-rules.ts` puts one system turn in front of it: the
+`VEXIUM_SYSTEM_PROMPT` identity (local, concise, allowed to answer ordinary
+factual questions, honest when it does not know, never claiming to browse), the
+current date, and any verified tool facts. A `system` turn supplied by the
+renderer is dropped, so the only system message is the one the main process
+wrote.
+
+Sampling is deliberately low for a helper: `temperature 0.3`, `top_p 0.9`,
+`max_tokens 768` (`GENERATION` in the same module). Before 0.9.2 the request
+carried `temperature: 0.7` and no system turn at all, which is why a 1.5B model
+opened ordinary questions by refusing to discuss "copyrighted material"
+(docs/VEXIUM_MODELS.md §15 records the measurements that came from).
+
+## Workspace tools
+
+A local model of this size cannot be trusted with arithmetic, units, distances
+or dates, so those answers do not come from it. `src/lib/assistant-tools.ts` is
+pure and deterministic:
+
+| Tool | Recognises | Source of truth |
+| --- | --- | --- |
+| `distance` | "how far is X from Y", "distance between X and Y" | great-circle maths over a bundled place table (countries and major cities) |
+| `units` | "12 km to miles", "100 f to c", "2 gb to mib" | a factor table with temperature handled separately |
+| `arithmetic` | "18% of 240", "(12 + 8) * 3", "12 divided by 4" | a recursive-descent evaluator: no `eval`, no `Function` |
+| `datetime` | "what's the date", "days between A and B", "30 days from today" | the local clock and the parsed dates |
+
+A matched answer is sent with the request as a `facts` line, is appended to the
+system turn as "Verified by Kryvex's own tools", and is shown in the transcript
+with a `WORKSPACE TOOL` label when no model is running. `sanitizeFacts()` allows
+one line under 1,200 characters with no control characters, so a fact block can
+never turn into instructions. A question no tool recognises reaches the model
+unchanged; when the reply still sounds unsure, the existing search button
+offers the web instead of a dead end.
 
 ## Run a model file
 

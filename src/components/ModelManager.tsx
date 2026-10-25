@@ -158,7 +158,7 @@ export function ModelManager({
       {catalogue.some(entry => entry.productName) ? (
         <p className="setting-copy">
           {t(
-            'Vexium Core is the supported local stack: the included llama.cpp runtime runs the reviewed Qwen2.5-1.5B-Instruct weights on loopback. Qwen and its Apache-2.0 licence stay visible; Kryvex packages the runtime and verifies the file, not the weights.',
+            'Vexium Core is the supported local stack: the included llama.cpp runtime runs reviewed Qwen2.5 weights on loopback. Vexium Core 3B is the default; Vexium Core Light (1.5B) is there for machines that cannot spare the memory. Qwen and its Apache-2.0 licence stay visible; Kryvex packages the runtime and verifies the file, not the weights.',
           )}
         </p>
       ) : null}
@@ -183,7 +183,11 @@ export function ModelManager({
                 </p>
               </div>
               <span className="mono model-state">
-                {row ? t('ALREADY INSTALLED') : t(entry.productName ? 'DEFAULT CORE' : 'STARTER')}
+                {row
+                  ? t('ALREADY INSTALLED')
+                  : entry.id === 'vexium-core-3b'
+                    ? t('DEFAULT CORE')
+                    : t('LIGHT')}
               </span>
             </div>
 

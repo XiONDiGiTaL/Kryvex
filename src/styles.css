@@ -6190,6 +6190,34 @@ select:hover {
   color: var(--danger);
 }
 
+/* The first download of Vexium Core is 2 GiB; it reports its own progress. */
+.assistant-core-progress {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.assistant-core-progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 220ms ease;
+}
+
+.assistant-tool {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+
 .assistant-notice {
   display: flex;
   flex-direction: column;

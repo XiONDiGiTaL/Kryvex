@@ -543,3 +543,53 @@ The run changes no product behavior. It confirms three decisions: keep
 arithmetic deterministic, keep app facts behind retrieval, and do not market a
 1.5B starter as a reasoning model. It also adds a reason to evaluate a larger
 model before claiming production-quality German.
+
+## 16. Vexium Core 3B becomes the default (2026-10-25)
+
+§15 measured a 13/26 score for the 1.5B starter on the shipped runtime, and a
+real session showed what that means in the product: asked "how far is
+Switzerland from Tampa", it opened with a refusal about copyrighted material,
+then invented city pairs, then taught the Haversine formula without answering.
+Two causes, both fixed:
+
+1. No system prompt was sent at all, so a 1.5B model had no identity and no
+   licence to answer plainly. `buildMessages()` now sends one (§ "Identity and
+   sampling" in [ASSISTANT.md](ASSISTANT.md)).
+2. Nothing in the app could compute. Distances, units, arithmetic and dates are
+   now answered deterministically by `src/lib/assistant-tools.ts` and handed to
+   the model as verified facts.
+
+The third change is the artifact itself. A 3B model is the largest that still
+fits GitHub's 2 GiB per-release-asset limit, which is what makes Kryvex-owned
+hosting possible without a second CDN account:
+
+| Field | Value |
+| --- | --- |
+| Product | Vexium Core 3B (`vexium-core-3b`) |
+| Weights | Qwen2.5-3B-Instruct, Q4_K_M, unmodified |
+| Publisher | Qwen (Alibaba Cloud), Apache-2.0, packaged by XiONDiGiTaL |
+| Base revision | `7dabda4d13d513e3e842b20f0d435c732f172cbe` |
+| Download | `https://github.com/XiONDiGiTaL/Vexium-Core/releases/download/v2/vexium-core-3b-q4_k_m.gguf` |
+| Bytes | 2,104,932,768 (1.96 GiB) |
+| SHA-256 | `626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d` |
+| Memory | ≈2.42–2.98 GiB estimated, 4,096-token context |
+
+The 1.5B file stays in the catalogue as **Vexium Core Light** under its old id
+and filename. An existing install keeps its verified file and its configured
+path; nothing re-downloads on upgrade.
+
+### Measured on this machine (2026-10-25)
+
+`llama-server b11835`, CPU x64, Ryzen 7 5700X3D, no GPU; the shipped prompt from
+`buildMessages()` with the tool facts attached; `temperature 0.3`, `top_p 0.9`.
+
+| Question | Tool | Reply | Time |
+| --- | --- | --- | --- |
+| How far is Switzerland from Tampa, FL | 7,835 km / 4,868 mi | repeated both figures, no refusal | 5.2 s |
+| What is 18% of 240? | 43.2 | "18% of 240 is 43.2." | 1.4 s |
+| Explain an embedded webview vs a browser tab | none | one correct sentence, no search | 2.2 s |
+| What is the capital of Australia? | none | "Canberra." | 0.6 s |
+
+The refusal, the invented city pairs and the unanswered math are gone. The
+model is still small: it is a 3B Q4 on CPU, so it is a helper for short answers,
+not a reasoning engine, and the German quality caveat from §15 still applies.

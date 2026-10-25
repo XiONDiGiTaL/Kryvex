@@ -105,6 +105,29 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     Spanish: 'Español',
     German: 'Alemán',
     French: 'Francés',
+    // The Vexium page's own core card and tool labels.
+    'A first-party assistant that runs its model on this machine and answers maths, units, distances and dates with its own tools. No account, no key, no cloud call: Kryvex only reaches loopback.':
+      'Un asistente propio que ejecuta su modelo en esta máquina y responde matemáticas, unidades, distancias y fechas con sus propias herramientas. Sin cuenta, sin clave y sin llamada a la nube: Kryvex solo llega a loopback.',
+    'Install Vexium Core above, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.':
+      'Instala Vexium Core arriba, o inicia Ollama (ollama serve) o el servidor local de LM Studio y apunta Vexium a su puerto loopback.',
+    'Model settings': 'Ajustes del modelo',
+    'WORKSPACE TOOL': 'HERRAMIENTA LOCAL',
+    'Verifying the download…': 'Verificando la descarga…',
+    Downloading: 'Descargando',
+    Install: 'Instalar',
+    'Switch to': 'Cambiar a',
+    LIGHT: 'LIGERO',
+    'Vexium Core is the supported local stack: the included llama.cpp runtime runs reviewed Qwen2.5 weights on loopback. Vexium Core 3B is the default; Vexium Core Light (1.5B) is there for machines that cannot spare the memory. Qwen and its Apache-2.0 licence stay visible; Kryvex packages the runtime and verifies the file, not the weights.':
+      'Vexium Core es la pila local compatible: el motor llama.cpp incluido ejecuta pesos Qwen2.5 revisados en loopback. Vexium Core 3B es el predeterminado; Vexium Core Light (1.5B) existe para equipos sin memoria de sobra. Qwen y su licencia Apache-2.0 siguen visibles; Kryvex empaqueta el motor y verifica el archivo, no los pesos.',
+    'The download did not finish. Check the connection and try again.':
+      'La descarga no terminó. Revisa la conexión e inténtalo de nuevo.',
+    'The download finished but the file is not in the model library.':
+      'La descarga terminó pero el archivo no está en la biblioteca de modelos.',
+    'The file did not match its pinned checksum, so it was discarded.':
+      'El archivo no coincidió con su suma de comprobación fijada, así que se descartó.',
+    'Not enough free disk space for Vexium Core.': 'No hay espacio libre suficiente para Vexium Core.',
+    'The file is installed but the runtime did not start.':
+      'El archivo está instalado pero el motor no arrancó.',
   },
   de: {
     'DOWNLOAD MODELS': 'MODELLE HERUNTERLADEN',
@@ -202,6 +225,28 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     Spanish: 'Spanisch',
     German: 'Deutsch',
     French: 'Französisch',
+    'A first-party assistant that runs its model on this machine and answers maths, units, distances and dates with its own tools. No account, no key, no cloud call: Kryvex only reaches loopback.':
+      'Ein eigener Assistent, der sein Modell auf diesem Rechner ausführt und Mathe, Einheiten, Entfernungen und Daten mit eigenen Werkzeugen beantwortet. Kein Konto, kein Schlüssel, kein Cloud-Aufruf: Kryvex erreicht nur Loopback.',
+    'Install Vexium Core above, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.':
+      'Installiere Vexium Core oben, oder starte Ollama (ollama serve) oder den lokalen LM-Studio-Server und richte Vexium auf dessen Loopback-Port.',
+    'Model settings': 'Modell-Einstellungen',
+    'WORKSPACE TOOL': 'ARBEITSBEREICH-WERKZEUG',
+    'Verifying the download…': 'Download wird geprüft…',
+    Downloading: 'Wird geladen',
+    Install: 'Installieren',
+    'Switch to': 'Wechseln zu',
+    LIGHT: 'LEICHT',
+    'Vexium Core is the supported local stack: the included llama.cpp runtime runs reviewed Qwen2.5 weights on loopback. Vexium Core 3B is the default; Vexium Core Light (1.5B) is there for machines that cannot spare the memory. Qwen and its Apache-2.0 licence stay visible; Kryvex packages the runtime and verifies the file, not the weights.':
+      'Vexium Core ist der unterstützte lokale Stack: die enthaltene llama.cpp-Laufzeit führt geprüfte Qwen2.5-Gewichte über Loopback aus. Vexium Core 3B ist die Vorgabe, Vexium Core Light (1.5B) gibt es für Rechner ohne freien Speicher. Qwen und die Apache-2.0-Lizenz bleiben sichtbar; Kryvex packt die Laufzeit und prüft die Datei, nicht die Gewichte.',
+    'The download did not finish. Check the connection and try again.':
+      'Der Download wurde nicht fertig. Prüfe die Verbindung und versuche es erneut.',
+    'The download finished but the file is not in the model library.':
+      'Der Download ist fertig, aber die Datei fehlt in der Modellbibliothek.',
+    'The file did not match its pinned checksum, so it was discarded.':
+      'Die Datei passte nicht zu ihrer festgeschriebenen Prüfsumme und wurde verworfen.',
+    'Not enough free disk space for Vexium Core.': 'Nicht genug freier Speicher für Vexium Core.',
+    'The file is installed but the runtime did not start.':
+      'Die Datei ist installiert, aber die Laufzeit startete nicht.',
   },
   fr: {
     'DOWNLOAD MODELS': 'TÉLÉCHARGER DES MODÈLES',
@@ -300,5 +345,27 @@ export const modelsCopy: Record<ModelLanguage, Record<string, string>> = {
     Spanish: 'Espagnol',
     German: 'Allemand',
     French: 'Français',
+    'A first-party assistant that runs its model on this machine and answers maths, units, distances and dates with its own tools. No account, no key, no cloud call: Kryvex only reaches loopback.':
+      'Un assistant maison qui exécute son modèle sur cette machine et répond aux questions de calcul, d’unités, de distances et de dates avec ses propres outils. Sans compte, sans clé, sans appel au cloud : Kryvex ne joint que la boucle locale.',
+    'Install Vexium Core above, or start Ollama (ollama serve) or the LM Studio local server and point Vexium at its loopback port.':
+      'Installez Vexium Core ci-dessus, ou lancez Ollama (ollama serve) ou le serveur local de LM Studio et pointez Vexium vers son port de boucle locale.',
+    'Model settings': 'Réglages du modèle',
+    'WORKSPACE TOOL': 'OUTIL LOCAL',
+    'Verifying the download…': 'Vérification du téléchargement…',
+    Downloading: 'Téléchargement',
+    Install: 'Installer',
+    'Switch to': 'Passer à',
+    LIGHT: 'LÉGER',
+    'Vexium Core is the supported local stack: the included llama.cpp runtime runs reviewed Qwen2.5 weights on loopback. Vexium Core 3B is the default; Vexium Core Light (1.5B) is there for machines that cannot spare the memory. Qwen and its Apache-2.0 licence stay visible; Kryvex packages the runtime and verifies the file, not the weights.':
+      "Vexium Core est la pile locale prise en charge : le moteur llama.cpp inclus exécute des poids Qwen2.5 vérifiés en boucle locale. Vexium Core 3B est le modèle par défaut ; Vexium Core Light (1.5B) existe pour les machines sans mémoire à revendre. Qwen et sa licence Apache-2.0 restent visibles ; Kryvex empaquette le moteur et vérifie le fichier, pas les poids.",
+    'The download did not finish. Check the connection and try again.':
+      "Le téléchargement n'a pas abouti. Vérifiez la connexion et réessayez.",
+    'The download finished but the file is not in the model library.':
+      "Le téléchargement est terminé mais le fichier n'est pas dans la bibliothèque de modèles.",
+    'The file did not match its pinned checksum, so it was discarded.':
+      "Le fichier ne correspondait pas à son empreinte épinglée ; il a été supprimé.",
+    'Not enough free disk space for Vexium Core.': "Pas assez d'espace disque pour Vexium Core.",
+    'The file is installed but the runtime did not start.':
+      "Le fichier est installé mais le moteur n'a pas démarré.",
   },
 };

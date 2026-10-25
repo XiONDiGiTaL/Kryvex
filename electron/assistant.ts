@@ -1,5 +1,7 @@
 import type { BrowserWindow } from 'electron';
 import {
+  GENERATION,
+  buildMessages,
   modelIds,
   normalizeAssistantUrl,
   parseSseData,
@@ -124,9 +126,9 @@ export class Assistant {
         headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
         body: JSON.stringify({
           model: request.model,
-          messages: request.messages,
+          messages: buildMessages(request.messages, { facts: request.facts }),
           stream: true,
-          temperature: 0.7,
+          ...GENERATION,
         }),
         signal: controller.signal,
       });

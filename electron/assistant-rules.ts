@@ -11,7 +11,41 @@ export const MAX_MESSAGES = 40;
 export const MAX_CONTENT = 8_000;
 export const MAX_TOTAL_CONTENT = 24_000;
 export const MAX_MODEL_ID = 120;
+export const MAX_FACTS = 1_200;
 export const REQUEST_ID = /^[a-z0-9-]{8,64}$/;
+
+/**
+ * Vexium's standing instructions.
+ *
+ * Without a system turn a small local model has no identity, no brevity and
+ * no licence to answer plainly: the shipped 1.5B opened ordinary questions
+ * with "I'm unable to provide information as it pertains to copyrighted
+ * material", because that refusal is the only register it had. These rules
+ * are deliberately short; a 3B model follows a page, not a policy document.
+ */
+export const VEXIUM_SYSTEM_PROMPT = [
+  'You are Vexium, the assistant built into Kryvex, a desktop browser app.',
+  'You run locally on this machine: no account, no cloud, nothing leaves the device.',
+  'Answer the question directly in the first sentence, then add only the detail that helps.',
+  'You can answer ordinary factual, technical and everyday questions, including',
+  'geography, maths, units, dates and how software works. Never refuse a question',
+  'like that, and never mention copyright unless the user asks about it.',
+  'Keep replies under 150 words unless the user asks for more. Use short paragraphs,',
+  'plain words and lists only when they genuinely help. No preamble, no restating',
+  'the question, no "as an AI".',
+  'If Kryvex gives you verified facts below, use those numbers exactly and do not',
+  'recompute or contradict them.',
+  'If you do not know something, or it depends on current information you cannot',
+  'see, say so in one sentence and suggest a web search rather than inventing it.',
+  'Never claim to have browsed, searched or run code.',
+].join(' ');
+
+/** Sampling for a helper that should be useful, not creative. */
+export const GENERATION = {
+  temperature: 0.3,
+  top_p: 0.9,
+  max_tokens: 768,
+} as const;
 
 export type AssistantRole = 'system' | 'user' | 'assistant';
 
@@ -25,6 +59,8 @@ export interface AssistantChatRequest {
   baseUrl: string;
   model: string;
   messages: AssistantMessage[];
+  /** Verified lines from Kryvex's own tools, never model output. */
+  facts?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -90,7 +126,47 @@ export function sanitizeChatRequest(raw: unknown): AssistantChatRequest | null {
   if (!model || model.length > MAX_MODEL_ID || /[\u0000-\u001f]/.test(model)) return null;
   const messages = sanitizeAssistantMessages(raw.messages);
   if (!messages) return null;
-  return { requestId, baseUrl, model, messages };
+  const facts = sanitizeFacts(raw.facts);
+  return { requestId, baseUrl, model, messages, ...(facts ? { facts } : {}) };
+}
+
+/**
+ * Tool answers are one controlled line each. Anything longer, multi-line or
+ * carrying control characters is dropped rather than trimmed: a malformed
+ * fact block must never become instructions for the model.
+ */
+export function sanitizeFacts(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > MAX_FACTS) return '';
+  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return '';
+  return trimmed;
+}
+
+/**
+ * The message list the runtime receives: one system turn that carries the
+ * identity, the date and any verified facts, then the conversation as typed.
+ */
+export function buildMessages(
+  messages: AssistantMessage[],
+  options: { facts?: string; now?: Date } = {},
+): AssistantMessage[] {
+  const now = options.now ?? new Date();
+  const today = `${now.toLocaleDateString('en-GB', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })}`;
+  const facts = sanitizeFacts(options.facts);
+  const system = [
+    VEXIUM_SYSTEM_PROMPT,
+    `Today is ${today} on the user's machine.`,
+    facts ? `Verified by Kryvex's own tools, use exactly: ${facts}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+  return [{ role: 'system', content: system }, ...messages.filter(message => message.role !== 'system')];
 }
 
 export interface SseEvent {

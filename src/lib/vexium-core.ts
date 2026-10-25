@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   AssistantSettings,
   LocalModelStatus,
+  ModelDownloadProgress,
   ModelInstalledRow,
 } from '../types';
+import { downloadPercent } from './local-models';
 
 /** Ollama's own server address, and the one Kryvex picks when it serves a file. */
 export const OLLAMA_DEFAULT = 'http://127.0.0.1:11434';
@@ -85,8 +87,15 @@ export interface VexiumCoreRuntime {
   installed: ModelInstalledRow[];
   busy: boolean;
   error: string | null;
+  /** Progress of a first-party core download, null when none is running. */
+  progress: ModelDownloadProgress | null;
+  percent: number;
   start: () => Promise<LocalModelStatus | null>;
   stop: () => Promise<LocalModelStatus | null>;
+  /** Downloads a catalogue core, configures it and starts it: one click. */
+  install: (id: string) => Promise<LocalModelStatus | null>;
+  /** Points the runtime at an installed file and starts it. */
+  activate: (row: ModelInstalledRow) => Promise<LocalModelStatus | null>;
   refresh: () => void;
 }
 
@@ -99,6 +108,7 @@ export function useVexiumCore(enabled: boolean): VexiumCoreRuntime {
   const [installed, setInstalled] = useState<ModelInstalledRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<ModelDownloadProgress | null>(null);
   const alive = useRef(true);
   const [tick, setTick] = useState(0);
 
@@ -138,6 +148,16 @@ export function useVexiumCore(enabled: boolean): VexiumCoreRuntime {
     };
   }, [enabled, tick, status?.phase]);
 
+  useEffect(() => {
+    const bridge = enabled ? window.kryvex : undefined;
+    if (!bridge?.onModelProgress) return;
+    return bridge.onModelProgress(next => {
+      if (!alive.current) return;
+      setProgress(next);
+      if (next.phase === 'installed') setTick(value => value + 1);
+    });
+  }, [enabled]);
+
   const start = useCallback(async () => {
     const bridge = window.kryvex;
     if (!bridge) return null;
@@ -174,7 +194,75 @@ export function useVexiumCore(enabled: boolean): VexiumCoreRuntime {
     }
   }, []);
 
+  /**
+   * The install path behind the Vexium page's one button: fetch the reviewed
+   * file, point the runtime at it, then start it. Every step reports failure
+   * as a message the card can show instead of a silent no-op.
+   */
+  const install = useCallback(async (id: string) => {
+    const bridge = window.kryvex;
+    if (!bridge) return null;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await bridge.modelsDownload(id);
+      if (!result?.ok) {
+        if (alive.current) setError(result?.error ?? 'download');
+        return null;
+      }
+      const rows = await bridge.modelsInstalled();
+      const row = (Array.isArray(rows) ? rows : []).find(item => item.id === id);
+      if (!row) {
+        if (alive.current) setError('missing-file');
+        return null;
+      }
+      if (alive.current) setInstalled(rows);
+      await bridge.modelConfigure({ path: row.path });
+      const next = await bridge.modelStart();
+      if (alive.current) {
+        setStatus(next);
+        setTick(value => value + 1);
+        if (next.phase === 'error') setError(next.error ?? 'start');
+      }
+      return next;
+    } catch {
+      if (alive.current) setError('download');
+      return null;
+    } finally {
+      if (alive.current) setBusy(false);
+    }
+  }, []);
+
+  const activate = useCallback(async (row: ModelInstalledRow) => {
+    const bridge = window.kryvex;
+    if (!bridge) return null;
+    setBusy(true);
+    setError(null);
+    try {
+      await bridge.modelConfigure({ path: row.path });
+      const next = await bridge.modelStart();
+      if (alive.current) {
+        setStatus(next);
+        setTick(value => value + 1);
+        if (next.phase === 'error') setError(next.error ?? 'start');
+      }
+      return next;
+    } catch {
+      if (alive.current) setError('start');
+      return null;
+    } finally {
+      if (alive.current) setBusy(false);
+    }
+  }, []);
+
   const refresh = useCallback(() => setTick(value => value + 1), []);
 
-  return { status, installed, busy, error, start, stop, refresh };
+  const percent =
+    progress && progress.phase === 'downloading'
+      ? downloadPercent(progress.received, progress.total)
+      : progress?.phase === 'verifying'
+        ? 100
+        : 0;
+
+  return { status, installed, busy, error, progress, percent, start, stop, install, activate, refresh };
 }

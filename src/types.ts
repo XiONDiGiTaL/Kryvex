@@ -368,6 +368,8 @@ export interface AssistantChatRequest {
   baseUrl: string;
   model: string;
   messages: AssistantMessage[];
+  /** One verified line from Kryvex's own tools, when one answered. */
+  facts?: string;
 }
 
 export interface WallpaperImage {

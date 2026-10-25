@@ -16,14 +16,24 @@ import path from 'node:path';
 /** No reviewed starter is anywhere near this; it only bounds a bad response. */
 export const MAX_MODEL_BYTES = 8 * 1024 * 1024 * 1024;
 export const MAX_REDIRECTS = 3;
-/** The only hosts a download may start from or redirect to. */
-export const MODEL_HOSTS = ['huggingface.co'];
 /**
- * Hugging Face serves artifacts from its own subdomains. The measured hop on
- * 2026-10-22 was `us.aws.cdn.hf.co`; `cdn-lfs.hf.co` is the classic one. Both
- * are covered by `.hf.co`, which cannot match an attacker's `evil-hf.co`.
+ * The only hosts a download may start from or redirect to.
+ *
+ * Vexium Core is hosted as a release asset on Kryvex's own GitHub repository,
+ * so the model no longer has to be fetched from the base model's publisher.
+ * The Hugging Face host stays allowlisted because an older install may still
+ * resolve there, and because the catalogue records where the weights came from.
  */
-export const MODEL_HOST_SUFFIXES = ['.hf.co'];
+export const MODEL_HOSTS = ['huggingface.co', 'github.com'];
+/**
+ * GitHub serves release assets from its own subdomains. `objects.githubusercontent.com`
+ * is the measured hop; `.githubusercontent.com` covers the release-asset and
+ * raw hosts without matching an attacker's `evil-githubusercontent.com`.
+ *
+ * Hugging Face serves artifacts from `us.aws.cdn.hf.co` and `cdn-lfs.hf.co`;
+ * `.hf.co` covers both and cannot match `evil-hf.co`.
+ */
+export const MODEL_HOST_SUFFIXES = ['.hf.co', '.githubusercontent.com'];
 export const STARTER_CONTEXT = 4096;
 
 export interface ModelMemoryEstimate {
@@ -40,10 +50,15 @@ export interface CatalogueEntry {
   /** First-party product name for the bundled stack, when there is one. */
   productName?: string;
   publisher: string;
-  /** `owner/name` on Hugging Face. */
+  /** `owner/name` on the host that holds the artifact. */
   repository: string;
   /** Immutable commit, never a branch name. */
   revision: string;
+  /**
+   * The pinned download URL when the artifact is redistributed by Kryvex
+   * itself. Absent means "resolve it from the Hugging Face repository above".
+   */
+  url?: string;
   filename: string;
   bytes: number;
   sha256: string;
@@ -122,8 +137,11 @@ export function parseModelUrl(raw: unknown): URL | null {
 }
 
 /** The one URL a catalogue entry can resolve to. */
-export function catalogueUrl(entry: Pick<CatalogueEntry, 'repository' | 'revision' | 'filename'>): string {
+export function catalogueUrl(
+  entry: Pick<CatalogueEntry, 'repository' | 'revision' | 'filename'> & { url?: string },
+): string {
   const filename = entry.filename.split('/').map(encodeURIComponent).join('/');
+  if (entry.url) return entry.url;
   return `https://huggingface.co/${entry.repository}/resolve/${entry.revision}/${filename}`;
 }
 
@@ -171,6 +189,24 @@ export function validateCatalogueEntry(entry: unknown): string[] {
     memory.contextTokens < 512
   ) {
     problems.push('memory');
+  }
+  if (value.url !== undefined) {
+    const raw = typeof value.url === 'string' ? value.url : '';
+    const pinned = parseModelUrl(raw);
+    if (!pinned) problems.push('url');
+    // A pinned URL must actually point at the file the hash describes, so a
+    // catalogue entry cannot promise one artifact and fetch another.
+    else if (!pinned.pathname.endsWith(`/${String(value.filename)}`)) problems.push('url');
+    if (typeof raw === 'string' && raw.length > 0) {
+      const host = (() => {
+        try {
+          return new URL(raw).hostname;
+        } catch {
+          return '';
+        }
+      })();
+      if (host && !isAllowedModelHost(host)) problems.push('url-host');
+    }
   }
   if (problems.length === 0) {
     const url = parseModelUrl(catalogueUrl(value as unknown as CatalogueEntry));
