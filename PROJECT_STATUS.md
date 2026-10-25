@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.0, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.1, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -137,14 +137,13 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10: Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.0
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.1
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it. The installable PWA is published from the
   `gh-pages` branch of the same repository and serves
   `https://xiondigital.net/Kryvex/`, rebuilt for each release and for the 0.9.x
-  directive batch (0.9.0 as of this record, with the worker cache
-  `kryvex-web-0.9.0-v2`).
+  directive batch (0.9.0 code, with the worker cache `kryvex-web-0.9.0-v2`).
 - [ ] **M11: Final review.** README with real screenshots, banner,
   feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and
@@ -773,7 +772,10 @@ account sign-in, a captcha solve, or another provider.
 
 ## Next concrete action
 
-0.9.0 is published from the `v0.9.0` tag: Google hosts report the bare Chromium
+0.9.1 is published from the `v0.9.1` tag with the Setup, Portable and checksum
+assets, carrying emulator link play, floating service windows and the completed
+translation sweep; installed 0.9.0 builds pick it up through **Settings →
+Updates**. 0.9.0 was published from the `v0.9.0` tag: Google hosts report the bare Chromium
 agent with Chromium's own client hints and the `window.chrome` surface, which is
 what moved Google from its reduced `WebLiteSignIn` flow to the regular
 `GlifWebSignIn` one, and a Google service now finishes its sign-in inside its own

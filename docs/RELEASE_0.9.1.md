@@ -44,20 +44,23 @@ workflow had both to check (`pnpm release:check`).
 
 ## Artifacts
 
-Built on this machine (Windows 11, Node 24.19.0) by
-`pnpm package:win`, and verified before the tag:
+Built by the tag-triggered workflow (run
+[40201665939](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40201665939),
+commit `6bee958`) on `windows-latest` and attached to the published release:
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.9.1-x64.exe` | 134,304,665 B (128.09 MiB) | `d5bfdba6818671ded985e2b8a4c4d0a3bbf551fa17f3796d5bf19abbf7b82943` |
-| `Kryvex-Portable-0.9.1-x64.exe` | 134,067,445 B (127.86 MiB) | `3cb721a7c37ef89ef4f54f57f8fcd8cc47ba820c9290ce9d9c371e884fe8413b` |
+| `Kryvex-Setup-0.9.1-x64.exe` | 134,304,845 B (128.09 MiB) | `17af0cd5ce6c6d66a2ad9f5e7d0f2e396d107ea46cd6ce59a5c3e22a8fe3ac84` |
+| `Kryvex-Portable-0.9.1-x64.exe` | 134,067,617 B (127.86 MiB) | `cdd42b026285c62c764cc45852d71ea77e5a4145b668791cfa7bf2a40b1dd61e` |
 
-The tag-triggered workflow rebuilds the same pair on `windows-latest` and
-attaches it with `SHA256SUMS.txt`. The CI build differs from this local pair
-only by its build environment; the published digests are the ones
-`SHA256SUMS.txt` carries, and the updater checks them. Both EXEs are
-**unsigned**. The updater ignores a release whose installer has no matching
-entry.
+`SHA256SUMS.txt` (189 B) carries both digests. Both published EXEs were
+downloaded from `releases/download/v0.9.1/`, `sha256sum -c SHA256SUMS.txt`
+verifies both, and each reports `ProductVersion 0.9.1`. The locally built pair
+the wizard capture was taken from (Setup
+`d5bfdba6818671ded985e2b8a4c4d0a3bbf551fa17f3796d5bf19abbf7b82943`, Portable
+`3cb721a7c37ef89ef4f54f57f8fcd8cc47ba820c9290ce9d9c371e884fe8413b`) differs
+from the CI pair only by the build environment. Both EXEs are **unsigned**. The
+updater ignores a release whose installer has no matching entry.
 
 The packaged tree is about 466 MB, of which 44 MB is the bundled llama.cpp
 runtime, and the wizard reports **Space required: 465.8 MB**.
@@ -98,6 +101,14 @@ runtime, and the wizard reports **Space required: 465.8 MB**.
   under `docs/media/releases/0.9.1-wizard/`, and the installed
   `C:\Kryvex\Kryvex.exe` reports `ProductVersion 0.9.1.0`.
 - `node scripts/check-release-record.cjs`: PASS for 0.9.1.
+- **The tag-triggered workflow** (run
+  [40201665939](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40201665939))
+  finished **success**: tag/`package.json` check, `release:check`, `audit:deps`,
+  typecheck, tests, `package:win`, checksums and publish. `v0.9.1` is published,
+  stable, with the Setup, Portable and `SHA256SUMS.txt` assets.
+- **The published artifacts**: both EXEs downloaded from the release, both
+  digests match `SHA256SUMS.txt`, and each reports `ProductVersion 0.9.1`. The
+  wizard run above left `C:\Kryvex` on 0.9.1 as well.
 
 ## Wizard capture
 

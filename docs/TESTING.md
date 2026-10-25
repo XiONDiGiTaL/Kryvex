@@ -2213,3 +2213,27 @@ transport itself is the same action set Rooms already uses.
   **Float this module** on the GitHub module produced
   `service-stage is-idle has-float` with the frame `position: fixed` at
   364,387 × 515,830, `z-index: 41`. No console error and no failed request.
+
+## 0.9.1 release: tag, publish and the published installers (2026-10-25)
+
+`C:\Kryvex` was on 0.9.0 from the previous release; this is the first cut after
+the directive batch.
+
+| Step | Command | Result |
+| --- | --- | --- |
+| Local package | `pnpm package:win` | exit 0, `Kryvex-Setup-0.9.1-x64.exe` and `Kryvex-Portable-0.9.1-x64.exe`; no EPERM |
+| Wizard capture | `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer release/Kryvex-Setup-0.9.1-x64.exe --version 0.9.1` | PASS — 4 pages, installer exit 0, install page ran 22,310 ms, archived under `docs/media/releases/0.9.1-wizard/` |
+| Record | `node scripts/check-release-record.cjs` | PASS, 11/11 |
+| Typecheck | `npx tsc --noEmit -p tsconfig.json` | exit 0 |
+| Suite | `npx vitest run` | 679/679 across 66 files |
+| Tag | `git tag -a v0.9.1 && git push origin v0.9.1` | workflow run 40201665939, **success** |
+| Published assets | `gh release download v0.9.1` then `sha256sum -c SHA256SUMS.txt` | both OK; both report `ProductVersion 0.9.1` |
+
+The release is published and stable (not draft, not prerelease) with
+`Kryvex-Setup-0.9.1-x64.exe` (134,304,845 B),
+`Kryvex-Portable-0.9.1-x64.exe` (134,067,617 B) and `SHA256SUMS.txt`. The
+installer run left `C:\Kryvex\Kryvex.exe` reporting `0.9.1.0`.
+
+Not performed in this cut: launching the installed 0.9.1 and reporting its
+version and Vexium Core start, and driving Gmail sign-in inside it. Those are
+separate verification steps, and the release workflow does not cover them.
