@@ -12,6 +12,7 @@ import {
 } from '../electron/assistant-rules';
 import { normalizeBaseUrl } from '../src/lib/assistant';
 import { sanitizeAssistant, sanitizeState } from '../src/lib/store';
+import { coreBusyState } from '../src/lib/vexium-core';
 
 describe('loopback URL rule', () => {
   it('accepts loopback origins and strips a trailing /v1', () => {
@@ -235,5 +236,30 @@ describe('assistant settings', () => {
       model: '',
       migrated: true,
     });
+  });
+});
+
+describe('the core button while it is busy', () => {
+  it('reports a download only when an install is fetching the file', () => {
+    expect(coreBusyState({ action: 'install', progress: null, percent: 0 }).kind).toBe('downloading');
+    expect(
+      coreBusyState({ action: 'install', progress: { phase: 'downloading' }, percent: 41 }),
+    ).toEqual({ kind: 'downloading', percent: 41 });
+  });
+
+  it('holds the checksum stage until the file is accepted', () => {
+    expect(
+      coreBusyState({ action: 'install', progress: { phase: 'verifying' }, percent: 100 }),
+    ).toEqual({ kind: 'verifying', percent: 100 });
+  });
+
+  it('never claims a download when it is only starting an installed file', () => {
+    expect(coreBusyState({ action: 'activate', progress: null, percent: 0 })).toEqual({
+      kind: 'starting',
+      percent: 0,
+    });
+    expect(
+      coreBusyState({ action: 'install', progress: { phase: 'installed' }, percent: 100 }).kind,
+    ).toBe('starting');
   });
 });

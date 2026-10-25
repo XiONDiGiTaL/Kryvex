@@ -82,6 +82,29 @@ export function installedCoreFor(
   );
 }
 
+/** Which of the card's two jobs its one button is doing. */
+export type CoreAction = 'install' | 'activate';
+
+/**
+ * The label behind the core button while it is busy.
+ *
+ * A press either downloads the strong core or points the runtime at a file
+ * already on disk, and only the first one is a download. Activation starts a
+ * server, so it must never read "Downloading 0%" for the few seconds the
+ * process takes to answer.
+ */
+export function coreBusyState(input: {
+  action: CoreAction | null;
+  progress: Pick<ModelDownloadProgress, 'phase'> | null;
+  percent: number;
+}): { kind: 'downloading' | 'verifying' | 'starting'; percent: number } {
+  if (input.progress?.phase === 'verifying') return { kind: 'verifying', percent: 100 };
+  if (input.action === 'activate' || input.progress?.phase === 'installed') {
+    return { kind: 'starting', percent: input.percent };
+  }
+  return { kind: 'downloading', percent: input.percent };
+}
+
 export interface VexiumCoreRuntime {
   status: LocalModelStatus | null;
   installed: ModelInstalledRow[];

@@ -146,9 +146,16 @@ The run took 34,059 ms in total and 22,000 ms on the install page, and exited 0.
 
 - The artifacts are **unsigned**; Windows SmartScreen may warn about an unknown
   publisher.
-- The first-run install was measured on a clean profile. A machine that already
-  has Vexium Core Light shows **Switch to Vexium Core 3B** and was not exercised
-  in this cut; it downloads the same pinned asset through the same path.
+- The first-run install was measured on a clean profile; both Vexium Core
+  upgrade paths were measured **after** publication on the installed 0.9.2, on a
+  profile holding the pinned Light file (details in
+  [TESTING.md](TESTING.md)). Light gets **Install Vexium Core 3B · 1.96 GiB**,
+  which downloaded, verified and started the 3B in 23.3 s; the **Switch to
+  Vexium Core 3B** label appears once the file is on disk and reconfigures and
+  starts it in 3.2 s with no download. On that second path this build's busy
+  label read "Downloading 0%" while it was only starting the server. The fix
+  (`coreBusyState()` in `src/lib/vexium-core.ts`) is committed after the tag, so
+  it reaches users in the next cut rather than in 0.9.2.
 - A 3B model is still a small model. It is given deterministic tools for maths,
   units, distance and dates and refuses to claim it browsed, but it should not be
   trusted for current facts or for advice.

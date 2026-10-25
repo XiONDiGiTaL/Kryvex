@@ -2311,3 +2311,47 @@ commit `fa401f4`) with `Kryvex-Setup-0.9.2-x64.exe` (134,313,756 B, SHA-256
 `5eabc0a5…45568d`) and `SHA256SUMS.txt` (189 B). The local pair differs only by
 the build environment. Nothing was downloaded into the repository: the check
 used `.tmp-release-verify/`.
+## Vexium Core upgrade paths in the installed 0.9.2 (2026-10-25)
+
+Run after the 0.9.2 release was published, against two things in turn: the
+published install in `C:\Kryvex` (`ProductVersion 0.9.2.0`), then a packaged tree
+built from the fixed sources in `release/win-unpacked`. Each run used its own
+isolated profile — `KRYVEX_USER_DATA` plus isolated `APPDATA`/`LOCALAPPDATA` —
+seeded with a **hard link** to the pinned Light file
+(`qwen2.5-1.5b-instruct.gguf`, 1,117,320,736 B) and a `kryvex-local-model.json`
+pointing at it, so the app started on Vexium Core Light exactly as a 0.9.1
+profile does. The user's own profile and its service sessions were neither opened
+nor modified.
+
+Phase 1, Light running and the 3B absent:
+
+| Step | Observed on the published 0.9.2 |
+| --- | --- |
+| Core card | `RUNNING`, installed `qwen2.5-1.5b-instruct` |
+| Active build | `qwen2.5-1.5b-instruct · 4096 context · loopback URL` |
+| Button | **Install Vexium Core 3B · 1.96 GiB** |
+| Press | label `Downloading 0%` → peak 99%, progress bar rendered, checksum stage at 19.1 s, **3B running at 27.0 s** |
+| File on disk | `modelsexium-core-3b.gguf`, 2,104,932,768 B, SHA-256 `626b4a66…15c62d`, matches the pinned catalogue entry |
+| Runtime | `/v1/models` reports the 3B path; card shows `Vexium Core 3B · 1.96 GiB` |
+| Answer | "What is 18% of 240?" → **"18% of 240 is 43.2."** |
+
+Phase 2, the 3B on disk and Light configured again — the only state that shows
+the switch label:
+
+| Step | Published 0.9.2 | Fixed tree |
+| --- | --- | --- |
+| Button | **Switch to Vexium Core 3B** | **Switch to Vexium Core 3B** |
+| Press | 3.2 s, no download, card ends on `vexium-core-3b` | 3.2 s, no download, card ends on `vexium-core-3b` |
+| Busy label | `Downloading 0%` — **wrong**, nothing was downloading | **Vexium Core is starting…** |
+| Answer | "18% of 240 is 43.2." | "18% of 240 is 43.2." |
+
+The label defect is fixed in `coreBusyState()` (`src/lib/vexium-core.ts`), which
+`Assistant.tsx` now uses for the busy label, with three cases in
+`tests/assistant.test.ts`. Suite after the fix: **704/704** across 67 files,
+`pnpm typecheck` exit 0, and the two-phase run reports
+`SWITCH VERIFICATION: PASS` on the rebuilt tree.
+
+Not covered by these runs: a profile that also holds signed-in services, because
+the seed profile is local-only. The models directory and the runtime do not
+depend on service sessions, and the fix is not in the published 0.9.2 binary,
+which still shows the old label until the next cut.

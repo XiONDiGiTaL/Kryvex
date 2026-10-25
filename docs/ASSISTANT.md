@@ -27,8 +27,14 @@ the downloaded file; it does not claim the weights as its own model.
 **One-click install.** The Vexium page's core card carries **Install Vexium
 Core 3B · 1.96 GiB**: one press downloads the release asset with its progress
 bar and checksum check, configures the path and starts the runtime, then points
-Vexium at the loopback port it chose (`useVexiumCore().install`). When the light
-core is installed instead, the same button reads **Switch to Vexium Core 3B**.
+Vexium at the loopback port it chose (`useVexiumCore().install`). With the light
+core installed and the 3B absent the button still reads **Install Vexium Core
+3B · 1.96 GiB**, because that press really is the download; once the file is on
+disk and the runtime is still serving Light, it reads **Switch to Vexium Core
+3B** and the press only reconfigures and starts the file that is already there
+(`useVexiumCore().activate`). Only the first path reports a percentage:
+`coreBusyState()` in the same module keeps the activation label at **Vexium Core
+is starting…** instead of a download that is not running.
 The Settings model manager keeps the separate Download and Start buttons, and a
 custom `.gguf` still uses Choose model and Start server.
 

@@ -15,7 +15,8 @@ import {
 } from '../lib/assistant';
 import { VEXEL_GREETING, looksUnsure, offlineReply } from '../lib/vexel';
 import { formatModelSize } from '../lib/local-models';
-import { installedCoreFor, useVexiumCore } from '../lib/vexium-core';
+import { coreBusyState, installedCoreFor, useVexiumCore } from '../lib/vexium-core';
+import type { CoreAction } from '../lib/vexium-core';
 import { runWorkspaceTool } from '../lib/assistant-tools';
 import { Icon } from '../components/ui';
 
@@ -73,6 +74,7 @@ export function Assistant({
   const settings = state.settings.assistant;
   const runtime = useAssistantRuntime(settings);
   const core = useVexiumCore(isElectron);
+  const [coreAction, setCoreAction] = useState<CoreAction | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -248,6 +250,7 @@ export function Assistant({
   // Kryvex's own model is the answer to "no runtime"; a first run should not
   // send the user off to find a local AI instead.
   const coreMissing = showCore && needsDownload;
+  const coreBusy = coreBusyState({ action: coreAction, progress: core.progress, percent: core.percent });
 
   async function startCore() {
     const next = await core.start();
@@ -258,11 +261,19 @@ export function Assistant({
   }
 
   async function installCore() {
-    const next = needsDownload
-      ? await core.install(DEFAULT_CORE_ID)
-      : defaultCore
-        ? await core.activate(defaultCore)
-        : null;
+    const action: CoreAction = needsDownload ? 'install' : 'activate';
+    setCoreAction(action);
+    let next = null;
+    try {
+      next =
+        action === 'install'
+          ? await core.install(DEFAULT_CORE_ID)
+          : defaultCore
+            ? await core.activate(defaultCore)
+            : null;
+    } finally {
+      setCoreAction(null);
+    }
     if (next?.phase === 'running' && next.baseUrl) {
       onAssistantChange({ provider: 'local', baseUrl: next.baseUrl, model: '' });
       runtime.refresh();
@@ -365,9 +376,11 @@ export function Assistant({
                 onClick={() => void installCore()}
               >
                 {core.busy
-                  ? core.progress?.phase === 'verifying'
+                  ? coreBusy.kind === 'verifying'
                     ? t('Verifying the download…')
-                    : `${t('Downloading')} ${core.percent}%`
+                    : coreBusy.kind === 'starting'
+                      ? t('Vexium Core is starting…')
+                      : `${t('Downloading')} ${coreBusy.percent}%`
                   : needsDownload
                     ? `${t('Install')} ${DEFAULT_CORE_LABEL} · ${DEFAULT_CORE_SIZE}`
                     : `${t('Switch to')} ${DEFAULT_CORE_LABEL}`}
