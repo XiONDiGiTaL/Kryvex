@@ -2237,3 +2237,17 @@ installer run left `C:\Kryvex\Kryvex.exe` reporting `0.9.1.0`.
 Not performed in this cut: launching the installed 0.9.1 and reporting its
 version and Vexium Core start, and driving Gmail sign-in inside it. Those are
 separate verification steps, and the release workflow does not cover them.
+
+### Web client republished at 0.9.1 (2026-10-25)
+
+- `public/sw.js` cache rotated to `kryvex-web-0.9.1-v1`; `pnpm build:web` PASS,
+  1.5 MiB, `assets/index-252XQbt_.js` and `assets/index-CZRARpKT.css`.
+- Local serve at `http://127.0.0.1:4175/`: worker `activated`, cache holding the
+  shell, manifest, both icons, the new JS and CSS, footer **v0.9.1**.
+  (Two stale `http.server` processes were still bound to 4173 from earlier runs
+  and answered 404; both were stopped and the check moved to a fresh port.)
+- Published to `gh-pages` as commit `e64d9c9` ("Publish Kryvex Web for 0.9.1").
+- Live at `https://xiondigital.net/Kryvex/`: HTML names the new bundle and CSS,
+  `sw.js` reports `kryvex-web-0.9.1-v1`, the worker is active with the same
+  seven cache entries, the footer reads **v0.9.1**, **Float this module** still
+  produces `service-stage is-idle has-float`, and the console is clean.

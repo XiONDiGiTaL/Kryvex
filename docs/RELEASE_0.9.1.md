@@ -38,9 +38,10 @@ workflow had both to check (`pnpm release:check`).
   383/408/395 to **41/68/56**, and the remainder is a documented list of
   product names, protocol tokens, units and words already correct in the
   target language. Details: [I18N.md](I18N.md).
-- **Web client republished.** `gh-pages` was rebuilt with this batch as commit
-  `e5343b6` and its worker cache rotated to `kryvex-web-0.9.0-v2`, so an
-  installed PWA replaces the older shell on activation.
+- **Web client republished at 0.9.1.** `gh-pages` was rebuilt from the 0.9.1
+  sources as commit `e64d9c9` and its worker cache rotated to
+  `kryvex-web-0.9.1-v1`, so an installed PWA replaces the older shell on
+  activation and the footer reports the release it was cut with.
 
 ## Artifacts
 
@@ -91,10 +92,11 @@ runtime, and the wizard reports **Space required: 465.8 MB**.
   has-float`), the frame was `position: fixed` with `z-index: 41`, a pointer drag
   moved it 80 px left and 40 px up, and **Dock this module** returned it to
   `#/service/…` as the active view. No console error.
-- **Web client** served locally and live: new bundle and CSS named in the HTML,
-  worker `activated` with `kryvex-web-0.9.0-v2` holding the shell, manifest,
-  icons, JS and CSS; footer reads v0.9.0 (the web client follows the desktop
-  version it was cut with). `#/emulator` renders the LINK PLAY panel.
+- **Web client** served locally and live at 0.9.1: `assets/index-252XQbt_.js`
+  and `assets/index-CZRARpKT.css` named in the HTML, worker `activated` with
+  `kryvex-web-0.9.1-v1` holding the shell, manifest, icons, JS and CSS, and the
+  footer reading **v0.9.1**. `#/emulator` renders the LINK PLAY panel, and
+  **Float this module** still detaches a module into `is-idle has-float`.
 - `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer
   release/Kryvex-Setup-0.9.1-x64.exe --version 0.9.1`: PASS — four pages
   captured, install page ran for 22,310 ms, installer exited 0, capture archived
