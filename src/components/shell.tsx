@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import type {
   AppInfo,
   PersistedState,
@@ -151,6 +152,7 @@ export function Sidebar({
   showResources = false,
   onHideResources,
   onServiceMenu,
+  onReorderPinned,
 }: {
   state: PersistedState;
   routeView: ViewId;
@@ -165,9 +167,21 @@ export function Sidebar({
   onHideResources?: () => void;
   /** Right-click on a pinned service opens the themed service menu. */
   onServiceMenu?: (service: Service, point: { x: number; y: number }) => void;
+  /** Move a pinned service in front of another (`null` = to the end). */
+  onReorderPinned?: (id: string, beforeId: string | null) => void;
 }) {
   const t = useT();
   const pinned = state.services.filter(service => service.pinned);
+  const dragId = useRef<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ id: string; after: boolean } | null>(null);
+
+  function dropPinned(id: string, after: boolean) {
+    if (!onReorderPinned) return;
+    const index = pinned.findIndex(service => service.id === id);
+    const target = pinned[index + (after ? 1 : 0)];
+    const beforeId = target && target.id !== id ? target.id : null;
+    onReorderPinned(id, beforeId);
+  }
 
   return (
     <aside className={`app-sidebar ${collapsed ? 'is-collapsed' : ''}`} aria-label={t('Primary')}>
@@ -199,8 +213,56 @@ export function Sidebar({
           <p className="sidebar-empty">{t('Pin a service to keep it one click away.')}</p>
         ) : (
           <ul className="pinned-list">
-            {pinned.map(service => (
-              <li key={service.id}>
+            {pinned.map((service, position) => (
+              <li
+                key={service.id}
+                className={`${dragId.current === service.id ? 'is-dragging' : ''}${
+                  dropTarget?.id === service.id
+                    ? dropTarget.after
+                      ? ' is-drop-after'
+                      : ' is-drop-before'
+                    : ''
+                }`}
+                draggable={Boolean(onReorderPinned)}
+                onDragStart={event => {
+                  dragId.current = service.id;
+                  event.dataTransfer.effectAllowed = 'move';
+                  // Firefox and Chromium both need some payload for a drag to
+                  // start; the id is only read back by this same list.
+                  event.dataTransfer.setData('text/plain', service.id);
+                }}
+                onDragOver={event => {
+                  if (!dragId.current || dragId.current === service.id) return;
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = 'move';
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  setDropTarget({
+                    id: service.id,
+                    after: event.clientY > rect.top + rect.height / 2,
+                  });
+                }}
+                onDragLeave={() =>
+                  setDropTarget(current => (current?.id === service.id ? null : current))
+                }
+                onDrop={event => {
+                  event.preventDefault();
+                  const id = dragId.current;
+                  const target = dropTarget;
+                  dragId.current = null;
+                  setDropTarget(null);
+                  if (!id || !target || target.id !== service.id) return;
+                  dropPinned(id, target.after);
+                  if (target.after) {
+                    // Dropping past the last row still lands inside the list.
+                    const last = pinned[pinned.length - 1];
+                    if (last?.id === service.id) onReorderPinned?.(id, null);
+                  }
+                }}
+                onDragEnd={() => {
+                  dragId.current = null;
+                  setDropTarget(null);
+                }}
+              >
                 <button
                   className="pinned-item"
                   onClick={() => onOpenService(service)}
@@ -208,6 +270,20 @@ export function Sidebar({
                     if (!onServiceMenu) return;
                     event.preventDefault();
                     onServiceMenu(service, { x: event.clientX, y: event.clientY });
+                  }}
+                  onKeyDown={event => {
+                    // Keyboard equivalent: Alt with an arrow moves the row one
+                    // place without opening it.
+                    if (!onReorderPinned || !event.altKey) return;
+                    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+                    event.preventDefault();
+                    const step = event.key === 'ArrowUp' ? -1 : 1;
+                    const target = pinned[position + step];
+                    if (!target) return;
+                    onReorderPinned(
+                      service.id,
+                      step < 0 ? target.id : pinned[position + 2]?.id ?? null,
+                    );
                   }}
                   title={service.name}
                   aria-haspopup={onServiceMenu ? 'menu' : undefined}

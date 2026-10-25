@@ -20,10 +20,16 @@ import {
   nextRepeatMode,
   playlistTargetFor,
   titleFromUrl,
+  youtubeFault,
   type MediaKind,
+  type PlayerFault,
   type Platform,
   type PlayerTrack,
 } from '../lib/player';
+import {
+  clampIntensity,
+  type VisualizerMode,
+} from '../lib/visualizer';
 
 /**
  * One media element for local files, direct links and Spotify previews, plus a
@@ -53,6 +59,7 @@ export type LinkResult =
         | 'offline'
         | 'empty'
         | 'too-large'
+        | 'blocked'
         | 'desktop-only';
       platform?: Platform;
     };
@@ -68,7 +75,10 @@ export interface PlayerApi {
   repeat: RepeatMode;
   shuffle: boolean;
   volume: number;
-  error: string | null;
+  /** Why the current row cannot play, in terms the player page explains. */
+  error: PlayerFault | null;
+  /** A YouTube embed is between "src set" and its first player event. */
+  loading: boolean;
   media: HTMLVideoElement;
   /** Move the local engine into a stage, or back to its off-screen home. */
   attach: (node: HTMLElement | null) => void;
@@ -80,6 +90,11 @@ export interface PlayerApi {
   previous: () => void;
   seek: (seconds: number) => void;
   setVolume: (volume: number) => void;
+  /** Visualizer mode and amplitude multiplier, persisted with the settings. */
+  visualizer: VisualizerMode;
+  visualizerIntensity: number;
+  setVisualizer: (mode: VisualizerMode) => void;
+  setVisualizerIntensity: (value: number) => void;
   toggleMute: () => void;
   cycleRepeat: () => void;
   toggleShuffle: () => void;
@@ -113,7 +128,8 @@ export function PlayerProvider({
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [muted, setMutedState] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<PlayerFault | null>(null);
+  const [loading, setLoading] = useState(false);
   const autoplay = useRef(true);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLElement | null>(null);
@@ -194,7 +210,15 @@ export function PlayerProvider({
       const update = () => positionHost();
       window.addEventListener('resize', update);
       window.addEventListener('scroll', update, true);
+      // The stage changes size without the window resizing: the queue grows, a
+      // wrapped title makes `.player-now` taller, the media dock appears. A
+      // ResizeObserver keeps the overlay on the stage instead of leaving a
+      // stale rectangle behind.
+      const observer =
+        typeof ResizeObserver === 'function' ? new ResizeObserver(() => update()) : null;
+      observer?.observe(node);
       detachStage.current = () => {
+        observer?.disconnect();
         window.removeEventListener('resize', update);
         window.removeEventListener('scroll', update, true);
       };
@@ -254,6 +278,12 @@ export function PlayerProvider({
   advanceRef.current = advance;
 
   useEffect(() => {
+    if (!youtubeActive) return;
+    const timer = window.setInterval(() => positionHost(), 400);
+    return () => window.clearInterval(timer);
+  }, [youtubeActive, positionHost]);
+
+  useEffect(() => {
     const host = hostRef.current;
     if (host && youtube.parentElement !== host) host.appendChild(youtube);
     return () => {
@@ -294,8 +324,15 @@ export function PlayerProvider({
       if (!data || typeof data !== 'object') return;
       const message = data as Record<string, unknown>;
       if (message.event === 'onError') {
+        const code =
+          typeof message.info === 'number'
+            ? message.info
+            : typeof message.data === 'number'
+              ? message.data
+              : message.info;
         setPlaying(false);
-        setError('unplayable');
+        setLoading(false);
+        setError(youtubeFault(code));
         return;
       }
       const info =
@@ -319,6 +356,7 @@ export function PlayerProvider({
       }
       if (typeof info.playerState === 'number') {
         const state = info.playerState;
+        if (state === 1 || state === 2 || state === 3 || state === 0) setLoading(false);
         const previous = youtubeState.current;
         youtubeState.current = state;
         if (state === 0) {
@@ -442,6 +480,7 @@ export function PlayerProvider({
       setDuration(track.durationMs ? track.durationMs / 1000 : 0);
       setPlaying(false);
       setError(null);
+      setLoading(true);
       youtubeState.current = -2;
       if (!track.sourceId) {
         setError('unplayable');
@@ -450,7 +489,7 @@ export function PlayerProvider({
       const direct =
         `https://www.youtube.com/embed/${encodeURIComponent(track.sourceId)}` +
         `?enablejsapi=1&autoplay=${autoplay.current ? '1' : '0'}` +
-        '&controls=0&playsinline=1&rel=0&modestbranding=1';
+        '&controls=1&playsinline=1&rel=0&modestbranding=1';
       const bridge = window.kryvex;
       let live = true;
       if (bridge?.playerEmbedUrl) {
@@ -471,6 +510,18 @@ export function PlayerProvider({
       };
     }
 
+    if (!track.url) {
+      media.pause();
+      media.removeAttribute('src');
+      media.load();
+      setTime(0);
+      setDuration(track.durationMs ? track.durationMs / 1000 : 0);
+      setPlaying(false);
+      setError(track.origin === 'spotify' ? 'no-preview' : 'unplayable');
+      positionHost();
+      return;
+    }
+
     postYouTube('pauseVideo');
     if (youtube.src !== 'about:blank') youtube.src = 'about:blank';
     if (stageRef.current && media.parentElement !== stageRef.current) {
@@ -483,6 +534,7 @@ export function PlayerProvider({
     setTime(0);
     setDuration(0);
     setError(null);
+    setLoading(false);
     if (autoplay.current) playMedia();
     positionHost();
   }, [current?.id, media, playMedia, positionHost, postYouTube, youtube]);
@@ -549,7 +601,8 @@ export function PlayerProvider({
             result.error === 'unavailable' ||
             result.error === 'offline' ||
             result.error === 'empty' ||
-            result.error === 'too-large'
+            result.error === 'too-large' ||
+            result.error === 'blocked'
               ? result.error
               : 'unsupported';
           return { ok: false, reason };
@@ -573,6 +626,10 @@ export function PlayerProvider({
             subtitle: track.artist || (track.platform === 'spotify' ? 'Spotify' : 'YouTube'),
             url: track.platform === 'youtube' ? track.externalUrl : track.url,
             kind: target.provider === 'youtube' ? 'video' : 'audio',
+            art: track.art ?? (track.platform === 'youtube'
+              ? `https://i.ytimg.com/vi/${track.sourceId}/mqdefault.jpg`
+              : undefined),
+            previewOnly: track.platform === 'spotify' && !track.url,
             origin: track.platform,
             platform: track.platform,
             externalUrl: track.externalUrl,
@@ -720,6 +777,16 @@ export function PlayerProvider({
 
   const toggleMute = useCallback(() => setMutedState(value => !value), []);
 
+  const setVisualizer = useCallback(
+    (mode: VisualizerMode) => onUpdate({ visualizer: mode }),
+    [onUpdate],
+  );
+
+  const setVisualizerIntensity = useCallback(
+    (value: number) => onUpdate({ visualizerIntensity: clampIntensity(value) }),
+    [onUpdate],
+  );
+
   const cycleRepeat = useCallback(() => {
     onUpdate({ repeat: nextRepeatMode(repeat) });
   }, [onUpdate, repeat]);
@@ -787,6 +854,7 @@ export function PlayerProvider({
     shuffle,
     volume: settings.volume,
     error,
+    loading,
     media,
     attach,
     addFiles,
@@ -797,6 +865,10 @@ export function PlayerProvider({
     previous,
     seek,
     setVolume,
+    visualizer: settings.visualizer,
+    visualizerIntensity: settings.visualizerIntensity,
+    setVisualizer,
+    setVisualizerIntensity,
     toggleMute,
     cycleRepeat,
     toggleShuffle,

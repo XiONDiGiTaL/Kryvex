@@ -2121,3 +2121,38 @@ cartridge the tester owns; the sandboxed frame only produces states once the cor
 has started), the optional save folder against a real directory handle, a Disk
 pulse scan left running across a view change, a room held open across a view
 change, and the installer build.
+
+## Release batch: player, rooms, currency, typography, Lexium
+
+Automated, all passing at the time of writing:
+
+- `pnpm typecheck` — renderer and Electron projects.
+- `pnpm test` — **660 tests in 64 files**.
+- `pnpm build:web` + `check-web-build.cjs` — **PASS (1.4 MiB)**, worker cache name
+  and precached shell checked.
+- `scripts/audit-i18n.cjs` — no hardcoded UI strings in 40 renderer files.
+
+Feature-level evidence:
+
+| Area | Check |
+| --- | --- |
+| Currency | Live `GET api.frankfurter.dev/v1/latest?base=USD&symbols=TRY` returned `49.738`, `date: 2026-10-23`; an unknown code returns **404**, which the card maps to "the source does not quote {code}". `tests/currency.test.ts` covers the expanded list, search, staleness and both conversion directions. |
+| Spotify import | The embed payload was captured from `open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M` and reduced to two rows in `tests/fixtures/spotify-embed.html`; the parser keeps a row whose `audioPreview` is missing instead of dropping it, and carries the playlist cover into rows without art. |
+| YouTube | `tests/player.test.ts` maps embed error codes (101/150 → embedding disabled, 100 → removed, 153 → referer) and the artwork fallback. The stage is now a real 16:9 box behind a sized overlay, so a wide stage can no longer collapse to a 200 px strip. |
+| Lexium | `tests/lexium-proxy.test.ts` starts a real HTTP server and pushes a WAV through the new main-process proxy: multipart fields, endpoint per engine, dead port → `offline`, and the health probe. |
+| Visualizer | `tests/visualizer.test.ts` covers modes, FFT bucketing, smoothing, loudness and which URLs may be analysed. |
+| Typography | `tests/typography.test.ts` covers scale clamping, whole-pixel token sizing, the curated families, and the pinned reorder action. |
+| Translation | `tests/i18n-coverage.test.ts` measures every `t()` literal against `es`/`de`/`fr` and fails if the untranslated set grows. Backlog recorded in `docs/I18N.md`. |
+
+Not exercised here, and therefore not claimed as working:
+
+- YouTube playback of a real video inside the packaged desktop build (the embed
+  needs the loopback bridge, which only runs under Electron).
+- The Spotify import against a live playlist *through the app*; the parser is
+  tested against a captured payload, the network path is not.
+- A two-machine rooms session: stream late-join, the fullscreen overlay, and
+  remote control were not driven with a second client.
+- Lexium against a running Whisper server: the transport is tested, the server
+  itself is not installed on this machine.
+- The visualizer with a real audio file in a browser (the canvas needs a playing
+  element and an audio graph).

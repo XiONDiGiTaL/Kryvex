@@ -110,6 +110,8 @@ export const DEFAULT_PLAYER: PlayerSettings = {
   serviceRepeat: false,
   // Ad handling changes what a module does, so it starts off until asked.
   spotifyAdGuard: false,
+  visualizer: 'bars',
+  visualizerIntensity: 1,
 };
 
 export const DEFAULT_DISK: DiskSettings = {

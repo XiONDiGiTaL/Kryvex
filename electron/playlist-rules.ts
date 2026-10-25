@@ -36,7 +36,15 @@ export type PlaylistTarget =
     };
 
 export class PlaylistError extends Error {
-  constructor(public readonly code: 'not-found' | 'unavailable' | 'offline' | 'empty' | 'too-large') {
+  constructor(
+    public readonly code:
+      | 'not-found'
+      | 'unavailable'
+      | 'offline'
+      | 'empty'
+      | 'too-large'
+      | 'blocked',
+  ) {
     super(code);
   }
 }
@@ -198,19 +206,50 @@ export interface SpotifyEmbedParse {
   skipped: number;
 }
 
-function spotifyTrack(item: unknown, fallbackId = ''): PlaylistImportTrack | null {
+/**
+ * Cover art from the embed payload. Only the provider's own CDN is accepted, so
+ * a malformed page cannot point the shell at an arbitrary host.
+ */
+function spotifyArt(item: unknown): string {
+  const sources = array(child(item, 'coverArt', 'sources'));
+  let best = '';
+  let width = -1;
+  for (const source of sources) {
+    const url = text(child(source, 'url'));
+    if (!url || !/^https:\/\/i\.scdn\.co\//.test(url)) continue;
+    const size = number(child(source, 'width')) || number(child(source, 'height'));
+    if (size > width) {
+      width = size;
+      best = url;
+    }
+  }
+  return best;
+}
+
+/**
+ * One row from the embed payload. A row without a preview is kept: Spotify no
+ * longer serves `audioPreview` for every track, and dropping those rows made a
+ * 50-track playlist import as "0 playable tracks". The row can still be opened
+ * in Spotify, which is what the player offers for it.
+ */
+function spotifyTrack(
+  item: unknown,
+  fallbackId = '',
+  fallbackArt = '',
+): PlaylistImportTrack | null {
   const track = record(item);
   if (!track) return null;
   const id = text(track.id) || text(track.uri).split(':').pop() || fallbackId;
   if (!spotifyId(id)) return null;
-  const preview = text(child(track, 'audioPreview', 'url'));
-  if (!preview || !/^https:\/\/p\.scdn\.co\//.test(preview)) return null;
+  const candidate = text(child(track, 'audioPreview', 'url'));
+  const preview = /^https:\/\/p\.scdn\.co\//.test(candidate) ? candidate : '';
   const title = text(track.title) || text(track.name);
   const artist = text(track.subtitle) || array(track.artists)
     .map(entry => text(child(entry, 'name')))
     .filter(Boolean)
     .join(', ');
   if (!title) return null;
+  const art = spotifyArt(track) || fallbackArt;
   return {
     title,
     artist,
@@ -219,6 +258,7 @@ function spotifyTrack(item: unknown, fallbackId = ''): PlaylistImportTrack | nul
     durationMs: number(track.duration),
     platform: 'spotify',
     sourceId: id,
+    ...(art ? { art } : {}),
   };
 }
 
@@ -238,6 +278,7 @@ export function parseSpotifyEmbed(html: string): SpotifyEmbedParse {
   const entityRecord = record(entity);
   if (!entityRecord) throw new PlaylistError('unavailable');
   const title = text(entityRecord.title) || text(entityRecord.name);
+  const entityArt = spotifyArt(entityRecord);
   const listed = array(entityRecord.trackList);
   const candidates =
     listed.length > 0
@@ -249,7 +290,7 @@ export function parseSpotifyEmbed(html: string): SpotifyEmbedParse {
   const seen = new Set<string>();
   let skipped = 0;
   for (const candidate of candidates) {
-    const parsed = spotifyTrack(candidate);
+    const parsed = spotifyTrack(candidate, '', entityArt);
     if (!parsed) {
       skipped += 1;
       continue;

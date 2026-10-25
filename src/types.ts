@@ -592,6 +592,25 @@ export interface PlayerSettings {
    * press its own Next control once. Off unless the user asks for it.
    */
   spotifyAdGuard: boolean;
+  /**
+   * What the audio stage draws behind the player. Only rows Kryvex decodes can
+   * feed it, so an embedded YouTube video keeps its own picture.
+   */
+  visualizer: 'off' | 'bars' | 'wave' | 'radial' | 'ambient';
+  /** Multiplier on the drawn amplitude, 0.5-2. */
+  visualizerIntensity: number;
+}
+
+export type TypographyFont = 'default' | 'system' | 'humanist' | 'serif' | 'mono';
+
+/**
+ * Global text appearance: one scale for every UI size token and one curated
+ * family. It applies to Kryvex's own chrome, never inside an embedded page.
+ */
+export interface TypographySettings {
+  /** Percentage of the design sizes, clamped to 85-135. */
+  scale: number;
+  font: TypographyFont;
 }
 
 export interface Settings {
@@ -637,6 +656,8 @@ export interface Settings {
   disk: DiskSettings;
   /** What happens to a service after the user navigates away from it. */
   lifecycle: LifecycleSettings;
+  /** Global text size and family for the Kryvex interface. */
+  typography: TypographySettings;
 }
 
 export interface DiskSettings {
@@ -644,6 +665,31 @@ export interface DiskSettings {
   disclaimerAcceptedAt: number;
 }
 
+/** What the shell sends to the main-process Whisper proxy. */
+export interface LexiumProxyRequest {
+  engine: string;
+  baseUrl: string;
+  model: string;
+  language: string;
+  filename: string;
+  /** Base64 WAV bytes; the proxy caps the decoded size. */
+  audio: string;
+}
+
+export interface LexiumProxyResult {
+  ok: boolean;
+  error?: 'offline' | 'http' | 'invalid';
+  status?: number;
+  detail?: string;
+  payload?: unknown;
+}
+
+export interface LexiumProbeResult {
+  ok: boolean;
+  error?: 'offline' | 'invalid';
+  status?: number;
+}
+
 export interface BrowserTab {
   id: string;
   url: string;
@@ -872,6 +918,10 @@ export interface KryvexBridge {
   ) => Promise<import('../electron/types').PlaylistImportResult>;
   /** Loopback bridge URL for a validated YouTube video id, or null. */
   playerEmbedUrl: (videoId: string, autoplay: boolean) => Promise<string | null>;
+  /** Upload a WAV to the configured Whisper server from the main process. */
+  lexiumTranscribe: (request: LexiumProxyRequest) => Promise<LexiumProxyResult>;
+  /** Ask the same server, from the main process, whether it is up. */
+  lexiumProbe: (request: { engine: string; baseUrl: string }) => Promise<LexiumProbeResult>;
   resourcesSample: (
     services: Array<{ id: string; url: string }>,
   ) => Promise<ResourceSnapshot | null>;

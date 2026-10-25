@@ -44,6 +44,11 @@ async function requestText(
     throw new PlaylistError('offline');
   }
   if (response.status === 404) throw new PlaylistError('not-found');
+  // Spotify and YouTube answer 403 on a challenge or 429 when this network is
+  // being throttled; calling that "offline" sent people to check their Wi-Fi.
+  if (response.status === 403 || response.status === 429) {
+    throw new PlaylistError('blocked');
+  }
   if (!response.ok) throw new PlaylistError('unavailable');
   const length = Number(response.headers.get('content-length') ?? 0);
   if (Number.isFinite(length) && length > MAX_TEXT_BYTES) {

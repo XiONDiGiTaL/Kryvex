@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   classifyPlaylistUrl,
@@ -83,7 +84,7 @@ describe('playlist URL classification', () => {
 });
 
 describe('Spotify embed parsing', () => {
-  it('keeps previewable tracks and reports the rest as skipped', () => {
+  it('keeps every row, preview or not', () => {
     const paragraph = parseSpotifyEmbed(
       spotifyPage({
         props: {
@@ -116,7 +117,10 @@ describe('Spotify embed parsing', () => {
       }),
     );
     expect(paragraph.title).toBe('Test list');
-    expect(paragraph.skipped).toBe(1);
+    // Since 2024 Spotify omits `audioPreview` for many tracks. Dropping them
+    // made a playlist import as "no playable tracks", so the row stays and the
+    // player says it has no preview.
+    expect(paragraph.skipped).toBe(0);
     expect(paragraph.tracks).toEqual([
       {
         title: 'Never Gonna Give You Up',
@@ -126,6 +130,15 @@ describe('Spotify embed parsing', () => {
         durationMs: 213573,
         platform: 'spotify',
         sourceId: '4cOdK2wGLETKBW3PvgPWqT',
+      },
+      {
+        title: 'Unavailable',
+        artist: 'Nobody',
+        url: '',
+        externalUrl: 'https://open.spotify.com/track/0000000000000000000000',
+        durationMs: 0,
+        platform: 'spotify',
+        sourceId: '0000000000000000000000',
       },
     ]);
   });
@@ -237,5 +250,34 @@ describe('YouTube playlist parsing', () => {
     });
     expect(parsed.tracks.map(track => track.sourceId)).toEqual(['jNQXAC9IVRw']);
     expect(parsed.next).toBe('NEXT');
+  });
+});
+
+/**
+ * Captured from open.spotify.com on 25 October 2026 (playlist
+ * 37i9dQZF1DXcBWIGoYBM5M) and reduced to two rows, the second with its
+ * `audioPreview` removed to model a track Spotify no longer previews.
+ */
+describe('spotify embed captured from the live page', () => {
+  const html = readFileSync(
+    new URL('./fixtures/spotify-embed.html', import.meta.url),
+    'utf8',
+  );
+
+  it('keeps a row whose preview is missing instead of dropping the playlist', () => {
+    const parsed = parseSpotifyEmbed(html);
+    expect(parsed.tracks).toHaveLength(2);
+    expect(parsed.tracks[0]!.url).toMatch(/^https:\/\/p\.scdn\.co\//);
+    expect(parsed.tracks[1]!.url).toBe('');
+    expect(parsed.tracks[1]!.title).toBeTruthy();
+    expect(parsed.tracks.every(track => track.externalUrl.includes('open.spotify.com/track/'))).toBe(
+      true,
+    );
+  });
+
+  it('carries the playlist cover into every row that has no art of its own', () => {
+    const parsed = parseSpotifyEmbed(html);
+    expect(parsed.tracks[0]!.art).toMatch(/^https:\/\/i\.scdn\.co\//);
+    expect(parsed.tracks[1]!.art).toBe(parsed.tracks[0]!.art);
   });
 });

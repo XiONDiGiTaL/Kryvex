@@ -12,8 +12,14 @@ import {
  * Rooms session.
  *
  * Signaling (SDP and ICE) travels over public WebTorrent trackers; chat,
- * presence and screen video go peer-to-peer over WebRTC. No Kryvex service is
- * in the path and there is no account. A room id is the whole capability.
+ * presence, control events and screen video go peer-to-peer over WebRTC. No
+ * Kryvex service is in the path and there is no account. A room id is the whole
+ * capability.
+ *
+ * There is exactly one session for the application (`partySession` at the
+ * bottom). It is not owned by the Rooms view: switching to another service must
+ * not leave the room, and coming back must show the same membership and the same
+ * chat, including everything said while the view was closed.
  */
 
 export interface PartyPeer {
@@ -45,7 +51,23 @@ export interface PartyState {
   share: { peerId: string; name: string; stream: MediaStream } | null;
   /** The local capture, shown as a preview and muted on every client. */
   local: { label: string; stream: MediaStream } | null;
+  /**
+   * Remote control of the shared source. It is off until the host grants it to
+   * a named peer, and granting never happens because a share started.
+   */
+  control: { peerId: string; name: string; state: 'requested' | 'granted' } | null;
   error: string | null;
+}
+
+/** Pointer and key events forwarded to the host while control is granted. */
+export interface InputEvent {
+  kind: 'move' | 'down' | 'up' | 'key' | 'wheel';
+  /** Normalised 0-1 coordinates inside the shared frame. */
+  x?: number;
+  y?: number;
+  button?: 'left' | 'right' | 'middle';
+  key?: string;
+  deltaY?: number;
 }
 
 // Actions are JSON payloads, so each shape carries an index signature.
@@ -66,6 +88,22 @@ interface PresencePayload {
   sharing: boolean;
 }
 
+interface ControlPayload {
+  [key: string]: string;
+  action: 'request' | 'grant' | 'revoke';
+  name: string;
+}
+
+interface InputPayload {
+  [key: string]: string | number;
+  kind: string;
+  x: number;
+  y: number;
+  button: string;
+  key: string;
+  deltaY: number;
+}
+
 interface ShareMeta {
   kind?: string;
   label?: string;
@@ -83,6 +121,7 @@ const EMPTY: PartyState = {
   messages: [],
   share: null,
   local: null,
+  control: null,
   error: null,
 };
 
@@ -97,8 +136,16 @@ export class PartySession {
   private sendHello: ((payload: HelloPayload) => Promise<void>) | null = null;
   private sendChat: ((payload: ChatPayload) => Promise<void>) | null = null;
   private sendPresence: ((payload: PresencePayload) => Promise<void>) | null = null;
+  private sendControl: ((payload: ControlPayload) => Promise<void>) | null = null;
+  private sendInput: ((payload: InputPayload) => Promise<void>) | null = null;
   private names = new Map<string, HelloPayload>();
   private sharing = new Set<string>();
+  private lastRoom: { id: string; settings: PartySettings; name: string } | null = null;
+  /**
+   * Host-side sink for an input event from the peer that was granted control.
+   * The view installs it; the session never injects input by itself.
+   */
+  onInput: ((event: InputEvent) => void) | null = null;
 
   getSnapshot = (): PartyState => this.state;
 
@@ -180,14 +227,18 @@ export class PartySession {
         onMessage: (payload, context) => {
           const text = sanitizeChatText(payload?.text);
           if (!text) return;
+          const at = Number.isFinite(payload?.at) ? Number(payload.at) : Date.now();
+          const id = `${context.peerId}-${at}`;
+          // A reconnect can redeliver a message that is already in the log.
+          if (this.state.messages.some(item => item.id === id)) return;
           const who = this.names.get(context.peerId);
           const message: PartyMessage = {
-            id: `${context.peerId}-${payload.at ?? Date.now()}`,
+            id,
             peerId: context.peerId,
             name: who?.name ?? fallbackName(context.peerId),
             color: who?.color ?? pickPeerColor(context.peerId),
             text,
-            at: Number.isFinite(payload?.at) ? Number(payload.at) : Date.now(),
+            at,
           };
           this.set({ messages: clampChatHistory([...this.state.messages, message]) });
         },
@@ -202,10 +253,49 @@ export class PartySession {
           this.refreshPeers();
         },
       });
+      const control = room.makeAction<ControlPayload>('control', {
+        onMessage: (payload, context) => {
+          const who = this.names.get(context.peerId)?.name ?? fallbackName(context.peerId);
+          if (payload?.action === 'request') {
+            // A request is only meaningful while this client is sharing.
+            if (!this.state.local) return;
+            this.set({ control: { peerId: context.peerId, name: who, state: 'requested' } });
+            return;
+          }
+          if (payload?.action === 'grant') {
+            // Only the host grants; a grant from anyone else is ignored.
+            if (!this.state.local) return;
+            this.set({ control: { peerId: context.peerId, name: who, state: 'granted' } });
+            return;
+          }
+          this.set({ control: null });
+        },
+      });
+      const input = room.makeAction<InputPayload>('input', {
+        onMessage: (payload, context) => {
+          // Input is accepted only from the peer this client granted control to.
+          if (this.state.control?.state !== 'granted') return;
+          if (this.state.control.peerId !== context.peerId) return;
+          const kind = payload?.kind;
+          if (kind !== 'move' && kind !== 'down' && kind !== 'up' && kind !== 'key' && kind !== 'wheel') {
+            return;
+          }
+          this.onInput?.({
+            kind,
+            x: Number(payload?.x) || 0,
+            y: Number(payload?.y) || 0,
+            button: (payload?.button as InputEvent['button']) || 'left',
+            key: typeof payload?.key === 'string' ? payload.key.slice(0, 40) : '',
+            deltaY: Number(payload?.deltaY) || 0,
+          });
+        },
+      });
 
       this.sendHello = payload => hello.send(payload);
       this.sendChat = payload => chat.send(payload);
       this.sendPresence = payload => presence.send(payload);
+      this.sendControl = payload => control.send(payload);
+      this.sendInput = payload => input.send(payload);
 
       room.onPeerJoin = peerId => {
         this.names.set(peerId, {
@@ -214,12 +304,26 @@ export class PartySession {
         });
         this.refreshPeers();
         void this.sendHello?.({ name: display, color });
+        // Late join: a peer that arrives after sharing began never received the
+        // stream, because it was added before that peer existed. Re-add it for
+        // this one peer, so the streamer does not have to restart the share.
+        // Trystero renegotiates with every connected peer, so the peers that
+        // already had the stream simply receive the same tracks again; the one
+        // that just joined gets them for the first time.
+        const local = this.state.local;
+        if (local) {
+          void Promise.all(room.addStream(local.stream, { metadata: { kind: 'screen', label: local.label } }))
+            .then(() => this.sendPresence?.({ sharing: true }))
+            .catch(() => undefined);
+        }
       };
       room.onPeerLeave = peerId => {
         this.names.delete(peerId);
         this.sharing.delete(peerId);
         this.set({
           share: this.state.share?.peerId === peerId ? null : this.state.share,
+          // A peer that drops loses whatever control it had.
+          control: this.state.control?.peerId === peerId ? null : this.state.control,
         });
         this.refreshPeers();
       };
@@ -227,10 +331,7 @@ export class PartySession {
         const meta = (metadata ?? {}) as ShareMeta;
         const who = this.names.get(peerId)?.name ?? fallbackName(peerId);
         this.sharing.add(peerId);
-        this.set({
-          share: { peerId, name: who, stream },
-          messages: this.state.messages,
-        });
+        this.set({ share: { peerId, name: who, stream } });
         this.refreshPeers();
         void meta;
       };
@@ -240,6 +341,7 @@ export class PartySession {
       // leave a fresh room looking empty.
       this.refreshPeers();
       void this.sendHello({ name: display, color });
+      this.lastRoom = { id: roomId, settings, name: display };
     } catch (error) {
       this.room = null;
       this.set({
@@ -297,8 +399,74 @@ export class PartySession {
       }
     }
     local.stream.getTracks().forEach(track => track.stop());
-    this.set({ local: null });
+    this.set({ local: null, control: null });
     this.refreshPeers();
+  }
+
+  /** Mute or unmute the captured audio for everyone without stopping video. */
+  setShareAudioEnabled(enabled: boolean): boolean {
+    const local = this.state.local;
+    if (!local) return false;
+    let touched = false;
+    for (const track of local.stream.getAudioTracks()) {
+      track.enabled = enabled;
+      touched = true;
+    }
+    return touched;
+  }
+
+  hasShareAudio(): boolean {
+    return (this.state.local?.stream.getAudioTracks().length ?? 0) > 0;
+  }
+
+  requestControl(): boolean {
+    if (this.state.local) return false; // the host does not ask itself
+    if (!this.state.share) return false;
+    void this.sendControl?.({ action: 'request', name: this.state.selfName });
+    return true;
+  }
+
+  /** Host only: allow the peer that asked, and only while sharing. */
+  grantControl(): boolean {
+    const control = this.state.control;
+    if (!control || control.state === 'granted' || !this.state.local) return false;
+    this.set({ control: { ...control, state: 'granted' } });
+    void this.sendControl?.({ action: 'grant', name: control.name });
+    return true;
+  }
+
+  revokeControl(): void {
+    if (!this.state.control) return;
+    this.set({ control: null });
+    void this.sendControl?.({ action: 'revoke', name: '' });
+  }
+
+  /** Viewer side: forward one input event to the host that granted control. */
+  forwardInput(event: InputEvent): void {
+    if (this.state.control?.state !== 'granted') return;
+    if (!this.state.share) return;
+    void this.sendInput?.({
+      kind: event.kind,
+      x: Math.min(1, Math.max(0, event.x ?? 0)),
+      y: Math.min(1, Math.max(0, event.y ?? 0)),
+      button: event.button ?? 'left',
+      key: event.key ?? '',
+      deltaY: event.deltaY ?? 0,
+    });
+  }
+
+  /**
+   * Rejoin after a relay failure. The room id and the chat log are kept: a
+   * transient drop must not throw away the conversation or make the user join
+   * by hand again.
+   */
+  reconnect(): boolean {
+    if (!this.lastRoom) return false;
+    const { id, settings, name } = this.lastRoom;
+    const messages = this.state.messages;
+    this.join(id, settings, name);
+    this.set({ messages });
+    return true;
   }
 
   leave(): void {
@@ -315,16 +483,32 @@ export class PartySession {
     this.sendHello = null;
     this.sendChat = null;
     this.sendPresence = null;
+    this.sendControl = null;
+    this.sendInput = null;
     this.names.clear();
     this.sharing.clear();
+    this.lastRoom = null;
     this.set({
       status: 'idle',
       roomId: null,
       peers: [],
+      // Leaving is the one action that ends the room for this client, and with
+      // it the history: a room that nobody is in is gone.
       messages: [],
       share: null,
       local: null,
+      control: null,
       error: null,
     });
   }
 }
+
+/**
+ * One session for the whole application, not one per view.
+ *
+ * A room is a live connection: rebuilding it because the user looked at another
+ * service would drop the membership, the chat log and any incoming stream. The
+ * view subscribes to this singleton and never leaves on unmount; leaving is an
+ * explicit action.
+ */
+export const partySession = new PartySession();

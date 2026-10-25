@@ -25,6 +25,7 @@ import {
   type LexiumFailure,
   type Transcript,
 } from '../lib/lexium';
+import { transcribeWithBridge } from '../lib/lexium-bridge';
 import { loadAudioFile, type LoadedAudio } from '../lib/lexium-audio';
 import { readImageText } from '../lib/lexium-ocr';
 import { ElementMark } from '../components/ElementMark';
@@ -91,15 +92,24 @@ export function Lexium({
   const guessed = useMemo(() => (input.trim() ? guessLanguage(input) : 'und'), [input]);
   const speechReady = engineState === 'ready';
 
-  function failureCopy(error: LexiumFailure, status?: number): string {
+  function failureCopy(error: LexiumFailure, status?: number, detail?: string): string {
     if (error === 'offline') {
-      return t(
-        'No answer from the server. Start it, check the address, and allow localhost requests if a browser blocks the connection. An HTTPS page cannot call a plain http:// server on your network, so use https:// or run the client locally.',
-      );
+      return window.kryvex?.lexiumTranscribe
+        ? t(
+            'Nothing answered at {url}. Start the transcription server, check its port, and make sure it is listening on 127.0.0.1 rather than only inside a container.',
+            { url: normalizeBaseUrl(settings.baseUrl) || settings.baseUrl },
+          )
+        : t(
+            'No answer from the server. Start it, check the address, and allow localhost requests if a browser blocks the connection. An HTTPS page cannot call a plain http:// server on your network, so use https:// or run the client locally.',
+          );
     }
     if (error === 'invalid') return t('Set a valid http:// address first.');
     if (error === 'empty') return t('The server answered without any text.');
-    if (error === 'http') return t('The server answered {status}.', { status: status ?? 0 });
+    if (error === 'http') {
+      return detail
+        ? t('The server answered {status}: {detail}', { status: status ?? 0, detail })
+        : t('The server answered {status}.', { status: status ?? 0 });
+    }
     return t('That request is not supported by this server.');
   }
 
@@ -112,6 +122,37 @@ export function Lexium({
     }
     setEngineState('checking');
     setEngineDetail('');
+    // The desktop app probes from the main process: a renderer request can be
+    // refused by CORS before it ever reaches a working server, which would make
+    // a healthy engine look offline.
+    const bridge = window.kryvex;
+    if (bridge?.lexiumProbe) {
+      try {
+        const answer = await bridge.lexiumProbe({
+          engine: settings.engine,
+          baseUrl: settings.baseUrl,
+        });
+        if (answer?.ok) {
+          setEngineState('ready');
+          setEngineDetail(
+            t('Connected to {url}.', { url: normalizeBaseUrl(settings.baseUrl) }),
+          );
+        } else {
+          setEngineState('offline');
+          setEngineDetail(
+            answer?.error === 'offline'
+              ? t('No answer from {url}. The address is reachable but nothing is listening there.', {
+                  url: normalizeBaseUrl(settings.baseUrl) || settings.baseUrl,
+                })
+              : t('The server answered HTTP {status}.', { status: answer?.status ?? 0 }),
+          );
+        }
+      } catch {
+        setEngineState('offline');
+        setEngineDetail(t('The health check could not run.'));
+      }
+      return;
+    }
     try {
       const response = await fetch(endpoint, { signal: AbortSignal.timeout(6000) });
       setEngineState(response.ok ? 'ready' : 'offline');
@@ -156,20 +197,37 @@ export function Lexium({
     if (!audio) return;
     setTranscribing(true);
     setTranscribeError(null);
-    const result = await transcribeAudio({
-      engine: settings.engine,
-      baseUrl: settings.baseUrl,
-      model: settings.model,
-      language: settings.language,
-      audio: audio.wav,
-      filename: `${audio.name.replace(/\.[^.]+$/, '') || 'audio'}.wav`,
-    });
+    const filename = `${audio.name.replace(/\.[^.]+$/, '') || 'audio'}.wav`;
+    const bridge = window.kryvex;
+    const result = bridge?.lexiumTranscribe
+      ? await transcribeWithBridge(bridge, {
+          engine: settings.engine,
+          baseUrl: settings.baseUrl,
+          model: settings.model,
+          language: settings.language,
+          audio: audio.wav,
+          filename,
+        })
+      : await transcribeAudio({
+          engine: settings.engine,
+          baseUrl: settings.baseUrl,
+          model: settings.model,
+          language: settings.language,
+          audio: audio.wav,
+          filename,
+        });
     setTranscribing(false);
     if (!result.ok) {
-      setTranscribeError(failureCopy(result.error, result.status));
+      setTranscribeError(
+        failureCopy(
+          result.error ?? 'offline',
+          result.status,
+          'detail' in result ? result.detail : undefined,
+        ),
+      );
       return;
     }
-    setTranscript(result.transcript);
+    setTranscript(result.transcript ?? null);
     onToast(
       t('Transcribed {duration} of audio.', { duration: formatClock(audio.duration) }),
       'success',

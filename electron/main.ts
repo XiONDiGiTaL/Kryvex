@@ -33,6 +33,7 @@ import { notifications } from './notifications';
 import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
 import { playlistImporter } from './playlist';
 import { playerEmbed } from './player-embed';
+import * as lexiumProxy from './lexium-proxy';
 import { permissions } from './permissions';
 import { popupTabs } from './popup-tabs';
 import { fetchFeed } from './rss';
@@ -768,6 +769,14 @@ function registerIpc(): void {
   );
   ipcMain.handle('kryvex:player:embed-url', (event, videoId: unknown, autoplay: unknown) =>
     isShellSender(event) ? playerEmbed.url(videoId, autoplay) : null,
+  );
+  // Visual and audio work stays local: these two only reach the address the user
+  // typed into Lexium's engine panel.
+  ipcMain.handle('kryvex:lexium:transcribe', (event, request: unknown) =>
+    isShellSender(event) ? lexiumProxy.transcribe(request) : { ok: false, error: 'invalid' },
+  );
+  ipcMain.handle('kryvex:lexium:probe', (event, request: unknown) =>
+    isShellSender(event) ? lexiumProxy.probe(request) : { ok: false, error: 'invalid' },
   );
   ipcMain.handle('kryvex:resources:sample', (event, services: unknown) =>
     isShellSender(event) ? resources.sample(services) : null,

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { useT } from '../lib/i18n';
 import { formatClock } from '../lib/clock';
-import { MEDIA_ACCEPT } from '../lib/player';
+import { MEDIA_ACCEPT, artFor, type PlayerFault } from '../lib/player';
+import { VISUALIZER_MODES, canAnalyse } from '../lib/visualizer';
+import { Visualizer } from '../components/Visualizer';
 import { formatBytes } from '../lib/lexium';
 import { usePlayer } from '../components/PlayerProvider';
 import { ElementMark } from '../components/ElementMark';
@@ -58,13 +60,35 @@ export function Player({
     return track.subtitle || t('DIRECT LINK');
   }
 
+  function faultMessage(fault: PlayerFault): string {
+    if (fault === 'embed-disabled') {
+      return t('The owner of this video does not allow it to be played outside YouTube.');
+    }
+    if (fault === 'removed') return t('That video is private or no longer available.');
+    if (fault === 'referer') {
+      return t('YouTube refused this embed. The desktop app plays it through its own local bridge; if this keeps happening, open the video in YouTube.');
+    }
+    if (fault === 'live') return t('Live streams are not supported in this player.');
+    if (fault === 'no-preview') {
+      return t('Spotify does not publish a preview for this track. Open the full track in Spotify.');
+    }
+    return t(
+      'This source refused to play. Direct links must point at the media file itself and allow cross-origin playback.',
+    );
+  }
+
   function linkErrorMessage(reason: string): string {
     if (reason === 'invalid') return t('That does not look like a link.');
     if (reason === 'not-found') return t('That playlist is private, empty or unavailable.');
     if (reason === 'empty') return t('There are no playable tracks in that playlist.');
     if (reason === 'too-large') return t('That playlist is larger than the 500-track import limit.');
     if (reason === 'offline') {
-      return t('Could not read that playlist. Check the link and your connection.');
+      return t('Could not reach the playlist. Check the link and your connection.');
+    }
+    if (reason === 'blocked') {
+      return t(
+        'That provider refused the request from this network (it answered 403 or 429). Try again later, or open the playlist in its own service.',
+      );
     }
     if (reason === 'desktop-only') return t('Playlist import is available in the desktop app.');
     if (reason === 'unavailable') return t('That playlist could not be read right now.');
@@ -156,7 +180,33 @@ export function Player({
         <div
           className={`player-screen ${current?.kind === 'video' ? 'is-video' : 'is-audio'}`}
           ref={stageRef}
-        />
+        >
+          {current && current.kind !== 'video' && artFor(current) ? (
+            <img
+              className="player-art"
+              src={artFor(current)}
+              alt=""
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+          ) : null}
+          {current && current.origin !== 'youtube' ? (
+            <Visualizer
+              media={player.media}
+              mode={player.visualizer}
+              intensity={player.visualizerIntensity}
+              active={
+                player.playing && canAnalyse(current.url, window.location.origin)
+              }
+            />
+          ) : null}
+          {current?.origin === 'youtube' && player.loading && !player.error ? (
+            <div className="player-loading" role="status">
+              <span className="player-loading-dot" aria-hidden="true" />
+              {t('Loading the video…')}
+            </div>
+          ) : null}
+        </div>
 
         {current ? (
           <div className="player-now">
@@ -261,13 +311,15 @@ export function Player({
             {player.error ? (
               <p className="player-error">
                 <Icon name="warning" size={14} />
-                {current.origin === 'youtube'
-                  ? t('YouTube refused to play this video here. Open it in YouTube, or try another row.')
-                  : current.origin === 'spotify'
-                    ? t('Spotify did not provide a preview for this track. Open the full track in Spotify.')
-                    : t(
-                        'This source refused to play. Direct links must point at the media file itself and allow cross-origin playback.',
-                      )}
+                {faultMessage(player.error)}
+                {current.externalUrl ? (
+                  <button
+                    className="link"
+                    onClick={() => onOpenLink(current.externalUrl ?? '')}
+                  >
+                    {t('Open it there')}
+                  </button>
+                ) : null}
               </p>
             ) : null}
           </div>
@@ -287,6 +339,44 @@ export function Player({
             <span className="mono">{t('DROP TO QUEUE')}</span>
           </div>
         ) : null}
+      </div>
+
+      <div className="player-stage-settings">
+        <span className="mono">{t('VISUALIZER')}</span>
+        <div className="segmented" role="group" aria-label={t('Visualizer')}>
+          {VISUALIZER_MODES.map(mode => (
+            <button
+              key={mode.id}
+              type="button"
+              className={player.visualizer === mode.id ? 'is-active' : ''}
+              aria-pressed={player.visualizer === mode.id}
+              onClick={() => player.setVisualizer(mode.id)}
+            >
+              {t(mode.label)}
+            </button>
+          ))}
+        </div>
+        {player.visualizer !== 'off' ? (
+          <label className="player-visualizer-level">
+            <span className="mono">{t('LEVEL')}</span>
+            <input
+              type="range"
+              min={50}
+              max={200}
+              step={10}
+              value={Math.round(player.visualizerIntensity * 100)}
+              aria-label={t('Visualizer level')}
+              onChange={event =>
+                player.setVisualizerIntensity(Number(event.target.value) / 100)
+              }
+            />
+          </label>
+        ) : null}
+        <span className="mono player-visualizer-note">
+          {current && !canAnalyse(current.url, window.location.origin)
+            ? t('This row is drawn by an embed, so it has no analysable audio.')
+            : t('Drawn from the audio Kryvex decodes.')}
+        </span>
       </div>
 
       <div className="player-add">
@@ -402,6 +492,15 @@ export function Player({
               <span className="player-row-index mono">
                 {String(position + 1).padStart(2, '0')}
               </span>
+              {artFor(track) ? (
+                <img
+                  className="player-row-art"
+                  src={artFor(track)}
+                  alt=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              ) : null}
               <span className="player-row-copy">
                 <strong title={track.title}>{track.title}</strong>
                 <span className="mono">
@@ -409,7 +508,9 @@ export function Player({
                   {track.origin === 'file'
                     ? t('LOCAL')
                     : track.origin === 'spotify'
-                      ? t('SPOTIFY PREVIEW')
+                      ? track.previewOnly
+                        ? t('SPOTIFY · NO PREVIEW')
+                        : t('SPOTIFY PREVIEW')
                       : track.origin === 'youtube'
                         ? t('YOUTUBE')
                         : track.subtitle || t('LINK')}

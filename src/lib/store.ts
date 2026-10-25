@@ -62,9 +62,11 @@ import {
 } from './wellness';
 import { cleanLanguage, cleanOcrLanguage, normalizeBaseUrl } from './lexium';
 import { clampVolume } from './player';
+import { clampIntensity, isVisualizerMode } from './visualizer';
 import { isSearchEngine, isSearchRegion } from './search-engines';
 import { isEmulatorSystem } from './emulator';
 import { DEFAULT_LIFECYCLE, sanitizeLifecycle } from './lifecycle';
+import { sanitizeTypography } from './typography';
 import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
 import { themeGallerySeenValue } from './theme-gallery';
 import { isThemeId, sanitizeCustomTheme } from './themes';
@@ -484,6 +486,8 @@ export function sanitizePlayer(raw: unknown): PlayerSettings {
     serviceRepeat: raw.serviceRepeat === true,
     // Missing reads as off: an upgrade must not start muting a module.
     spotifyAdGuard: raw.spotifyAdGuard === true,
+    visualizer: isVisualizerMode(raw.visualizer) ? raw.visualizer : base.visualizer,
+    visualizerIntensity: clampIntensity(raw.visualizerIntensity),
   };
 }
 
@@ -537,6 +541,7 @@ function sanitizeSettings(raw: unknown): Settings {
     player: sanitizePlayer(raw.player),
     disk: sanitizeDisk(raw.disk),
     lifecycle: sanitizeLifecycle(raw.lifecycle, base.lifecycle ?? DEFAULT_LIFECYCLE),
+    typography: sanitizeTypography(raw.typography),
   };
 }
 
@@ -627,6 +632,26 @@ export function togglePin(state: PersistedState, id: string): PersistedState {
       item.id === id ? { ...item, pinned: !item.pinned } : item,
     ),
   };
+}
+
+/*
+ * Pinned drag-and-drop reorders the service array itself, so the sidebar and the
+ * services page agree on one order. `beforeId` is the row the dragged service is
+ * dropped in front of, or null for the end of the list.
+ */
+export function moveService(
+  state: PersistedState,
+  id: string,
+  beforeId: string | null,
+): PersistedState {
+  const from = state.services.findIndex(item => item.id === id);
+  if (from < 0 || id === beforeId) return state;
+  const next = [...state.services];
+  const [moved] = next.splice(from, 1);
+  if (!moved) return state;
+  const to = beforeId === null ? next.length : next.findIndex(item => item.id === beforeId);
+  next.splice(to < 0 ? next.length : to, 0, moved);
+  return { ...state, services: next };
 }
 
 export function markOpened(state: PersistedState, id: string): PersistedState {

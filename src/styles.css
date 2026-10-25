@@ -502,6 +502,44 @@ kbd {
   color: var(--ink);
 }
 
+/* Drag-to-reorder: the dragged row fades, and the row it would land in front of
+   carries a rule at the edge it will be inserted at. */
+.pinned-list > li {
+  position: relative;
+}
+
+.pinned-list > li.is-dragging {
+  opacity: 0.45;
+}
+
+.pinned-list > li.is-drop-before::before,
+.pinned-list > li.is-drop-after::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+.pinned-list > li.is-drop-before::before {
+  top: -1px;
+}
+
+.pinned-list > li.is-drop-after::after {
+  bottom: -1px;
+}
+
+.pinned-list > li[draggable='true'] {
+  cursor: grab;
+}
+
+.pinned-list > li[draggable='true']:active {
+  cursor: grabbing;
+}
+
 .pinned-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -7614,4 +7652,240 @@ select:hover {
   .start-story-meta {
     display: none;
   }
+}
+
+/* ------------------------------------------------------------ typography --- */
+
+.type-scale {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 190px;
+}
+
+.type-scale input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.type-preview {
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bg) 30%, transparent);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------- rooms additions --- */
+
+.room-stage.size-s .room-tiles {
+  grid-template-columns: minmax(0, 420px);
+  justify-content: start;
+}
+
+.room-stage.size-l .room-tiles {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.room-body.is-theatre .room-stage {
+  position: relative;
+  min-height: 70vh;
+}
+
+.room-stage:fullscreen {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+}
+
+.room-stage:fullscreen .room-tiles {
+  height: 100%;
+}
+
+.room-tile video {
+  max-height: 62vh;
+  object-fit: contain;
+  background: #000;
+}
+
+.room-tile.is-controlling {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.room-tile.is-controlling video {
+  cursor: crosshair;
+}
+
+.room-day {
+  margin: 8px 0 4px;
+  font-size: 7.5px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+.room-monitor {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--ink-dim);
+}
+
+.room-volume {
+  width: 84px;
+  accent-color: var(--accent);
+}
+
+.room-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+
+.room-control-title {
+  font-size: 7.5px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+
+.room-control p {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.room-control-note {
+  color: var(--ink-faint);
+}
+
+.room-control .btn {
+  align-self: flex-start;
+}
+
+/* Fullscreen chat overlay: draggable by its head, resizable at its corner, and
+   translucent so the stream stays readable underneath. */
+.room-overlay {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, #fff 16%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, #000 calc(var(--overlay-alpha, 0.82) * 100%), transparent);
+  color: #fff;
+  overflow: hidden;
+  backdrop-filter: blur(3px);
+}
+
+.room-overlay-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  cursor: grab;
+  background: color-mix(in srgb, #000 30%, transparent);
+}
+
+.room-overlay-head .mono {
+  font-size: 7.5px;
+  letter-spacing: 0.14em;
+  color: #e2e8f0;
+}
+
+.room-overlay-head input[type='range'] {
+  width: 68px;
+  accent-color: #fff;
+}
+
+.room-overlay-log {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.room-overlay-log p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.9);
+}
+
+.room-overlay-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, color-mix(in srgb, #fff 55%, transparent) 50%);
+}
+
+.room-overlay-show {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, #fff 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #000 62%, transparent);
+  color: #fff;
+  font-size: 10px;
+}
+
+.room-popout {
+  position: absolute;
+  right: 12px;
+  bottom: 52px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.room-popout header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.room-popout .mono {
+  font-size: 7.5px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+}
+
+.room-popout-body {
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--ink-dim);
+}
+
+.room-waiting {
+  margin: 6px 0 0;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
 }

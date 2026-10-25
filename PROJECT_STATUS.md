@@ -800,3 +800,49 @@ runtime on launch (`docs/TESTING.md`). The published assets match
 `kryvex-web-0.9.0-v1`. Next: code signing, the PWA client on Android (no APK),
 and the compound manifest and permission sheet described in
 `docs/PLATFORM_PLAN.md` before adding any branded add-on.
+## Directive batch: services, player, rooms, currency, type, Lexium
+
+The consolidated tester directive landed its foundational and Phase 1/2 work.
+Service lifecycle, emulator saves and the HUD audit shipped earlier in this
+branch; this batch adds the rest of what the report listed and stops short of
+what needs a second machine or a native helper.
+
+- **Currency**: the picker now offers the whole ECB set, TRY included, with a
+  searchable menu; the card states the source (ECB reference via Frankfurter),
+  the quotation date, the fetch time and a staleness warning, and distinguishes
+  "the source does not quote this currency" (HTTP 404) from being offline.
+- **YouTube**: the stage is a real 16:9 box, the embed overlay follows a
+  ResizeObserver plus a slow reposition while it plays, and embed errors are
+  reported by cause (owner disabled embedding, removed, referer, live).
+- **Spotify**: a playlist row without an `audioPreview` is kept and labelled, so
+  a modern playlist no longer imports as "no playable tracks"; a 403/429 from
+  the provider reads as a refusal instead of a connection problem. Full tracks
+  remain impossible in this shell: Spotify's Web Playback SDK needs Premium
+  plus Widevine EME, and Electron ships no Widevine CDM.
+- **Rooms**: one application-wide session, so switching service keeps the
+  membership and the chat, with day separators, deduplicated messages on
+  reconnect, an explicit Reconnect, late-join stream renegotiation, share audio
+  mute, stream volume, size, fullscreen, pop-out fallback, local audio monitor,
+  a draggable and resizable translucent chat overlay, and opt-in remote control
+  that injects real input into a shared Kryvex app (screen captures need a
+  native helper and say so).
+- **Visualizer**: five modes, a level control, album art and a YouTube thumbnail
+  fallback, drawn from a cached Web Audio graph for the audio Kryvex decodes.
+- **Typography**: one scale and one curated family in Settings, applied by
+  rewriting the six size tokens so nothing is downloaded and layouts reflow.
+- **Pinned order**: drag with an insertion rule, plus Alt+Arrow for the keyboard,
+  persisted by reordering the service list itself.
+- **Lexium**: transcription and the health check run in the main process, which
+  is what fixes "the server cannot be reached" — a `file://` renderer sends
+  `Origin: null` and a local Whisper server need not answer a CORS preflight.
+  Failures now name the address, the HTTP status and the server's own message.
+- **Translation**: a coverage test measures every `t()` literal in three
+  languages; the new copy is translated and the historical backlog is recorded
+  in `docs/I18N.md` with a ratchet so it cannot grow.
+
+Still open from the directive: emulator netplay (needs a deterministic two-client
+transport and a second machine to prove it), movably resizable Workspace
+windows, per-service pinnable secret tools, and a translation sweep of the ~380
+pre-existing strings. Remote control is limited to Kryvex app captures, and the
+rooms evidence is code plus single-client checks only.
+

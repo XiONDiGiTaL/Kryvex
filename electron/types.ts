@@ -214,11 +214,18 @@ export interface DefaultBrowserStatus {
 export interface PlaylistImportTrack {
   title: string;
   artist: string;
+  /**
+   * The 30-second preview for a Spotify row, or the watch page for a YouTube
+   * one. Empty when the provider no longer serves a preview for that track: the
+   * row is still listed, because hiding it would hide most of a modern playlist.
+   */
   url: string;
   externalUrl: string;
   durationMs: number;
   platform: 'spotify' | 'youtube';
   sourceId: string;
+  /** Cover art the provider published, already restricted to its own CDN. */
+  art?: string;
 }
 
 /** Playlist resolution runs in the main process; no page HTML reaches the shell. */
@@ -230,10 +237,25 @@ export interface PlaylistImportResult {
     | 'unavailable'
     | 'offline'
     | 'empty'
-    | 'too-large';
+    | 'too-large'
+    /** The provider answered 403 or 429: this network is being refused. */
+    | 'blocked';
   title?: string;
   provider?: 'spotify' | 'youtube';
   tracks?: PlaylistImportTrack[];
   skipped?: number;
   truncated?: boolean;
+}
+
+/**
+ * One answer from the main-process Whisper proxy. `payload` is the server's own
+ * JSON, parsed in the renderer by the same parser a direct request would use.
+ */
+export interface LexiumProxyResult {
+  ok: boolean;
+  error?: 'offline' | 'http' | 'invalid';
+  status?: number;
+  /** The server's own message, trimmed, when it replied with an error. */
+  detail?: string;
+  payload?: unknown;
 }

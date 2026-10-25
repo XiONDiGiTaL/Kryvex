@@ -8,6 +8,8 @@ import { wellnessCopy } from './i18n-wellness';
 import { playbackCopy } from './i18n-playback';
 import { homeToolsCopy } from './i18n-home-tools';
 import { lifecycleCopy } from './i18n-lifecycle';
+import { currencyCopy } from './i18n-currency';
+import { sessionCopy } from './i18n-session';
 
 export const LANGUAGES: ReadonlyArray<{ id: LanguageSetting; label: string }> = [
   { id: 'system', label: 'System language' },
@@ -2833,6 +2835,8 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           ...playbackCopy[language],
           ...homeToolsCopy[language],
           ...lifecycleCopy[language],
+          ...currencyCopy[language],
+          ...sessionCopy[language],
         };
   return {
     language,

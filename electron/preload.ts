@@ -279,6 +279,12 @@ const api = {
     ipcRenderer.invoke('kryvex:playlist:resolve', url),
   playerEmbedUrl: (videoId: string, autoplay: boolean): Promise<string | null> =>
     ipcRenderer.invoke('kryvex:player:embed-url', videoId, autoplay),
+  // Whisper servers do not have to send CORS headers, and a file:// shell has a
+  // null origin, so the upload runs in the main process instead.
+  lexiumTranscribe: (request: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:lexium:transcribe', request),
+  lexiumProbe: (request: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:lexium:probe', request),
   resourcesSample: (services: Array<{ id: string; url: string }>): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:resources:sample', services),
   mediaList: (): Promise<unknown> => ipcRenderer.invoke('kryvex:media:list'),

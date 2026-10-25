@@ -107,3 +107,35 @@ malformed playlist returns a short error without changing the queue.
 - Playlist parsers: `electron/playlist-rules.ts`
 - YouTube loopback bridge: `electron/player-embed.ts`
 - Styles: `src/styles-tools.css`
+
+## Embeds, artwork and the visualizer
+
+The player has two engines. Local files, direct links and Spotify previews use a
+detached `<video>`; YouTube rows use a sandboxed embed. In the desktop build that
+embed loads through a loopback page (`electron/player-embed.ts`) because a
+`file://` parent makes YouTube answer **Error 153** — the shell forwards the
+player API over `postMessage` so the transport still works.
+
+The stage is a 16:9 box for video (`.player-screen.is-video`). It used to be
+`height: auto` with only a `min-height`, which made a wide stage 200 px tall and
+is what people saw as a compressed black box; the embed overlay is repositioned
+through a `ResizeObserver` and a slow timer while a YouTube row plays.
+
+Errors are reported by cause rather than as one message: an owner who disabled
+embedding (101/150), a removed or private video (100), a refused referer (153),
+a live stream, or a direct link that does not allow cross-origin playback.
+
+Artwork comes from the Spotify embed payload or a YouTube thumbnail
+(`i.ytimg.com/vi/<id>/mqdefault.jpg`); nothing is fetched for local files, which
+would mean parsing ID3 frames.
+
+The visualizer draws from a Web Audio analyser attached to the local element.
+That element is the one Kryvex decodes, so a YouTube embed has no analysable
+audio and the panel says so instead of drawing silence. The audio graph is cached
+per element: `createMediaElementSource` throws if it is called twice, and the
+element lives for the whole session.
+
+Spotify still plays 30-second previews. Full tracks need the Web Playback SDK,
+which requires a Premium account **and** Widevine EME; Electron ships no Widevine
+CDM, so the SDK cannot decode here. The row keeps its "open in Spotify" action
+rather than pretending otherwise.

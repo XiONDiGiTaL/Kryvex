@@ -31,6 +31,50 @@ export interface PlayerTrack {
   /** YouTube video id or Spotify track id. */
   sourceId?: string;
   durationMs?: number;
+  /** Cover art the provider published, or a YouTube thumbnail. */
+  art?: string;
+  /** True for an imported Spotify row that has no 30-second preview. */
+  previewOnly?: boolean;
+}
+
+/**
+ * What went wrong, in terms the player page can explain. A YouTube embed
+ * reports a numeric code; the rest are our own states.
+ */
+export type PlayerFault =
+  | 'playback'
+  | 'unplayable'
+  | 'embed-disabled'
+  | 'removed'
+  | 'referer'
+  | 'live'
+  | 'no-preview';
+
+/**
+ * YouTube's embed error codes, mapped to what the viewer can act on. 101 and
+ * 150 mean the uploader disabled embedding, which no retry can fix; 153 means
+ * the embed had no usable parent origin, which the loopback bridge exists to
+ * solve.
+ */
+export function youtubeFault(code: unknown): PlayerFault {
+  const value = Number(code);
+  if (value === 101 || value === 150) return 'embed-disabled';
+  if (value === 100) return 'removed';
+  if (value === 153) return 'referer';
+  if (value === 2 || value === 5) return 'unplayable';
+  return 'unplayable';
+}
+
+/**
+ * Artwork without an API key: YouTube publishes a stable thumbnail per video
+ * id, and imported Spotify rows carry the cover from the embed payload.
+ */
+export function artFor(track: Pick<PlayerTrack, 'origin' | 'sourceId' | 'art'>): string {
+  if (track.art) return track.art;
+  if (track.origin === 'youtube' && track.sourceId && /^[A-Za-z0-9_-]{11}$/.test(track.sourceId)) {
+    return `https://i.ytimg.com/vi/${track.sourceId}/mqdefault.jpg`;
+  }
+  return '';
 }
 
 export type PlatformId = 'youtube' | 'spotify' | 'twitch' | 'soundcloud' | 'vimeo';

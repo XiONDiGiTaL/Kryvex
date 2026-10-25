@@ -16,6 +16,7 @@ import type {
   WallpaperImage,
 } from './types';
 import { applyBaseTokens, applyTheme, getTheme, isThemeId } from './lib/themes';
+import { applyTypography } from './lib/typography';
 import {
   addBookmark as addBookmarkToState,
   addFeeds as addFeedsToState,
@@ -23,6 +24,7 @@ import {
   addService as addServiceToState,
   clearHistory as clearHistoryFromState,
   markOpened,
+  moveService,
   newState,
   removeBookmark as removeBookmarkFromState,
   removeFeed as removeFeedFromState,
@@ -328,6 +330,12 @@ export default function App() {
   useEffect(() => {
     applyTheme(themeId, state.settings.customTheme);
   }, [themeId, state.settings.customTheme]);
+
+  // Declared after the theme effect so the user's text choices survive a theme
+  // switch: `applyTheme` also writes `--font-sans`.
+  useEffect(() => {
+    applyTypography(state.settings.typography);
+  }, [state.settings.typography, themeId, state.settings.customTheme]);
 
   useEffect(() => {
     document.documentElement.lang = i18n.language;
@@ -1057,6 +1065,9 @@ export default function App() {
           })
         }
         onServiceMenu={(service, point) => setServiceMenu({ service, point })}
+        onReorderPinned={(id, beforeId) =>
+          setState(current => moveService(current, id, beforeId))
+        }
       />
 
       <main className={`app-main ${activeService ? 'is-service' : ''}`}>

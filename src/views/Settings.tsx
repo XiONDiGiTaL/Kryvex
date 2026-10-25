@@ -65,6 +65,13 @@ import {
   enginesForRegion,
   searchEngine,
 } from '../lib/search-engines';
+import {
+  MAX_TEXT_SCALE,
+  MIN_TEXT_SCALE,
+  TEXT_SCALE_STEP,
+  TYPOGRAPHY_FONTS,
+} from '../lib/typography';
+import type { TypographyFont } from '../types';
 import { ColorPicker } from '../components/ColorPicker';
 import { ModelManager } from '../components/ModelManager';
 import { SettingsBlock } from '../components/SettingsBlock';
@@ -2293,6 +2300,85 @@ export function Settings({
         <p className="settings-copy">
           {t(
             'A parked service stays loaded at zero opacity; a paused one is asked to suspend but keeps its memory. Only “stop” closes it, and reopening then starts from scratch.',
+          )}
+        </p>
+      </SettingsBlock>
+
+      <SettingsBlock className="panel" title={t('Typography')} icon="sliders">
+        <div className="setting-row">
+          <div>
+            <strong>{t('Text size')}</strong>
+            <p>
+              {t(
+                'Scales every interface size together, from {min}% to {max}%. Embedded pages and media keep their own type.',
+                { min: MIN_TEXT_SCALE, max: MAX_TEXT_SCALE },
+              )}
+            </p>
+          </div>
+          <div className="type-scale">
+            <div className="segmented" role="group" aria-label={t('Text size')}>
+              {[90, 100, 110, 120, 130].map(value => (
+                <button
+                  key={value}
+                  type="button"
+                  className={settings.typography.scale === value ? 'is-active' : ''}
+                  aria-pressed={settings.typography.scale === value}
+                  onClick={() =>
+                    onUpdate({ typography: { ...settings.typography, scale: value } })
+                  }
+                >
+                  {value}%
+                </button>
+              ))}
+            </div>
+            <input
+              type="range"
+              min={MIN_TEXT_SCALE}
+              max={MAX_TEXT_SCALE}
+              step={TEXT_SCALE_STEP}
+              value={settings.typography.scale}
+              aria-label={t('Text size')}
+              onChange={event =>
+                onUpdate({
+                  typography: { ...settings.typography, scale: Number(event.target.value) },
+                })
+              }
+            />
+          </div>
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <strong>{t('Text style')}</strong>
+            <p>
+              {t(
+                'A curated set of families that is already installed, so nothing is downloaded and the change applies at once. Code keeps its monospace face.',
+              )}
+            </p>
+          </div>
+          <select
+            value={settings.typography.font}
+            aria-label={t('Text style')}
+            onChange={event =>
+              onUpdate({
+                typography: {
+                  ...settings.typography,
+                  font: event.target.value as TypographyFont,
+                },
+              })
+            }
+          >
+            {TYPOGRAPHY_FONTS.map(font => (
+              <option key={font.id} value={font.id}>
+                {font.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <p className="settings-copy type-preview">
+          {t(
+            'The quick brown fox jumps over the lazy dog — 0123456789. This line uses the current size and family.',
           )}
         </p>
       </SettingsBlock>
