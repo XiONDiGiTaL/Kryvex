@@ -51,13 +51,25 @@ wizard capture below:
 
 `release/win-unpacked/Kryvex.exe` reports `ProductVersion 0.9.3.0`, the packaged
 renderer bundle carries `Vexium Core is starting…`, and the build log records no
-EPERM. The published pair is built on `windows-latest` by the workflow from the
-same sources; its byte counts and digests do not exist until that run finishes,
-so they are recorded in a follow-up commit rather than here. The two pairs differ
-only by the build environment. Both EXEs are **unsigned**, and the updater
-ignores a release whose installer has no matching `SHA256SUMS.txt` entry. No
-model weights are bundled: the 2.1 GB core is fetched once, on the user's press,
-from the Vexium Core release.
+EPERM.
+
+The tag-triggered workflow (run
+[40217680729](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40217680729),
+commit `a0740a9`) built the published pair on `windows-latest` from the same
+sources and attached it to the published, stable release:
+
+| File | Published size | Published SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.3-x64.exe` | 134,314,638 B (128.09 MiB) | `1cb7cddb02c350a4cf6d60b594b8a42d052fbafc8ebd5cd0a243de0bfaf3cc88` |
+| `Kryvex-Portable-0.9.3-x64.exe` | 134,077,422 B (127.87 MiB) | `9a49b3633fed6afbcfee1e89e802215f38253822189b5e2926e1a14ed23d3911` |
+
+Both published EXEs were downloaded from `releases/download/v0.9.3/`,
+`sha256sum -c SHA256SUMS.txt` verifies both (the file is 189 B), and each
+reports `ProductVersion 0.9.3`. They differ from the local pair only by the
+build environment. Both EXEs are **unsigned**, and the updater ignores a release
+whose installer has no matching checksum entry. No model weights are bundled:
+the 2.1 GB core is fetched once, on the user's press, from the Vexium Core
+release.
 
 ## Install
 
@@ -85,7 +97,15 @@ from the Vexium Core release.
   captured, the install page ran for 19,685 ms, the installer exited 0, the
   capture was archived under `docs/media/releases/0.9.3-wizard/`, and the
   installed `C:\Kryvex\Kryvex.exe` now reports `ProductVersion 0.9.3.0`.
-- `pnpm release:check`: PASS for 0.9.3.
+- `pnpm release:check`: PASS for 0.9.3, 11/11.
+- **The tag-triggered workflow** (run
+  [40217680729](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40217680729))
+  finished **success**: tag/`package.json` check, `release:check`, `audit:deps`,
+  typecheck, tests, one-time-code relay, `package:win`, checksums and publish.
+  `v0.9.3` is published, stable, with the Setup, Portable and `SHA256SUMS.txt`
+  assets.
+- **The published artifacts**: both EXEs downloaded from the release, both
+  digests match `SHA256SUMS.txt`, and both report `ProductVersion 0.9.3`.
 
 ## Wizard capture
 
