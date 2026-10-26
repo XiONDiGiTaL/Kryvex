@@ -69,12 +69,20 @@ function download(blob: Blob, name: string): void {
  */
 export function ScreenCaptureWidget({
   home,
+  pulse = 0,
   onUpdate,
 }: {
   home: HomeSettings;
+  /**
+   * Incremented by the header's capture button. The card is the flow — choose a
+   * target, take the still or start the recording — so the answer is to bring
+   * itself into view and put the picker under the keyboard, which is what a
+   * snipping tool does when it is invoked from a toolbar.
+   */
+  pulse?: number;
   onUpdate: (patch: Partial<HomeSettings>) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const bridge = typeof window === 'undefined' ? undefined : window.kryvex;
   const [sources, setSources] = useState<PartySource[] | null>(null);
   const [target, setTarget] = useState('');
@@ -84,24 +92,58 @@ export function ScreenCaptureWidget({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const root = useRef<HTMLDivElement | null>(null);
+  const picker = useRef<HTMLSelectElement | null>(null);
+  const [prompted, setPrompted] = useState(false);
   const recorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const chunks = useRef<Blob[]>([]);
   const startedAt = useRef(0);
 
-  const loadSources = useCallback(async () => {
-    if (!bridge) return;
-    try {
-      const list = (await bridge.partySources()) as PartySource[];
-      setSources(Array.isArray(list) ? list : []);
-    } catch {
-      setSources([]);
-    }
-  }, [bridge]);
+  /**
+   * The targets, with one retry.
+   *
+   * The first ask can land before the app's window is painted — which is
+   * exactly when the header's capture button arrives — and desktopCapturer then
+   * answers with nothing. One short retry turns an empty picker into a list
+   * without making the button wait.
+   */
+  const pulling = useRef(false);
+  const loadSources = useCallback(
+    async (attempt = 0) => {
+      if (!bridge || pulling.current) return;
+      pulling.current = true;
+      let value: PartySource[] = [];
+      try {
+        const list = (await bridge.partySources()) as PartySource[];
+        value = Array.isArray(list) ? list : [];
+      } catch {
+        value = [];
+      }
+      pulling.current = false;
+      setSources(value);
+      if (value.length === 0 && attempt === 0) {
+        window.setTimeout(() => void loadSources(1), 400);
+      }
+    },
+    [bridge],
+  );
 
   useEffect(() => {
     void loadSources();
   }, [loadSources]);
+
+  // A pulse means the user asked for the tool from elsewhere in the app. The
+  // first render (pulse 0) is the card just being on the board, not a request.
+  useEffect(() => {
+    if (!pulse) return;
+    void loadSources();
+    root.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    picker.current?.focus();
+    setPrompted(true);
+    const timer = window.setTimeout(() => setPrompted(false), 1_600);
+    return () => window.clearTimeout(timer);
+  }, [pulse, loadSources]);
 
   const stopStream = useCallback(() => {
     const live = stream.current;
@@ -183,6 +225,31 @@ export function ScreenCaptureWidget({
     setNotice(null);
   }
 
+  /**
+   * A finished capture opens in its own window, the way a snipping tool shows
+   * what it just took. The card keeps the thumbnail so the board still says what
+   * happened, but saving, copying and the saved path live with the picture.
+   */
+  const openInWindow = useCallback(
+    async (shot: Preview) => {
+      if (!bridge?.capturePreview) return;
+      try {
+        await bridge.capturePreview({
+          data: await blobToBase64(shot.blob),
+          name: shot.name,
+          kind: shot.kind,
+          width: shot.width,
+          height: shot.height,
+          target: shot.target,
+          language: locale,
+        });
+      } catch {
+        setError(t('The preview window could not be opened.'));
+      }
+    },
+    [bridge, locale, t],
+  );
+
   async function takeShot() {
     if (phase !== 'idle') return;
     setError(null);
@@ -225,7 +292,7 @@ export function ScreenCaptureWidget({
         canvas.toBlob(result => resolve(result), 'image/png'),
       );
       if (!blob) throw new Error('The frame could not be encoded');
-      setPreview({
+      const shot: Preview = {
         url: URL.createObjectURL(blob),
         blob,
         kind: 'shot',
@@ -233,7 +300,9 @@ export function ScreenCaptureWidget({
         height,
         name: captureFileName('shot', label),
         target: label,
-      });
+      };
+      setPreview(shot);
+      void openInWindow(shot);
     } catch (failure) {
       setError(t('That target could not be captured. Choose another and try again.'));
       void failure;
@@ -283,7 +352,7 @@ export function ScreenCaptureWidget({
           setError(t('The recording was empty. Try a longer clip.'));
           return;
         }
-        setPreview({
+        const clip: Preview = {
           url: URL.createObjectURL(blob),
           blob,
           kind: 'clip',
@@ -291,7 +360,9 @@ export function ScreenCaptureWidget({
           height: 0,
           name: captureFileName('clip', label),
           target: label,
-        });
+        };
+        setPreview(clip);
+        void openInWindow(clip);
       };
       // The OS "stop sharing" bar ends the track, not the recorder: stop both so
       // the clip is kept instead of hanging.
@@ -400,7 +471,7 @@ export function ScreenCaptureWidget({
   const canRecord = Boolean(targetValue) && phase === 'idle';
 
   return (
-    <div className="home-capture-tool">
+    <div ref={root} className={`home-capture-tool ${prompted ? 'is-prompted' : ''}`}>
       <div className="home-card-head">
         <span className="mono">{t('SCREEN CAPTURE')}</span>
         <span className="mono">
@@ -417,6 +488,7 @@ export function ScreenCaptureWidget({
       <div className="home-capture-pick">
         {bridge ? (
           <select
+            ref={picker}
             value={target}
             onChange={event => setTarget(event.target.value)}
             aria-label={t('What to capture')}
@@ -514,14 +586,31 @@ export function ScreenCaptureWidget({
             <span className="mono home-capture-target">{preview.target}</span>
           </div>
           <div className="home-capture-actions">
-            <button type="button" className="btn primary small" onClick={() => void save()} disabled={saving}>
-              <Icon name="download" size={13} /> {saving ? t('Saving…') : bridge ? t('Save as…') : t('Download')}
-            </button>
-            {bridge && preview.kind === 'shot' ? (
-              <button type="button" className="btn secondary small" onClick={() => void copy()}>
-                {t('Copy')}
+            {bridge ? (
+              <button
+                type="button"
+                className="btn primary small"
+                onClick={() => void openInWindow(preview)}
+              >
+                <Icon name="camera" size={13} /> {t('Open preview window')}
               </button>
-            ) : null}
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="btn primary small"
+                  onClick={() => void save()}
+                  disabled={saving}
+                >
+                  <Icon name="download" size={13} /> {saving ? t('Saving…') : t('Download')}
+                </button>
+                {preview.kind === 'shot' ? (
+                  <button type="button" className="btn secondary small" onClick={() => void copy()}>
+                    {t('Copy')}
+                  </button>
+                ) : null}
+              </>
+            )}
             <button type="button" className="btn ghost small" onClick={clear}>
               {t('Discard')}
             </button>

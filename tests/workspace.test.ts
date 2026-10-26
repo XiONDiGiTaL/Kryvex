@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_WORKSPACE } from '../src/lib/defaults';
+import { sanitizeWorkspace } from '../src/lib/store';
 import {
   MAX_WINDOW_Z,
   MIN_FLOAT_HEIGHT,
@@ -183,5 +185,29 @@ describe('workspace windows', () => {
     const second = floatWindow(floatWindow(first, 'b', space), 'a', space);
     expect(windowsOfKind(second, 'detached').sort()).toEqual(['a', 'b']);
     expect(second.a?.z).toBeGreaterThan(second.b?.z ?? 0);
+  });
+});
+
+describe('window motion settings', () => {
+  it('defaults to the subtle motion a fresh profile starts with', () => {
+    expect(DEFAULT_WORKSPACE).toEqual({ motion: 'subtle', motionSpeed: 1 });
+    expect(sanitizeWorkspace(undefined)).toEqual(DEFAULT_WORKSPACE);
+    expect(sanitizeWorkspace({})).toEqual(DEFAULT_WORKSPACE);
+  });
+
+  it('keeps the three motions and refuses anything else', () => {
+    for (const motion of ['none', 'subtle', 'bouncy'] as const) {
+      expect(sanitizeWorkspace({ motion, motionSpeed: 1 }).motion).toBe(motion);
+    }
+    expect(sanitizeWorkspace({ motion: 'spin' }).motion).toBe('subtle');
+    expect(sanitizeWorkspace({ motion: 7 }).motion).toBe('subtle');
+  });
+
+  it('clamps the speed to the range the keyframes were designed for', () => {
+    expect(sanitizeWorkspace({ motionSpeed: 4 }).motionSpeed).toBe(2);
+    expect(sanitizeWorkspace({ motionSpeed: 0.05 }).motionSpeed).toBe(0.5);
+    // Half steps only: a slider-free picker offers 0.5, 1, 1.5 and 2.
+    expect(sanitizeWorkspace({ motionSpeed: 1.26 }).motionSpeed).toBe(1.5);
+    expect(sanitizeWorkspace({ motionSpeed: 'fast' }).motionSpeed).toBe(1);
   });
 });

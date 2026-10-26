@@ -103,7 +103,7 @@ export function WorldClockWidget({
   }
 
   return (
-    <div className="home-clock">
+    <div className="home-world-clock">
       <div className="home-card-head">
         <span className="mono">{t('WORLD CLOCK')}</span>
         <button

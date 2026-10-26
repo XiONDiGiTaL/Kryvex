@@ -175,6 +175,29 @@ async function main() {
   record('an unpaired device list is empty', Array.isArray(status.devices) && status.devices.length === 0);
   record('a pairing code is ready', /^\d{6}$/.test(String(status.code)), `code ${status.code}`);
 
+  // The phone setup card shows the adapter each address belongs to, so the
+  // status has to carry both the ranked URLs and their labels.
+  const links = Array.isArray(status.links) ? status.links : [];
+  record(
+    'every address is labelled with its adapter',
+    links.length > 0 &&
+      links.length === status.urls.length &&
+      links.every(
+        link =>
+          typeof link.url === 'string' &&
+          typeof link.name === 'string' &&
+          link.name.length > 0 &&
+          typeof link.likely === 'boolean',
+      ) &&
+      links.map(link => link.url).join('|') === status.urls.join('|'),
+    links.map(link => `${link.address} ${link.name}${link.likely ? ' (likely)' : ''}`).join(', '),
+  );
+  record(
+    'the reachable adapter is listed first',
+    links.length === 0 || links[0].likely === true || links.every(link => !link.likely),
+    links[0] ? `${links[0].address} ${links[0].name}` : 'none',
+  );
+
   // The page a phone opens, and the bundle behind it.
   const html = await fetch(`${base}/`).then(response => response.text());
   record('the companion page is served', html.includes('Kyvex Link') && html.includes('<div id="companion">'));

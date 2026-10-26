@@ -86,6 +86,30 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
     'Reset session & retry': 'Borrar sesión y reintentar',
     'Open in my browser': 'Abrir en mi navegador',
     Dismiss: 'Descartar',
+
+    'Likely your network': 'Probablemente tu red',
+    'Virtual adapter: a phone usually cannot reach this one':
+      'Adaptador virtual: un teléfono normalmente no puede acceder a esta',
+    'Can’t connect from the phone?': '¿No conecta desde el teléfono?',
+    'Both devices must be on the same Wi-Fi or Ethernet network, and Kryvex must be allowed through the firewall on private networks. VPN and virtual adapters cannot reach the phone, so use the address marked as your network.':
+      'Ambos dispositivos deben estar en la misma red Wi-Fi o Ethernet, y Kryvex debe estar permitido en el cortafuegos para redes privadas. Las VPN y los adaptadores virtuales no llegan al teléfono, así que usa la dirección marcada como tu red.',
+
+    'Clock style': 'Estilo del reloj',
+    'Show the clock': 'Mostrar el reloj',
+    Bare: 'Suelto',
+    Card: 'Tarjeta',
+    'Clock radio': 'Radio-reloj',
+    Colour: 'Color',
+    Font: 'Fuente',
+    'Clock font': 'Fuente del reloj',
+    Muted: 'Atenuado',
+    Capture: 'Capturar',
+    'Capture the screen, a service or a window': 'Captura la pantalla, un servicio o una ventana',
+    'Window animation': 'Animación de ventanas',
+    Subtle: 'Sutil',
+    Bouncy: 'Con rebote',
+    None: 'Ninguna',
+    'Animation speed': 'Velocidad de la animación',
   },
   de: {
     'MY FILTERS': 'MEINE FILTER',
@@ -164,6 +188,30 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
     'Reset session & retry': 'Sitzung löschen und erneut versuchen',
     'Open in my browser': 'In meinem Browser öffnen',
     Dismiss: 'Ausblenden',
+
+    'Likely your network': 'Wahrscheinlich dein Netzwerk',
+    'Virtual adapter: a phone usually cannot reach this one':
+      'Virtueller Adapter: ein Telefon erreicht diese Adresse meist nicht',
+    'Can’t connect from the phone?': 'Keine Verbindung vom Telefon?',
+    'Both devices must be on the same Wi-Fi or Ethernet network, and Kryvex must be allowed through the firewall on private networks. VPN and virtual adapters cannot reach the phone, so use the address marked as your network.':
+      'Beide Geräte müssen im selben WLAN- oder Ethernet-Netz sein, und Kryvex muss in der Firewall für private Netzwerke zugelassen sein. VPN- und virtuelle Adapter erreichen das Telefon nicht, nimm also die als dein Netzwerk markierte Adresse.',
+
+    'Clock style': 'Uhrstil',
+    'Show the clock': 'Uhr anzeigen',
+    Bare: 'Frei',
+    Card: 'Karte',
+    'Clock radio': 'Radiouhr',
+    Colour: 'Farbe',
+    Font: 'Schrift',
+    'Clock font': 'Schrift der Uhr',
+    Muted: 'Gedämpft',
+    Capture: 'Aufnehmen',
+    'Capture the screen, a service or a window': 'Bildschirm, Dienst oder Fenster aufnehmen',
+    'Window animation': 'Fensteranimation',
+    Subtle: 'Dezent',
+    Bouncy: 'Federnd',
+    None: 'Keine',
+    'Animation speed': 'Animationsgeschwindigkeit',
   },
   fr: {
     'MY FILTERS': 'MES FILTRES',
@@ -242,5 +290,29 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
     'Reset session & retry': 'Réinitialiser la session et réessayer',
     'Open in my browser': 'Ouvrir dans mon navigateur',
     Dismiss: 'Ignorer',
+
+    'Likely your network': 'Probablement votre réseau',
+    'Virtual adapter: a phone usually cannot reach this one':
+      'Adaptateur virtuel : un téléphone ne peut généralement pas l’atteindre',
+    'Can’t connect from the phone?': 'Pas de connexion depuis le téléphone ?',
+    'Both devices must be on the same Wi-Fi or Ethernet network, and Kryvex must be allowed through the firewall on private networks. VPN and virtual adapters cannot reach the phone, so use the address marked as your network.':
+      'Les deux appareils doivent être sur le même réseau Wi-Fi ou Ethernet, et Kryvex doit être autorisé dans le pare-feu pour les réseaux privés. Les VPN et les adaptateurs virtuels n’atteignent pas le téléphone : utilisez l’adresse indiquée comme votre réseau.',
+
+    'Clock style': 'Style de l’horloge',
+    'Show the clock': 'Afficher l’horloge',
+    Bare: 'Libre',
+    Card: 'Carte',
+    'Clock radio': 'Radio-réveil',
+    Colour: 'Couleur',
+    Font: 'Police',
+    'Clock font': 'Police de l’horloge',
+    Muted: 'Atténué',
+    Capture: 'Capturer',
+    'Capture the screen, a service or a window': 'Capturer l’écran, un service ou une fenêtre',
+    'Window animation': 'Animation des fenêtres',
+    Subtle: 'Discrète',
+    Bouncy: 'Rebondissante',
+    None: 'Aucune',
+    'Animation speed': 'Vitesse de l’animation',
   },
 };

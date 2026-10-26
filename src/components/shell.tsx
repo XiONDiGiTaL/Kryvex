@@ -56,6 +56,7 @@ export function Header({
   onUpdate,
   onResources,
   resourcesOpen = false,
+  onCapture,
   update = null,
   isElectron,
   mark = 'kx',
@@ -69,6 +70,8 @@ export function Header({
   onUpdate?: () => void;
   onResources?: () => void;
   resourcesOpen?: boolean;
+  /** Jump to the screen-capture tool from anywhere in the app. */
+  onCapture?: () => void;
   update?: { available: boolean; ready: boolean; version?: string } | null;
   isElectron: boolean;
   mark?: ThemeMarkKind;
@@ -125,6 +128,16 @@ export function Header({
             >
               <Icon name="monitor" size={14} />
               <span>{t('Activity')}</span>
+            </button>
+          ) : null}
+          {onCapture ? (
+            <button
+              className="header-tool"
+              onClick={onCapture}
+              title={t('Capture the screen, a service or a window')}
+            >
+              <Icon name="camera" size={14} />
+              <span>{t('Capture')}</span>
             </button>
           ) : null}
           <button className="header-tool" onClick={onAdd} title={t('Add a service')}>

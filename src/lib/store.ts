@@ -25,6 +25,8 @@ import type {
   VpnSettings,
   WallpaperFit,
   WallpaperSettings,
+  WindowMotion,
+  WorkspaceSettings,
   WellnessActivity,
   WellnessDay,
   WellnessProfile,
@@ -34,7 +36,9 @@ import type {
 } from '../types';
 import { LANGUAGE_SETTINGS } from '../types';
 import { BRAND_ICONS } from './brand-icons';
+import { isClockAccent, isClockStyle } from './clock-style';
 import { sanitizeChromium } from './chromium';
+import { isTypographyFont } from './typography';
 import {
   PEER_COLORS,
   sanitizeDisplayName,
@@ -45,6 +49,7 @@ import {
 import {
   DEFAULT_DISK,
   DEFAULT_LINK,
+  DEFAULT_WORKSPACE,
   DEFAULT_EMULATOR,
   DEFAULT_HOME,
   DEFAULT_LEXIUM,
@@ -445,6 +450,12 @@ export function sanitizeHome(raw: unknown): HomeSettings {
     countdowns: sanitizeCountdowns(raw.countdowns),
     worldClocks: sanitizeWorldClocks(raw.worldClocks),
     clockHour12: raw.clockHour12 === true,
+    // The clock predates these fields, so an older file keeps showing it; the
+    // look falls back to the default rather than to a value nobody chose.
+    showBoardClock: raw.showBoardClock === undefined ? base.showBoardClock : raw.showBoardClock === true,
+    clockStyle: isClockStyle(raw.clockStyle) ? raw.clockStyle : base.clockStyle,
+    clockAccent: isClockAccent(raw.clockAccent) ? raw.clockAccent : base.clockAccent,
+    clockFont: isTypographyFont(raw.clockFont) ? raw.clockFont : base.clockFont,
     screenCaptures: sanitizeScreenCaptures(raw.screenCaptures),
     guideSeen: raw.guideSeen === true || raw.momentumSeen === true,
   };
@@ -540,6 +551,26 @@ export function sanitizeDisk(raw: unknown): DiskSettings {
 }
 
 /**
+ * Window motion is presentation only, so a bad value falls back rather than
+ * failing the load. The speed is clamped to what the stylesheet's durations
+ * were designed for: slower than half, or faster than double, reads as broken.
+ */
+const WINDOW_MOTIONS: WindowMotion[] = ['none', 'subtle', 'bouncy'];
+
+export function sanitizeWorkspace(raw: unknown): WorkspaceSettings {
+  if (!isRecord(raw)) return { ...DEFAULT_WORKSPACE };
+  const speed = Number(raw.motionSpeed);
+  return {
+    motion: WINDOW_MOTIONS.includes(raw.motion as WindowMotion)
+      ? (raw.motion as WindowMotion)
+      : DEFAULT_WORKSPACE.motion,
+    motionSpeed: Number.isFinite(speed)
+      ? Math.min(2, Math.max(0.5, Math.round(speed * 2) / 2))
+      : DEFAULT_WORKSPACE.motionSpeed,
+  };
+}
+
+/**
  * Link is a boolean with one consequence, so anything but an explicit `true`
  * means off: a hand-edited state file cannot open a listening socket.
  */
@@ -609,6 +640,7 @@ function sanitizeSettings(raw: unknown, options: { localSpeech?: boolean } = {})
     secretServices:
       raw.secretServices === true || sanitizePinnedTools(raw.pinnedTools).length > 0,
     wallpaper: sanitizeWallpaper(raw.wallpaper),
+    workspace: sanitizeWorkspace(raw.workspace),
     assistant: sanitizeAssistant(raw.assistant),
     chromium: sanitizeChromium(raw.chromium),
     party: sanitizeParty(raw.party),

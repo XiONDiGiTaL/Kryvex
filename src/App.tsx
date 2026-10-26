@@ -41,6 +41,7 @@ import { shouldAutoStartCore } from './lib/vexium-core';
 import { clearWallpaper, importWallpaper, loadWallpaper } from './lib/wallpaper';
 import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
 import { makeId, partitionFor } from './lib/services';
+import { addScreenCapture } from './lib/screen-capture';
 import { SECRET_TOOL_LABELS } from './lib/secret-tools';
 import { totalUnread, unreadFromTitle, windowTitle } from './lib/unread';
 import { hostOf, resolveAddress } from './lib/url';
@@ -688,6 +689,28 @@ export default function App() {
     setState(current => updateSettings(current, patch));
   }, []);
 
+  /**
+   * The capture button in the header is the snipping tool from anywhere.
+   *
+   * A fresh profile keeps the capture widget off the board — it is one of the
+   * opt-in cards — so the button reveals it first, then goes Home and bumps a
+   * pulse. The widget answers the pulse by scrolling itself into view and
+   * focusing its target picker, which is the whole capture flow: choose what to
+   * capture, take the still or start the recording.
+   */
+  const [capturePulse, setCapturePulse] = useState(0);
+  const openCapture = useCallback(() => {
+    setState(current =>
+      current.settings.home.showCapture
+        ? current
+        : updateSettings(current, {
+            home: { ...current.settings.home, showCapture: true, showBoard: true },
+          }),
+    );
+    navigate('home');
+    setCapturePulse(value => value + 1);
+  }, [navigate]);
+
   const updateServiceFlags = useCallback((service: Service, patch: Partial<Service>) => {
     const next = { ...service, ...patch };
     setState(current => ({
@@ -792,6 +815,36 @@ export default function App() {
   const updateHome = useCallback((patch: Partial<SettingsModel['home']>) => {
     setState(current => updateSettings(current, { home: { ...current.settings.home, ...patch } }));
   }, []);
+
+  // The capture preview's "New capture" hands the user back to the field that
+  // takes one: Home, with the capture card showing, rather than a hidden widget.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex?.onCaptureAsk) return undefined;
+    return window.kryvex.onCaptureAsk(() => {
+      updateHome({ showCapture: true });
+      navigate('home');
+    });
+  }, [isElectron, navigate, updateHome]);
+
+  // A save taken in the capture window is a capture the board has seen, so the
+  // recent list stays the record of what this machine has kept.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex?.onCaptureSaved) return undefined;
+    return window.kryvex.onCaptureSaved(entry => {
+      setState(current =>
+        updateSettings(current, {
+          home: {
+            ...current.settings.home,
+            screenCaptures: addScreenCapture(current.settings.home.screenCaptures, {
+              ...entry,
+              id: makeId('cap'),
+              createdAt: Date.now(),
+            }),
+          },
+        }),
+      );
+    });
+  }, [isElectron]);
 
   const toggleResources = useCallback(() => {
     setResourcesOpen(value => !value);
@@ -1243,6 +1296,7 @@ export default function App() {
         title={title}
         view={route.view}
         onPalette={() => setPaletteOpen(true)}
+        onCapture={openCapture}
         onAdd={() => setDialog({ mode: 'new' })}
         onSettings={() => navigate('settings')}
         onHelp={() => setHelpOpen(true)}
@@ -1305,6 +1359,7 @@ export default function App() {
           mark={themeMark}
           canvas={route.view === 'workspace' ? canvas : null}
           windows={windows}
+          motion={state.settings.workspace}
           onBack={() => navigate('services')}
           onEdit={service => setDialog({ mode: 'edit', service })}
           onDelete={deleteService}
@@ -1381,6 +1436,7 @@ export default function App() {
             info={info}
             isElectron={isElectron}
             mark={themeMark}
+            capturePulse={capturePulse}
             onOpenService={openService}
             onAdd={() => setDialog({ mode: 'new' })}
             onNavigate={view => navigate(view)}
@@ -1415,12 +1471,18 @@ export default function App() {
         ) : route.view === 'workspace' ? (
           <Workspace
             windows={windows}
+            motion={state.settings.workspace}
             onRect={setCanvas}
             onAdd={() => setDialog({ mode: 'new', target: 'workspace' })}
             onDropService={(id, at) => {
               const service = state.services.find(item => item.id === id);
               if (service) openInWorkspace(service, at);
             }}
+            onMotion={patch =>
+              updateSettingsPatch({
+                workspace: { ...state.settings.workspace, ...patch },
+              })
+            }
           />
         ) : route.view === 'assistant' ? (
           <Assistant

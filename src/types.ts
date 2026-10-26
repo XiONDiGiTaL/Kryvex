@@ -243,6 +243,22 @@ export interface WallpaperSettings {
   veil: number;
 }
 
+/**
+ * How a service window arrives and leaves the Workspace.
+ *
+ * `subtle` is a short fade with a small rise, `bouncy` zooms the window in with
+ * a slight overshoot (the macOS-minimise feel), and `none` paints it instantly
+ * for anyone who finds motion distracting.
+ */
+export type WindowMotion = 'none' | 'subtle' | 'bouncy';
+
+/** Workspace window behaviour: the animation and how fast it plays. */
+export interface WorkspaceSettings {
+  motion: WindowMotion;
+  /** Speed multiplier for the animation: 1 is the designed duration. */
+  motionSpeed: number;
+}
+
 /** The stored background image, resolved at launch. */
 export type AssistantProvider = 'ollama' | 'lmstudio' | 'local';
 
@@ -528,6 +544,14 @@ export interface HomeSettings {
   worldClocks: WorldClockCity[];
   /** 12-hour rows when true, 24-hour when false. */
   clockHour12: boolean;
+  /** The board's own clock, the first thing the board draws. */
+  showBoardClock: boolean;
+  /** How that clock is laid out: no box, a card, or tracked mono. */
+  clockStyle: ClockStyle;
+  /** Which theme colour the time itself is drawn in. */
+  clockAccent: ClockAccent;
+  /** Family for the time only; the rest of the board keeps the UI font. */
+  clockFont: TypographyFont;
   /** Recent screen captures, newest first. Files live where the user saved them. */
   screenCaptures: ScreenCapture[];
   /** The in-house board guide opens once; it stays available afterwards. */
@@ -694,6 +718,15 @@ export interface PlayerSettings {
 export type TypographyFont = 'default' | 'system' | 'humanist' | 'serif' | 'mono';
 
 /**
+ * The board clock's three looks: free on the board, a bordered card, or the
+ * tracked monospace reading of a clock radio. Variety by choice, not one taste.
+ */
+export type ClockStyle = 'bare' | 'card' | 'mono';
+
+/** Which theme colour the time is drawn in. */
+export type ClockAccent = 'theme' | 'accent' | 'muted';
+
+/**
  * Global text appearance: one scale for every UI size token and one curated
  * family. It applies to Kryvex's own chrome, never inside an embedded page.
  */
@@ -730,6 +763,8 @@ export interface Settings {
   secretServices: boolean;
   /** Background image laid behind the workspace. */
   wallpaper: WallpaperSettings;
+  /** How service windows open, close and minimise on the Workspace. */
+  workspace: WorkspaceSettings;
   /** Local model runtime used by Vexium. */
   assistant: AssistantSettings;
   /** Chromium engine preferences for every embedded page. */
@@ -969,6 +1004,8 @@ export interface LinkStatusView {
   code: string;
   codeExpiresAt: number;
   urls: string[];
+  /** `urls` with the adapter each address belongs to, for the phone setup card. */
+  links?: Array<{ url: string; address: string; name: string; likely: boolean }>;
   folder: string;
   devices: Array<{
     /** Public handle for unpairing; not the device's token. */
@@ -1143,6 +1180,30 @@ export interface KryvexBridge {
   captureCopy: (data: string) => Promise<boolean>;
   /** Reveal a saved capture in Explorer. */
   captureReveal: (path: string) => Promise<boolean>;
+  /** Show a fresh capture in its own preview window, like a snipping tool. */
+  capturePreview: (request: {
+    data: string;
+    name: string;
+    kind: CaptureKind;
+    width: number;
+    height: number;
+    target: string;
+    language: string;
+  }) => Promise<{ ok: boolean; message?: string }>;
+  /** The preview window asked for another capture; the board should answer. */
+  onCaptureAsk: (listener: () => void) => () => void;
+  /** A save taken in the preview window, for the board's recent list. */
+  onCaptureSaved: (
+    listener: (entry: {
+      kind: CaptureKind;
+      name: string;
+      path: string;
+      bytes: number;
+      width: number;
+      height: number;
+      target: string;
+    }) => void,
+  ) => () => void;
   attention: (active: boolean) => void;
   onOpenUrl: (listener: (url: string) => void) => () => void;
   updateStatus: () => Promise<UpdateStatus | null>;

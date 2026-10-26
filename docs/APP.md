@@ -129,11 +129,67 @@ and merely stops painting it (opacity, `inert`, no pointer events), which is the
 same bargain as a parked module; the tray at the bottom of the canvas restores
 it.
 
+**Motion.** A window arrives and leaves with an animation chosen on the
+Workspace itself (`settings.workspace = { motion, motionSpeed }`, panel in the
+Workspace bar): `subtle` is a 170 ms fade with an 8 px rise, `bouncy` is a 260 ms
+scale with a slight overshoot, and `none` paints instantly. The frame reads the
+duration from `--window-motion`, which is the base duration divided by the speed
+(0.5×–2×), so the stylesheet owns the shape and the setting owns only the timing.
+Close waits out the exit animation before the shell drops the record; the guest is
+never remounted for either. `prefers-reduced-motion` switches all of it off
+regardless of the setting.
+
 **Not persisted.** Window geometry is session state like `openIds`: a window that
 reappeared at a stale coordinate after a restart would be worse than one that
 opens where the surface puts it. In the web build there is no `<webview>`, so the
 frame shows the usual "open in this browser" card; the canvas, its drop target
 and the window chrome still work.
+
+**The header's Capture button.** The same tool is one click from anywhere: it
+reveals the Home capture card if the profile hides it (the card is opt-in),
+navigates Home and bumps a pulse the card answers by scrolling itself into view,
+ringing once and focusing its target picker. The card stays the place for the
+target list, the still/record buttons and the recent captures.
+
+## Capture preview window
+
+A finished capture opens in a native window of its own, the way a snipping tool
+shows what it just took. The Home card is a postage stamp for deciding whether to
+keep a picture, so it keeps only a thumbnail and the recent list.
+
+| Piece | Where |
+| --- | --- |
+| Trigger | `ScreenCaptureWidget` sends the bytes over `kryvex:capture:preview` |
+| Window | `electron/capture-window.ts`, loading `capture.html` |
+| Page | `src/capture-preview/`, its own strings and stylesheet |
+| Bridge | `electron/capture-window-preload.ts` → `window.kryvexCapture` |
+| Rules | `electron/capture-window-rules.ts`: kind, language, dimensions, window size |
+
+The payload, the controls and the file:
+
+- the still or clip is written once, to `%TEMP%\kryvex-captures`, under an id the
+  page is never given; the page receives a `file://` URL of its own payload and is
+  deleted when the window closes;
+- the window opens at the picture's shape, clamped to 82% of the work area and to
+  1180×820, with a default frame for recordings, which report no size;
+- **Save as…** opens the native dialog on `Downloads\Kryvex Captures`; main
+  copies the temp payload there and reports the path back, so the window can
+  print it and offer **Show in folder**; the shell is told too, so the board's
+  recent list records a save it never saw;
+- **Copy** puts a still on the clipboard through `clipboard.write([ClipboardItem])`
+  (Electron 44 dropped `writeImage`); a recording has no single frame, so the
+  button is disabled for it;
+- **Always on top** pins the window (level `floating`), **Actual size** switches
+  between fit and 100%, and **New capture** closes the window, focuses the shell
+  and sends `kryvex:capture:ask`, which switches the card on and moves to Home;
+- **Esc** closes and **Ctrl+S** saves.
+
+Security: the window is a sandboxed, context-isolated page on a throwaway
+in-memory partition, with no Node, no webview and no navigation allowed. Its
+preload exposes seven calls that name nothing but the capture main already holds,
+and each handler checks `event.sender` against that window. The shell is the only
+other sender allowed to open it. The web build has no main process, so the card
+keeps its browser download path there instead.
 
 ## State
 
@@ -180,12 +236,13 @@ Persistence rules:
   derived from that log on read, so there is no second total to drift, and
   `sanitizeWellness` refuses to show the widget without a completed intake.
 - The Home board widgets live under `settings.home` beside their on/off flags:
-  `captures` (quick-capture inbox, newest first, 40 items), `countdowns`
-  (soonest first, 8 items, each date-only or exact-time) and `worldClocks`
-  (IANA zone names, up to 4). Each list is sanitized on load, so a hand-edited
-  file cannot grow a widget past its cap or inject an unknown zone or kind. The
-  calculator, capture box, countdowns and clock start switched off: only the
-  clock, weather, guide and converter are on for a new workspace.
+  `screenCaptures` (recent captures the user saved, newest first, 12 items),
+  `countdowns` (soonest first, 8 items, each date-only or exact-time),
+  `worldClocks` (places with a city, country and IANA zone, up to 4) and
+  `clockHour12`. Each list is sanitized on load, so a hand-edited file cannot
+  grow a widget past its cap or inject an unknown zone or kind. The calculator,
+  capture card, countdowns and clock start switched off: only the clock, weather,
+  guide and converter are on for a new workspace.
 - The water reminder reads `waterAt` on the day it belongs to. Logging a glass
   silences it for 90 minutes, because a nudge that survives the drink the user
   just logged reads as a stuck card rather than a reminder.
@@ -513,6 +570,10 @@ renderer mounted. Kryvex never changes the system default silently.
 | `kryvex:update:reveal` | renderer → main | shell sender, downloaded path only |
 | `kryvex:update:release-page` | renderer → main | shell sender, GitHub release page |
 | `kryvex:update:changed` | main → renderer | phase, versions, progress, error code |
+| `kryvex:capture:preview` | renderer → main | shell sender, base64 validated by `capture-rules`, written to the temp folder only |
+| `kryvex:capture:window:info` / `:save` / `:copy` / `:reveal` | preview window → main | preview sender only, the capture it is already showing |
+| `kryvex:capture:window:pin` / `:new` / `:close` | preview window → main | preview sender only, boolean or no payload |
+| `kryvex:capture:ask` / `kryvex:capture:saved` | main → renderer | no payload / the saved capture's display fields |
 
 ## Security decisions
 

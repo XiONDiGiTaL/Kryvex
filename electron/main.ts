@@ -33,6 +33,7 @@ import { modelManager } from './model-download';
 import { notifications } from './notifications';
 import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
 import { captureTools } from './capture-tools';
+import { captureWindow } from './capture-window';
 import { playlistImporter } from './playlist';
 import { playerEmbed } from './player-embed';
 import * as lexiumProxy from './lexium-proxy';
@@ -438,8 +439,11 @@ function createWindow(): BrowserWindow {
 
   const contents = win.webContents;
   shellContents = contents;
+  // The capture preview hands the user back here for "New capture".
+  captureWindow.attachShell(win);
   win.on('closed', () => {
     if (shellContents === contents) shellContents = null;
+    captureWindow.attachShell(null);
     mainWindow = null;
     updater.dispose();
     assistant.dispose();
@@ -774,6 +778,12 @@ function registerIpc(): void {
   );
   ipcMain.handle('kryvex:capture:reveal', (event, target: unknown) =>
     isShellSender(event) ? captureTools.reveal(target) : false,
+  );
+  // A preview gets a window of its own, built from the same bytes the save path
+  // already validates. The window's own actions are registered by its module.
+  captureWindow.registerIpc();
+  ipcMain.handle('kryvex:capture:preview', (event, request: unknown) =>
+    isShellSender(event) ? captureWindow.open(request) : { ok: false, message: 'Untrusted sender.' },
   );
   ipcMain.handle('kryvex:weather:lookup', (event, city: unknown, unit: unknown) =>
     isShellSender(event) ? weather.lookup(city, unit) : { ok: false, error: 'invalid' },

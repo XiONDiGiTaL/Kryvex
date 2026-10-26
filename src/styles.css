@@ -1740,6 +1740,43 @@ kbd {
   letter-spacing: 0.16em;
 }
 
+/*
+ * The motion panel. It sits above the canvas and below the window band, so it is
+ * reachable while windows are open but a window can never cover it.
+ */
+.workspace-motion {
+  position: relative;
+  z-index: 24;
+  margin: 8px 18px 0;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: flex-start;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.workspace-motion-label {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.workspace-motion-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.workspace-motion-row .btn.is-active {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
 .workspace-canvas {
   position: relative;
   flex: 1;
@@ -1839,6 +1876,79 @@ kbd {
 .service-stage.is-canvas .service-frame.is-window.is-minimized {
   opacity: 0;
   pointer-events: none;
+}
+
+/*
+ * Window motion. The duration arrives as `--window-motion` from the frame's own
+ * settings, so the stylesheet owns the shape of the movement and the Workspace
+ * owns how long it lasts. Both window kinds share these rules: a module floated
+ * over the app arrives the same way a canvas window does.
+ */
+@keyframes kx-window-in-subtle {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes kx-window-in-bouncy {
+  0% {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes kx-window-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+.service-frame[data-motion] {
+  /* Minimise and restore fade through the same duration as the open. */
+  transition: opacity var(--window-motion, 160ms) ease;
+}
+
+.service-frame[data-motion='subtle'].is-opening {
+  animation: kx-window-in-subtle var(--window-motion, 170ms) ease-out both;
+}
+
+.service-frame[data-motion='bouncy'].is-opening {
+  animation: kx-window-in-bouncy var(--window-motion, 260ms) cubic-bezier(0.22, 0.9, 0.3, 1.1) both;
+}
+
+.service-frame[data-motion].is-closing {
+  animation: kx-window-out var(--window-motion, 170ms) ease-in both;
+  pointer-events: none;
+}
+
+/* A minimise transition needs the frame painted to animate at all. */
+.service-stage.is-canvas .service-frame.is-window.is-minimized[data-motion='none'] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .service-frame[data-motion] {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* The actions a window moved out of its title bar live in its options panel. */

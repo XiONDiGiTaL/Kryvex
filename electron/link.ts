@@ -15,10 +15,10 @@ import {
   deviceLabel,
   isLinkCommand,
   isLinkToken,
+  describeLinkAddresses,
   isPrivateAddress,
   linkableUrl,
   makePairCode,
-  rankLinkAddresses,
   uniqueFileName,
   type LinkCommand,
 } from './link-rules';
@@ -227,13 +227,15 @@ class LinkService {
 
   status(): LinkStatus {
     const port = this.server?.boundPort ?? LINK_PORT_FIRST;
+    const links = describeLinkAddresses(this.localAddresses(), port);
     return {
       enabled: this.enabled,
       running: Boolean(this.server?.listening),
       port,
       code: this.code,
       codeExpiresAt: this.codeAt + LINK_CODE_TTL_MS,
-      urls: rankLinkAddresses(this.localAddresses()).map(address => `http://${address}:${port}/`),
+      urls: links.map(link => link.url),
+      links,
       folder: this.folder,
       devices: this.devices.map(device => ({
         id: device.id || deviceId(device.token),
@@ -253,21 +255,21 @@ class LinkService {
   }
 
   /**
-   * Every non-loopback IPv4 on this machine. A phone cannot reach 127.0.0.1, so
-   * the URL list is what the user types; the first private address is the one
-   * the view leads with.
+   * Every non-loopback IPv4 on this machine, with the adapter it belongs to. A
+   * phone cannot reach 127.0.0.1, so this list is what the user types; the
+   * adapter name is what lets the view say which one is the Wi-Fi.
    */
-  private localAddresses(): string[] {
-    const addresses: string[] = [];
+  private localAddresses(): Array<{ address: string; name: string }> {
+    const rows: Array<{ address: string; name: string }> = [];
     const interfaces = os.networkInterfaces();
-    for (const rows of Object.values(interfaces)) {
-      for (const row of rows ?? []) {
+    for (const [name, entries] of Object.entries(interfaces)) {
+      for (const row of entries ?? []) {
         if (row.family !== 'IPv4' || row.internal) continue;
         if (!isPrivateAddress(row.address)) continue;
-        addresses.push(row.address);
+        rows.push({ address: row.address, name });
       }
     }
-    return addresses.length > 0 ? addresses : ['127.0.0.1'];
+    return rows.length > 0 ? rows : [{ address: '127.0.0.1', name: 'Loopback' }];
   }
 
   /** Accepts the device handle the view holds, or the token itself. */

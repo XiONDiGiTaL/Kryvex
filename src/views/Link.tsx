@@ -85,6 +85,17 @@ export function Link({
     return Math.max(0, Math.round((status.codeExpiresAt - now) / 1000));
   }, [now, status?.codeExpiresAt]);
 
+  /**
+   * `links` carries the adapter each address belongs to. An older main process
+   * only sends `urls`, so those are shown without the adapter hint rather than
+   * hidden.
+   */
+  const addresses = useMemo(() => {
+    if (!status) return [];
+    if (status.links?.length) return status.links;
+    return (status.urls ?? []).map(url => ({ url, address: url, name: '', likely: true }));
+  }, [status]);
+
   const act = useCallback(
     async (run: () => Promise<unknown>, message: string) => {
       setBusy(true);
@@ -196,17 +207,31 @@ export function Link({
 
         <article className="link-card">
           <p className="mono link-kicker">{t('OPEN THIS ON THE PHONE')}</p>
-          {status?.urls?.length ? (
+          {addresses.length ? (
             <ul className="link-urls">
-              {status.urls.map(url => (
-                <li key={url}>
-                  <code className="mono">{url}</code>
+              {addresses.map(link => (
+                <li key={link.url} className={link.likely ? '' : 'is-virtual'}>
+                  <div className="link-url-main">
+                    <code className="mono">{link.url}</code>
+                    {link.name ? (
+                      <span className="link-url-meta">
+                        <span className="mono link-adapter">{link.name}</span>
+                        <span className={`link-tag ${link.likely ? 'is-primary' : ''}`}>
+                          {link.likely
+                            ? t('Likely your network')
+                            : t('Virtual adapter: a phone usually cannot reach this one')}
+                        </span>
+                      </span>
+                    ) : null}
+                  </div>
                   <button
                     className="icon-btn"
                     title={t('Copy')}
-                    aria-label={t('Copy {value}', { value: url })}
+                    aria-label={t('Copy {value}', { value: link.url })}
                     onClick={() => {
-                      void navigator.clipboard?.writeText(url).then(() => onToast(t('Copied.'), 'info'));
+                      void navigator.clipboard
+                        ?.writeText(link.url)
+                        .then(() => onToast(t('Copied.'), 'info'));
                     }}
                   >
                     <Icon name="copy" size={14} />
@@ -222,6 +247,14 @@ export function Link({
             <li>{t('Type the pairing code.')}</li>
             <li>{t('Add the page to the home screen for an icon.')}</li>
           </ol>
+          <details className="link-help">
+            <summary>{t('Can’t connect from the phone?')}</summary>
+            <p className="hint">
+              {t(
+                'Both devices must be on the same Wi-Fi or Ethernet network, and Kryvex must be allowed through the firewall on private networks. VPN and virtual adapters cannot reach the phone, so use the address marked as your network.',
+              )}
+            </p>
+          </details>
         </article>
 
         <article className="link-card">

@@ -14,8 +14,10 @@ x534). Its switch is the only thing that opens a socket.
 ## Pairing
 
 1. Turn the link on. Kryvex starts listening and shows a **six-digit code**.
-2. Open the first address in the list on the phone, in any browser. The address
-   is this computer on your own network, e.g. `http://192.168.1.42:43110/`.
+2. Open the address on the phone, in any browser. The list shows every adapter
+   this computer has, with the one to use first marked **Likely your network** —
+   e.g. `http://192.168.1.42:43110/` on *Wi-Fi*. Adapters that a phone cannot
+   reach are kept in the list but marked as virtual.
 3. Type the code. The phone is paired, and the code is retired immediately — the
    next phone needs the next code.
 4. Optional: *Add to home screen* gives the page an icon (the x534 tile) and a
@@ -25,6 +27,24 @@ x534). Its switch is the only thing that opens a socket.
 A code lasts five minutes and a new one is one click away. Guessing is limited
 to five attempts per source address per minute, which is what makes six digits
 enough: a full sweep would take days rather than minutes.
+
+## When the phone cannot connect
+
+The list is longer than "the machine's address" because a computer usually has
+several: Wi-Fi, Ethernet, a VPN tunnel, a VirtualBox or WSL host-only adapter.
+A phone can only reach the one whose adapter is on the same network, and the
+first private address is not always it. The view marks that one and labels the
+rest, so the fix is to use the tagged address rather than any address.
+
+| Symptom | Cause |
+| --- | --- |
+| Page never loads, then `ERR_CONNECTION_ABORTED` or a timeout | The address belongs to a virtual adapter, or the phone is on mobile data or the guest Wi-Fi. Both devices must be on the same Wi-Fi or Ethernet network. |
+| Loads on the desktop but not the phone | Windows Firewall is dropping the inbound connection. Allow Kryvex on **private** networks when Windows asks, or add a rule for the port shown in the view. |
+| Loads, then the code is refused | The code expires after five minutes; issue a new one. |
+| Works, then stops after a restart | The switch is off, or the app reopened on a different network. The link only listens while its switch is on. |
+
+There is no relay, tunnel or port forwarding, so a phone on a different network
+cannot connect at all — that is the design, not a bug to work around.
 
 ## What a paired phone can do
 
@@ -94,7 +114,7 @@ door, not an account.
 
 | File | Role |
 | --- | --- |
-| `electron/link-rules.ts` | Every pure decision: ports, code shape, token shape, address policy, file-name rewriting, URL and command allowlists. |
+| `electron/link-rules.ts` | Every pure decision: ports, code shape, token shape, address policy, adapter ranking and labelling, file-name rewriting, URL and command allowlists. |
 | `electron/link-server.ts` | HTTP transport: routes, size caps, pairing rate limit, the SSE event stream, static serving of the companion bundle. |
 | `electron/link.ts` | The service: pairing list, clipboard sampling, the transfer folder, remote commands, notifications. |
 | `src/views/Link.tsx` | The desktop page: switch, code, addresses, devices, transfers. |

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   clampText,
   describeBytes,
+  describeLinkAddresses,
   deviceLabel,
   isLinkCommand,
   isLinkToken,
@@ -86,6 +87,36 @@ describe('address policy', () => {
       '192.168.1.42',
       '10.0.0.7',
       '127.0.0.1',
+    ]);
+  });
+
+  it('leads with the adapter a phone can actually reach', () => {
+    const links = describeLinkAddresses(
+      [
+        { address: '192.168.56.1', name: 'VirtualBox Host-Only Network' },
+        { address: '10.147.19.81', name: 'Tailscale' },
+        { address: '192.168.50.250', name: 'Wi-Fi' },
+        { address: '127.0.0.1', name: 'Loopback' },
+        { address: '192.168.50.250', name: 'Ethernet' },
+      ],
+      43110,
+    );
+    expect(links.map(link => link.url)).toEqual([
+      'http://192.168.50.250:43110/',
+      'http://192.168.56.1:43110/',
+      'http://10.147.19.81:43110/',
+      'http://127.0.0.1:43110/',
+    ]);
+    expect(links[0]).toMatchObject({ name: 'Wi-Fi', likely: true });
+    expect(links.slice(1, 3).every(link => !link.likely)).toBe(true);
+    // A duplicate address is listed once, under the first adapter that had it.
+    expect(links.filter(link => link.address === '192.168.50.250')).toHaveLength(1);
+  });
+
+  it('keeps an unnamed address usable instead of dropping it', () => {
+    const links = describeLinkAddresses([{ address: '192.168.1.20', name: '' }], 43110);
+    expect(links).toEqual([
+      { url: 'http://192.168.1.20:43110/', address: '192.168.1.20', name: 'Network', likely: true },
     ]);
   });
 

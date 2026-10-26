@@ -10,9 +10,11 @@ import type {
   HomeSettings,
   HomeWidgetArea,
   HomeWidgetId,
+  TypographyFont,
   WeatherResult,
 } from '../types';
 import { useI18n } from '../lib/i18n';
+import { CLOCK_ACCENTS, CLOCK_FONTS, CLOCK_STYLES, clockClasses, clockStyleVars } from '../lib/clock-style';
 import {
   HOME_WIDGETS,
   HOME_WIDGET_FLAGS,
@@ -115,10 +117,13 @@ function WeatherGlyph({
 
 export function HomeBoard({
   home,
+  capturePulse = 0,
   onUpdate,
   onOpenSettings,
 }: {
   home: HomeSettings;
+  /** Bumped by the header's capture button; forwarded to the capture widget. */
+  capturePulse?: number;
   onUpdate: (patch: Partial<HomeSettings>) => void;
   onOpenSettings: () => void;
 }) {
@@ -364,7 +369,9 @@ export function HomeBoard({
 
     if (id === 'calculator') return <CalculatorWidget />;
 
-    if (id === 'capture') return <ScreenCaptureWidget home={home} onUpdate={onUpdate} />;
+    if (id === 'capture') {
+      return <ScreenCaptureWidget home={home} pulse={capturePulse} onUpdate={onUpdate} />;
+    }
 
     if (id === 'countdown') return <CountdownWidget home={home} onUpdate={onUpdate} />;
 
@@ -491,11 +498,17 @@ export function HomeBoard({
 
       <div className="home-board-main">
         <div className="home-board-top">
-          <div className="home-clock">
-            <span className="home-greeting">{t(greeting(now.getHours()))}</span>
-            <strong className="home-time">{clock}</strong>
-            <span className="mono home-date">{date}</span>
-          </div>
+          {home.showBoardClock ? (
+            <div
+              className={clockClasses(home.clockStyle, home.clockAccent, home.clockFont)}
+              style={clockStyleVars(home.clockFont) as React.CSSProperties}
+              data-style={home.clockStyle}
+            >
+              <span className="home-greeting">{t(greeting(now.getHours()))}</span>
+              <strong className="home-time">{clock}</strong>
+              <span className="mono home-date">{date}</span>
+            </div>
+          ) : null}
 
           <div className="home-board-tools">
             <button
@@ -532,6 +545,58 @@ export function HomeBoard({
             <span className="mono home-widget-hint">
               {t('The number is the order. Arrows move a card in its column, and Main or Side moves it across.')}
             </span>
+            <div className="home-clock-style" role="group" aria-label={t('Clock style')}>
+              <div className="home-clock-style-row">
+                <span className="mono home-clock-style-label">{t('Clock style')}</span>
+                <button
+                  className={`chip-btn ${home.showBoardClock ? 'is-active' : ''}`}
+                  aria-pressed={home.showBoardClock}
+                  onClick={() => onUpdate({ showBoardClock: !home.showBoardClock })}
+                >
+                  {t('Show the clock')}
+                </button>
+              </div>
+              <div className="home-clock-style-row">
+                {CLOCK_STYLES.map(entry => (
+                  <button
+                    key={entry.id}
+                    className={`chip-btn ${home.clockStyle === entry.id ? 'is-active' : ''}`}
+                    aria-pressed={home.clockStyle === entry.id}
+                    onClick={() => onUpdate({ clockStyle: entry.id })}
+                  >
+                    {t(entry.label)}
+                  </button>
+                ))}
+              </div>
+              <div className="home-clock-style-row">
+                <span className="mono home-clock-style-label">{t('Colour')}</span>
+                {CLOCK_ACCENTS.map(entry => (
+                  <button
+                    key={entry.id}
+                    className={`chip-btn ${home.clockAccent === entry.id ? 'is-active' : ''}`}
+                    aria-pressed={home.clockAccent === entry.id}
+                    onClick={() => onUpdate({ clockAccent: entry.id })}
+                  >
+                    {t(entry.label)}
+                  </button>
+                ))}
+              </div>
+              <div className="home-clock-style-row">
+                <span className="mono home-clock-style-label">{t('Font')}</span>
+                <select
+                  value={home.clockFont}
+                  aria-label={t('Clock font')}
+                  onChange={event => onUpdate({ clockFont: event.target.value as TypographyFont })}
+                >
+                  {CLOCK_FONTS.map(entry => (
+                    <option key={entry.id} value={entry.id}>
+                      {/* Family names are brand names, as in the typography block. */}
+                      {entry.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             {HOME_WIDGETS.map(id => {
               const area = home.widgetAreas[id];
               const list = columns[area];

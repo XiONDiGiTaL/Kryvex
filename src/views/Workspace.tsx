@@ -3,6 +3,16 @@ import { useT } from '../lib/i18n';
 import { isServiceDrag, readServiceDrag } from '../lib/service-drag';
 import { Icon } from '../components/ui';
 import type { WindowMap } from '../lib/workspace';
+import type { WindowMotion, WorkspaceSettings } from '../types';
+
+/** The three motions, in the order the panel offers them. */
+const MOTIONS: Array<{ id: WindowMotion; label: string }> = [
+  { id: 'subtle', label: 'Subtle' },
+  { id: 'bouncy', label: 'Bouncy' },
+  { id: 'none', label: 'None' },
+];
+
+const SPEEDS = [0.5, 1, 1.5, 2];
 
 export interface CanvasRect {
   left: number;
@@ -26,18 +36,33 @@ export interface CanvasRect {
  */
 export function Workspace({
   windows,
+  motion,
   onRect,
   onAdd,
   onDropService,
+  onMotion,
 }: {
   windows: WindowMap;
+  motion: WorkspaceSettings;
   onRect: (rect: CanvasRect | null) => void;
   onAdd: () => void;
   onDropService: (id: string, at: { x: number; y: number }) => void;
+  onMotion: (patch: Partial<WorkspaceSettings>) => void;
 }) {
   const t = useT();
   const canvas = useRef<HTMLDivElement | null>(null);
   const [dropping, setDropping] = useState(false);
+  const [panel, setPanel] = useState(false);
+
+  // Escape closes the motion panel; a click inside it must not need the button.
+  useEffect(() => {
+    if (!panel) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPanel(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [panel]);
   const open = Object.values(windows).filter(entry => entry.kind === 'canvas');
   const empty = open.length === 0;
 
@@ -72,11 +97,55 @@ export function Workspace({
         <span className="workspace-count mono">
           {open.length === 0 ? null : t('{count} WINDOWS', { count: open.length })}
         </span>
+        <button
+          className={`btn secondary small ${panel ? 'is-active' : ''}`}
+          onClick={() => setPanel(value => !value)}
+          aria-expanded={panel}
+          title={t('Window animation')}
+        >
+          <Icon name="sliders" size={14} />
+          {t('Window animation')}
+        </button>
         <button className="btn secondary small" onClick={onAdd}>
           <Icon name="plus" size={14} />
           {t('Add service')}
         </button>
       </header>
+
+      {panel ? (
+        <div className="workspace-motion" role="group" aria-label={t('Window animation')}>
+          <p className="mono workspace-motion-label">{t('Window animation')}</p>
+          <div className="workspace-motion-row">
+            {MOTIONS.map(option => (
+              <button
+                key={option.id}
+                className={`btn ghost small ${motion.motion === option.id ? 'is-active' : ''}`}
+                aria-pressed={motion.motion === option.id}
+                onClick={() => onMotion({ motion: option.id })}
+              >
+                {t(option.label)}
+              </button>
+            ))}
+          </div>
+          {motion.motion === 'none' ? null : (
+            <>
+              <p className="mono workspace-motion-label">{t('Animation speed')}</p>
+              <div className="workspace-motion-row">
+                {SPEEDS.map(speed => (
+                  <button
+                    key={speed}
+                    className={`btn ghost small ${motion.motionSpeed === speed ? 'is-active' : ''}`}
+                    aria-pressed={motion.motionSpeed === speed}
+                    onClick={() => onMotion({ motionSpeed: speed })}
+                  >
+                    {speed}×
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ) : null}
 
       <div
         ref={canvas}

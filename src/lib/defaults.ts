@@ -1,5 +1,6 @@
 import type {
   DiskSettings,
+  WorkspaceSettings,
   EmulatorSettings,
   HomeSettings,
   LexiumSettings,
@@ -69,6 +70,12 @@ export const DEFAULT_HOME: HomeSettings = {
   countdowns: [],
   worldClocks: [],
   clockHour12: false,
+  // The board clock starts free of its box: the boxed card is one of the three
+  // looks, not the default.
+  showBoardClock: true,
+  clockStyle: 'bare',
+  clockAccent: 'theme',
+  clockFont: 'default',
   screenCaptures: [],
   guideSeen: false,
 };
@@ -135,4 +142,14 @@ export const DEFAULT_DISK: DiskSettings = {
  */
 export const DEFAULT_LINK: LinkSettings = {
   enabled: false,
+};
+
+/**
+ * A new window fades in rather than appearing whole, because a window that pops
+ * into place reads as a glitch next to one that arrives. The motion is a choice
+ * on the Workspace itself, and `none` is one of the choices.
+ */
+export const DEFAULT_WORKSPACE: WorkspaceSettings = {
+  motion: 'subtle',
+  motionSpeed: 1,
 };

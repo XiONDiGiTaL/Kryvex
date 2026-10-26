@@ -2546,3 +2546,118 @@ cleanup deleted the folder it created.
   the clock are unit-tested; no live offline run was made.
 - **A capture of a minimised window.** The source list offers windows the system
   reports; what a minimised window yields was not measured.
+
+## Capture preview window (2026-10-26)
+
+Run on 2026-10-26 in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3, on
+the working tree built with `pnpm build` (no installer needed for this one).
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer and main typecheck | `pnpm typecheck` (`tsc --noEmit` ×2) | exit 0 |
+| Full suite | `npx vitest run` | **838/838** across 78 files |
+| Window rules | `npx vitest run tests/capture-window-rules.test.ts` | 10/10 — kind, language fallback, pixel clamp, a one-line target, and bounds for a 4K screenshot, a tiny capture, a recording and a small desktop |
+| Renderer copy audit | `node scripts/audit-i18n.cjs` | PASS — no hardcoded UI strings in 50 renderer files |
+| Build | `pnpm build` | emits `dist/capture.html` and `assets/capture-*.js` (6.14 kB) beside the shell and companion pages |
+| End-to-end | `pnpm verify:capture-window` | **24/24 PASS**, on two consecutive runs |
+
+### What the harness proves
+
+It launches the built app on a disposable profile with its own CDP port and uses
+the board the way a user does:
+
+- the capture card can be switched on and its target list is populated;
+- capturing Kryvex's own window opens a **second CDP page target**,
+  `dist/capture.html` — a real window of its own, not a card overlay;
+- the picture renders there (`naturalWidth > 0`, 1440×900 or 1474×1250 depending
+  on the window), and the toolbar carries **New capture · Save as… · Copy ·
+  Always on top · Actual size · Close**;
+- **Always on top** flips its pressed state, and **Copy** reports the still went
+  to the clipboard;
+- **Save as…** opens the native Windows dialog: the harness finds that dialog by
+  its window class and process, accepts it, and the app then shows
+  `Saved to C:\Users\…\Downloads\Kryvex Captures\kryvex-kryvex-<stamp>.png`,
+  offers **Show in folder**, and the file on disk is a 302 KB PNG with the right
+  signature;
+- the board's recent list gets the entry even though the save happened in the
+  other window;
+- **Close** removes that window; a three-second **Record** reopens it on a video
+  (`readyState ≥ 2`, 1440 px wide, brand reading *Recording*);
+- **New capture** closes the window and returns the shell to `#/home`;
+- no page exception is raised in either window.
+
+### Not executed (do not treat as passing)
+
+- **The installed binary.** This ran against `pnpm build`; the same sources are
+  packaged in the installer, but the package itself was not driven here.
+- **The web/PWA fallback.** There is no preview window without a main process, so
+  the card keeps its browser download path; that path was not re-driven.
+- **Display scaling and multiple monitors.** The window is sized from the primary
+  display's work area; a capture taken on a second monitor at another DPI was not
+  measured.
+- **Esc and Ctrl+S.** Both are wired in the window, but Esc would race the dialog
+  checks and Ctrl+S would open a second dialog, so neither was pressed by the
+  harness.
+
+## Window motion, the header capture button and the phone address list (0.9.4-hotfix.2, 2026-10-26)
+
+Run on 2026-10-26 in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3, on
+the working tree that became this commit.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer typecheck | `npx tsc -b` | exit 0 |
+| Full suite | `npx vitest run` | **843/843** across 78 files |
+| Window motion settings | `npx vitest run tests/workspace.test.ts` | 20/20 — the three motions survive the sanitiser, anything else falls back to `subtle`, the speed clamps to 0.5–2 in half steps |
+| Link address ranking | `npx vitest run tests/link-rules.test.ts` | 24/24 — a virtual adapter ranks below the real one, duplicates collapse under the first name, an unnamed address is kept and labelled `Network` |
+| Translation coverage | `npx vitest run tests/i18n-coverage.test.ts` | 5/5 — the ratchet held, and all eleven strings this batch added are translated |
+| Production build | `pnpm build` | exit 0 |
+| Link harness | `pnpm verify:link` | **32/32 PASS** |
+| Motion and capture harness | disposable CDP script, not kept (see below) | 13/13 PASS |
+
+### What the link harness now proves
+
+Two checks were added to `scripts/verify-link.cjs`, and both read the live status
+of the running app rather than a unit fixture:
+
+- every advertised address carries its adapter name and a `likely` flag, and
+  `urls` and `links` agree element for element. On the machine it ran on the
+  answer was `192.168.50.250 Ethernet 1 (likely), 192.168.56.1 Ethernet 3
+  (likely), 10.147.19.81 ZeroTier One (…), 10.124.101.81 ZeroTier One (…)`;
+- the reachable adapter is listed first.
+
+That output is the diagnosis for the reported "phone hangs, then
+`ERR_CONNECTION_ABORTED`": two of the four addresses in the report belong to a
+ZeroTier tunnel, and a phone cannot reach a tunnel. The view now labels those
+instead of leading with them, and the card explains the same-network and
+firewall conditions.
+
+### The motion and capture harness
+
+A throwaway script (`.tmp-check-motion.cjs`, deleted after the run) launched the
+built app on a disposable profile whose saved state hid the capture card, then
+drove it over the DevTools protocol:
+
+- the header's tool row is `Activity, Capture, Add, Settings, Help` — the capture
+  button sits directly beside Activity;
+- clicking it lands on `#/home`, reveals the capture card, rings it and focuses
+  its target picker; the revealed choice is written back to the state file;
+- the Workspace bar opens the motion panel, which lists `Subtle, Bouncy, None`
+  and the four speeds; choosing Bouncy persists `{ motion: 'bouncy',
+  motionSpeed: 1 }` and marks that button pressed;
+- dragging the seeded pinned service onto the canvas opens a window with
+  `data-motion="bouncy"`, `--window-motion: 260ms`, a running animation and the
+  three controls in the order `Minimize, Maximize, Close`.
+
+The harness found one real defect, now fixed: the open animation's effect was
+keyed on the window record's identity, so raising or moving a window during the
+animation cancelled the timer and left the frame marked as opening. It is keyed
+on a boolean now.
+
+### Not executed (do not treat as passing)
+
+- **A phone on the LAN.** The address list was verified, not a real handset
+  reaching it; the firewall rule was not inspected or added.
+- **The installed binary.** This ran against `pnpm build`.
+- **Reduced motion.** The stylesheet disables animation under
+  `prefers-reduced-motion`, but the emulation was not switched on.

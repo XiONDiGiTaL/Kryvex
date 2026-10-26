@@ -277,6 +277,8 @@ export interface LinkStatus {
   codeExpiresAt: number;
   /** Loopback-free URLs, LAN first; the first is the one to type on the phone. */
   urls: string[];
+  /** The same addresses with their adapter names and a reachability hint. */
+  links: Array<{ url: string; address: string; name: string; likely: boolean }>;
   /** Where received files land. */
   folder: string;
   devices: LinkDeviceInfo[];

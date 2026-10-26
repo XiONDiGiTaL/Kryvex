@@ -74,10 +74,17 @@
   gap: 12px;
 }
 
+/*
+ * The board clock. Three looks, one structure: the style decides the framing,
+ * `--clock-font` (set inline when a family was chosen) decides the face, and the
+ * accent class decides what colour the digits are. A bare clock is the default,
+ * because a clock does not need a box to be a clock.
+ */
 .home-clock {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  --clock-font: var(--font-sans);
 }
 
 .home-greeting {
@@ -88,10 +95,12 @@
 }
 
 .home-time {
+  font-family: var(--clock-font);
   font-size: clamp(34px, 4.3vw, 54px);
   font-weight: 300;
   letter-spacing: -0.03em;
   line-height: 1;
+  color: inherit;
 }
 
 .home-date {
@@ -99,6 +108,83 @@
   letter-spacing: 0.12em;
   color: var(--ink-faint);
   text-transform: uppercase;
+}
+
+/* Bare: no frame, larger and lighter, the board's own type doing the work. */
+.home-clock.is-bare .home-time {
+  font-size: clamp(38px, 5vw, 62px);
+  font-weight: 200;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+}
+
+/* Card: the bordered tile, for a board made of pieces. */
+.home-clock.is-card {
+  gap: 4px;
+  padding: 12px 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--bg) 26%, transparent);
+}
+
+.home-clock.is-card .home-time {
+  font-size: clamp(30px, 3.6vw, 44px);
+}
+
+/* Mono: tracked capitals, a clock radio rather than a headline. */
+.home-clock.is-mono {
+  gap: 4px;
+  --clock-font: var(--font-mono);
+}
+
+.home-clock.is-mono .home-time {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-clock.is-mono .home-date {
+  letter-spacing: 0.28em;
+}
+
+/* The time only: the greeting and the date keep the muted chrome colour. */
+.home-clock.accent-accent .home-time {
+  color: var(--accent);
+}
+
+.home-clock.accent-muted .home-time {
+  color: var(--muted);
+}
+
+.home-clock-style {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.home-clock-style-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.home-clock-style-label {
+  min-width: 46px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+
+.home-clock-style select {
+  padding: 3px 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 11px;
 }
 
 .home-customize {
@@ -2337,9 +2423,15 @@ body[data-player-bar='1'] .media-dock.is-floating {
 
 /* ------------------------------------ screen capture · countdowns · clock --- */
 
+/*
+ * The board's cards. `.home-clock` used to be in this list, which boxed the
+ * greeting clock as well as the world-clock widget — the two shared a class name.
+ * The widget has its own now, so the board clock is framed by its style setting
+ * and nothing else.
+ */
 .home-capture-tool,
 .home-countdown,
-.home-clock {
+.home-world-clock {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2347,6 +2439,20 @@ body[data-player-bar='1'] .media-dock.is-floating {
   border: 1px solid var(--line-soft);
   border-radius: var(--r-md);
   background: color-mix(in srgb, var(--bg) 24%, transparent);
+}
+
+/* The header's capture button landed here: ring the card once so the eye finds
+   it after the jump, then leave the picker focused. */
+.home-capture-tool.is-prompted {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-capture-tool.is-prompted {
+    transition: none;
+  }
 }
 
 .home-clock-form {

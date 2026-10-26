@@ -20,12 +20,14 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'chrome140',
     rollupOptions: {
-      // Two pages ship in one bundle: the desktop shell, and the phone
-      // companion page that the main process serves over the local network.
-      // The link server reads both out of `dist/`, so they must build together.
+      // Three pages ship in one bundle: the desktop shell, the phone companion
+      // page the main process serves over the local network, and the capture
+      // preview window. Each is read out of `dist/`, so they build together.
       input: {
         main: resolve(__dirname, 'index.html'),
         companion: resolve(__dirname, 'companion.html'),
+        // The capture preview is its own window, so it is its own page.
+        capture: resolve(__dirname, 'capture.html'),
       },
     },
   },

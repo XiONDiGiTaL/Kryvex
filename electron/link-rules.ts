@@ -260,6 +260,62 @@ export function linkUrl(host: string, port: number, path = '/'): string {
   return `http://${host}:${port}${path}`;
 }
 
+/** One adapter address, ready to render: the URL plus what it belongs to. */
+export interface LinkAddressEntry {
+  url: string;
+  address: string;
+  name: string;
+  /** False for an adapter a phone almost certainly cannot reach. */
+  likely: boolean;
+}
+
+/**
+ * Adapter names Windows gives a machine that is not on the user's own network.
+ *
+ * The address list is where a phone-link setup usually goes wrong: the first
+ * private IPv4 on a laptop can be a VirtualBox host-only adapter or a VPN
+ * tunnel, and typing that into a phone produces a page that never loads. These
+ * names are matched only to order and label the list — nothing is hidden, so a
+ * user who really does want the VPN address can still type it.
+ */
+const VIRTUAL_ADAPTER =
+  /virtual|vmware|virtualbox|hyper-v|vethernet|loopback|docker|wsl|tailscale|zerotier|hamachi|\btun\b|\btap\b|bluetooth|npcap/i;
+
+export function isVirtualAdapter(name: string): boolean {
+  return VIRTUAL_ADAPTER.test(name);
+}
+
+/**
+ * Addresses with their adapter names, ranked so the reachable one comes first.
+ *
+ * Order: a private address on a real adapter, then a private address on a
+ * virtual one, then anything else (loopback last). Duplicates collapse, and the
+ * URL is built here so the view never assembles one.
+ */
+export function describeLinkAddresses(
+  rows: Array<{ address: string; name: string }>,
+  port: number,
+): LinkAddressEntry[] {
+  const seen = new Set<string>();
+  const entries: Array<LinkAddressEntry & { rank: number }> = [];
+  for (const row of rows) {
+    const address = typeof row?.address === 'string' ? row.address.trim() : '';
+    if (!address || seen.has(address)) continue;
+    seen.add(address);
+    const name = typeof row?.name === 'string' && row.name.trim() ? row.name.trim() : 'Network';
+    const privateAddress = isPrivateAddress(address) && !address.startsWith('127.');
+    const likely = privateAddress && !isVirtualAdapter(name);
+    entries.push({
+      address,
+      name,
+      url: linkUrl(address, port),
+      likely,
+      rank: likely ? 0 : privateAddress ? 1 : 2,
+    });
+  }
+  return entries.sort((a, b) => a.rank - b.rank).map(({ rank: _rank, ...entry }) => entry);
+}
+
 /** A short, human description of an inbound request for the activity list. */
 export function describeBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';

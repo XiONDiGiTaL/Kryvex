@@ -407,6 +407,21 @@ const api = {
   captureCopy: (data: string): Promise<boolean> => ipcRenderer.invoke('kryvex:capture:copy', data),
   captureReveal: (filePath: string): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:capture:reveal', filePath),
+  /** Show a fresh capture in its own preview window, snipping-tool style. */
+  capturePreview: (request: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:capture:preview', request),
+  /** The preview window's "New capture" asks the board for another one. */
+  onCaptureAsk: (listener: () => void): (() => void) => {
+    const wrapped = () => listener();
+    ipcRenderer.on('kryvex:capture:ask', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:capture:ask', wrapped);
+  },
+  /** A save taken in the preview window belongs in the board's recent list. */
+  onCaptureSaved: (listener: (entry: unknown) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, entry: unknown) => listener(entry);
+    ipcRenderer.on('kryvex:capture:saved', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:capture:saved', wrapped);
+  },
   chromiumInfo: (): Promise<unknown> => ipcRenderer.invoke('kryvex:chromium:info'),
   chromiumSet: (settings: unknown): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:chromium:set', settings),

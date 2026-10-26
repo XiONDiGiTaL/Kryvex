@@ -1,0 +1,203 @@
+/* The capture preview window: one picture, one row of controls.
+ *
+ * This page is its own bundle, so it carries the few tokens it needs rather
+ * than pulling the shell's stylesheet into a second window.
+ */
+:root {
+  --cap-bg: #0b0e12;
+  --cap-bar: #0e131a;
+  --cap-line: #1b2430;
+  --cap-ink: #e6edf5;
+  --cap-muted: #9aa6b5;
+  --cap-accent: #38bdf8;
+  --cap-good: #8fe3b0;
+  --cap-bad: #ff8a8a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#capture-root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--cap-bg);
+  color: var(--cap-ink);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.cap-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cap-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--cap-bar);
+  border-bottom: 1px solid var(--cap-line);
+}
+
+.cap-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cap-muted);
+  white-space: nowrap;
+}
+
+.cap-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cap-accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+}
+
+.cap-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cap-tools button {
+  appearance: none;
+  border: 1px solid #243040;
+  background: #121923;
+  color: #d7e2ee;
+  font: 500 12px/1 inherit;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.cap-tools button:hover:not(:disabled) {
+  background: #17212d;
+  border-color: #33445a;
+}
+
+.cap-tools button:focus-visible {
+  outline: 2px solid var(--cap-accent);
+  outline-offset: 2px;
+}
+
+.cap-tools button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.cap-tools button.primary {
+  background: var(--cap-accent);
+  border-color: var(--cap-accent);
+  color: #04121b;
+  font-weight: 600;
+}
+
+.cap-tools button.primary:hover:not(:disabled) {
+  background: #5ccbfa;
+  border-color: #5ccbfa;
+}
+
+.cap-tools button.ghost {
+  background: transparent;
+}
+
+.cap-tools button[aria-pressed="true"] {
+  border-color: var(--cap-accent);
+  color: var(--cap-accent);
+}
+
+.cap-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  overflow: auto;
+  background:
+    repeating-conic-gradient(#0c1118 0% 25%, #0a0e14 0% 50%) 50% / 22px 22px;
+}
+
+.cap-stage img,
+.cap-stage video {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #000;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+
+.cap-stage.is-actual {
+  place-items: start;
+}
+
+.cap-stage.is-actual img,
+.cap-stage.is-actual video {
+  max-width: none;
+  max-height: none;
+}
+
+.cap-empty {
+  margin: 0;
+  color: var(--cap-muted);
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 12px;
+}
+
+.cap-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--cap-line);
+  background: var(--cap-bar);
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 11px;
+  color: var(--cap-muted);
+  min-height: 34px;
+}
+
+.cap-meta .cap-saved {
+  color: var(--cap-good);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 48%;
+}
+
+.cap-meta .cap-target {
+  color: var(--cap-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 26%;
+}
+
+.cap-meta .cap-note {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.cap-meta .is-error {
+  color: var(--cap-bad);
+}

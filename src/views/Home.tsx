@@ -27,6 +27,7 @@ export function Home({
   info,
   isElectron,
   mark = 'kx',
+  capturePulse = 0,
   onOpenService,
   onAdd,
   onNavigate,
@@ -37,6 +38,8 @@ export function Home({
   info: AppInfo | null;
   isElectron: boolean;
   mark?: ThemeMarkKind;
+  /** Bumped by the header's capture button; the capture widget answers it. */
+  capturePulse?: number;
   onOpenService: (service: Service) => void;
   onAdd: () => void;
   onNavigate: (view: 'home' | 'services' | 'browser' | 'settings') => void;
@@ -74,6 +77,7 @@ export function Home({
       {state.settings.home.showBoard ? (
         <HomeBoard
           home={state.settings.home}
+          capturePulse={capturePulse}
           onUpdate={onUpdateHome}
           onOpenSettings={() => onNavigate('settings')}
         />

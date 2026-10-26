@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Service } from '../types';
+import type { Service, WorkspaceSettings } from '../types';
 import { floatWindowStyle, type ResizeDirection } from '../lib/floating';
 import {
   canvasWindowStyle,
@@ -50,6 +50,8 @@ interface StageProps {
   canvas: StageCanvas | null;
   /** Every window the shell holds, in both of its places. */
   windows: WindowMap;
+  /** How a window arrives and leaves: chosen on the Workspace itself. */
+  motion: WorkspaceSettings;
   onBack: () => void;
   onEdit: (service: Service) => void;
   onDelete: (service: Service) => void;
@@ -92,6 +94,7 @@ export function ServiceStage({
   mark = 'kx',
   canvas,
   windows,
+  motion,
   onBack,
   onEdit,
   onDelete,
@@ -176,6 +179,7 @@ export function ServiceStage({
             unread={unread[service.id] ?? 0}
             notifications={notifications}
             mark={mark}
+            motion={motion}
             onBack={onBack}
             onEdit={onEdit}
             onDelete={onDelete}
@@ -225,6 +229,7 @@ function ServiceFrame({
   unread,
   notifications,
   mark = 'kx',
+  motion,
   onBack,
   onEdit,
   onDelete,
@@ -242,6 +247,7 @@ function ServiceFrame({
   onWindowMaximize,
 }: {
   service: Service;
+  motion: WorkspaceSettings;
   active: boolean;
   /** The window record for this module, or null when it fills the stage. */
   box: ServiceWindow | null;
@@ -436,6 +442,62 @@ function ServiceFrame({
   const notificationsOn = notifications && service.notifications !== false;
   const pauseWhenInactive = service.persistence === 'pause';
 
+  /*
+   * Window motion. A frame stays mounted for the whole session, so the animation
+   * is driven by its own state rather than by remounting the guest: an entering
+   * frame plays the open keyframes for exactly as long as they last, and a
+   * closing one is held for the same time before the shell drops the record.
+   * `none` — or a reduced-motion preference, handled in CSS — is instant.
+   */
+  const motionMs =
+    motion.motion === 'none'
+      ? 0
+      : Math.round((motion.motion === 'bouncy' ? 260 : 170) / Math.max(0.5, motion.motionSpeed));
+  const [entering, setEntering] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const wasWindow = useRef(false);
+  const closeTimer = useRef<number | null>(null);
+  // A boolean, not the window record: raising or moving a window rewrites its
+  // record, and keying the effect on that identity would cancel the running
+  // timer and leave the frame marked as opening forever.
+  const windowed = Boolean(box) && !minimized;
+
+  useEffect(() => {
+    const was = wasWindow.current;
+    wasWindow.current = windowed;
+    if (!windowed) {
+      setEntering(false);
+      return;
+    }
+    if (was || motionMs === 0) return;
+    setEntering(true);
+    const timer = window.setTimeout(() => setEntering(false), motionMs);
+    return () => window.clearTimeout(timer);
+  }, [windowed, motionMs]);
+
+  // A frame can be unmounted (a cleared session, a reload) mid-animation.
+  useEffect(
+    () => () => {
+      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
+  /** Close, letting the exit animation finish first when one is enabled. */
+  function requestClose() {
+    if (closing) return;
+    if (motionMs === 0) {
+      onWindowClose();
+      return;
+    }
+    setClosing(true);
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null;
+      setClosing(false);
+      onWindowClose();
+    }, motionMs);
+  }
+
   /**
    * A drag starts on a title bar but usually travels across a guest, and a guest
    * does not forward pointer events to the page around it. Capturing the pointer
@@ -503,14 +565,18 @@ function ServiceFrame({
         !visible && pauseWhenInactive ? 'is-parked' : ''
       } ${isDetached ? 'is-floating' : ''} ${isWindow ? 'is-window' : ''} ${
         minimized ? 'is-minimized' : ''
-      }`}
+      } ${entering ? 'is-opening' : ''} ${closing ? 'is-closing' : ''}`}
       style={
         box
-          ? isWindow
-            ? canvasWindowStyle(box.rect, box.z)
-            : floatWindowStyle(box.rect, box.z)
+          ? ({
+              ...(isWindow
+                ? canvasWindowStyle(box.rect, box.z)
+                : floatWindowStyle(box.rect, box.z)),
+              '--window-motion': `${motionMs}ms`,
+            } as React.CSSProperties)
           : undefined
       }
+      data-motion={box ? motion.motion : undefined}
       data-service={service.id}
       aria-hidden={!visible}
       inert={!visible}
@@ -704,7 +770,7 @@ function ServiceFrame({
               </button>
               <button
                 className="icon-btn danger"
-                onClick={onWindowClose}
+                onClick={requestClose}
                 title={t('Close')}
                 aria-label={t('Close')}
               >

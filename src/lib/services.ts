@@ -9,6 +9,7 @@ import {
   DEFAULT_LEXIUM,
   DEFAULT_DISK,
   DEFAULT_LINK,
+  DEFAULT_WORKSPACE,
   DEFAULT_PLAYER,
   DEFAULT_RESOURCES,
   DEFAULT_SEARCH_REGION,
@@ -197,6 +198,7 @@ export function starterState(): PersistedState {
       // Built-in tools are asked about on the Services page, once.
       secretServices: false,
       wallpaper: { enabled: false, source: 'gradient', fit: 'cover', veil: 55 },
+      workspace: { ...DEFAULT_WORKSPACE },
       assistant: { provider: 'local', baseUrl: 'http://127.0.0.1:8080', model: '', migrated: true },
       chromium: { ...DEFAULT_CHROMIUM },
       party: {

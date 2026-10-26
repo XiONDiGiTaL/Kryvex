@@ -109,6 +109,9 @@ export const homeToolsCopy: Record<'es' | 'de' | 'fr', Record<string, string>> =
       'El navegador pregunta qué pantalla o ventana compartir y luego descarga el archivo.',
     'Refresh the targets': 'Actualizar los destinos',
     'Capture still': 'Capturar imagen',
+    'Open preview window': 'Abrir ventana de vista previa',
+    'The preview window could not be opened.':
+      'No se pudo abrir la ventana de vista previa.',
     'Stop recording': 'Detener la grabación',
     'Record': 'Grabar',
     'Capture preview': 'Vista previa de la captura',
@@ -242,6 +245,9 @@ export const homeToolsCopy: Record<'es' | 'de' | 'fr', Record<string, string>> =
       'Der Browser fragt, welcher Bildschirm oder welches Fenster geteilt wird, und lädt die Datei dann herunter.',
     'Refresh the targets': 'Ziele aktualisieren',
     'Capture still': 'Standbild aufnehmen',
+    'Open preview window': 'Vorschaufenster öffnen',
+    'The preview window could not be opened.':
+      'Das Vorschaufenster konnte nicht geöffnet werden.',
     'Stop recording': 'Aufnahme stoppen',
     'Record': 'Aufnehmen',
     'Capture preview': 'Vorschau der Aufnahme',
@@ -375,6 +381,9 @@ export const homeToolsCopy: Record<'es' | 'de' | 'fr', Record<string, string>> =
       'Le navigateur demande quel écran ou quelle fenêtre partager, puis télécharge le fichier.',
     'Refresh the targets': 'Actualiser les cibles',
     'Capture still': 'Capturer une image',
+    'Open preview window': 'Ouvrir la fenêtre d’aperçu',
+    'The preview window could not be opened.':
+      'La fenêtre d’aperçu n’a pas pu être ouverte.',
     'Stop recording': 'Arrêter l’enregistrement',
     'Record': 'Enregistrer',
     'Capture preview': 'Aperçu de la capture',
