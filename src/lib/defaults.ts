@@ -66,9 +66,10 @@ export const DEFAULT_HOME: HomeSettings = {
   longitude: null,
   unit: 'c',
   notes: [],
-  captures: [],
   countdowns: [],
   worldClocks: [],
+  clockHour12: false,
+  screenCaptures: [],
   guideSeen: false,
 };
 

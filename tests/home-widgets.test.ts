@@ -134,9 +134,11 @@ describe('home defaults', () => {
     expect(home.widgetAreas.calculator).toBe('side');
     expect(home.widgetAreas.guide).toBe('side');
     expect(home.widgetAreas.currency).toBe('side');
-    expect(home.captures).toEqual([]);
+    expect(home.screenCaptures).toEqual([]);
     expect(home.countdowns).toEqual([]);
     expect(home.worldClocks).toEqual([]);
+    // The board clocks start on 24-hour time; 12-hour is a press away.
+    expect(home.clockHour12).toBe(false);
   });
 
   it('closes a calculator the old default had switched on', () => {

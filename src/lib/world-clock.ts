@@ -1,47 +1,19 @@
+import type { WorldClockCity } from '../types';
+
 /**
  * The Home board's world clock.
  *
- * Zones are IANA names, validated by asking `Intl` to format with them: an
- * unknown name throws, which is the only reliable check that works offline.
+ * A row is a *place*, not a zone: two cities can share `Europe/Istanbul`, and a
+ * user in one of them should read their own city rather than whichever regional
+ * name the zone happens to carry. The zone is still what tells the time, and it
+ * is validated by asking `Intl` to format with it — an unknown name throws, which
+ * is the only reliable check that works offline.
+ *
  * With nothing chosen the widget shows what the system already knows, so it is
  * useful before it is configured.
  */
 export const MAX_WORLD_CLOCKS = 4;
-
-/** The zones offered in the picker: one per region, not an exhaustive list. */
-export const COMMON_ZONES: readonly string[] = [
-  'UTC',
-  'Europe/London',
-  'Europe/Lisbon',
-  'Europe/Paris',
-  'Europe/Berlin',
-  'Europe/Madrid',
-  'Europe/Rome',
-  'Europe/Athens',
-  'Europe/Istanbul',
-  'Europe/Moscow',
-  'Africa/Cairo',
-  'Africa/Lagos',
-  'Africa/Johannesburg',
-  'Asia/Jerusalem',
-  'Asia/Dubai',
-  'Asia/Karachi',
-  'Asia/Kolkata',
-  'Asia/Bangkok',
-  'Asia/Shanghai',
-  'Asia/Tokyo',
-  'Asia/Seoul',
-  'Australia/Perth',
-  'Australia/Sydney',
-  'Pacific/Auckland',
-  'America/Sao_Paulo',
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'America/Anchorage',
-  'Pacific/Honolulu',
-];
+const MAX_LABEL = 80;
 
 export function isValidTimeZone(zone: unknown): zone is string {
   if (typeof zone !== 'string' || !zone || zone.length > 64) return false;
@@ -63,46 +35,123 @@ export function systemZone(): string | null {
   }
 }
 
-/**
- * What and where, in the order the user chose. Unknown names and repeats are
- * dropped rather than shown as a broken row.
- */
-export function sanitizeWorldClocks(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  const out: string[] = [];
-  for (const item of raw) {
-    if (!isValidTimeZone(item) || out.includes(item)) continue;
-    out.push(item);
-    if (out.length === MAX_WORLD_CLOCKS) break;
-  }
-  return out;
-}
-
-/** The rows to draw: the chosen zones, or the local one plus UTC. */
-export function shownZones(chosen: string[]): string[] {
-  const list = sanitizeWorldClocks(chosen);
-  if (list.length > 0) return list;
-  const local = systemZone();
-  return local && local !== 'UTC' ? [local, 'UTC'] : ['UTC'];
-}
-
-export function toggleZone(chosen: string[], zone: string): string[] {
-  if (!isValidTimeZone(zone)) return sanitizeWorldClocks(chosen);
-  if (chosen.includes(zone)) return chosen.filter(item => item !== zone);
-  if (chosen.length >= MAX_WORLD_CLOCKS) return chosen;
-  return [...chosen, zone];
-}
-
 /** `America/New_York` reads as "New York". */
 export function zoneCity(zone: string): string {
   const parts = zone.split('/');
   return (parts[parts.length - 1] ?? zone).replace(/_/g, ' ');
 }
 
-export function formatZoneTime(zone: string, locale: string, at: Date = new Date()): string {
+function cleanLabel(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback;
+  const text = value.replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim();
+  return text ? text.slice(0, MAX_LABEL) : fallback;
+}
+
+function finite(value: unknown): number | undefined {
+  const number = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(number) ? Math.round(number * 10_000) / 10_000 : undefined;
+}
+
+/**
+ * A saved row, whichever shape it was saved in.
+ *
+ * Before cities existed this field held bare zone names (`Asia/Tokyo`). Those
+ * still load, labelled from the zone, so an existing board keeps its clocks.
+ * Unknown zones are dropped rather than drawn as a broken row.
+ */
+function entryFrom(item: unknown): WorldClockCity | null {
+  if (typeof item === 'string') {
+    if (!isValidTimeZone(item)) return null;
+    return { id: item, zone: item, city: zoneCity(item) };
+  }
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+  const record = item as Record<string, unknown>;
+  if (!isValidTimeZone(record.zone)) return null;
+  const zone = record.zone;
+  const city = cleanLabel(record.city, zoneCity(zone));
+  const country = typeof record.country === 'string' ? cleanLabel(record.country, '') : '';
+  const latitude = finite(record.latitude);
+  const longitude = finite(record.longitude);
+  const id = cleanLabel(record.id, zone) || zone;
+  return {
+    id,
+    zone,
+    city,
+    ...(country ? { country } : {}),
+    ...(latitude !== undefined && Math.abs(latitude) <= 90 ? { latitude } : {}),
+    ...(longitude !== undefined && Math.abs(longitude) <= 180 ? { longitude } : {}),
+  };
+}
+
+/** One row per zone, in the order the user chose, and never more than four. */
+export function sanitizeWorldClocks(raw: unknown): WorldClockCity[] {
+  if (!Array.isArray(raw)) return [];
+  const out: WorldClockCity[] = [];
+  const zones = new Set<string>();
+  for (const item of raw) {
+    const entry = entryFrom(item);
+    if (!entry || zones.has(entry.zone)) continue;
+    zones.add(entry.zone);
+    out.push(entry);
+    if (out.length === MAX_WORLD_CLOCKS) break;
+  }
+  return out;
+}
+
+/** The rows to draw: the chosen places, or this machine plus UTC. */
+export function shownClocks(chosen: WorldClockCity[]): WorldClockCity[] {
+  const list = sanitizeWorldClocks(chosen);
+  if (list.length > 0) return list;
+  const local = systemZone();
+  const fallback: WorldClockCity[] = [];
+  if (local) fallback.push({ id: `system:${local}`, zone: local, city: zoneCity(local) });
+  if (local !== 'UTC') fallback.push({ id: 'utc', zone: 'UTC', city: 'UTC' });
+  return fallback;
+}
+
+/** The id a looked-up city gets: its zone, so one row per zone holds. */
+export function clockId(zone: string, city: string): string {
+  return `${zone}:${city.toLowerCase()}`.slice(0, 120);
+}
+
+/**
+ * Adds a place, or relabels the row for that zone.
+ *
+ * Adding `İzmir` where `Europe/Istanbul` is already listed replaces the label
+ * instead of stacking a second row with the same time. A fifth zone is refused.
+ */
+export function addClock(list: WorldClockCity[], entry: WorldClockCity): WorldClockCity[] {
+  const current = sanitizeWorldClocks(list);
+  const parsed = entryFrom(entry);
+  if (!parsed) return current;
+  const existing = current.findIndex(item => item.zone === parsed.zone);
+  if (existing >= 0) {
+    const next = current.slice();
+    next[existing] = { ...parsed, id: current[existing]?.id ?? parsed.id };
+    return next;
+  }
+  if (current.length >= MAX_WORLD_CLOCKS) return current;
+  return [...current, parsed];
+}
+
+export function removeClock(list: WorldClockCity[], id: string): WorldClockCity[] {
+  return sanitizeWorldClocks(list).filter(item => item.id !== id);
+}
+
+export function formatZoneTime(
+  zone: string,
+  locale: string,
+  at: Date = new Date(),
+  hour12 = false,
+): string {
   if (!isValidTimeZone(zone)) return '';
   try {
-    return at.toLocaleTimeString(locale, { timeZone: zone, hour: '2-digit', minute: '2-digit' });
+    return at.toLocaleTimeString(locale, {
+      timeZone: zone,
+      hour12,
+      hour: hour12 ? 'numeric' : '2-digit',
+      minute: '2-digit',
+    });
   } catch {
     return '';
   }

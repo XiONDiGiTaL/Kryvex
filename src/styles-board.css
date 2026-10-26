@@ -2335,9 +2335,9 @@ body[data-player-bar='1'] .media-dock.is-floating {
   accent-color: var(--accent);
 }
 
-/* ------------------------------------- quick capture · countdowns · clock --- */
+/* ------------------------------------ screen capture · countdowns · clock --- */
 
-.home-capture,
+.home-capture-tool,
 .home-countdown,
 .home-clock {
   display: flex;
@@ -2349,25 +2349,17 @@ body[data-player-bar='1'] .media-dock.is-floating {
   background: color-mix(in srgb, var(--bg) 24%, transparent);
 }
 
-.home-capture-form,
 .home-clock-form {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.home-capture-form input,
-.home-clock-form select {
+.home-clock-form input {
   flex: 1;
   min-width: 0;
 }
 
-.home-capture-kinds {
-  display: flex;
-  gap: 5px;
-}
-
-.home-capture-list,
 .home-countdown-list,
 .home-clock-list {
   display: flex;
@@ -2378,7 +2370,6 @@ body[data-player-bar='1'] .media-dock.is-floating {
   list-style: none;
 }
 
-.home-capture-list li,
 .home-clock-list li {
   display: flex;
   align-items: center;
@@ -2398,25 +2389,106 @@ body[data-player-bar='1'] .media-dock.is-floating {
   text-transform: uppercase;
 }
 
-.home-capture-text {
+/* --- the capture tool --------------------------------------------------- */
+
+.home-capture-note {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+.home-capture-note.is-error {
+  color: color-mix(in srgb, var(--danger, #f87171) 78%, var(--ink));
+}
+
+.home-capture-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-capture-pick select {
   flex: 1;
   min-width: 0;
+}
+
+.home-capture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.home-capture-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-capture-preview img,
+.home-capture-preview video {
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: #000;
+}
+
+.home-capture-preview-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9.5px;
+  color: var(--ink-faint);
+}
+
+.home-capture-target {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 55%;
+}
+
+.home-capture-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
   padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ink);
-  font-size: 11px;
-  text-align: left;
+  list-style: none;
+}
+
+.home-capture-recent li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 40%, transparent);
+}
+
+.home-capture-recent li > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.home-capture-recent strong {
+  font-size: 10.5px;
+  font-weight: 550;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.home-capture-text.is-link {
-  color: var(--accent-soft);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
+.home-capture-recent span {
+  font-size: 9px;
+  color: var(--ink-faint);
 }
 
 .home-countdown-list li {
@@ -2502,6 +2574,75 @@ body[data-player-bar='1'] .media-dock.is-floating {
 .home-clock-time {
   font-size: 13px;
   letter-spacing: 0.04em;
+}
+
+.home-clock-mode {
+  flex: none;
+  padding: 2px 7px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.home-clock-place span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * The remove control is visible without a hover. It used to appear only on a
+ * hovered row in one list, which read as "there is no way to delete this".
+ */
+.home-clock-remove {
+  flex: none;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: var(--ink-faint);
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.home-clock-remove:hover,
+.home-clock-remove:focus-visible {
+  opacity: 1;
+  color: var(--ink);
+}
+
+.home-clock-match {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 8px;
+}
+
+.home-clock-match > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.home-clock-match strong {
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.home-clock-match span {
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+
+.home-clock-note {
+  font-size: 9.5px;
+  color: var(--ink-faint);
+}
+
+.home-clock-note.is-error {
+  color: color-mix(in srgb, var(--danger, #f87171) 78%, var(--ink));
 }
 
 /* A service card dragged over the pinned rail marks the rail as the target. */

@@ -58,7 +58,10 @@ type IconName =
   | 'droplet'
   | 'moon'
   | 'power'
-  | 'link';
+  | 'link'
+  | 'camera'
+  | 'record'
+  | 'stop';
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -196,6 +199,19 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M3.5 10.5h17" />
     </>
   ),
+  camera: (
+    <>
+      <path d="M3.5 8.5h3.2l1.5-2.2h7.6l1.5 2.2h3.2v11h-17z" />
+      <circle cx="12" cy="13.2" r="3.3" />
+    </>
+  ),
+  record: (
+    <>
+      <circle cx="12" cy="12" r="7" />
+      <circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none" />
+    </>
+  ),
+  stop: <rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none" />,
   history: (
     <>
       <path d="M4 5v5h5" />

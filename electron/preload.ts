@@ -400,6 +400,13 @@ const api = {
   partySources: (): Promise<unknown> => ipcRenderer.invoke('kryvex:party:sources'),
   partySelectSource: (id: string, audio: boolean): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:party:select', id, audio),
+  // Screen capture: the pixels stay in the renderer, the file write and the
+  // save dialog happen here. No path is taken from the page.
+  captureSave: (request: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:capture:save', request),
+  captureCopy: (data: string): Promise<boolean> => ipcRenderer.invoke('kryvex:capture:copy', data),
+  captureReveal: (filePath: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:capture:reveal', filePath),
   chromiumInfo: (): Promise<unknown> => ipcRenderer.invoke('kryvex:chromium:info'),
   chromiumSet: (settings: unknown): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:chromium:set', settings),

@@ -522,25 +522,53 @@ export interface HomeSettings {
   longitude: number | null;
   unit: 'c' | 'f';
   notes: HomeNote[];
-  /** Quick-capture inbox, newest first. Sorted later, never interpreted. */
-  captures: HomeCapture[];
   /** Milestones, soonest first. */
   countdowns: HomeCountdown[];
-  /** Up to four IANA zones; an empty list shows what the system knows. */
-  worldClocks: string[];
+  /** Up to four places; an empty list shows this machine and UTC. */
+  worldClocks: WorldClockCity[];
+  /** 12-hour rows when true, 24-hour when false. */
+  clockHour12: boolean;
+  /** Recent screen captures, newest first. Files live where the user saved them. */
+  screenCaptures: ScreenCapture[];
   /** The in-house board guide opens once; it stays available afterwards. */
   guideSeen: boolean;
 }
 
 /** One item from the quick-capture box: a task, a link or an idea. */
-export interface HomeCapture {
+/**
+ * One clock on the Home board.
+ *
+ * The city is the label and the IANA zone is what actually tells the time, so
+ * `İzmir` can be listed as itself instead of as the wider region name its zone
+ * happens to carry. Coordinates are kept when the city was looked up, so the row
+ * can be reopened or re-checked without asking the network again.
+ */
+export interface WorldClockCity {
   id: string;
-  text: string;
-  kind: CaptureKind;
+  zone: string;
+  city: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+/** A still or a recording the user kept, and where it went on this machine. */
+export interface ScreenCapture {
+  id: string;
+  kind: 'shot' | 'clip';
+  /** File name only, so a moved folder does not leave a stale absolute path. */
+  name: string;
+  /** Absolute path when the desktop saved it; empty for a browser download. */
+  path: string;
+  bytes: number;
+  width: number;
+  height: number;
+  /** The service or window it came from, for the row label. */
+  target: string;
   createdAt: number;
 }
 
-export type CaptureKind = 'task' | 'link' | 'idea';
+export type CaptureKind = 'shot' | 'clip';
 
 /** A date-only or exact-time milestone on the Home board. */
 export interface HomeCountdown {
@@ -1105,6 +1133,16 @@ export interface KryvexBridge {
   chromiumSet: (settings: ChromiumSettings) => Promise<EngineInfo | null>;
   partySources: () => Promise<PartySource[]>;
   partySelectSource: (id: string, audio: boolean) => Promise<boolean>;
+  /** Write a capture the renderer produced, after the user picks a folder. */
+  captureSave: (request: {
+    data: string;
+    name: string;
+    kind: CaptureKind;
+  }) => Promise<CaptureSaveResult>;
+  /** Put a PNG capture on the system clipboard. */
+  captureCopy: (data: string) => Promise<boolean>;
+  /** Reveal a saved capture in Explorer. */
+  captureReveal: (path: string) => Promise<boolean>;
   attention: (active: boolean) => void;
   onOpenUrl: (listener: (url: string) => void) => () => void;
   updateStatus: () => Promise<UpdateStatus | null>;
@@ -1132,6 +1170,15 @@ export interface WeatherNow {
   wind: number;
   isDay: boolean;
   humidity: number;
+}
+
+export interface CaptureSaveResult {
+  ok: boolean;
+  /** Set when the file was written. */
+  path?: string;
+  /** True when the user closed the save dialog. */
+  cancelled?: boolean;
+  message?: string;
 }
 
 export interface WeatherResult {

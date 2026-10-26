@@ -33,7 +33,7 @@ import { Icon } from './ui';
 import { WellnessBoard } from './WellnessBoard';
 import { CalculatorWidget } from './CalculatorWidget';
 import { CurrencyWidget } from './CurrencyWidget';
-import { CaptureWidget } from './CaptureWidget';
+import { ScreenCaptureWidget } from './ScreenCaptureWidget';
 import { CountdownWidget } from './CountdownWidget';
 import { WorldClockWidget } from './WorldClockWidget';
 import { weatherAtWeb, weatherLookupWeb } from '../lib/weather-web';
@@ -235,7 +235,13 @@ export function HomeBoard({
 
   const kind = weather?.current ? weatherKind(weather.current.code) : 'cloud';
   const openNotes = useMemo(() => home.notes.filter(note => !note.done).length, [home.notes]);
-  const clock = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  // The board and the world clock share one switch, so a 12-hour preference
+  // never applies to one card and not the other.
+  const clock = now.toLocaleTimeString(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: home.clockHour12,
+  });
   const date = now.toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' });
 
   const columns: Record<HomeWidgetArea, HomeWidgetId[]> = {
@@ -358,7 +364,7 @@ export function HomeBoard({
 
     if (id === 'calculator') return <CalculatorWidget />;
 
-    if (id === 'capture') return <CaptureWidget home={home} onUpdate={onUpdate} />;
+    if (id === 'capture') return <ScreenCaptureWidget home={home} onUpdate={onUpdate} />;
 
     if (id === 'countdown') return <CountdownWidget home={home} onUpdate={onUpdate} />;
 

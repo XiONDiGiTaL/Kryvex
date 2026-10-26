@@ -28,7 +28,7 @@ export const HOME_WIDGET_LABELS: Record<HomeWidgetId, string> = {
   calculator: 'Calculator',
   currency: 'Currency converter',
   guide: 'Board guide',
-  capture: 'Quick capture',
+  capture: 'Screen capture',
   countdown: 'Countdowns',
   clock: 'World clock',
 };

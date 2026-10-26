@@ -32,6 +32,7 @@ import { media } from './media';
 import { modelManager } from './model-download';
 import { notifications } from './notifications';
 import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
+import { captureTools } from './capture-tools';
 import { playlistImporter } from './playlist';
 import { playerEmbed } from './player-embed';
 import * as lexiumProxy from './lexium-proxy';
@@ -757,6 +758,23 @@ function registerIpc(): void {
     if (!isShellSender(event)) return false;
     return serviceSessions.setPolicy(partition, policy);
   });
+  // Screen capture. The renderer sends base64 and gets a path back; it never
+  // chooses where to write, and the dialog is the only way a file is created.
+  ipcMain.handle('kryvex:capture:save', (event, request: unknown) =>
+    isShellSender(event)
+      ? captureTools.save(
+          request && typeof request === 'object'
+            ? (request as { data?: unknown; name?: unknown; kind?: unknown })
+            : {},
+        )
+      : { ok: false, message: 'Untrusted sender.' },
+  );
+  ipcMain.handle('kryvex:capture:copy', (event, data: unknown) =>
+    isShellSender(event) ? captureTools.copy(data) : false,
+  );
+  ipcMain.handle('kryvex:capture:reveal', (event, target: unknown) =>
+    isShellSender(event) ? captureTools.reveal(target) : false,
+  );
   ipcMain.handle('kryvex:weather:lookup', (event, city: unknown, unit: unknown) =>
     isShellSender(event) ? weather.lookup(city, unit) : { ok: false, error: 'invalid' },
   );
@@ -1164,6 +1182,7 @@ if (!gotLock) {
     notifications.attachWindow(mainWindow);
     media.attachWindow(mainWindow);
     link.attachWindow(mainWindow);
+    captureTools.attachWindow(mainWindow);
     partyAttachWindow(mainWindow);
     extensions.attachWindow(mainWindow);
     updater.attachWindow(mainWindow);
@@ -1191,6 +1210,7 @@ if (!gotLock) {
       if (BrowserWindow.getAllWindows().length === 0) {
         mainWindow = createWindow();
         notifications.attachWindow(mainWindow);
+        captureTools.attachWindow(mainWindow);
         partyAttachWindow(mainWindow);
         updater.attachWindow(mainWindow);
         modelManager.attachWindow(mainWindow);

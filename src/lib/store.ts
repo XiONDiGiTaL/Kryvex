@@ -71,9 +71,9 @@ import { isEmulatorSystem } from './emulator';
 import { DEFAULT_LIFECYCLE, sanitizeLifecycle } from './lifecycle';
 import { sanitizeTypography } from './typography';
 import { sanitizePinnedTools } from './secret-tools';
-import { sanitizeCaptures } from './capture';
 import { sanitizeCountdowns } from './countdowns';
 import { sanitizeWorldClocks } from './world-clock';
+import { sanitizeScreenCaptures } from './screen-capture';
 import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
 import { themeGallerySeenValue } from './theme-gallery';
 import { isThemeId, sanitizeCustomTheme } from './themes';
@@ -230,6 +230,31 @@ export function sanitizeWallpaper(raw: unknown): WallpaperSettings {
 
 function cleanText(value: unknown, limit: number): string {
   return typeof value === 'string' ? value.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, limit) : '';
+}
+
+/**
+ * The text inbox that used to be the `capture` widget is gone: it was a second,
+ * weaker note list beside sticky notes, and the widget is now the screen capture
+ * tool. Rather than dropping what someone had typed into it, each queued line
+ * becomes a sticky note once, on the first load that still carries them.
+ */
+function migrateCaptures(notes: HomeNote[], raw: unknown): HomeNote[] {
+  if (!Array.isArray(raw) || raw.length === 0) return notes;
+  const out = notes.slice();
+  const known = new Set(out.map(note => note.text.trim().toLowerCase()));
+  for (const item of raw.slice(0, 40)) {
+    if (!isRecord(item)) continue;
+    const text = cleanText(item.text, 160);
+    if (!text || known.has(text.trim().toLowerCase())) continue;
+    known.add(text.trim().toLowerCase());
+    out.push({
+      id: typeof item.id === 'string' ? `note-${item.id.slice(0, 48)}` : `note-migrated-${out.length + 1}`,
+      text,
+      done: false,
+      createdAt: Number.isFinite(item.createdAt) ? Number(item.createdAt) : Date.now(),
+    });
+  }
+  return out.slice(0, 40);
 }
 
 function sanitizeNotes(raw: unknown): HomeNote[] {
@@ -416,10 +441,11 @@ export function sanitizeHome(raw: unknown): HomeSettings {
     widgetOrder: normalizeWidgetOrder(raw.widgetOrder),
     widgetAreas: normalizeWidgetAreas(raw.widgetAreas),
     unit: raw.unit === 'f' ? 'f' : 'c',
-    notes: sanitizeNotes(raw.notes),
-    captures: sanitizeCaptures(raw.captures),
+    notes: migrateCaptures(sanitizeNotes(raw.notes), raw.captures),
     countdowns: sanitizeCountdowns(raw.countdowns),
     worldClocks: sanitizeWorldClocks(raw.worldClocks),
+    clockHour12: raw.clockHour12 === true,
+    screenCaptures: sanitizeScreenCaptures(raw.screenCaptures),
     guideSeen: raw.guideSeen === true || raw.momentumSeen === true,
   };
 }

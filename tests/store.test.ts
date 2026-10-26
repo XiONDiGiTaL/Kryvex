@@ -86,6 +86,49 @@ describe('sanitizeState', () => {
     expect(sanitizeHome({ latitude: 0, longitude: 0 }).longitude).toBeNull();
   });
 
+  it('turns the retired quick-capture inbox into sticky notes once', () => {
+    // The inbox was a second note list; the card is the screen capture tool now.
+    // Whatever was queued is carried over rather than dropped on the floor.
+    const home = sanitizeHome({
+      notes: [{ id: 'n1', text: 'Existing note', done: false, createdAt: 5 }],
+      captures: [
+        { id: 'c1', text: 'Screen capture this window.', kind: 'task', createdAt: 9 },
+        { id: 'c2', text: 'Existing note', kind: 'task', createdAt: 10 },
+        { id: 'c3', text: '   ', kind: 'task', createdAt: 11 },
+      ],
+    });
+    expect(home.notes.map(note => note.text)).toEqual([
+      'Existing note',
+      'Screen capture this window.',
+    ]);
+    expect(home.notes.every(note => note.done === false)).toBe(true);
+  });
+
+  it('keeps saved captures and the 12/24-hour choice', () => {
+    const home = sanitizeHome({
+      clockHour12: true,
+      screenCaptures: [
+        {
+          id: 'a',
+          kind: 'clip',
+          name: 'kryvex-gmail-20261026-091507.webm',
+          path: 'C:\\Users\\xiond\\Downloads\\Kryvex Captures\\a.webm',
+          bytes: 1024,
+          width: 0,
+          height: 0,
+          target: 'Gmail',
+          createdAt: 1,
+        },
+      ],
+    });
+    expect(home.clockHour12).toBe(true);
+    expect(home.screenCaptures[0]?.kind).toBe('clip');
+    expect(home.screenCaptures[0]?.path).toContain('Kryvex Captures');
+    // Only an explicit true switches the clock; junk stays 24-hour.
+    expect(sanitizeHome({ clockHour12: 'yes' }).clockHour12).toBe(false);
+    expect(sanitizeHome({}).screenCaptures).toEqual([]);
+  });
+
   it('heals the old 0,0 default that builds saved for an unset location', () => {
     expect(sanitizeHome({ city: '', place: '', latitude: 0, longitude: 0 }).latitude).toBeNull();
     // A named place keeps its coordinates, including one at the equator.
