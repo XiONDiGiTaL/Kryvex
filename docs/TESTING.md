@@ -2505,6 +2505,9 @@ the working tree that became this commit, and then against the build installed b
 | Checksums | `pnpm release:checksums` | wrote both digests to `release/SHA256SUMS.txt` |
 | Release record | `pnpm release:check` | PASS for 0.9.4-hotfix.1, 11/11 |
 | Installed build, driven over CDP | `pnpm verify:home-tools` (`scripts/verify-home-tools.cjs`) | **12/12 PASS** |
+| Tag workflow | `gh run view 40338277766` | `windows` 3m9s and `web` 48s, both **success** |
+| Published release | `gh release view v0.9.4-hotfix.1` | stable, `prerelease=false`, marked **Latest**; Setup 134,363,017 B, Portable 134,125,865 B, `SHA256SUMS.txt` 207 B |
+| Live web client | `curl https://xiondigital.net/Kryvex/` | serves `assets/main-DEX2m-Ju.js` and `assets/main-BKKSMrRQ.css`, the bundle reports **0.9.4-hotfix.1**, `sw.js` names `kryvex-web-0.9.4-hotfix.1-v1` |
 
 ### What the installed-build harness asserts
 

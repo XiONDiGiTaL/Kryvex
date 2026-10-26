@@ -138,13 +138,14 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10: Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.4
-  releases published. Each release carries the Setup and Portable EXEs plus
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.4 plus
+  0.9.4-hotfix.1 published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it. The installable PWA is published from the
   `gh-pages` branch of the same repository and serves
   `https://xiondigital.net/Kryvex/`, rebuilt by the tag job from 0.9.4 on
-  (worker cache `kryvex-web-0.9.4-v1`, footer **v0.9.4**).
+  (now worker cache `kryvex-web-0.9.4-hotfix.1-v1`, footer
+  **v0.9.4-hotfix.1**).
 - [ ] **M11: Final review.** README with real screenshots, banner,
   feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and
@@ -783,6 +784,17 @@ capture" inbox, which stored typed lines and never removed them, is replaced by 
 screen capture and recorder that targets an open service, a window or a screen,
 takes a still or a clip, and writes the file through a native save dialog in the
 main process. See `docs/RELEASE_0.9.4-hotfix.1.md`.
+
+0.9.4-hotfix.1 is published from the `v0.9.4-hotfix.1` tag (workflow run
+[40338277766](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40338277766),
+commit `c2cb7cc`): stable and marked **Latest**, so an installed 0.9.4 is offered
+it, with the Setup (134,363,017 B, `c8ff3374…7982e5`), the Portable (134,125,865
+B, `3df2e0b5…3876856`) and `SHA256SUMS.txt` (207 B). The `web` job republished
+the client, so `https://xiondigital.net/Kryvex/` serves this machine's bundle
+(`assets/main-DEX2m-Ju.js`, `assets/main-BKKSMrRQ.css`), reports
+**v0.9.4-hotfix.1** and caches `kryvex-web-0.9.4-hotfix.1-v1`. Next: a real
+capture and a recorded clip saved through the dialog on an installed hotfix
+build, and the phone pass Kyvex Link still owes.
 
 0.9.4 is a feature release, so it moves the version line rather than wearing a
 `-hotfix.N`. It is cut from the `v0.9.4` tag with the Setup, Portable and

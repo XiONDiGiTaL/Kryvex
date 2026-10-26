@@ -85,6 +85,21 @@ Built locally by `pnpm package:win` from this working tree (no EPERM on
 reports `ProductVersion 0.9.4.0` / `FileVersion 0.9.4-hotfix.1`. No model weights
 are bundled.
 
+The tag-triggered workflow (run
+[40338277766](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40338277766),
+commit `c2cb7cc`) built the published pair on `windows-latest` from the same
+sources and attached it to the published, stable release, which GitHub marks
+**Latest** so the updater reads it:
+
+| File | Published size | Published SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.4-hotfix.1-x64.exe` | 134,363,017 B (128.13 MiB) | `c8ff3374d17483446931f551068b507b9e5e118f1b267d48cb50e18bce7982e5` |
+| `Kryvex-Portable-0.9.4-hotfix.1-x64.exe` | 134,125,865 B (127.90 MiB) | `3df2e0b5e83d34e9e643a506ce1b8f3fba0666db4053aefbdd2b85f5b3876856` |
+
+`SHA256SUMS.txt` (207 B) from the same release lists both names with those
+digests. They differ from the local pair only by the build environment. Both EXEs
+are **unsigned**, and the `windows` and `web` jobs both finished **success**.
+
 ## Install
 
 1. Run `Kryvex-Setup-0.9.4-hotfix.1-x64.exe`, or let an installed 0.9.4 update
@@ -117,7 +132,14 @@ are bundled.
   **Add city** produced a row labelled **Izmir** that the × then removed (1 → 0);
   the capture card drew with its target list populated (Kryvex, Brave windows and
   the screen) and no page exception was raised.
-- `pnpm release:check`: PASS for 0.9.4-hotfix.1.
+- `pnpm release:check`: PASS for 0.9.4-hotfix.1, 11/11.
+- **The live web client**: `https://xiondigital.net/Kryvex/` serves
+  `assets/main-DEX2m-Ju.js` and `assets/main-BKKSMrRQ.css` — the names this
+  machine's `pnpm build:web` produced — with the bundle reporting
+  **0.9.4-hotfix.1** and `sw.js` naming `kryvex-web-0.9.4-hotfix.1-v1`.
+- **The published release**: tag `v0.9.4-hotfix.1`, `draft=false`,
+  `prerelease=false`, listing three assets whose digests match
+  `SHA256SUMS.txt`.
 
 ## Wizard capture
 
