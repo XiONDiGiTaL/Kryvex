@@ -132,6 +132,65 @@ carried `temperature: 0.7` and no system turn at all, which is why a 1.5B model
 opened ordinary questions by refusing to discuss "copyrighted material"
 (docs/VEXIUM_MODELS.md §15 records the measurements that came from).
 
+## Who made Kryvex
+
+Vexium answers questions about its creator from supplied facts, not from
+training data. The block lives in `electron/assistant-rules.ts`
+(`CREATOR_PROFILE`, `CREATOR_RULES`) and is added to every system turn by
+`buildMessages()`, so a local model receives it before the conversation:
+
+- XiØN, also known as XiONDiGiTaL, created Kryvex and Vexium; he is an
+  independent musician, songwriter, producer and software developer working
+  across music production, browser-based games, digital utilities and
+  AI-assisted development, building toward an independent creative and
+  technology business.
+- Player529 is a collaborative partner on various projects.
+- Grease & Gold Records is an entity that has collaborated with various
+  artists, with no affiliation to anyone outside its current roster.
+- He is a native English speaker who understands Puerto Rican Spanish and
+  Jamaican Patois, and is learning Turkish at a beginner level.
+- Personal questions that block does not answer get one reply: visit
+  xiondigital.net for more information.
+
+The rules forbid inventing a song, album, release date, studio, collaborator or
+price. Vexium cannot open GitHub, Spotify or YouTube, so a question that needs
+those pages is answered with an honest sentence rather than a guess: the
+built-in responder offers the public links, and either path can offer a search.
+No scheme-qualified URL appears in the prompt: a small model handed a link tends
+to claim it opened it. Links are built in `src/lib/creator.ts`
+(`CREATOR_LINKS`) and opened through the same external-browser handoff as the
+rest of the app.
+
+The same facts answer with no model loaded: `creatorReply()` in
+`src/lib/creator.ts` is a deterministic matcher for the identity, Player529,
+the label, the language question, the public-pages question and personal
+questions, so a fresh install does not depend on a 1.9 GiB download to say who
+made the app.
+
+## Research handoff
+
+Vexium never browses, and Kryvex has no cloud search call: sending the question
+to a search API would break the local-only promise. When an answer depends on
+information the model cannot see, the reply carries a search the user can press
+instead. `src/lib/research.ts` owns both decisions:
+
+| Function | Answers |
+| --- | --- |
+| `researchReason()` | `current` for news, prices, releases, scores, weather and anything dated; `troubleshooting` for a described fault; `software` for manual-shaped questions |
+| `buildResearchQuery()` | the user's own words with the conversational scaffolding removed, the intent the question already states appended once, and a 160-character cap at a word boundary |
+
+The search appears in three places: the built-in responder's fallback, a model
+reply that admits uncertainty (`looksUnsure`), and any reply to a `current` or
+`troubleshooting` question even when the model sounds certain, because a local
+model that sounds sure about today's news is still stale. The button opens the
+Browser with the app's chosen engine and the normalised query; the visible
+label shows that exact query, not the raw sentence.
+
+The query builder is deliberately conservative: it never invents an entity, a
+version or a date, and the year it appends is the only one it knows. It is a
+heuristic, not a search API, and the examples in `tests/research.test.ts` are
+the behaviour it is held to.
+
 ## Workspace tools
 
 A local model of this size cannot be trusted with arithmetic, units, distances
@@ -227,6 +286,11 @@ model.
 
 - Unit tests: `tests/assistant.test.ts` (address rule parity, message
   sanitizing, SSE parsing, model listing, settings defaults).
+- Creator facts: `tests/creator.test.ts` holds the answers to the identity,
+  Player529, the label, the language question, personal questions and public
+  pages, and asserts the system turn carries the same block without a link.
+- Research handoff: `tests/research.test.ts` covers the decision signals and the
+  query builder, including the case where no hint is added twice.
 - End-to-end: a stand-in OpenAI-compatible server on `127.0.0.1:11434` was used
   to drive the built app; it received `{ model: 'llama3.2', messages, stream: true }`
   and the reply streamed into the view. Remote and `https` addresses were

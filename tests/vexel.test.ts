@@ -22,14 +22,16 @@ describe('offline Vexium', () => {
   it('turns an unknown question into an honest search fallback', () => {
     const reply = offlineReply('Who won the 1994 world cup?');
     expect(reply.kind).toBe('fallback');
-    expect(reply.search).toBe('Who won the 1994 world cup?');
+    // The query is the useful part of the question, not the raw sentence.
+    expect(reply.search).toBe('Who won the 1994 world cup');
     expect(reply.text).toMatch(/do not know/i);
+    expect(reply.text).toMatch(/cannot check the web/i);
     expect(reply.text).toMatch(/search/i);
   });
 
   it('offers an explicit search when asked to browse', () => {
     const reply = offlineReply('search for a new keyboard');
-    expect(reply.search).toBe('search for a new keyboard');
+    expect(reply.search).toBe('a new keyboard');
     expect(reply.kind).toBe('answer');
   });
 

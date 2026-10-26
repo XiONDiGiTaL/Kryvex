@@ -14,13 +14,20 @@ import {
   useAssistantRuntime,
 } from '../lib/assistant';
 import { VEXEL_GREETING, looksUnsure, offlineReply } from '../lib/vexel';
+import type { AssistantLink } from '../lib/creator';
+import { buildResearchQuery, researchReason } from '../lib/research';
 import { formatModelSize } from '../lib/local-models';
 import { coreBusyState, installedCoreFor, useVexiumCore } from '../lib/vexium-core';
 import type { CoreAction } from '../lib/vexium-core';
 import { runWorkspaceTool } from '../lib/assistant-tools';
 import { Icon } from '../components/ui';
 
-type ChatMessage = AssistantMessage & { search?: string; tool?: string };
+type ChatMessage = AssistantMessage & {
+  /** A ready-to-search query, never the raw question. */
+  search?: string;
+  tool?: string;
+  links?: AssistantLink[];
+};
 
 /** The core the Vexium page installs when nothing is configured yet. */
 const DEFAULT_CORE_ID = 'vexium-core-3b';
@@ -81,6 +88,11 @@ export function Assistant({
   const [error, setError] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<string | null>(null);
+  // The whole reply so far, independent of React's update batching. A runtime
+  // can deliver a short answer in one burst; appending `event.delta` to
+  // whatever the committed state happened to be lost every piece after the
+  // first when the updates coalesced.
+  const streamRef = useRef<{ id: string; text: string }>({ id: '', text: '' });
   const model = useMemo(
     () => settings.model || runtime.models[0] || '',
     [settings.model, runtime.models],
@@ -105,6 +117,7 @@ export function Assistant({
       if (!activeRef.current || event.requestId !== activeRef.current) return;
       if (event.error) {
         activeRef.current = null;
+        streamRef.current = { id: '', text: '' };
         setRequestId(null);
         setError(event.error);
         setMessages(list =>
@@ -116,26 +129,41 @@ export function Assistant({
         return;
       }
       if (event.delta) {
+        if (streamRef.current.id !== event.requestId) {
+          streamRef.current = { id: event.requestId, text: '' };
+        }
+        streamRef.current.text += event.delta;
+        const text = streamRef.current.text;
         setMessages(list => {
           const next = [...list];
           const last = next[next.length - 1];
           if (last && last.role === 'assistant') {
-            next[next.length - 1] = { ...last, content: last.content + event.delta };
+            next[next.length - 1] = { ...last, content: text };
+          } else {
+            next.push({ role: 'assistant', content: text });
           }
           return next;
         });
       }
       if (event.done) {
         activeRef.current = null;
+        streamRef.current = { id: '', text: '' };
         setRequestId(null);
         // A model that admits uncertainty gets the same search escape hatch
         // the offline responder offers, instead of a dead end.
         setMessages(list => {
           const last = list[list.length - 1];
-          if (!last || last.role !== 'assistant' || !looksUnsure(last.content)) return list;
+          if (!last || last.role !== 'assistant') return list;
           const question = [...list].reverse().find(message => message.role === 'user')?.content;
           if (!question) return list;
-          return [...list.slice(0, -1), { ...last, search: question }];
+          // A local model that sounds sure about today's news is still stale,
+          // and one that sounds sure about a fault is still guessing. Those two
+          // cases carry the search whether or not the answer admits doubt.
+          const reason = researchReason(question);
+          if (!looksUnsure(last.content) && reason !== 'current' && reason !== 'troubleshooting') {
+            return list;
+          }
+          return [...list.slice(0, -1), { ...last, search: buildResearchQuery(question) || question }];
         });
       }
     });
@@ -156,7 +184,12 @@ export function Assistant({
     const reply = offlineReply(question);
     setMessages(list => [
       ...list,
-      { role: 'assistant', content: reply.text, ...(reply.search ? { search: reply.search } : {}) },
+      {
+        role: 'assistant',
+        content: reply.text,
+        ...(reply.search ? { search: reply.search } : {}),
+        ...(reply.links ? { links: reply.links } : {}),
+      },
     ]);
     if (reply.search) setError(null);
   }
@@ -179,6 +212,7 @@ export function Assistant({
     const id = newRequestId();
     setDraft('');
     setError(null);
+    streamRef.current = { id, text: '' };
     setMessages([...next, { role: 'assistant', content: '' }]);
     activeRef.current = id;
     setRequestId(id);
@@ -192,6 +226,10 @@ export function Assistant({
       messages: next,
       ...(fact ? { facts: fact.sentence } : {}),
     });
+    // The invoke reply can reach the renderer before the last `send` deltas on
+    // the same channel. Ending the request here would drop that tail; the
+    // `done` event owns the end of a successful stream.
+    if (result.ok) return;
     // A user cancel keeps whatever streamed so far and adds no error banner.
     if (!result.ok && result.error !== 'aborted') {
       // A runtime that stopped answering falls back to the same honest
@@ -205,7 +243,12 @@ export function Assistant({
           const reply = offlineReply(content);
           return [
             ...trimmed,
-            { role: 'assistant', content: reply.text, ...(reply.search ? { search: reply.search } : {}) },
+            {
+              role: 'assistant',
+              content: reply.text,
+              ...(reply.search ? { search: reply.search } : {}),
+              ...(reply.links ? { links: reply.links } : {}),
+            },
           ];
         });
       } else {
@@ -537,6 +580,18 @@ export function Assistant({
                 {message.tool ? (
                   <span className="mono assistant-tool">{message.tool}</span>
                 ) : null}
+                {message.links?.length
+                  ? message.links.map(link => (
+                      <button
+                        key={link.url}
+                        className="assistant-search"
+                        onClick={() => openExternalUrl(link.url)}
+                      >
+                        <Icon name="external" size={13} />
+                        {link.label}
+                      </button>
+                    ))
+                  : null}
                 {message.search ? (
                   <button
                     className="assistant-search"

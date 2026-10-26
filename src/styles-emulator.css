@@ -680,3 +680,9 @@
 .assistant-search:hover {
   border-color: var(--accent);
 }
+
+/* One message can offer a public page and a search side by side; keep the
+   pills from touching when both are present. */
+.assistant-search + .assistant-search {
+  margin-left: 6px;
+}

@@ -1,7 +1,12 @@
+import { creatorReply, type AssistantLink } from './creator';
+import { buildResearchQuery } from './research';
+
 export interface VexelReply {
   text: string;
-  /** A query the shell can hand to the browser's search engine. */
+  /** A search query the shell can hand to the browser's search engine. */
   search?: string;
+  /** Public pages that answer the question better than prose can. */
+  links?: AssistantLink[];
   kind: 'greeting' | 'answer' | 'fallback';
 }
 
@@ -32,6 +37,17 @@ export function offlineReply(input: string): VexelReply {
   }
   if (/(what|who) (can|are) you|what do you do|capabilit|help me/.test(value)) {
     return { text: CAPABILITIES, kind: 'answer' };
+  }
+  // The creator, in app-supplied words rather than a guess. This is answered
+  // even without a model, because it is the one identity question Kryvex can
+  // answer about itself without one.
+  const creator = creatorReply(input);
+  if (creator) {
+    return {
+      text: creator.text,
+      kind: 'answer',
+      ...(creator.links ? { links: creator.links } : {}),
+    };
   }
   if (/model|ollama|lm studio|lmstudio|gguf|llama/.test(value)) {
     return {
@@ -66,14 +82,14 @@ export function offlineReply(input: string): VexelReply {
   if (/search|browse|internet|look (it|this) up/.test(value)) {
     return {
       text: 'I can hand the question to the Browser instead. Use the search button below and Kryvex will open your chosen engine with the query already filled in.',
-      search: input.trim(),
+      search: buildResearchQuery(input) || input.trim(),
       kind: 'answer',
     };
   }
 
   return {
-    text: 'I do not know that without a model. Load one in Settings → Vexium for a real answer, or search the web now: the button below opens the Browser with your question.',
-    search: input.trim(),
+    text: 'I do not know that without a model, and I cannot check the web from here. Load one in Settings → Vexium for a real answer, or use the search below: it opens the Browser with the useful part of your question.',
+    search: buildResearchQuery(input) || input.trim(),
     kind: 'fallback',
   };
 }

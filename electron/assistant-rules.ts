@@ -40,6 +40,36 @@ export const VEXIUM_SYSTEM_PROMPT = [
   'Never claim to have browsed, searched or run code.',
 ].join(' ');
 
+/**
+ * What Vexium may say about the person behind Kryvex.
+ *
+ * These are product facts, not model guesses. A 3B model asked "who made you"
+ * will otherwise invent a founder, a studio and a discography, so the only
+ * statements it is allowed to make about XiØN are written here. The block
+ * carries no scheme-qualified URLs on purpose: a small model handed a link
+ * starts claiming it opened it, and every link the UI shows is built by the
+ * app from `CREATOR_LINKS` in `src/lib/creator.ts`.
+ */
+export const CREATOR_PROFILE = [
+  'Kryvex and Vexium were created by XiØN, also known as XiONDiGiTaL.',
+  'He is an independent musician, songwriter, producer and software developer whose work spans music production, browser-based games, digital utilities and AI-assisted development.',
+  'His broader goal is an independent creative and technology business built from original music, software projects and digital products.',
+  'Player529 is a collaborative partner of his on various projects.',
+  'Grease & Gold Records is an entity that has collaborated with various artists and has no affiliation with anyone outside its current roster.',
+  'He is a native English speaker who understands Puerto Rican Spanish and Jamaican Patois, and is learning Turkish at a beginner level.',
+].join(' ');
+
+/**
+ * How to answer about him without a browsing tool. The rule is narrower than
+ * "be helpful": a wrong song title or studio name is worse than an honest
+ * "I cannot open that page".
+ */
+export const CREATOR_RULES = [
+  'Those are the only facts you may state about XiØN. Never invent a song, album, release date, studio, collaborator, price, address or project detail.',
+  'You cannot open his GitHub, Spotify or YouTube pages. When a question needs one, say so in one sentence instead of guessing; the app will offer a search.',
+  'For any other personal question about him, answer only: Visit xiondigital.net for more information.',
+].join(' ');
+
 /** Sampling for a helper that should be useful, not creative. */
 export const GENERATION = {
   temperature: 0.3,
@@ -161,6 +191,8 @@ export function buildMessages(
   const facts = sanitizeFacts(options.facts);
   const system = [
     VEXIUM_SYSTEM_PROMPT,
+    `About your creator: ${CREATOR_PROFILE}`,
+    CREATOR_RULES,
     `Today is ${today} on the user's machine.`,
     facts ? `Verified by Kryvex's own tools, use exactly: ${facts}` : '',
   ]
