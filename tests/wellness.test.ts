@@ -230,6 +230,18 @@ describe('reminder timing', () => {
     expect(waterBehind(undefined, 2000, at(14, 30))).toBe(false);
   });
 
+  it('stays quiet for a while after a glass is logged', () => {
+    const now = at(14, 30);
+    const justDrank = day('2026-10-22', { waterMl: 750, waterAt: now.getTime() - 5 * 60_000 });
+    expect(waterBehind(justDrank, 2000, now)).toBe(false);
+    // Still behind, but the reminder gave the user room to act on it.
+    const longAgo = day('2026-10-22', { waterMl: 500, waterAt: now.getTime() - 120 * 60_000 });
+    expect(waterBehind(longAgo, 2000, now)).toBe(true);
+    // Caught up: nothing to say either way.
+    const caughtUp = day('2026-10-22', { waterMl: 2000, waterAt: now.getTime() });
+    expect(waterBehind(caughtUp, 2000, now)).toBe(false);
+  });
+
   it('points at the nearest bedtime, including after midnight', () => {
     expect(minutesUntilBedtime('23:00', at(22, 40))).toBe(20);
     expect(minutesUntilBedtime('23:00', at(0, 30))).toBe(-90);

@@ -19,6 +19,7 @@ export const sweepDe: Record<string, string> = {
     'Nur eine transparente Überlagerung; sie berührt die Spielausgabe nie.',
   'A tunnel needs the OpenVPN TAP/TUN driver and, on Windows, usually administrator rights. Kryvex reports OpenVPN’s own output and stops the process when you disconnect or quit.':
     'Ein Tunnel braucht den OpenVPN-TAP/TUN-Treiber und unter Windows meist Administratorrechte. Kryvex zeigt OpenVPNs eigene Ausgabe und beendet den Prozess beim Trennen oder Beenden.',
+  'ALWAYS ON TOP': 'IMMER OBEN',
   AUDIO: 'AUDIO',
   Accent: 'Akzent',
   'Accent 2': 'Akzent 2',
@@ -61,6 +62,7 @@ export const sweepDe: Record<string, string> = {
   'CPU, memory and GPU-process bars under your pinned services.':
     'CPU-, Arbeitsspeicher- und GPU-Prozessbalken unter deinen angehefteten Diensten.',
   'CRT scanlines': 'CRT-Scanlines',
+  'Close options': 'Optionen schließen',
   'Cartridge received. The host’s game is now your game.':
     'Modul empfangen. Das Spiel des Hosts ist jetzt dein Spiel.',
   'Choose BIOS': 'BIOS wählen',
@@ -144,7 +146,7 @@ export const sweepDe: Record<string, string> = {
   'Freed {size}.': '{size} freigegeben.',
   'GPU PROCESS': 'GPU-PROZESS',
   'GPU process': 'GPU-Prozess',
-  Gamepad: 'Gamepad',
+  Gamepad: 'Controller',
   'Google blocks sign-in in app-embedded browsers. Kryvex already reports one consistent Chrome identity, so if this card still appears the refusal is Google’s policy, not a missing setting. A stale Google session makes it worse: clearing it and signing in fresh often gets further.':
     'Google blockiert die Anmeldung in eingebetteten Browsern. Kryvex meldet bereits eine einheitliche Chrome-Identität; erscheint diese Karte trotzdem, ist die Ablehnung Googles Richtlinie und keine fehlende Einstellung. Eine veraltete Google-Sitzung verschlimmert es: löschen und neu anmelden kommt oft weiter.',
   'Got it': 'Verstanden',
@@ -502,4 +504,66 @@ export const sweepDe: Record<string, string> = {
   '{size} across {count} categories': '{size} in {count} Kategorien',
   '{total} XP': '{total} XP',
   '{value} kcal': '{value} kcal',
+
+  // Home widgets: quick capture, countdowns and the world clock, plus the
+  // tool options panel.
+  'A release, a deadline, an appointment: add the date and it counts down here.':
+    'Ein Release, eine Frist, ein Termin: Datum eintragen, hier läuft der Countdown.',
+  'A task, a link, an idea…': 'Eine Aufgabe, ein Link, eine Idee …',
+  'Add a time zone': 'Zeitzone hinzufügen',
+  'Add a zone…': 'Zone hinzufügen …',
+  'Add this zone': 'Diese Zone hinzufügen',
+  'COUNTDOWNS': 'ZEITZIELE',
+  'Capture it': 'Festhalten',
+  'Capture kind': 'Art der Notiz',
+  'Capture something': 'Etwas festhalten',
+  'Countdown date': 'Countdown-Datum',
+  'Countdown label': 'Countdown-Name',
+  'Countdown time': 'Countdown-Uhrzeit',
+  'Date': 'Datum',
+  'Draws the scanline treatment over the picture.': 'Legt den Scanline-Effekt über das Bild.',
+  'Forget “{text}”': '„{text}“ verwerfen',
+  'Four zones is the limit': 'Vier Zonen sind das Maximum',
+  'Inbox full. Clear a few first.': 'Eingang voll. Räume zuerst ein paar auf.',
+  'Leave the time empty for a whole-day countdown.':
+    'Uhrzeit leer lassen für einen Countdown über den ganzen Tag.',
+  'Mute the module while Spotify labels an ad.':
+    'Schaltet das Modul stumm, während Spotify eine Werbung kennzeichnet.',
+  'No room left. Remove one first.': 'Kein Platz mehr. Entferne zuerst einen.',
+  'Nothing waiting. Whatever you drop here stays on this machine.':
+    'Nichts offen. Was du hier ablegst, bleibt auf diesem Gerät.',
+  'Now': 'Jetzt',
+  'Plays the queue out of order instead of top to bottom.':
+    'Spielt die Warteschlange durcheinander statt von oben nach unten.',
+  'QUICK CAPTURE': 'SCHNELLNOTIZ',
+  'Remove {zone}': '{zone} entfernen',
+  'SYSTEM': 'SYSTEMZEIT',
+  'Settings for this tool': 'Einstellungen dieses Werkzeugs',
+  'Settings for this tool live in its own window.':
+    'Die Einstellungen dieses Werkzeugs stehen in seinem eigenen Fenster.',
+  'Showing this device and UTC. Add up to four zones.':
+    'Zeigt dieses Gerät und UTC. Bis zu vier Zonen hinzufügen.',
+  'Spotify ad guard': 'Spotify-Werbeschutz',
+  'Time': 'Uhrzeit',
+  'Uses a connected controller for the game that is loaded.':
+    'Nutzt einen angeschlossenen Controller für das geladene Spiel.',
+  'WORLD CLOCK': 'WELTUHR',
+  'What is it for?': 'Wofür ist es?',
+  'in {count} days': 'in {count} Tagen',
+  'in {count} h': 'in {count} Std.',
+  'in {count} min': 'in {count} Min.',
+  '{count} OF 4': '{count} VON 4',
+  '{count} QUEUED': '{count} IN DER WARTESCHLANGE',
+  '{count} TRACKED': '{count} VERFOLGT',
+  '{count} days ago': 'vor {count} Tagen',
+  '{count} h ago': 'vor {count} Std.',
+  '{count} min ago': 'vor {count} Min.',
+  '{name} is already pinned.': '{name} ist bereits angeheftet.',
+  '{name} settings': '{name}-Einstellungen',
+  'Task': 'Aufgabe',
+  'Link': 'Link',
+  'Idea': 'Idee',
+  'Quick capture': 'Schnellnotiz',
+  'Countdowns': 'Countdowns',
+  'World clock': 'Weltuhr',
 };

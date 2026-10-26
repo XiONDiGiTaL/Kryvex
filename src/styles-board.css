@@ -1716,26 +1716,23 @@ body[data-player-bar='1'] .media-dock.is-floating {
 
 .service-quick {
   position: relative;
+  display: flex;
 }
 
-.service-quick > summary {
-  list-style: none;
-  cursor: pointer;
-}
-
-.service-quick > summary::-webkit-details-marker {
-  display: none;
-}
-
-.service-quick[open] > summary {
+/* The trigger keeps the accent while its panel is open, so the panel has a
+   visible anchor instead of floating over the page on its own. */
+.service-quick > .icon-btn[aria-expanded='true'] {
   color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
 }
 
 .service-quick-panel {
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  z-index: 40;
+  /* Above the service canvas and every floated module: the panel is never
+     allowed to slide under a webview while its switches are in reach. */
+  z-index: 70;
   width: 278px;
   display: flex;
   flex-direction: column;
@@ -1746,6 +1743,24 @@ body[data-player-bar='1'] .media-dock.is-floating {
   background: var(--raised);
   box-shadow: 0 18px 44px color-mix(in srgb, var(--bg) 62%, transparent);
   cursor: default;
+}
+
+.service-quick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.service-quick-sticky {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8.5px;
+  letter-spacing: 0.09em;
+  color: var(--accent-soft);
 }
 
 .service-quick-row {
@@ -1773,7 +1788,7 @@ body[data-player-bar='1'] .media-dock.is-floating {
   color: var(--ink-faint);
 }
 
-.service-card:has(.service-quick[open]) {
+.service-card:has(.service-quick.is-open) {
   z-index: 6;
 }
 
@@ -1845,12 +1860,25 @@ body[data-player-bar='1'] .media-dock.is-floating {
   flex: 1;
 }
 
-.secret-pin {
+/* The options and pin buttons share one corner of the card, above its own
+   click target. */
+.secret-buttons {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 1;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.secret-buttons > .icon-btn {
   background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
+/* The options panel hangs off the card, so the card may not clip it. */
+.secret-slot .service-quick-panel {
+  width: min(300px, calc(100vw - 48px));
 }
 
 /* ---------------------------------------------------------------- wellness --- */
@@ -2224,4 +2252,180 @@ body[data-player-bar='1'] .media-dock.is-floating {
 
 .wellness-switch input {
   accent-color: var(--accent);
+}
+
+/* ------------------------------------- quick capture · countdowns · clock --- */
+
+.home-capture,
+.home-countdown,
+.home-clock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--bg) 24%, transparent);
+}
+
+.home-capture-form,
+.home-clock-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-capture-form input,
+.home-clock-form select {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-capture-kinds {
+  display: flex;
+  gap: 5px;
+}
+
+.home-capture-list,
+.home-countdown-list,
+.home-clock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-capture-list li,
+.home-clock-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 40%, transparent);
+}
+
+.home-capture-kind {
+  flex: none;
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.home-capture-text {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 11px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-capture-text.is-link {
+  color: var(--accent-soft);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.home-countdown-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 40%, transparent);
+}
+
+.home-countdown-list li > div,
+.home-clock-list li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.home-countdown-list strong,
+.home-clock-list strong {
+  font-size: 11px;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-countdown-list li > div span,
+.home-clock-list li > div span {
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+
+.home-countdown-list li.is-past {
+  opacity: 0.62;
+}
+
+.home-countdown-left {
+  flex: none;
+  font-size: 9.5px;
+}
+
+.home-countdown-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-countdown-form > input {
+  width: 100%;
+}
+
+.home-countdown-when {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.home-countdown-when label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+
+.home-countdown-when input {
+  min-width: 0;
+  width: 100%;
+}
+
+.home-countdown-hint,
+.home-clock-hint {
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.home-clock-time {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+/* A service card dragged over the pinned rail marks the rail as the target. */
+.sidebar-section.is-pin-drop {
+  outline: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 3px;
+  border-radius: 12px;
 }

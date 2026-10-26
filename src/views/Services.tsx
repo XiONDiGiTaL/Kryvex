@@ -6,7 +6,9 @@ import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
 import { EmptyState, Icon, ServiceIcon } from '../components/ui';
 import { ServiceQuickMenu } from '../components/ServiceQuickMenu';
+import { ToolQuickMenu } from '../components/ToolQuickMenu';
 import { ElementMark } from '../components/ElementMark';
+import { SERVICE_DRAG_TYPE } from '../lib/service-drag';
 
 /**
  * The pin control for a built-in tool.
@@ -49,6 +51,8 @@ export function Services({
   onUpdateService,
   onSecretTool,
   onToggleToolPin,
+  onUpdateEmulator,
+  onUpdatePlayer,
 }: {
   state: PersistedState;
   onOpen: (service: Service) => void;
@@ -60,6 +64,8 @@ export function Services({
   onSecretTool: (tool: SecretToolId) => void;
   /** Built-in tools pin to the same sidebar rail as installed services. */
   onToggleToolPin: (tool: SecretToolId) => void;
+  onUpdateEmulator: (patch: Partial<PersistedState['settings']['emulator']>) => void;
+  onUpdatePlayer: (patch: Partial<PersistedState['settings']['player']>) => void;
 }) {
   const t = useT();
   const pinnedTools = state.settings.pinnedTools;
@@ -182,6 +188,13 @@ export function Services({
               tabIndex={0}
               role="button"
               aria-label={t('Open {name}', { name: service.name })}
+              draggable
+              onDragStart={event => {
+                // Dragging the card is how a service reaches the pinned rail;
+                // the pin button stays for people who would rather click.
+                event.dataTransfer.setData(SERVICE_DRAG_TYPE, service.id);
+                event.dataTransfer.effectAllowed = 'copy';
+              }}
               onClick={() => onOpen(service)}
               onKeyDown={event => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -276,11 +289,21 @@ export function Services({
               </span>
               <Icon name="forward" size={16} />
             </button>
-            <ToolPinButton
-              tool="lexium"
-              pinned={pinnedTools.includes('lexium')}
-              onToggle={onToggleToolPin}
-            />
+            <div className="secret-buttons">
+              <ToolQuickMenu
+                tool="lexium"
+                emulator={state.settings.emulator}
+                player={state.settings.player}
+                onUpdateEmulator={onUpdateEmulator}
+                onUpdatePlayer={onUpdatePlayer}
+                onOpen={onSecretTool}
+              />
+              <ToolPinButton
+                tool="lexium"
+                pinned={pinnedTools.includes('lexium')}
+                onToggle={onToggleToolPin}
+              />
+            </div>
           </div>
 
           <div className="secret-slot">
@@ -297,11 +320,21 @@ export function Services({
               </span>
               <Icon name="forward" size={16} />
             </button>
-            <ToolPinButton
-              tool="player"
-              pinned={pinnedTools.includes('player')}
-              onToggle={onToggleToolPin}
-            />
+            <div className="secret-buttons">
+              <ToolQuickMenu
+                tool="player"
+                emulator={state.settings.emulator}
+                player={state.settings.player}
+                onUpdateEmulator={onUpdateEmulator}
+                onUpdatePlayer={onUpdatePlayer}
+                onOpen={onSecretTool}
+              />
+              <ToolPinButton
+                tool="player"
+                pinned={pinnedTools.includes('player')}
+                onToggle={onToggleToolPin}
+              />
+            </div>
           </div>
 
           <div className="secret-slot">
@@ -318,11 +351,21 @@ export function Services({
               </span>
               <Icon name="forward" size={16} />
             </button>
-            <ToolPinButton
-              tool="emulator"
-              pinned={pinnedTools.includes('emulator')}
-              onToggle={onToggleToolPin}
-            />
+            <div className="secret-buttons">
+              <ToolQuickMenu
+                tool="emulator"
+                emulator={state.settings.emulator}
+                player={state.settings.player}
+                onUpdateEmulator={onUpdateEmulator}
+                onUpdatePlayer={onUpdatePlayer}
+                onOpen={onSecretTool}
+              />
+              <ToolPinButton
+                tool="emulator"
+                pinned={pinnedTools.includes('emulator')}
+                onToggle={onToggleToolPin}
+              />
+            </div>
           </div>
 
           <div className="secret-slot">
@@ -339,11 +382,21 @@ export function Services({
               </span>
               <Icon name="forward" size={16} />
             </button>
-            <ToolPinButton
-              tool="disk"
-              pinned={pinnedTools.includes('disk')}
-              onToggle={onToggleToolPin}
-            />
+            <div className="secret-buttons">
+              <ToolQuickMenu
+                tool="disk"
+                emulator={state.settings.emulator}
+                player={state.settings.player}
+                onUpdateEmulator={onUpdateEmulator}
+                onUpdatePlayer={onUpdatePlayer}
+                onOpen={onSecretTool}
+              />
+              <ToolPinButton
+                tool="disk"
+                pinned={pinnedTools.includes('disk')}
+                onToggle={onToggleToolPin}
+              />
+            </div>
           </div>
         </div>
       </section>

@@ -16,6 +16,9 @@ export const HOME_WIDGETS: HomeWidgetId[] = [
   'calculator',
   'guide',
   'currency',
+  'capture',
+  'countdown',
+  'clock',
 ];
 
 export const HOME_WIDGET_LABELS: Record<HomeWidgetId, string> = {
@@ -25,29 +28,50 @@ export const HOME_WIDGET_LABELS: Record<HomeWidgetId, string> = {
   calculator: 'Calculator',
   currency: 'Currency converter',
   guide: 'Board guide',
+  capture: 'Quick capture',
+  countdown: 'Countdowns',
+  clock: 'World clock',
 };
 
 /** Which persisted boolean turns each widget on. */
-export const HOME_WIDGET_FLAGS: Record<
-  HomeWidgetId,
-  'showWeather' | 'showWellness' | 'showTasks' | 'showCalculator' | 'showCurrency' | 'showGuide'
-> = {
+export type HomeWidgetFlag =
+  | 'showWeather'
+  | 'showWellness'
+  | 'showTasks'
+  | 'showCalculator'
+  | 'showCurrency'
+  | 'showGuide'
+  | 'showCapture'
+  | 'showCountdown'
+  | 'showClock';
+
+export const HOME_WIDGET_FLAGS: Record<HomeWidgetId, HomeWidgetFlag> = {
   weather: 'showWeather',
   wellness: 'showWellness',
   notes: 'showTasks',
   calculator: 'showCalculator',
   currency: 'showCurrency',
   guide: 'showGuide',
+  capture: 'showCapture',
+  countdown: 'showCountdown',
+  clock: 'showClock',
 };
 
-/** The guide and converter start in the narrow column; everything else in the main one. */
+/**
+ * The narrow column holds the card-sized widgets: the guide, the converter, the
+ * calculator, the countdown list and the clock. The main column is for the ones
+ * that need width or a list.
+ */
 export const HOME_WIDGET_DEFAULT_AREAS: Record<HomeWidgetId, HomeWidgetArea> = {
   weather: 'main',
   wellness: 'main',
   notes: 'main',
-  calculator: 'main',
+  calculator: 'side',
   currency: 'side',
   guide: 'side',
+  capture: 'main',
+  countdown: 'side',
+  clock: 'side',
 };
 
 export const HOME_WIDGET_DEFAULT_ORDER: HomeWidgetId[] = [...HOME_WIDGETS];
@@ -121,27 +145,14 @@ export function moveWidgetWithinArea(
 }
 
 export function widgetEnabled(
-  home: Pick<
-    HomeSettings,
-    'showWeather' | 'showWellness' | 'showTasks' | 'showCalculator' | 'showCurrency' | 'showGuide'
-  >,
+  home: Pick<HomeSettings, HomeWidgetFlag>,
   id: HomeWidgetId,
 ): boolean {
   return home[HOME_WIDGET_FLAGS[id]] === true;
 }
 
 export function visibleWidgets(
-  home: Pick<
-    HomeSettings,
-    | 'showWeather'
-    | 'showWellness'
-    | 'showTasks'
-    | 'showCalculator'
-    | 'showCurrency'
-    | 'showGuide'
-    | 'widgetOrder'
-    | 'widgetAreas'
-  >,
+  home: Pick<HomeSettings, HomeWidgetFlag | 'widgetOrder' | 'widgetAreas'>,
   area: HomeWidgetArea,
 ): HomeWidgetId[] {
   return widgetsInArea(home.widgetOrder, home.widgetAreas, area).filter(id =>

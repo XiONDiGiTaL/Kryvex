@@ -1403,6 +1403,10 @@ kbd {
 }
 
 .service-toolbar {
+  position: relative;
+  /* The options popover opens downward from this bar, so the bar has to sit
+     above the canvas it drops over. */
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 10px;

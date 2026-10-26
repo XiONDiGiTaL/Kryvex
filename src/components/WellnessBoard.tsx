@@ -159,7 +159,9 @@ export function WellnessBoard({
 
   function addWater(delta: number): void {
     const next = Math.max(0, Math.min(10_000, (day?.waterMl ?? 0) + delta));
-    save({ waterMl: next });
+    // Drinking is the answer to the reminder, so the time is logged with the
+    // glass: `waterBehind` then stays quiet instead of repeating itself.
+    save(delta > 0 ? { waterMl: next, waterAt: Date.now() } : { waterMl: next });
   }
 
   function logSleep(value: string): void {

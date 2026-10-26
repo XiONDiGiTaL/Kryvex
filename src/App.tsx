@@ -589,6 +589,24 @@ export default function App() {
     [navigate],
   );
 
+  /**
+   * Dropping a service card on the pinned rail pins it. It never unpins: a drop
+   * is an instruction to add, and removing a pin stays a deliberate click.
+   */
+  const pinServiceById = useCallback(
+    (id: string) => {
+      const service = state.services.find(item => item.id === id);
+      if (!service) return;
+      if (service.pinned) {
+        pushToast(t('{name} is already pinned.', { name: service.name }), 'info');
+        return;
+      }
+      setState(current => togglePin(current, id));
+      pushToast(t('{name} pinned.', { name: service.name }), 'success');
+    },
+    [pushToast, state.services, t],
+  );
+
   const toggleToolPinInState = useCallback(
     (tool: SecretToolId) => {
       const name = t(SECRET_TOOL_LABELS[tool]);
@@ -1094,6 +1112,7 @@ export default function App() {
         onReorderPinned={(id, beforeId) =>
           setState(current => moveService(current, id, beforeId))
         }
+        onPinService={pinServiceById}
       />
 
       <main className={`app-main ${activeService ? 'is-service' : ''}`}>
@@ -1199,6 +1218,8 @@ export default function App() {
             onUpdateService={updateServiceFlags}
             onSecretTool={openSecretTool}
             onToggleToolPin={toggleToolPinInState}
+            onUpdateEmulator={updateEmulator}
+            onUpdatePlayer={updatePlayer}
           />
         ) : route.view === 'assistant' ? (
           <Assistant

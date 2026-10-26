@@ -222,6 +222,26 @@ tool lands under the pinned services with a shell glyph instead of a favicon.
 The choice lives in `settings.pinnedTools`, so it survives a restart, and only
 known tool ids survive a hand-edited state file.
 
+A service can also be dragged from its card in **Services** onto the pinned
+rail; the drag carries `application/x-kryvex-service` (`src/lib/service-drag.ts`)
+so a text selection or a file from the desktop is ignored, and dropping pins the
+service without ever unpinning one. `getData` is unreadable during `dragover`,
+so the rail highlights on `types` and reads the id only on drop.
+
+## Options panel
+
+The sliders button on a service card or in a module's toolbar opens the options
+panel (`src/components/OptionsPopover.tsx`). It is a popover, not a menu: it
+holds switches, so an outside click does not dismiss it — it closes on its own
+trigger, on Escape, or on the close button, and only one is open at a time.
+While open it sits above the service canvas (`z-index: 70`, toolbar `20`) so a
+webview can never paint over the switches that belong to it.
+
+The built-in tools use the same panel (`ToolQuickMenu`). The player offers
+Shuffle and the Spotify ad guard, the emulator offers Gamepad and CRT scanlines,
+and Lexium and Disk pulse — which have no switches of their own — offer the way
+into their window instead of invented toggles.
+
 ## Service presets
 
 `src/lib/catalog.ts` lists web endpoints only: messaging (Discord, Messenger,

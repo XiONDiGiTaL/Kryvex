@@ -69,6 +69,9 @@ import { isEmulatorSystem } from './emulator';
 import { DEFAULT_LIFECYCLE, sanitizeLifecycle } from './lifecycle';
 import { sanitizeTypography } from './typography';
 import { sanitizePinnedTools } from './secret-tools';
+import { sanitizeCaptures } from './capture';
+import { sanitizeCountdowns } from './countdowns';
+import { sanitizeWorldClocks } from './world-clock';
 import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
 import { themeGallerySeenValue } from './theme-gallery';
 import { isThemeId, sanitizeCustomTheme } from './themes';
@@ -283,6 +286,9 @@ function sanitizeWellnessDay(raw: unknown): WellnessDay | null {
     calories: boundedNumber(raw.calories, 0, 10_000),
     taskDone: raw.taskDone === true,
     checkedIn: raw.checkedIn === true,
+    ...(typeof raw.waterAt === 'number' && Number.isFinite(raw.waterAt) && raw.waterAt > 0
+      ? { waterAt: Math.round(raw.waterAt) }
+      : {}),
   };
 }
 
@@ -391,10 +397,14 @@ export function sanitizeHome(raw: unknown): HomeSettings {
     latitude: hasPoint ? latitude : null,
     longitude: hasPoint ? longitude : null,
     showWellness: raw.showWellness === true,
-    // The calculator and converter are new cards, not opt-ins. A file written
-    // before them should show them without the user hunting through Widgets.
-    showCalculator: raw.showCalculator === undefined ? base.showCalculator : raw.showCalculator === true,
+    // The calculator used to be on for everyone; it is a card the user opens
+    // from Widgets now, so only a saved `true` keeps it. The converter is
+    // still part of the default board.
+    showCalculator: raw.showCalculator === true,
     showCurrency: raw.showCurrency === undefined ? base.showCurrency : raw.showCurrency === true,
+    showCapture: raw.showCapture === true,
+    showCountdown: raw.showCountdown === true,
+    showClock: raw.showClock === true,
     currencyFrom: currencyCode(raw.currencyFrom, base.currencyFrom),
     currencyTo: currencyCode(raw.currencyTo, base.currencyTo),
     wellness: sanitizeWellness(raw.wellness),
@@ -404,6 +414,9 @@ export function sanitizeHome(raw: unknown): HomeSettings {
     widgetAreas: normalizeWidgetAreas(raw.widgetAreas),
     unit: raw.unit === 'f' ? 'f' : 'c',
     notes: sanitizeNotes(raw.notes),
+    captures: sanitizeCaptures(raw.captures),
+    countdowns: sanitizeCountdowns(raw.countdowns),
+    worldClocks: sanitizeWorldClocks(raw.worldClocks),
     guideSeen: raw.guideSeen === true || raw.momentumSeen === true,
   };
 }

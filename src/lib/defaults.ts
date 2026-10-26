@@ -47,8 +47,13 @@ export const DEFAULT_HOME: HomeSettings = {
   showTasks: false,
   showGuide: true,
   showWellness: false,
-  showCalculator: true,
+  // The calculator, the countdowns and the clock are opt-in like the notes: a
+  // fresh board is the clock, the weather and the guide, not a wall of cards.
+  showCalculator: false,
   showCurrency: true,
+  showCapture: false,
+  showCountdown: false,
+  showClock: false,
   currencyFrom: 'USD',
   currencyTo: 'EUR',
   widgetOrder: [...HOME_WIDGET_DEFAULT_ORDER],
@@ -60,6 +65,9 @@ export const DEFAULT_HOME: HomeSettings = {
   longitude: null,
   unit: 'c',
   notes: [],
+  captures: [],
+  countdowns: [],
+  worldClocks: [],
   guideSeen: false,
 };
 

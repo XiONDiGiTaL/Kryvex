@@ -33,6 +33,9 @@ import { Icon } from './ui';
 import { WellnessBoard } from './WellnessBoard';
 import { CalculatorWidget } from './CalculatorWidget';
 import { CurrencyWidget } from './CurrencyWidget';
+import { CaptureWidget } from './CaptureWidget';
+import { CountdownWidget } from './CountdownWidget';
+import { WorldClockWidget } from './WorldClockWidget';
 import { weatherAtWeb, weatherLookupWeb } from '../lib/weather-web';
 
 function greeting(hour: number): string {
@@ -354,6 +357,12 @@ export function HomeBoard({
     }
 
     if (id === 'calculator') return <CalculatorWidget />;
+
+    if (id === 'capture') return <CaptureWidget home={home} onUpdate={onUpdate} />;
+
+    if (id === 'countdown') return <CountdownWidget home={home} onUpdate={onUpdate} />;
+
+    if (id === 'clock') return <WorldClockWidget home={home} onUpdate={onUpdate} />;
 
     if (id === 'currency') {
       return <CurrencyWidget home={home} onUpdate={onUpdate} />;

@@ -14,9 +14,12 @@ const areas: Record<HomeWidgetId, HomeWidgetArea> = {
   weather: 'main',
   wellness: 'main',
   notes: 'main',
-  calculator: 'main',
+  calculator: 'side',
   currency: 'side',
   guide: 'side',
+  capture: 'main',
+  countdown: 'side',
+  clock: 'side',
 };
 
 describe('home widget order', () => {
@@ -28,6 +31,9 @@ describe('home widget order', () => {
       'calculator',
       'guide',
       'currency',
+      'capture',
+      'countdown',
+      'clock',
     ]);
     expect(normalizeWidgetOrder(undefined)).toEqual(HOME_WIDGETS);
     expect(normalizeWidgetOrder('notes')).toEqual(HOME_WIDGETS);
@@ -47,8 +53,24 @@ describe('home widget order', () => {
 
   it('moves a widget past its neighbour without touching the other column', () => {
     const moved = moveWidgetWithinArea(HOME_WIDGETS, areas, 'main', 'notes', -1);
-    expect(moved).toEqual(['weather', 'notes', 'wellness', 'calculator', 'guide', 'currency']);
-    expect(moved.filter(id => areas[id] === 'side')).toEqual(['guide', 'currency']);
+    expect(moved).toEqual([
+      'weather',
+      'notes',
+      'wellness',
+      'calculator',
+      'guide',
+      'currency',
+      'capture',
+      'countdown',
+      'clock',
+    ]);
+    expect(moved.filter(id => areas[id] === 'side')).toEqual([
+      'calculator',
+      'guide',
+      'currency',
+      'countdown',
+      'clock',
+    ]);
   });
 
   it('moves within both columns and stops at either end', () => {
@@ -59,11 +81,15 @@ describe('home widget order', () => {
       'calculator',
       'currency',
       'guide',
+      'capture',
+      'countdown',
+      'clock',
     ];
     expect(moveWidgetWithinArea(HOME_WIDGETS, areas, 'side', 'guide', 1)).toEqual(swapped);
     expect(moveWidgetWithinArea(swapped, areas, 'side', 'guide', -1)).toEqual(HOME_WIDGETS);
     expect(moveWidgetWithinArea(HOME_WIDGETS, areas, 'main', 'weather', -1)).toEqual(HOME_WIDGETS);
-    expect(moveWidgetWithinArea(swapped, areas, 'side', 'guide', 1)).toEqual(swapped);
+    // The clock is the last widget in the side column now, so it cannot move down.
+    expect(moveWidgetWithinArea(HOME_WIDGETS, areas, 'side', 'clock', 1)).toEqual(HOME_WIDGETS);
   });
 
   it('only shows widgets that are enabled, in their own column', () => {
@@ -79,7 +105,7 @@ describe('home widget order', () => {
         weather: 'main',
         wellness: 'main',
         notes: 'main',
-        calculator: 'main',
+        calculator: 'side',
         currency: 'side',
         guide: 'side',
       },
@@ -92,24 +118,35 @@ describe('home widget order', () => {
 });
 
 describe('home defaults', () => {
-  it('leaves sticky notes off for a new workspace', () => {
+  it('leaves the optional cards off for a new workspace', () => {
     const home = sanitizeHome(undefined);
     expect(home.showTasks).toBe(false);
-    expect(home.showCalculator).toBe(true);
+    expect(home.showCalculator).toBe(false);
+    expect(home.showCapture).toBe(false);
+    expect(home.showCountdown).toBe(false);
+    expect(home.showClock).toBe(false);
     expect(home.showCurrency).toBe(true);
     expect(home.currencyFrom).toBe('USD');
     expect(home.currencyTo).toBe('EUR');
     expect(home.widgetOrder).toEqual(HOME_WIDGETS);
+    // The calculator sits in the side column so it is the width of a card, not
+    // of the whole board.
+    expect(home.widgetAreas.calculator).toBe('side');
     expect(home.widgetAreas.guide).toBe('side');
     expect(home.widgetAreas.currency).toBe('side');
+    expect(home.captures).toEqual([]);
+    expect(home.countdowns).toEqual([]);
+    expect(home.worldClocks).toEqual([]);
   });
 
-  it('shows the new cards for a saved file written before they existed', () => {
-    const home = sanitizeHome({ widgetOrder: ['weather', 'notes', 'wellness', 'guide'] });
-    expect(home.showCalculator).toBe(true);
-    expect(home.showCurrency).toBe(true);
-    expect(visibleWidgets(home, 'main')).toContain('calculator');
-    expect(visibleWidgets(home, 'side')).toContain('currency');
+  it('closes a calculator the old default had switched on', () => {
+    const home = sanitizeHome({ widgetOrder: HOME_WIDGETS });
+    expect(home.showCalculator).toBe(false);
+    expect(visibleWidgets(home, 'side')).not.toContain('calculator');
+  });
+
+  it('keeps a calculator the user switched on themselves', () => {
+    expect(sanitizeHome({ showCalculator: true }).showCalculator).toBe(true);
   });
 
   it('closes notes once for a file written before the Notes button existed', () => {

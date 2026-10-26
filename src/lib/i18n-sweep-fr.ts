@@ -19,6 +19,7 @@ export const sweepFr: Record<string, string> = {
     'Une simple couche transparente ; elle ne touche jamais à la sortie du jeu.',
   'A tunnel needs the OpenVPN TAP/TUN driver and, on Windows, usually administrator rights. Kryvex reports OpenVPN’s own output and stops the process when you disconnect or quit.':
     'Un tunnel nécessite le pilote TAP/TUN d’OpenVPN et, sous Windows, généralement des droits d’administrateur. Kryvex affiche la sortie d’OpenVPN et arrête le processus à la déconnexion ou à la fermeture.',
+  'ALWAYS ON TOP': 'TOUJOURS VISIBLE',
   AUDIO: 'AUDIO',
   Accent: 'Accent',
   'Accent 2': 'Accent 2',
@@ -61,6 +62,7 @@ export const sweepFr: Record<string, string> = {
   'CPU, memory and GPU-process bars under your pinned services.':
     'Barres CPU, mémoire et processus GPU sous vos services épinglés.',
   'CRT scanlines': 'Lignes de balayage CRT',
+  'Close options': 'Fermer les options',
   'Cartridge received. The host’s game is now your game.':
     'Cartouche reçue. Le jeu de l’hôte est maintenant le vôtre.',
   'Choose BIOS': 'Choisir le BIOS',
@@ -502,4 +504,66 @@ export const sweepFr: Record<string, string> = {
   '{size} across {count} categories': '{size} répartis sur {count} catégories',
   '{total} XP': '{total} XP',
   '{value} kcal': '{value} kcal',
+
+  // Home widgets: quick capture, countdowns and the world clock, plus the
+  // tool options panel.
+  'A release, a deadline, an appointment: add the date and it counts down here.':
+    'Une sortie, une échéance, un rendez-vous : ajoutez la date et le compte à rebours s’affiche ici.',
+  'A task, a link, an idea…': 'Une tâche, un lien, une idée…',
+  'Add a time zone': 'Ajouter un fuseau horaire',
+  'Add a zone…': 'Ajouter un fuseau…',
+  'Add this zone': 'Ajouter ce fuseau',
+  'COUNTDOWNS': 'COMPTES À REBOURS',
+  'Capture it': 'Capturer',
+  'Capture kind': 'Type de capture',
+  'Capture something': 'Capturer quelque chose',
+  'Countdown date': 'Date du compte à rebours',
+  'Countdown label': 'Nom du compte à rebours',
+  'Countdown time': 'Heure du compte à rebours',
+  'Date': 'Date visée',
+  'Draws the scanline treatment over the picture.': 'Dessine l’effet de lignes de balayage sur l’image.',
+  'Forget “{text}”': 'Oublier « {text} »',
+  'Four zones is the limit': 'Quatre fuseaux, c’est la limite',
+  'Inbox full. Clear a few first.': 'Boîte pleine. Videz-en quelques-unes.',
+  'Leave the time empty for a whole-day countdown.':
+    'Laissez l’heure vide pour un compte à rebours sur la journée.',
+  'Mute the module while Spotify labels an ad.':
+    'Coupe le module pendant que Spotify signale une publicité.',
+  'No room left. Remove one first.': 'Plus de place. Supprimez-en un d’abord.',
+  'Nothing waiting. Whatever you drop here stays on this machine.':
+    'Rien en attente. Ce que vous déposez ici reste sur cette machine.',
+  'Now': 'Maintenant',
+  'Plays the queue out of order instead of top to bottom.':
+    'Lit la file dans le désordre au lieu de haut en bas.',
+  'QUICK CAPTURE': 'CAPTURE RAPIDE',
+  'Remove {zone}': 'Retirer {zone}',
+  'SYSTEM': 'SYSTÈME',
+  'Settings for this tool': 'Réglages de cet outil',
+  'Settings for this tool live in its own window.':
+    'Les réglages de cet outil sont dans sa propre fenêtre.',
+  'Showing this device and UTC. Add up to four zones.':
+    'Affiche cet appareil et UTC. Ajoutez jusqu’à quatre fuseaux.',
+  'Spotify ad guard': 'Filtre anti-pub Spotify',
+  'Time': 'Heure',
+  'Uses a connected controller for the game that is loaded.':
+    'Utilise une manette connectée pour le jeu chargé.',
+  'WORLD CLOCK': 'HORLOGE MONDIALE',
+  'What is it for?': 'C’est pour quoi ?',
+  'in {count} days': 'dans {count} jours',
+  'in {count} h': 'dans {count} h',
+  'in {count} min': 'dans {count} min',
+  '{count} OF 4': '{count} SUR 4',
+  '{count} QUEUED': '{count} EN ATTENTE',
+  '{count} TRACKED': '{count} SUIVIS',
+  '{count} days ago': 'il y a {count} jours',
+  '{count} h ago': 'il y a {count} h',
+  '{count} min ago': 'il y a {count} min',
+  '{name} is already pinned.': '{name} est déjà épinglé.',
+  '{name} settings': 'Réglages de {name}',
+  'Task': 'Tâche',
+  'Link': 'Lien',
+  'Idea': 'Idée',
+  'Quick capture': 'Capture rapide',
+  'Countdowns': 'Comptes à rebours',
+  'World clock': 'Horloge mondiale',
 };

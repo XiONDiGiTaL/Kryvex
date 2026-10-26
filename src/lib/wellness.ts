@@ -253,12 +253,21 @@ export function waterPace(now: Date): number {
   return Math.min(1, Math.max(0, (minutes - 7 * 60) / (15 * 60)));
 }
 
+/** How long a logged glass keeps the reminder quiet. */
+export const WATER_NUDGE_QUIET_MS = 90 * 60 * 1000;
+
 /**
  * True when the day's intake is more than one glass behind the pace the clock
  * implies, which is the only time the widget nudges.
+ *
+ * A glass drunk a moment ago silences the reminder for a while: a nudge that
+ * stays on screen after the user has just acted on it reads as a bug, not as a
+ * reminder. It returns once the quiet window has passed and the pace says the
+ * user has fallen behind again.
  */
 export function waterBehind(day: WellnessDay | undefined, waterGoalMl: number, now: Date): boolean {
   if (!day || waterGoalMl <= 0) return false;
+  if (day.waterAt && now.getTime() - day.waterAt < WATER_NUDGE_QUIET_MS) return false;
   const pace = waterPace(now);
   if (pace <= 0 || pace >= 1) return false;
   return day.waterMl < Math.round(waterGoalMl * pace) - WATER_STEP_ML;

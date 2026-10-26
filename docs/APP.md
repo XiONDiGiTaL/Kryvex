@@ -136,6 +136,16 @@ Persistence rules:
   values plus one day log capped at 90 entries. XP, levels and streaks are
   derived from that log on read, so there is no second total to drift, and
   `sanitizeWellness` refuses to show the widget without a completed intake.
+- The Home board widgets live under `settings.home` beside their on/off flags:
+  `captures` (quick-capture inbox, newest first, 40 items), `countdowns`
+  (soonest first, 8 items, each date-only or exact-time) and `worldClocks`
+  (IANA zone names, up to 4). Each list is sanitized on load, so a hand-edited
+  file cannot grow a widget past its cap or inject an unknown zone or kind. The
+  calculator, capture box, countdowns and clock start switched off: only the
+  clock, weather, guide and converter are on for a new workspace.
+- The water reminder reads `waterAt` on the day it belongs to. Logging a glass
+  silences it for 90 minutes, because a nudge that survives the drink the user
+  just logged reads as a stuck card rather than a reminder.
 
 ## Theme pipeline
 

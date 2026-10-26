@@ -452,6 +452,12 @@ export interface WellnessDay {
   calories: number | null;
   taskDone: boolean;
   checkedIn: boolean;
+  /**
+   * When a glass was last logged, in epoch milliseconds. The water nudge reads
+   * this to stay quiet after the user drinks, instead of repeating the same
+   * reminder the moment they have acted on it.
+   */
+  waterAt?: number;
 }
 
 /**
@@ -479,7 +485,10 @@ export type HomeWidgetId =
   | 'notes'
   | 'calculator'
   | 'currency'
-  | 'guide';
+  | 'guide'
+  | 'capture'
+  | 'countdown'
+  | 'clock';
 export type HomeWidgetArea = 'main' | 'side';
 
 /** The Home board is an overlay, not a new start page: it sits over the theme. */
@@ -493,6 +502,9 @@ export interface HomeSettings {
   showWellness: boolean;
   showCalculator: boolean;
   showCurrency: boolean;
+  showCapture: boolean;
+  showCountdown: boolean;
+  showClock: boolean;
   /** Last currency pair chosen, kept as three-letter ISO codes. */
   currencyFrom: string;
   currencyTo: string;
@@ -508,8 +520,34 @@ export interface HomeSettings {
   longitude: number | null;
   unit: 'c' | 'f';
   notes: HomeNote[];
+  /** Quick-capture inbox, newest first. Sorted later, never interpreted. */
+  captures: HomeCapture[];
+  /** Milestones, soonest first. */
+  countdowns: HomeCountdown[];
+  /** Up to four IANA zones; an empty list shows what the system knows. */
+  worldClocks: string[];
   /** The in-house board guide opens once; it stays available afterwards. */
   guideSeen: boolean;
+}
+
+/** One item from the quick-capture box: a task, a link or an idea. */
+export interface HomeCapture {
+  id: string;
+  text: string;
+  kind: CaptureKind;
+  createdAt: number;
+}
+
+export type CaptureKind = 'task' | 'link' | 'idea';
+
+/** A date-only or exact-time milestone on the Home board. */
+export interface HomeCountdown {
+  id: string;
+  label: string;
+  /** Local epoch milliseconds of the target. */
+  target: number;
+  /** True when only a date was given, so the hour is not shown. */
+  allDay: boolean;
 }
 
 export interface ResourceSettings {
@@ -703,7 +741,7 @@ export interface LexiumProbeResult {
   error?: 'offline' | 'invalid';
   status?: number;
 }
-
+
 export interface BrowserTab {
   id: string;
   url: string;

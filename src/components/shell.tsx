@@ -9,6 +9,7 @@ import type {
   ViewId,
 } from '../types';
 import { SECRET_TOOL_LABELS } from '../lib/secret-tools';
+import { isServiceDrag, readServiceDrag } from '../lib/service-drag';
 import { dropAnchor } from '../lib/store';
 import { getTheme } from '../lib/themes';
 import { useT } from '../lib/i18n';
@@ -168,6 +169,7 @@ export function Sidebar({
   onHideResources,
   onServiceMenu,
   onReorderPinned,
+  onPinService,
 }: {
   state: PersistedState;
   routeView: ViewId;
@@ -186,6 +188,8 @@ export function Sidebar({
   onServiceMenu?: (service: Service, point: { x: number; y: number }) => void;
   /** Move a pinned service in front of another (`null` = to the end). */
   onReorderPinned?: (id: string, beforeId: string | null) => void;
+  /** A service card dragged in from the Services page. */
+  onPinService?: (id: string) => void;
 }) {
   const t = useT();
   const pinned = state.services.filter(service => service.pinned);
@@ -194,6 +198,7 @@ export function Sidebar({
   const pinnedCount = pinned.length + pinnedTools.length;
   const dragId = useRef<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; after: boolean } | null>(null);
+  const [pinDrop, setPinDrop] = useState(false);
 
   function dropPinned(draggedId: string, targetId: string, after: boolean) {
     if (!onReorderPinned) return;
@@ -228,7 +233,27 @@ export function Sidebar({
         ))}
       </nav>
 
-      <div className="sidebar-section">
+      <div
+        className={`sidebar-section ${pinDrop ? 'is-pin-drop' : ''}`}
+        onDragOver={event => {
+          if (!onPinService || !isServiceDrag(event.dataTransfer)) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+          if (!pinDrop) setPinDrop(true);
+        }}
+        onDragLeave={event => {
+          // Leaving for a child element is not leaving the rail.
+          if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+          setPinDrop(false);
+        }}
+        onDrop={event => {
+          const id = readServiceDrag(event.dataTransfer);
+          setPinDrop(false);
+          if (!id) return;
+          event.preventDefault();
+          onPinService?.(id);
+        }}
+      >
         <div className="sidebar-heading">
           <span>{t('PINNED')}</span>
           <span className="sidebar-mono">{pinnedCount.toString().padStart(2, '0')}</span>

@@ -21,6 +21,7 @@ export const sweepEs: Record<string, string> = {
     'Solo una capa transparente; nunca toca la salida del juego.',
   'A tunnel needs the OpenVPN TAP/TUN driver and, on Windows, usually administrator rights. Kryvex reports OpenVPN’s own output and stops the process when you disconnect or quit.':
     'Un túnel necesita el controlador TAP/TUN de OpenVPN y, en Windows, normalmente permisos de administrador. Kryvex muestra la salida de OpenVPN y detiene el proceso al desconectar o salir.',
+  'ALWAYS ON TOP': 'SIEMPRE VISIBLE',
   AUDIO: 'AUDIO',
   Accent: 'Acento',
   'Accent 2': 'Acento 2',
@@ -63,6 +64,7 @@ export const sweepEs: Record<string, string> = {
   'CPU, memory and GPU-process bars under your pinned services.':
     'Barras de CPU, memoria y proceso de GPU bajo tus servicios fijados.',
   'CRT scanlines': 'Líneas de exploración CRT',
+  'Close options': 'Cerrar opciones',
   'Cartridge received. The host’s game is now your game.':
     'Cartucho recibido. El juego del anfitrión ahora es tu juego.',
   'Choose BIOS': 'Elegir BIOS',
@@ -505,4 +507,66 @@ export const sweepEs: Record<string, string> = {
   '{size} across {count} categories': '{size} en {count} categorías',
   '{total} XP': '{total} XP',
   '{value} kcal': '{value} kcal',
+
+  // Home widgets: quick capture, countdowns and the world clock, plus the
+  // tool options panel.
+  'A release, a deadline, an appointment: add the date and it counts down here.':
+    'Un lanzamiento, una fecha límite, una cita: añade la fecha y la cuenta atrás aparece aquí.',
+  'A task, a link, an idea…': 'Una tarea, un enlace, una idea…',
+  'Add a time zone': 'Añadir una zona horaria',
+  'Add a zone…': 'Añadir una zona…',
+  'Add this zone': 'Añadir esta zona',
+  'COUNTDOWNS': 'CUENTAS ATRÁS',
+  'Capture it': 'Capturar',
+  'Capture kind': 'Tipo de captura',
+  'Capture something': 'Capturar algo',
+  'Countdown date': 'Fecha de la cuenta atrás',
+  'Countdown label': 'Nombre de la cuenta atrás',
+  'Countdown time': 'Hora de la cuenta atrás',
+  'Date': 'Fecha',
+  'Draws the scanline treatment over the picture.':
+    'Dibuja el efecto de líneas de exploración sobre la imagen.',
+  'Forget “{text}”': 'Olvidar «{text}»',
+  'Four zones is the limit': 'Cuatro zonas es el límite',
+  'Inbox full. Clear a few first.': 'Bandeja llena. Borra algunas primero.',
+  'Leave the time empty for a whole-day countdown.':
+    'Deja la hora vacía para una cuenta atrás de día completo.',
+  'Mute the module while Spotify labels an ad.': 'Silencia el módulo mientras Spotify marca un anuncio.',
+  'No room left. Remove one first.': 'No queda espacio. Elimina una primero.',
+  'Nothing waiting. Whatever you drop here stays on this machine.':
+    'Nada en espera. Lo que dejes aquí se queda en esta máquina.',
+  'Now': 'Ahora',
+  'Plays the queue out of order instead of top to bottom.':
+    'Reproduce la cola en desorden en lugar de principio a fin.',
+  'QUICK CAPTURE': 'CAPTURA RÁPIDA',
+  'Remove {zone}': 'Quitar {zone}',
+  'SYSTEM': 'SISTEMA',
+  'Settings for this tool': 'Ajustes de esta herramienta',
+  'Settings for this tool live in its own window.':
+    'Los ajustes de esta herramienta están en su propia ventana.',
+  'Showing this device and UTC. Add up to four zones.':
+    'Mostrando este dispositivo y UTC. Añade hasta cuatro zonas.',
+  'Spotify ad guard': 'Filtro de anuncios de Spotify',
+  'Time': 'Hora',
+  'Uses a connected controller for the game that is loaded.':
+    'Usa un mando conectado para el juego cargado.',
+  'WORLD CLOCK': 'RELOJ MUNDIAL',
+  'What is it for?': '¿Para qué es?',
+  'in {count} days': 'en {count} días',
+  'in {count} h': 'en {count} h',
+  'in {count} min': 'en {count} min',
+  '{count} OF 4': '{count} DE 4',
+  '{count} QUEUED': '{count} EN COLA',
+  '{count} TRACKED': '{count} EN SEGUIMIENTO',
+  '{count} days ago': 'hace {count} días',
+  '{count} h ago': 'hace {count} h',
+  '{count} min ago': 'hace {count} min',
+  '{name} is already pinned.': '{name} ya está fijado.',
+  '{name} settings': 'Ajustes de {name}',
+  'Task': 'Tarea',
+  'Link': 'Enlace',
+  'Idea': 'Idea',
+  'Quick capture': 'Captura rápida',
+  'Countdowns': 'Cuentas atrás',
+  'World clock': 'Reloj mundial',
 };
