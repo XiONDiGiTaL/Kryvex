@@ -76,6 +76,24 @@ describe('sanitizeState', () => {
     expect(state.services.map(service => service.id)).toEqual(['s-a']);
   });
 
+  it('keeps the instance switch only when it was turned on', () => {
+    // Off is the default and is stored as absence, so a profile saved before
+    // the switch existed reads back single-instance rather than undefined-yet-true.
+    const state = sanitizeState({
+      services: [
+        makeService({ id: 's-a' }),
+        makeService({ id: 's-b', multipleInstances: true }),
+        // A hand-edited profile can hold anything; only `true` turns it on.
+        { ...makeService({ id: 's-c' }), multipleInstances: 'yes' },
+      ],
+    });
+    expect(state.services.map(service => service.multipleInstances)).toEqual([
+      undefined,
+      true,
+      undefined,
+    ]);
+  });
+
   it('keeps an unset weather location unset', () => {
     // Number(null) is 0: saving the board with no location must not pin the
     // user to Null Island and present its weather as local.

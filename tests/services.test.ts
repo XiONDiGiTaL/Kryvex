@@ -6,10 +6,14 @@ import {
   SERVICE_COLORS,
   letterFor,
   makeId,
+  installedForUrl,
   partitionFor,
+  resolveServicePlacement,
+  serviceHost,
   starterState,
   validateServiceInput,
 } from '../src/lib/services';
+import type { Service } from '../src/types';
 
 const valid = {
   name: 'Linear',
@@ -192,5 +196,83 @@ describe('catalogue additions', () => {
     // The catalogue has no duplicate ids.
     const ids = SERVICE_PRESETS.map(preset => preset.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('service placement', () => {
+  const installed = (over: Partial<Service> = {}): Service => ({
+    id: 's-one',
+    name: 'Messenger',
+    url: 'https://www.messenger.com/',
+    category: 'communication',
+    color: SERVICE_COLORS[0],
+    letter: 'M',
+    pinned: true,
+    createdAt: 1,
+    ...over,
+  });
+
+  it('adds a site that is not installed yet', () => {
+    expect(resolveServicePlacement([], { url: 'https://www.messenger.com/' })).toEqual({
+      action: 'add',
+    });
+    expect(resolveServicePlacement([installed()], { url: 'https://mail.google.com' })).toEqual({
+      action: 'add',
+    });
+  });
+
+  it('reuses the record for a site that is already installed', () => {
+    // The reported case: a preset picked again from the Workspace listed the
+    // same service twice in the sidebar.
+    const decision = resolveServicePlacement([installed()], {
+      url: 'https://www.messenger.com',
+    });
+    expect(decision).toEqual({ action: 'reuse', service: installed() });
+  });
+
+  it('compares hosts, so a different subdomain is a different site', () => {
+    expect(
+      resolveServicePlacement([installed()], { url: 'https://mail.google.com' }).action,
+    ).toBe('add');
+    expect(
+      resolveServicePlacement([installed({ url: 'https://mail.google.com' })], {
+        url: 'https://www.messenger.com',
+      }).action,
+    ).toBe('add');
+  });
+
+  it('allows a second copy when either record asks for one', () => {
+    expect(
+      resolveServicePlacement([installed()], {
+        url: 'https://www.messenger.com',
+        multipleInstances: true,
+      }).action,
+    ).toBe('add');
+    expect(
+      resolveServicePlacement([installed({ multipleInstances: true })], {
+        url: 'https://www.messenger.com',
+      }).action,
+    ).toBe('add');
+  });
+
+  it('reuses the record the user has had longest', () => {
+    const older = installed({ id: 's-old', name: 'Messenger work' });
+    const newer = installed({ id: 's-new', name: 'Messenger personal' });
+    const decision = resolveServicePlacement([older, newer], {
+      url: 'https://www.messenger.com',
+    });
+    expect(decision).toEqual({ action: 'reuse', service: older });
+  });
+
+  it('ignores a URL with no host rather than guessing', () => {
+    expect(resolveServicePlacement([installed()], { url: 'not a url' })).toEqual({ action: 'add' });
+    expect(installedForUrl([installed()], 'not a url')).toBeUndefined();
+    expect(serviceHost('https://www.messenger.com/')).toBe('www.messenger.com');
+  });
+
+  it('carries the instance switch through validation', () => {
+    const result = validateServiceInput({ ...valid, multipleInstances: true });
+    expect(result.service?.multipleInstances).toBe(true);
+    expect(validateServiceInput(valid).service?.multipleInstances).toBeUndefined();
   });
 });

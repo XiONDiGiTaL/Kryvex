@@ -18,6 +18,7 @@ import {
   minimizedWindows,
   moveWindow,
   openWindow,
+  placeOnCanvas,
   raiseWindow,
   resizeWindow,
   toggleMaximize,
@@ -178,6 +179,38 @@ describe('workspace windows', () => {
     const dragged = moveWindow(floated, 'a', -5000, -5000, space);
     expect(dragged.a?.rect.x).toBeLessThan(0);
     expect(windowsOfKind(dragged, 'detached')).toEqual(['a']);
+  });
+
+  it('moves a floating module onto the canvas where it was dropped', () => {
+    const floated = floatWindow(opened(['a']), 'a', space);
+    const placed = placeOnCanvas(floated, 'a', space, { x: 30, y: 40 });
+    expect(placed.a?.kind).toBe('canvas');
+    expect(placed.a?.rect.x).toBe(30);
+    expect(placed.a?.rect.y).toBe(40);
+    expect(windowsOfKind(placed, 'detached')).toEqual([]);
+    // Contained by the canvas again, not merely reachable.
+    const dragged = moveWindow(placed, 'a', -5000, -5000, space);
+    expect(dragged.a?.rect.x).toBe(0);
+    expect(dragged.a?.rect.y).toBe(0);
+  });
+
+  it('restores a minimized window that is dropped on the canvas', () => {
+    const parked = toggleMinimize(opened(['a', 'b']), 'a');
+    expect(minimizedWindows(parked, 'canvas')).toEqual(['a']);
+    const placed = placeOnCanvas(parked, 'a', space, { x: 10, y: 10 });
+    expect(Boolean(placed.a?.minimized)).toBe(false);
+    expect(minimizedWindows(placed, 'canvas')).toEqual([]);
+    expect(placed.a?.z).toBeGreaterThan(placed.b?.z ?? 0);
+  });
+
+  it('opens a module that has no window yet, and leaves an opened one alone', () => {
+    const fresh = placeOnCanvas({}, 'a', space, { x: 5, y: 6 });
+    expect(fresh.a?.kind).toBe('canvas');
+    expect(fresh.a?.rect.x).toBe(5);
+    // Placing again keeps one window, moving it rather than stacking a second.
+    const again = placeOnCanvas(fresh, 'a', space, { x: 200, y: 100 });
+    expect(windowsOfKind(again, 'canvas')).toEqual(['a']);
+    expect(again.a?.rect.x).toBe(200);
   });
 
   it('raises a float that is already floating instead of stacking a second one', () => {

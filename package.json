@@ -62,7 +62,8 @@
     "audit:lifecycle": "node scripts/audit-lifecycle.cjs",
     "verify:link": "pnpm build && node scripts/verify-link.cjs",
     "verify:home-tools": "node scripts/verify-home-tools.cjs",
-    "verify:capture-window": "node scripts/verify-capture-window.cjs"
+    "verify:capture-window": "node scripts/verify-capture-window.cjs",
+    "verify:canvas": "node scripts/verify-workspace-placement.cjs"
   },
   "build": {
     "appId": "net.xiondigital.kryvex",

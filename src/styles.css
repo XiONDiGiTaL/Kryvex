@@ -4471,6 +4471,13 @@ select:hover {
   color: var(--ink-faint);
 }
 
+/* A clash is a statement about what saving will do, not a neutral caption, so
+   it is read in the warning colour rather than the faint one. */
+.service-clash {
+  margin: 0;
+  color: var(--warning);
+}
+
 .shield-panel .section-head h2 {
   display: flex;
   align-items: center;

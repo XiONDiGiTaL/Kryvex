@@ -69,6 +69,8 @@ export interface ServiceInput {
   icon?: string;
   /** Silent until the user unmutes; useful for autoplaying feeds. */
   muted?: boolean;
+  /** Permits a deliberate second copy of the same site (a second sign-in). */
+  multipleInstances?: boolean;
 }
 
 export interface ServiceResult {
@@ -119,8 +121,54 @@ export function validateServiceInput(input: ServiceInput): ServiceResult {
       muted: input.muted === true,
       createdAt: Date.now(),
       ...(icon ? { icon: icon as Service['icon'] } : {}),
+      ...(input.multipleInstances === true ? { multipleInstances: true as const } : {}),
     },
   };
+}
+
+/** The host a service points at, lowercased; `null` when the URL has none. */
+export function serviceHost(url: string): string | null {
+  try {
+    return new URL(url).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/** The installed service that already points at this site, if there is one. */
+export function installedForUrl(
+  services: readonly Service[],
+  url: string,
+): Service | undefined {
+  const host = serviceHost(url);
+  if (!host) return undefined;
+  // Host equality, not substring: `mail.example.com` and `example.com` are two
+  // different sites, and a preset re-picked from the catalogue always carries
+  // the same host as the card it would duplicate.
+  return services.find(service => serviceHost(service.url) === host);
+}
+
+export type ServicePlacement = { action: 'add' } | { action: 'reuse'; service: Service };
+
+/**
+ * What adding a service that points at `incoming.url` means.
+ *
+ * A site that is already installed is reused rather than added again: the same
+ * page under two sidebar entries is one service in two places, which is exactly
+ * what someone picking a catalogue preset from the Workspace used to get. A
+ * second record is only what they asked for when either the new card or the
+ * installed one says this site runs in several instances.
+ */
+export function resolveServicePlacement(
+  services: readonly Service[],
+  incoming: Pick<Service, 'url'> & { multipleInstances?: boolean },
+): ServicePlacement {
+  const existing = installedForUrl(services, incoming.url);
+  if (!existing) return { action: 'add' };
+  if (incoming.multipleInstances === true || existing.multipleInstances === true) {
+    return { action: 'add' };
+  }
+  return { action: 'reuse', service: existing };
 }
 
 export function starterState(): PersistedState {

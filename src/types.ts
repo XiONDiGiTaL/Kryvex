@@ -90,6 +90,15 @@ export interface Service {
   notifications?: boolean;
   /** Keep the session warm, or pause media and mute while another view is used. */
   persistence?: ServicePersistence;
+  /**
+   * A second copy of this site may be added on purpose.
+   *
+   * Every service keeps its own partition, so two copies hold two independent
+   * sign-ins. Off by default: adding a site that is already installed reuses
+   * the record instead, because one page with two sidebar entries is two places
+   * to look for the same service. Set on either record to allow the copy.
+   */
+  multipleInstances?: boolean;
 }
 
 export interface Bookmark {

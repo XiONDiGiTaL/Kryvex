@@ -12,6 +12,7 @@ import { currencyCopy } from './i18n-currency';
 import { sessionCopy } from './i18n-session';
 import { linkCopy } from './i18n-link';
 import { clockCopy } from './i18n-clock';
+import { placementCopy } from './i18n-placement';
 import { turkishCopy } from './i18n-tr';
 import { sweepEs } from './i18n-sweep-es';
 import { sweepDe } from './i18n-sweep-de';
@@ -2885,6 +2886,7 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           ...pick(sessionCopy, language),
           ...pick(linkCopy, language),
           ...pick(clockCopy, language),
+          ...pick(placementCopy, language),
           // Turkish is written as one catalogue, so it lands last and wins.
           ...(language === 'tr' ? turkishCopy : {}),
         };

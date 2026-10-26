@@ -112,6 +112,30 @@ export function openWindow(
 }
 
 /**
+ * Puts a module on the Workspace surface at a point, framed or not.
+ *
+ * `openWindow` is a no-op for a module that already has a record, which is right
+ * for opening a service and wrong for a drop: dragging something that is
+ * currently floating over the app, or parked in the tray, onto the canvas has to
+ * move it there and bring it to the front. Dropping a minimized window also
+ * restores it, because the drop is the request to see it.
+ */
+export function placeOnCanvas(
+  map: WindowMap,
+  id: string,
+  space: WindowSpace,
+  at?: { x: number; y: number },
+): WindowMap {
+  if (!map[id]) return openWindow(map, id, 'canvas', space, at);
+  const bounds = kindBounds('canvas', space);
+  const index = Object.values(map).filter(entry => entry.kind === 'canvas').length;
+  return renumber({
+    ...map,
+    [id]: { kind: 'canvas', rect: canvasRect(bounds, index, at), z: topZ(map) + 1 },
+  });
+}
+
+/**
  * Turns whatever box a module already has into a float over the app.
  *
  * The two kinds are measured against different surfaces, so a canvas window's

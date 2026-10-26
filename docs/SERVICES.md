@@ -306,6 +306,28 @@ app and asserts:
 
 Results are recorded in [TESTING.md](TESTING.md).
 
+## One record per site
+
+Adding a service whose site is already installed does not add a second one. Two
+records for one site is a single service in two sidebar entries, two things to
+search and one extra sign-in prompt, so the shell recognises the site and frames
+the record the profile already has:
+
+| Where | What happens |
+| --- | --- |
+| Canvas → *Add service* | The dialog lists the installed services first; clicking one frames it, with no new record |
+| Picking a preset / typing an address that is installed | The form says so before the save, and saving opens the existing service |
+| *Allow more than one instance of this site* | The only way to a deliberate second copy |
+
+Matching is on host, not on the whole URL: `mail.example.com` and
+`example.com` are two different sites, and a preset picked twice carries the
+same host both times, which is the duplicate that was reported.
+
+Each instance keeps its own id — `partitionFor(service.id)` — so a second copy
+is a second isolated session and the two can be signed in to different accounts.
+The switch lives on the add/edit form, so it can be turned on for a site that is
+already installed when a second login becomes useful.
+
 ## Added to the catalogue
 
 The preset list in `src/lib/catalog.ts` gained the services people kept adding

@@ -1,16 +1,28 @@
 import { useMemo, useState } from 'react';
 import type { Service, ServiceCategory } from '../types';
-import { CATEGORIES, SERVICE_COLORS, letterFor, validateServiceInput } from '../lib/services';
+import {
+  CATEGORIES,
+  SERVICE_COLORS,
+  letterFor,
+  resolveServicePlacement,
+  validateServiceInput,
+} from '../lib/services';
 import { useT } from '../lib/i18n';
 import { SERVICE_PRESETS } from '../lib/catalog';
 import { Modal, ServiceIcon } from './ui';
 
 export function ServiceDialog({
   initial,
+  installed = [],
+  onPlace,
   onSave,
   onClose,
 }: {
   initial?: Service;
+  /** The services this profile already has, offered first when placing on the canvas. */
+  installed?: readonly Service[];
+  /** Opens an installed service in a window instead of adding a record. */
+  onPlace?: (service: Service) => void;
   onSave: (service: Service) => void;
   onClose: () => void;
 }) {
@@ -22,10 +34,22 @@ export function ServiceDialog({
   const [pinned, setPinned] = useState(initial?.pinned ?? true);
   const [icon, setIcon] = useState<string | undefined>(initial?.icon);
   const [muted, setMuted] = useState(initial?.muted === true);
+  const [multipleInstances, setMultipleInstances] = useState(
+    initial?.multipleInstances === true,
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const previewLetter = useMemo(() => letterFor(name || initial?.name || 'K'), [name, initial?.name]);
   const isEditing = Boolean(initial);
+  // The same rule the shell saves by, so the note below the form cannot promise
+  // something different from what pressing the button does.
+  const placement = useMemo(
+    () =>
+      isEditing
+        ? ({ action: 'add' } as const)
+        : resolveServicePlacement(installed, { url, multipleInstances }),
+    [installed, isEditing, multipleInstances, url],
+  );
   const preview = {
     url: url.trim() || 'https://example.com',
     icon: icon as Service['icon'],
@@ -41,6 +65,7 @@ export function ServiceDialog({
     setIcon(preset.icon);
     setPinned(true);
     setMuted(preset.muted === true);
+    setMultipleInstances(false);
     setErrors({});
   }
 
@@ -56,7 +81,16 @@ export function ServiceDialog({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    const result = validateServiceInput({ name, url, category, color, pinned, icon, muted });
+    const result = validateServiceInput({
+      name,
+      url,
+      category,
+      color,
+      pinned,
+      icon,
+      muted,
+      multipleInstances,
+    });
     if (!result.ok || !result.service) {
       setErrors(result.errors);
       return;
@@ -67,6 +101,14 @@ export function ServiceDialog({
         : result.service,
     );
   }
+
+  /** An installed service placed straight onto the canvas, with no new record. */
+  function place(service: Service) {
+    onPlace?.(service);
+    onClose();
+  }
+
+  const canPlace = !isEditing && installed.length > 0 && Boolean(onPlace);
 
   return (
     <Modal
@@ -100,6 +142,37 @@ export function ServiceDialog({
             <span className="mono">{url.trim() || 'https://example.com'}</span>
           </div>
         </div>
+
+        {/* Placing a window on the canvas usually means framing something that is
+            already installed, so those come first and add no record at all. */}
+        {canPlace ? (
+          <div className="preset-block">
+            <div className="preset-head">
+              <span className="mono">{t('INSTALLED SERVICES')}</span>
+              <span className="mono preset-credit">
+                {t('{count} READY', { count: installed.length })}
+              </span>
+            </div>
+            <div className="preset-grid">
+              {installed.map(service => (
+                <button
+                  key={service.id}
+                  type="button"
+                  className="preset-chip"
+                  onClick={() => place(service)}
+                  title={service.url}
+                  aria-label={t('Open {name}', { name: service.name })}
+                >
+                  <ServiceIcon service={service} size={26} />
+                  <span>{service.name}</span>
+                </button>
+              ))}
+            </div>
+            <p className="preset-note">
+              {t('Open one of these in a window, or add something new below.')}
+            </p>
+          </div>
+        ) : null}
 
         {!isEditing ? (
           <div className="preset-block">
@@ -209,6 +282,29 @@ export function ServiceDialog({
           <input type="checkbox" checked={muted} onChange={event => setMuted(event.target.checked)} />
           <span>{t('Start muted (no autoplay sound)')}</span>
         </label>
+
+        {placement.action === 'reuse' ? (
+          <p className="preset-note service-clash">
+            {t('{name} is already installed. Saving opens the one you have instead of adding a second.', {
+              name: placement.service.name,
+            })}
+          </p>
+        ) : null}
+
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            name="multipleInstances"
+            checked={multipleInstances}
+            onChange={event => setMultipleInstances(event.target.checked)}
+          />
+          <span>{t('Allow more than one instance of this site')}</span>
+        </label>
+        <p className="preset-note">
+          {t(
+            'A second instance keeps its own session, so two copies can be signed in to different accounts.',
+          )}
+        </p>
 
         <p className="permission-note">
           <strong>{t('Permissions')}:</strong>{' '}

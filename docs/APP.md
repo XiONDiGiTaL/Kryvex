@@ -135,6 +135,29 @@ it declares `copyMove`, and `serviceDropEffect()` in `src/lib/service-drag.ts`
 derives the canvas's request from what the source actually allows (falling back
 to `move` for a move-only source) instead of demanding `copy`.
 
+**One window per service, placed rather than re-opened.** `openWindow` is a
+no-op for a module that already has a record, which is right for opening a
+service and wrong for a drop: a module that is currently floating over the app,
+or parked in the tray, has to move onto the canvas where it was dropped and come
+to the front. `placeOnCanvas()` does that — it converts the record to `canvas`
+at the drop point, clears the minimize and the maximize restore, and renumbers
+so it is on top. Dropping the same service again moves that one window instead
+of stacking a second copy of it.
+
+**Placing an installed service.** The canvas dialog lists what the profile
+already has above the catalogue presets, and picking one of those frames that
+service without creating a record — which is what placing a window on the canvas
+usually means. Adding a service whose site is already installed is not a second
+sidebar entry either: `resolveServicePlacement()` in `src/lib/services.ts`
+matches on host, so re-picking the Messenger preset from the canvas, or typing
+the same address by hand, frames the record the user already has and says so in
+a toast. The dialog states the outcome before the save ("…already installed.
+Saving opens the one you have instead of adding a second."), so the rule is
+never a surprise. A deliberate second copy is the *Allow more than one instance
+of this site* switch on the form: each record has its own id and therefore its
+own partition, so two copies hold two independent sign-ins. Host equality is
+deliberate — `mail.example.com` and `example.com` are different sites.
+
 **Close and minimize differ.** Closing removes the module from the live set, so
 the frame unmounts and the partition's guests are stopped; cookies stay on disk,
 so reopening is a visit rather than a sign-in. Minimizing keeps the guest mounted

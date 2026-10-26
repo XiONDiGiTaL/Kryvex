@@ -273,6 +273,15 @@ const ADDED = [
   'Bouncy',
   'None',
   'Animation speed',
+  // Placing a service on the canvas: installed services are framed without
+  // being added again, and a second copy of a site is a deliberate switch.
+  'INSTALLED SERVICES',
+  '{count} READY',
+  'Open one of these in a window, or add something new below.',
+  'Allow more than one instance of this site',
+  'A second instance keeps its own session, so two copies can be signed in to different accounts.',
+  '{name} is already installed. Saving opens the one you have instead of adding a second.',
+  '{name} is already installed. Opened the one you have.',
 ];
 
 describe('translation coverage', () => {
@@ -340,6 +349,8 @@ describe('Turkish', () => {
       'Secret services',
       'Minimize',
       'Restore',
+      'INSTALLED SERVICES',
+      'Allow more than one instance of this site',
     ];
     expect(required.filter(key => t(key) === key)).toEqual([]);
   });

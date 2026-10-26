@@ -138,6 +138,7 @@ function sanitizeService(raw: unknown): Service | null {
     ...(raw.muted === true ? { muted: true } : {}),
     ...(raw.notifications === false ? { notifications: false } : {}),
     ...(raw.persistence === 'pause' ? { persistence: 'pause' as const } : {}),
+    ...(raw.multipleInstances === true ? { multipleInstances: true as const } : {}),
   };
 }
 

@@ -2766,3 +2766,47 @@ Full suite **866/866** in 80 files; `pnpm typecheck` exit 0; `pnpm build` exit 0
 Turkish is deliberately partial: the shell, board, clock, workspace, service
 controls, browser, player, rooms, emulator/disk and Vexium labels are
 translated and the long explanatory paragraphs still fall back to English.
+
+## Placing services on the canvas, and no duplicate sidebar entries (2026-10-26)
+
+Two reports came out of the 0.9.4-hotfix.2 canvas: a service already in the
+sidebar would not become a window on it, and adding one that was already
+installed left a second entry in the sidebar that existed only on the canvas.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer and main typecheck | `pnpm typecheck` | exit 0 |
+| Full suite | `npx vitest run` | **877/877** across 80 files; 11 new (placement rule, canvas placement, the stored switch) |
+| Production build | `pnpm build` | exit 0 |
+| End-to-end | `pnpm verify:canvas` | **24/24 PASS** |
+
+### What the harness drives
+
+`scripts/verify-workspace-placement.cjs` launches the built app on a disposable
+profile seeded with two loopback services, then uses the app the way the reports
+describe it. The service records are read back from `kryvex-state.json`, so
+"no duplicate" means the saved profile rather than the DOM:
+
+| Check | Result |
+| --- | --- |
+| The canvas starts empty and offers *Add service* | PASS |
+| A pinned row publishes a drag payload | PASS (`application/x-kryvex-service` read back) |
+| The drop opens that service as a window inside the canvas | PASS (live `<webview>`, box within the canvas, one window) |
+| The dialog lists the installed services above the presets | PASS |
+| Clicking an installed chip frames it and adds no record | PASS (two windows, still two records) |
+| Typing an installed site shows the clash note before the save | PASS |
+| Saving frames the existing service instead, with a toast saying why | PASS (still two records, one per site) |
+| The instance switch clears the warning and adds a deliberate copy | PASS (three records, two on one host) |
+| The two records on one host keep separate ids | PASS |
+| No page exceptions | PASS |
+
+### Not executed (do not treat as passing)
+
+- **A hand-driven drag.** The harness builds a real `DataTransfer` and
+  dispatches the drag events, which is what reaches the shell's MIME handling;
+  the pointer-driven version was covered by the CDP drag-pipeline run recorded in
+  the previous section.
+- **The installed binary.** This ran against `pnpm build`.
+- **Two accounts actually signed in.** The isolation claim rests on one session
+  partition per service id, which the record ids prove here; no second sign-in
+  was performed against a real site.

@@ -1,11 +1,12 @@
-# Kryvex 0.9.4-hotfix.2: window motion, clock looks and the phone address list
+# Kryvex 0.9.4-hotfix.2: window motion, clock looks, phone addresses and canvas placement
 
 Prepared 2026-10-26 for the `v0.9.4-hotfix.2` tag. This is a fix and polish batch,
 so the version line stays at **0.9.4** and the build wears the `-hotfix.2` suffix
 ([UPDATES.md](UPDATES.md)). 0.9.5 is still not cut. Everything in 0.9.4,
 0.9.4-hotfix.1 and 0.9.4-hotfix.2 is included.
 
-Three things reported from the installed build are addressed, plus the clock.
+Four things reported from the installed build are addressed, plus the clock and
+how a service gets onto the Workspace canvas.
 
 - **The phone link was advertising addresses a phone cannot reach.** The address
   list was bare URLs, so the only way to learn that `10.147.19.81` belongs to a
@@ -31,6 +32,17 @@ Three things reported from the installed build are addressed, plus the clock.
   with the digits in the theme colour, the accent or a muted tone, and five
   curated families. It can also be switched off the board, and it is reachable
   from the board's **Widgets** panel rather than existing on its own.
+- **A service you already have opens as a window.** Dragging a pinned row, a
+  Services card or a chip in the dialog onto the canvas now frames it there. The
+  drop also works on a module that is already floating over the app or parked in
+  the tray: it moves onto the canvas, restores and comes to the front instead of
+  being ignored because it already had a window record.
+- **Placing a window no longer leaves a second copy in the sidebar.** Adding from
+  the Workspace lists what the profile already has first, and a site that is
+  already installed opens the existing record with nothing added. A second copy
+  is now a switch on the form — *Allow more than one instance of this site* —
+  because every record keeps its own partition, so two copies are two separate
+  sign-ins rather than the same one listed twice.
 
 ## What changed
 
@@ -65,10 +77,26 @@ Three things reported from the installed build are addressed, plus the clock.
   `home.showBoardClock` are new, sanitised on load and defaulted to `bare`,
   `theme`, `default` and on. The world clock widget keeps its own
   `.home-world-clock` card class so the two clocks can no longer share styling.
+- **Placing on the canvas (`src/lib/workspace.ts`, `src/App.tsx`).**
+  `placeOnCanvas` frames a module at the drop point whether or not it already has
+  a record: it clears the minimize and the maximize restore, re-frames the box
+  and brings it to the front, so a drop is never a no-op.
+- **One record per site (`src/lib/services.ts`, `src/components/ServiceDialog.tsx`,
+  `src/App.tsx`, `src/styles.css`).** `serviceHost`/`installedForUrl` match on
+  host rather than on the whole URL, `resolveServicePlacement` decides between
+  adding and reusing, and the dialog and the shell both read that one function —
+  so the note under the form cannot promise something different from what the
+  button does. The clash note is painted in the warning colour.
+- **The instance switch (`src/types.ts`, `src/lib/store.ts`).** `Service` gained
+  `multipleInstances`, sanitised on load and off by default; either the incoming
+  card or the installed record can allow the copy. `src/components/shell.tsx`
+  adds `data-service` to a pinned row, which is what the canvas harness reads.
 - **New strings, four languages.** Eleven strings for the phone card and the
   motion panel, nine for the clock, in `src/lib/i18n-extras.ts` en/es/de/fr, with
   the ratchet in `tests/i18n-coverage.test.ts` raised to cover them. Family names
-  stay untranslated, as in the typography block.
+  stay untranslated, as in the typography block. Seven strings for placing on the
+  canvas live in `src/lib/i18n-placement.ts` (es/de/fr) with Turkish added to the
+  one catalogue, `src/lib/i18n-tr.ts`.
 - **Version 0.9.4-hotfix.2.** `package.json` and the web worker's cache name
   (`kryvex-web-0.9.4-hotfix.2-v1`) move together. The installed
   `C:\Kryvex\Kryvex.exe` reports `ProductVersion 0.9.4.0` /
@@ -76,8 +104,10 @@ Three things reported from the installed build are addressed, plus the clock.
 
 ## Artifacts
 
-Built locally by `pnpm package:win` from this working tree, then installed in
-place by the wizard capture below:
+Built locally by `pnpm package:win` from this working tree at the cut, then
+installed in place by the wizard capture below. The Workspace placements in this
+record landed after that local build; the tag rebuilds both EXEs from the tagged
+sources, and the published digests are recorded in the follow-up commit.
 
 | File | Local size | Local SHA-256 |
 | --- | --- | --- |
@@ -105,9 +135,12 @@ digests are recorded in a follow-up commit once the tag exists, as with
 ## Verification performed
 
 - `npx tsc -b`: exit 0 for the renderer and `electron/`.
-- `npx vitest run`: **850/850** across 79 files, including the new
-  `tests/clock-style.test.ts` and the extended `tests/workspace.test.ts` and
-  `tests/link-rules.test.ts`.
+- `npx vitest run`: **877/877** across 80 files, including the new
+  `tests/clock-style.test.ts`, `tests/services.test.ts` and the extended
+  `tests/workspace.test.ts`, `tests/store.test.ts` and `tests/link-rules.test.ts`.
+- `pnpm verify:canvas`: **24/24 PASS** on the built app, reading the saved profile
+  back from `kryvex-state.json` rather than the DOM — see
+  [TESTING.md](TESTING.md).
 - `pnpm build`: exit 0. `pnpm build:web`: PASS (1.7 MiB) with
   `scripts/check-web-build.cjs` reporting the shell, companion and worker, and
   the worker naming `kryvex-web-0.9.4-hotfix.2-v1`.
@@ -171,5 +204,8 @@ the five a previously stopped install produced.
   full-screen gallery window yet.
 - Window geometry is still session state: a window reopens where the surface puts
   it rather than where it was left.
+- Two instances of one site are isolated because each record carries its own
+  partition id; that was proved at the record level, not by signing two accounts
+  in side by side.
 - The browser/PWA build has no main process, so the phone link, the save dialog
   and the preview window do not exist there.

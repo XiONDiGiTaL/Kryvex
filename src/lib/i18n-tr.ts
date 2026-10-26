@@ -474,4 +474,17 @@ export const turkishCopy: Record<string, string> = {
   'Drag to resize': 'Boyutlandırmak için sürükle',
   'Resize this window': 'Bu pencereyi boyutlandır',
   'Settings for this tool': 'Bu aracın ayarları',
+  // Placing a service on the canvas: an installed service is framed rather than
+  // added twice, and a second copy of a site is a deliberate choice.
+  'INSTALLED SERVICES': 'KURULU SERVİSLER',
+  '{count} READY': '{count} HAZIR',
+  'Open one of these in a window, or add something new below.':
+    'Bunlardan birini pencerede aç ya da aşağıdan yeni bir servis ekle.',
+  'Allow more than one instance of this site': 'Bu sitenin birden fazla kopyasına izin ver',
+  'A second instance keeps its own session, so two copies can be signed in to different accounts.':
+    'Her ek kopya kendi oturumunu korur; böylece iki kopya farklı hesaplarla açık olabilir.',
+  '{name} is already installed. Saving opens the one you have instead of adding a second.':
+    '{name} zaten kurulu. Kaydettiğinde ikinci bir tane eklemek yerine mevcut olan açılır.',
+  '{name} is already installed. Opened the one you have.':
+    '{name} zaten kurulu. Mevcut olan açıldı.',
 };

@@ -40,7 +40,7 @@ import { loadState, saveState, saveStateNow } from './lib/storage';
 import { shouldAutoStartCore } from './lib/vexium-core';
 import { clearWallpaper, importWallpaper, loadWallpaper } from './lib/wallpaper';
 import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
-import { makeId, partitionFor } from './lib/services';
+import { makeId, partitionFor, resolveServicePlacement } from './lib/services';
 import { addScreenCapture } from './lib/screen-capture';
 import { SECRET_TOOL_LABELS } from './lib/secret-tools';
 import { totalUnread, unreadFromTitle, windowTitle } from './lib/unread';
@@ -73,7 +73,7 @@ import {
   closeWindow,
   floatWindow,
   moveWindow,
-  openWindow,
+  placeOnCanvas,
   raiseWindow,
   resizeWindow,
   toggleMaximize,
@@ -510,7 +510,10 @@ export default function App() {
       setOpenIds(current =>
         [service.id, ...current.filter(id => id !== service.id)].slice(0, 8),
       );
-      setWindows(current => openWindow(current, service.id, 'canvas', windowSpace(), at));
+      // Placed, not merely opened: a module the user is already looking at as a
+      // float, or has minimized, is brought onto the canvas where it was asked
+      // for instead of being left where it was.
+      setWindows(current => placeOnCanvas(current, service.id, windowSpace(), at));
       navigate('workspace');
     },
     [navigate, windowSpace],
@@ -645,10 +648,29 @@ export default function App() {
       const intoWorkspace = Boolean(
         dialog && dialog.mode === 'new' && dialog.target === 'workspace',
       );
+      setDialog(null);
+
+      // A site that is already installed is not added a second time by accident.
+      // Two records for one site is one service in two places, and the dialog
+      // says so before the save; a second copy is only ever the deliberate kind,
+      // which is what the instance switch on the form asks for.
+      const placement = editing
+        ? ({ action: 'add' } as const)
+        : resolveServicePlacement(state.services, service);
+      if (placement.action === 'reuse') {
+        const existing = placement.service;
+        pushToast(
+          t('{name} is already installed. Opened the one you have.', { name: existing.name }),
+          'info',
+        );
+        if (intoWorkspace) openInWorkspace(existing);
+        else openService(existing);
+        return;
+      }
+
       setState(current =>
         editing ? updateServiceInState(current, service) : addServiceToState(current, service),
       );
-      setDialog(null);
       pushToast(
         editing
           ? t('{name} updated.', { name: service.name })
@@ -657,7 +679,7 @@ export default function App() {
       );
       if (intoWorkspace) openInWorkspace(service);
     },
-    [dialog, openInWorkspace, pushToast, t],
+    [dialog, openInWorkspace, openService, pushToast, state.services, t],
   );
 
   const deleteService = useCallback(
@@ -1628,6 +1650,14 @@ export default function App() {
       {dialog ? (
         <ServiceDialog
           initial={dialog.mode === 'edit' ? dialog.service : undefined}
+          installed={state.services}
+          // Only the canvas offers existing services to frame: from the Services
+          // page, "add" means add, and the dialog leaves the installed group out.
+          onPlace={
+            dialog.mode === 'new' && dialog.target === 'workspace'
+              ? service => openInWorkspace(service)
+              : undefined
+          }
           onSave={saveService}
           onClose={() => setDialog(null)}
         />

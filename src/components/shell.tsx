@@ -286,6 +286,7 @@ export function Sidebar({
             {pinned.map((service, position) => (
               <li
                 key={service.id}
+                data-service={service.id}
                 className={`${dragId.current === service.id ? 'is-dragging' : ''}${
                   dropTarget?.id === service.id
                     ? dropTarget.after
