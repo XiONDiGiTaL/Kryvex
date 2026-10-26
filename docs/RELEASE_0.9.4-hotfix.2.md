@@ -104,22 +104,29 @@ how a service gets onto the Workspace canvas.
 
 ## Artifacts
 
-Built locally by `pnpm package:win` from this working tree at the cut, then
-installed in place by the wizard capture below. The Workspace placements in this
-record landed after that local build; the tag rebuilds both EXEs from the tagged
-sources, and the published digests are recorded in the follow-up commit.
+The published pair, built by the Release workflow on the `v0.9.4-hotfix.2` tag
+(`windows-latest`, Node 22, pnpm 10) and attached to
+[the release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.9.4-hotfix.2):
 
-| File | Local size | Local SHA-256 |
+| File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.9.4-hotfix.2-x64.exe` | 134,370,541 B (128.14 MiB) | `1b5bf53f528b967853535283e6216f61e163ee7f80d7599ae387686c20417c62` |
-| `Kryvex-Portable-0.9.4-hotfix.2-x64.exe` | 134,133,393 B (127.92 MiB) | `3df218981186514dd067470e1c4590b20b4bb2ecfd079bb2a1cddacf16632c5b` |
+| `Kryvex-Setup-0.9.4-hotfix.2-x64.exe` | 134,377,675 B (128.15 MiB) | `d1fd0de16a199e893064a2203024f75bc5bf84aa40a151a0093905ebc89c5bb2` |
+| `Kryvex-Portable-0.9.4-hotfix.2-x64.exe` | 134,140,530 B (127.92 MiB) | `3844352a7ff4e16773b4b0ae4c64537eeec6a051392473c776fa11782fc4b69e` |
 
-`release/SHA256SUMS.txt` carries both. No model weights are bundled. Both EXEs
-are **unsigned**.
+`SHA256SUMS.txt` carries both and matches the uploaded binaries. No model weights
+are bundled. Both EXEs are **unsigned**.
 
-The tag-triggered workflow builds the published pair from the same sources; its
-digests are recorded in a follow-up commit once the tag exists, as with
-0.9.4-hotfix.1.
+The wizard capture below was taken from a local `pnpm package:win` build of this
+working tree at the cut, before the canvas-placement fixes landed, because that
+local rebuild then failed on an Electron extract rename (`EPERM` renaming
+`release\win-unpacked.tmp`), so those figures are the pre-batch local pair
+(`1b5bf53f…` Setup at 134,370,541 B, `3df21898…` Portable at 134,133,393 B) and
+the table above is the one to check a download against.
+
+**Web client.** The same tag rebuilt and force-pushed `gh-pages`, and the Pages
+deployment that followed it succeeded: the published worker is the shell,
+companion and worker trio naming `kryvex-web-0.9.4-hotfix.2-v1`, so the site
+reports the version of this release.
 
 ## Install
 
