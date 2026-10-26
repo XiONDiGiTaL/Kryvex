@@ -86,9 +86,21 @@ Built locally by `pnpm package:win` from this working tree (no EPERM on
 | `Kryvex-Portable-0.9.4-x64.exe` | 134,119,323 B (127.90 MiB) | `089c0a07f67d8682db90368e19b983a575d871ad42264b442e00c593994966ac` |
 
 `release/SHA256SUMS.txt` carries both, `release/win-unpacked/Kryvex.exe` reports
-`ProductVersion 0.9.4.0` and `FileVersion 0.9.4`. The tag-triggered workflow
-builds the published pair on `windows-latest` from the same sources and attaches
-it to the release with the same checksum file. No model weights are bundled.
+`ProductVersion 0.9.4.0` and `FileVersion 0.9.4`. No model weights are bundled.
+
+The tag-triggered workflow (run
+[40321535192](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40321535192),
+commit `758f485`) built the published pair on `windows-latest` from the same
+sources and attached it to the published, stable release:
+
+| File | Published size | Published SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.4-x64.exe` | 134,356,680 B (128.13 MiB) | `ef7b19df84aa468d95617b56fb4802ceaecdd098d81cf57fad794806b81794fc` |
+| `Kryvex-Portable-0.9.4-x64.exe` | 134,119,446 B (127.90 MiB) | `02b76d0c7616fe1f031719367ff403daa667446ddb0b581e392cd50b6a5f05b5` |
+
+Both digests are the ones the release API reports for the uploaded assets, and
+`SHA256SUMS.txt` (189 B) from the same release lists both names. They differ from
+the local pair only by the build environment. Both EXEs are **unsigned**.
 
 ## Install
 
@@ -131,7 +143,18 @@ it to the release with the same checksum file. No model weights are bundled.
   page ran for 27,751 ms, the installer exited 0, the capture was archived under
   `docs/media/releases/0.9.4-wizard/`, and the installed `C:\Kryvex\Kryvex.exe`
   now reports `ProductVersion 0.9.4.0`.
-- `pnpm release:check`: PASS for 0.9.4.
+- `pnpm release:check`: PASS for 0.9.4, 11/11.
+- **The tag-triggered workflow** (run
+  [40321535192](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40321535192))
+  finished **success** in both jobs: the tag/`package.json` check,
+  `release:check`, `audit:deps`, typecheck, tests, the one-time-code relay,
+  `package:win`, checksums and publish, then the `web` job's build and push to
+  `gh-pages`.
+- **The live web client**: `https://xiondigital.net/Kryvex/` serves
+  `assets/main-DW2l--5U.js` and `assets/main-B0cWfq0H.css` — the same names this
+  machine's `pnpm build:web` produced — with the footer reading **v0.9.4**, and
+  `caches.keys()` reports `kryvex-web-0.9.4-v1` under the site's own worker
+  scope. No console error on the page.
 
 ## Wizard capture
 

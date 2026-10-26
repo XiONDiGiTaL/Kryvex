@@ -138,13 +138,13 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   theme gallery, the Chromium engine panel and the wallpaper panel. Remaining:
   code signing and an interactive-wizard pass.
 - [x] **M10: Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
-  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.3
+  secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.4
   releases published. Each release carries the Setup and Portable EXEs plus
   `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
   in-app updater accepts it. The installable PWA is published from the
   `gh-pages` branch of the same repository and serves
-  `https://xiondigital.net/Kryvex/`, rebuilt for each release and for the 0.9.x
-  at 0.9.3 (worker cache `kryvex-web-0.9.3-v1`, footer **v0.9.3**).
+  `https://xiondigital.net/Kryvex/`, rebuilt by the tag job from 0.9.4 on
+  (worker cache `kryvex-web-0.9.4-v1`, footer **v0.9.4**).
 - [ ] **M11: Final review.** README with real screenshots, banner,
   feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and
@@ -789,6 +789,16 @@ GPL-3.0 notice is recorded and shown in its view, the Home calculator is sized t
 the Board Guide card it sits beside, and a floating service window carries a
 standard right-hand minimize / maximize / close cluster. See
 `docs/RELEASE_0.9.4.md` and `docs/LINK.md`.
+
+0.9.4 is published from the `v0.9.4` tag (workflow run
+[40321535192](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/40321535192),
+commit `758f485`): stable, with the Setup (134,356,680 B,
+`ef7b19df…b81794fc`), the Portable (134,119,446 B, `02b76d0c…6a5f05b5`) and
+`SHA256SUMS.txt`. The tag also rebuilt and republished the web client, so
+`https://xiondigital.net/Kryvex/` serves the same bundle this machine built
+(`assets/main-DW2l--5U.js`), reports **v0.9.4** and caches
+`kryvex-web-0.9.4-v1`. Next: a real phone on the same network for the Link
+pairing and touch layout, and a companion app if the web page is not enough.
 
 0.9.3 was cut from the `v0.9.3` tag with the Setup, Portable and checksum assets:
 a correction release for the Vexium Core button, which on a machine that already
