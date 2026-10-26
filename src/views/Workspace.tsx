@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '../lib/i18n';
-import { isServiceDrag, readServiceDrag } from '../lib/service-drag';
+import { isServiceDrag, readServiceDrag, requestServiceDropEffect } from '../lib/service-drag';
 import { Icon } from '../components/ui';
 import type { WindowMap } from '../lib/workspace';
 import type { WindowMotion, WorkspaceSettings } from '../types';
@@ -153,7 +153,10 @@ export function Workspace({
         onDragOver={event => {
           if (!isServiceDrag(event.dataTransfer)) return;
           event.preventDefault();
-          event.dataTransfer.dropEffect = 'copy';
+          // Never demand an effect the source refuses: that cancels the drop
+          // outright. The request follows the source instead, which is what lets
+          // a pinned row (which drags as `copyMove`) land here as a copy.
+          requestServiceDropEffect(event.dataTransfer);
           if (!dropping) setDropping(true);
         }}
         onDragLeave={event => {

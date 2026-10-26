@@ -9,7 +9,7 @@ import type {
   ViewId,
 } from '../types';
 import { SECRET_TOOL_LABELS } from '../lib/secret-tools';
-import { SERVICE_DRAG_TYPE, isServiceDrag, readServiceDrag } from '../lib/service-drag';
+import { SERVICE_DRAG_TYPE, isServiceDrag, readServiceDrag, requestServiceDropEffect } from '../lib/service-drag';
 import { dropAnchor } from '../lib/store';
 import { getTheme } from '../lib/themes';
 import { useT } from '../lib/i18n';
@@ -255,7 +255,11 @@ export function Sidebar({
         onDragOver={event => {
           if (!onPinService || !isServiceDrag(event.dataTransfer)) return;
           event.preventDefault();
-          event.dataTransfer.dropEffect = 'copy';
+          // A row that is already pinned is being reordered in place, which is a
+          // move; a card arriving from the Services page is being pinned, which
+          // is a copy. Asking for the wrong one is what refuses a drop outright.
+          if (dragId.current) event.dataTransfer.dropEffect = 'move';
+          else requestServiceDropEffect(event.dataTransfer);
           if (!pinDrop) setPinDrop(true);
         }}
         onDragLeave={event => {
@@ -292,7 +296,11 @@ export function Sidebar({
                 draggable={Boolean(onReorderPinned)}
                 onDragStart={event => {
                   dragId.current = service.id;
-                  event.dataTransfer.effectAllowed = 'move';
+                  // This one drag has two legal destinations: another place in
+                  // this rail (a move) and the Workspace canvas (a copy). Both
+                  // have to be on offer, or the destination that wants the other
+                  // one gets no drop event at all.
+                  event.dataTransfer.effectAllowed = 'copyMove';
                   // Firefox and Chromium both need some payload for a drag to
                   // start; the id is only read back by this same list.
                   event.dataTransfer.setData('text/plain', service.id);
