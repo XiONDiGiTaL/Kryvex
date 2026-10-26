@@ -1834,6 +1834,25 @@ body[data-player-bar='1'] .media-dock.is-floating {
   color: var(--accent);
 }
 
+/* The card opens the tool; the pin sits beside it rather than inside it, so the
+   two controls stay separate buttons. */
+.secret-slot {
+  position: relative;
+  display: flex;
+}
+
+.secret-slot > .secret-card {
+  flex: 1;
+}
+
+.secret-pin {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
 /* ---------------------------------------------------------------- wellness --- */
 
 .home-board-tools {

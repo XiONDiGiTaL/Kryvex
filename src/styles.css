@@ -546,6 +546,21 @@ kbd {
   white-space: nowrap;
 }
 
+/* A pinned built-in tool has no favicon and no brand colour, so it borrows the
+   shell's own accent mark instead of a service glyph. */
+.pinned-tool-mark {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent-soft);
+}
+
 .sidebar-foot {
   margin-top: auto;
   padding-top: 10px;

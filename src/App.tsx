@@ -7,6 +7,7 @@ import type {
   PermissionPrompt,
   PersistedState,
   RssFeed,
+  SecretToolId,
   Service,
   Settings as SettingsModel,
   Toast,
@@ -31,6 +32,7 @@ import {
   removeHistory as removeHistoryFromState,
   removeService,
   togglePin,
+  toggleToolPin,
   updateService as updateServiceInState,
   updateSettings,
 } from './lib/store';
@@ -39,6 +41,7 @@ import { shouldAutoStartCore } from './lib/vexium-core';
 import { clearWallpaper, importWallpaper, loadWallpaper } from './lib/wallpaper';
 import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
 import { makeId, partitionFor } from './lib/services';
+import { SECRET_TOOL_LABELS } from './lib/secret-tools';
 import { totalUnread, unreadFromTitle, windowTitle } from './lib/unread';
 import { hostOf, resolveAddress } from './lib/url';
 import { Header, Sidebar, StatusBar } from './components/shell';
@@ -574,6 +577,28 @@ export default function App() {
       .catch(() => undefined);
   }, []);
 
+  /**
+   * Kryvex's own tools sit beside services on the rail, so both entry points
+   * open them the same way: the emulator asks for its disclaimer first.
+   */
+  const openSecretTool = useCallback(
+    (tool: SecretToolId) => {
+      if (tool === 'emulator') setEmulatorPrompt(true);
+      else navigate(tool);
+    },
+    [navigate],
+  );
+
+  const toggleToolPinInState = useCallback(
+    (tool: SecretToolId) => {
+      const name = t(SECRET_TOOL_LABELS[tool]);
+      const pinned = state.settings.pinnedTools.includes(tool);
+      setState(current => toggleToolPin(current, tool));
+      pushToast(pinned ? t('{name} unpinned.', { name }) : t('{name} pinned.', { name }), 'info');
+    },
+    [pushToast, state.settings.pinnedTools, t],
+  );
+
   const updateEmulator = useCallback((patch: Partial<SettingsModel['emulator']>) => {
     setState(current =>
       updateSettings(current, {
@@ -1056,6 +1081,7 @@ export default function App() {
         onToggle={() => updateSettingsPatch({ sidebarCollapsed: !state.settings.sidebarCollapsed })}
         onNavigate={view => navigate(view)}
         onOpenService={openService}
+        onOpenTool={openSecretTool}
         onAdd={() => setDialog({ mode: 'new' })}
         resources={resources}
         showResources={state.settings.resources.sidebar && !state.settings.sidebarCollapsed}
@@ -1171,10 +1197,8 @@ export default function App() {
             }}
             onDelete={deleteService}
             onUpdateService={updateServiceFlags}
-            onSecretTool={tool => {
-              if (tool === 'emulator') setEmulatorPrompt(true);
-              else navigate(tool);
-            }}
+            onSecretTool={openSecretTool}
+            onToggleToolPin={toggleToolPinInState}
           />
         ) : route.view === 'assistant' ? (
           <Assistant

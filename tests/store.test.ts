@@ -16,6 +16,7 @@ import {
   sanitizeHome,
   sanitizeState,
   togglePin,
+  toggleToolPin,
   updateService,
   updateSettings,
 } from '../src/lib/store';
@@ -299,6 +300,26 @@ describe('operations', () => {
     const toggled = togglePin(base, first.id);
     expect(toggled.services.find(item => item.id === first.id)?.pinned).toBe(!first.pinned);
     expect(togglePin(base, 'missing')).toBe(base);
+  });
+
+  it('pins built-in tools in the order they were added', () => {
+    const base = newState();
+    expect(base.settings.pinnedTools).toEqual([]);
+
+    const lexium = toggleToolPin(base, 'lexium');
+    expect(lexium.settings.pinnedTools).toEqual(['lexium']);
+
+    const both = toggleToolPin(lexium, 'player');
+    expect(both.settings.pinnedTools).toEqual(['lexium', 'player']);
+    expect(toggleToolPin(both, 'lexium').settings.pinnedTools).toEqual(['player']);
+  });
+
+  it('drops unknown and duplicate pinned tools from a saved file', () => {
+    const state = sanitizeState({
+      settings: { pinnedTools: ['disk', 'disk', 'bogus', 42, 'lexium'] },
+    });
+    expect(state.settings.pinnedTools).toEqual(['disk', 'lexium']);
+    expect(sanitizeState({ settings: {} }).settings.pinnedTools).toEqual([]);
   });
 
   it('tracks recents most-recent-first and caps the list', () => {

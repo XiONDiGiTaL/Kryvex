@@ -3,10 +3,12 @@ import type {
   AppInfo,
   PersistedState,
   ResourceSnapshot,
+  SecretToolId,
   Service,
   ServiceMediaState,
   ViewId,
 } from '../types';
+import { SECRET_TOOL_LABELS } from '../lib/secret-tools';
 import { dropAnchor } from '../lib/store';
 import { getTheme } from '../lib/themes';
 import { useT } from '../lib/i18n';
@@ -27,6 +29,17 @@ const NAV: Array<{
   { id: 'rooms', label: 'Rooms', icon: 'users' },
   { id: 'settings', label: 'Settings', icon: 'sliders' },
 ];
+
+/**
+ * A pinned tool needs a glyph, and the element tiles are too dense to read at
+ * rail size. Each tool borrows the nearest icon from the shell's own set.
+ */
+const TOOL_ICONS: Record<SecretToolId, 'language' | 'music' | 'play' | 'monitor'> = {
+  lexium: 'language',
+  player: 'music',
+  emulator: 'play',
+  disk: 'monitor',
+};
 
 export function Header({
   title,
@@ -148,6 +161,7 @@ export function Sidebar({
   onToggle,
   onNavigate,
   onOpenService,
+  onOpenTool,
   onAdd,
   resources = null,
   showResources = false,
@@ -162,6 +176,8 @@ export function Sidebar({
   onToggle: () => void;
   onNavigate: (view: ViewId) => void;
   onOpenService: (service: Service) => void;
+  /** Built-in tools ride the same rail as services but have their own routes. */
+  onOpenTool?: (tool: SecretToolId) => void;
   onAdd: () => void;
   resources?: ResourceSnapshot | null;
   showResources?: boolean;
@@ -173,6 +189,9 @@ export function Sidebar({
 }) {
   const t = useT();
   const pinned = state.services.filter(service => service.pinned);
+  // Already sanitized on load: only known tools, no duplicates.
+  const pinnedTools = state.settings.pinnedTools;
+  const pinnedCount = pinned.length + pinnedTools.length;
   const dragId = useRef<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; after: boolean } | null>(null);
 
@@ -212,9 +231,9 @@ export function Sidebar({
       <div className="sidebar-section">
         <div className="sidebar-heading">
           <span>{t('PINNED')}</span>
-          <span className="sidebar-mono">{pinned.length.toString().padStart(2, '0')}</span>
+          <span className="sidebar-mono">{pinnedCount.toString().padStart(2, '0')}</span>
         </div>
-        {pinned.length === 0 ? (
+        {pinnedCount === 0 ? (
           <p className="sidebar-empty">{t('Pin a service to keep it one click away.')}</p>
         ) : (
           <ul className="pinned-list">
@@ -305,6 +324,20 @@ export function Sidebar({
                 </button>
               </li>
             ))}
+            {pinnedTools.map(tool => (
+              <li key={`tool-${tool}`}>
+                <button
+                  className="pinned-item is-tool"
+                  onClick={() => onOpenTool?.(tool)}
+                  title={t(SECRET_TOOL_LABELS[tool])}
+                >
+                  <span className="pinned-tool-mark" aria-hidden="true">
+                    <Icon name={TOOL_ICONS[tool]} size={13} />
+                  </span>
+                  <span className="pinned-name">{t(SECRET_TOOL_LABELS[tool])}</span>
+                </button>
+              </li>
+            ))}
           </ul>
         )}
       </div>
@@ -365,7 +398,8 @@ export function StatusBar({
   const t = useT();
   const theme = getTheme(themeId);
   const themeName = t(theme.name);
-  const pinned = state.services.filter(service => service.pinned).length;
+  const pinned =
+    state.services.filter(service => service.pinned).length + state.settings.pinnedTools.length;
 
   return (
     <footer className="status-bar">

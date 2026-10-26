@@ -54,6 +54,13 @@ export type LifecycleMode = 'keep' | 'mute' | 'pause' | 'auto-pause' | 'stop';
 /** Services that own a running process instead of a plain webview. */
 export type LifecycleServiceId = 'emulator' | 'disk' | 'rooms' | 'modules';
 
+/**
+ * Kryvex's own tools: the four built-in services that are not web modules.
+ * They cannot be installed, renamed or removed, but they can be pinned to the
+ * same rail as installed services.
+ */
+export type SecretToolId = 'lexium' | 'player' | 'emulator' | 'disk';
+
 export interface LifecycleSettings {
   /** Applied to every service that does not override it. */
   mode: LifecycleMode;
@@ -656,6 +663,11 @@ export interface Settings {
   player: PlayerSettings;
   /** Secret storage tool: the disclaimer is accepted once, not per visit. */
   disk: DiskSettings;
+  /**
+   * Built-in tools pinned beside services in the sidebar rail, in the order
+   * they were pinned. Unknown or duplicate entries are dropped on load.
+   */
+  pinnedTools: SecretToolId[];
   /** What happens to a service after the user navigates away from it. */
   lifecycle: LifecycleSettings;
   /** Global text size and family for the Kryvex interface. */

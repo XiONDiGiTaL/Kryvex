@@ -210,6 +210,7 @@ export function starterState(): PersistedState {
       lexium: { ...DEFAULT_LEXIUM },
       player: { ...DEFAULT_PLAYER },
       disk: { ...DEFAULT_DISK },
+      pinnedTools: [],
       lifecycle: { ...DEFAULT_LIFECYCLE, overrides: {} },
       typography: { ...DEFAULT_TYPOGRAPHY },
     },

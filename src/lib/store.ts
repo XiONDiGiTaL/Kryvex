@@ -18,6 +18,7 @@ import type {
   RepeatMode,
   ResourceSettings,
   SearchRegion,
+  SecretToolId,
   Settings,
   ViewId,
   VpnSettings,
@@ -67,6 +68,7 @@ import { isSearchEngine, isSearchRegion } from './search-engines';
 import { isEmulatorSystem } from './emulator';
 import { DEFAULT_LIFECYCLE, sanitizeLifecycle } from './lifecycle';
 import { sanitizeTypography } from './typography';
+import { sanitizePinnedTools } from './secret-tools';
 import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
 import { themeGallerySeenValue } from './theme-gallery';
 import { isThemeId, sanitizeCustomTheme } from './themes';
@@ -540,6 +542,7 @@ function sanitizeSettings(raw: unknown): Settings {
     lexium: sanitizeLexium(raw.lexium),
     player: sanitizePlayer(raw.player),
     disk: sanitizeDisk(raw.disk),
+    pinnedTools: sanitizePinnedTools(raw.pinnedTools),
     lifecycle: sanitizeLifecycle(raw.lifecycle, base.lifecycle ?? DEFAULT_LIFECYCLE),
     typography: sanitizeTypography(raw.typography),
   };
@@ -675,6 +678,19 @@ export function dropAnchor(
   const anchor = rest.indexOf(targetId);
   if (anchor < 0) return null;
   return { beforeId: rest[anchor + (after ? 1 : 0)] ?? null };
+}
+
+/*
+ * Built-in tools are pinned in settings rather than on a service, because they
+ * have no service row to carry the flag. The list is the rail order: a newly
+ * pinned tool joins the end, the way a newly pinned service does.
+ */
+export function toggleToolPin(state: PersistedState, tool: SecretToolId): PersistedState {
+  const current = state.settings.pinnedTools;
+  const pinnedTools = current.includes(tool)
+    ? current.filter(item => item !== tool)
+    : [...current, tool];
+  return { ...state, settings: { ...state.settings, pinnedTools } };
 }
 
 export function markOpened(state: PersistedState, id: string): PersistedState {

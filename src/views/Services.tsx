@@ -1,11 +1,43 @@
 import { useMemo, useState } from 'react';
-import type { PersistedState, Service, ServiceCategory } from '../types';
+import type { PersistedState, SecretToolId, Service, ServiceCategory } from '../types';
 import { CATEGORIES, SERVICE_COLORS } from '../lib/services';
+import { SECRET_TOOL_LABELS } from '../lib/secret-tools';
 import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
 import { EmptyState, Icon, ServiceIcon } from '../components/ui';
 import { ServiceQuickMenu } from '../components/ServiceQuickMenu';
 import { ElementMark } from '../components/ElementMark';
+
+/**
+ * The pin control for a built-in tool.
+ *
+ * The card itself is the button that opens the tool, so the pin sits beside it
+ * rather than inside it: a button nested in a button is invalid markup and
+ * swallows whichever click it does not want.
+ */
+function ToolPinButton({
+  tool,
+  pinned,
+  onToggle,
+}: {
+  tool: SecretToolId;
+  pinned: boolean;
+  onToggle: (tool: SecretToolId) => void;
+}) {
+  const t = useT();
+  const name = t(SECRET_TOOL_LABELS[tool]);
+  return (
+    <button
+      className={`icon-btn secret-pin ${pinned ? 'is-on' : ''}`}
+      onClick={() => onToggle(tool)}
+      aria-pressed={pinned}
+      aria-label={pinned ? t('Unpin {name}', { name }) : t('Pin {name}', { name })}
+      title={pinned ? t('Unpin') : t('Pin to sidebar')}
+    >
+      <Icon name="pin" size={14} />
+    </button>
+  );
+}
 
 export function Services({
   state,
@@ -16,6 +48,7 @@ export function Services({
   onDelete,
   onUpdateService,
   onSecretTool,
+  onToggleToolPin,
 }: {
   state: PersistedState;
   onOpen: (service: Service) => void;
@@ -24,9 +57,12 @@ export function Services({
   onTogglePin: (service: Service) => void;
   onDelete: (service: Service) => void;
   onUpdateService: (service: Service, patch: Partial<Service>) => void;
-  onSecretTool: (tool: 'emulator' | 'lexium' | 'player' | 'disk') => void;
+  onSecretTool: (tool: SecretToolId) => void;
+  /** Built-in tools pin to the same sidebar rail as installed services. */
+  onToggleToolPin: (tool: SecretToolId) => void;
 }) {
   const t = useT();
+  const pinnedTools = state.settings.pinnedTools;
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | ServiceCategory>('all');
 
@@ -226,61 +262,89 @@ export function Services({
           <span className="mono muted-label">{t('BUILT IN · LOCAL FILES')}</span>
         </div>
         <div className="secret-grid">
-          <button className="secret-card is-tool" onClick={() => onSecretTool('lexium')}>
-            <ElementMark tool="lexium" size={58} />
-            <span className="secret-card-copy">
-              <span className="mono secret-card-kicker">{t('x530 / LANGUAGE')}</span>
-              <strong>{t('Lexium')}</strong>
-              <span>
-                {t(
-                  'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.',
-                )}
+          <div className="secret-slot">
+            <button className="secret-card is-tool" onClick={() => onSecretTool('lexium')}>
+              <ElementMark tool="lexium" size={58} />
+              <span className="secret-card-copy">
+                <span className="mono secret-card-kicker">{t('x530 / LANGUAGE')}</span>
+                <strong>{t('Lexium')}</strong>
+                <span>
+                  {t(
+                    'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.',
+                  )}
+                </span>
               </span>
-            </span>
-            <Icon name="forward" size={16} />
-          </button>
+              <Icon name="forward" size={16} />
+            </button>
+            <ToolPinButton
+              tool="lexium"
+              pinned={pinnedTools.includes('lexium')}
+              onToggle={onToggleToolPin}
+            />
+          </div>
 
-          <button className="secret-card is-tool" onClick={() => onSecretTool('player')}>
-            <ElementMark tool="player" size={58} />
-            <span className="secret-card-copy">
-              <span className="mono secret-card-kicker">{t('x531 / MEDIA')}</span>
-              <strong>{t('Media player')}</strong>
-              <span>
-                {t(
-                  'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.',
-                )}
+          <div className="secret-slot">
+            <button className="secret-card is-tool" onClick={() => onSecretTool('player')}>
+              <ElementMark tool="player" size={58} />
+              <span className="secret-card-copy">
+                <span className="mono secret-card-kicker">{t('x531 / MEDIA')}</span>
+                <strong>{t('Media player')}</strong>
+                <span>
+                  {t(
+                    'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.',
+                  )}
+                </span>
               </span>
-            </span>
-            <Icon name="forward" size={16} />
-          </button>
+              <Icon name="forward" size={16} />
+            </button>
+            <ToolPinButton
+              tool="player"
+              pinned={pinnedTools.includes('player')}
+              onToggle={onToggleToolPin}
+            />
+          </div>
 
-          <button className="secret-card is-tool" onClick={() => onSecretTool('emulator')}>
-            <ElementMark tool="emulator" size={58} />
-            <span className="secret-card-copy">
-              <span className="mono secret-card-kicker">{t('8-BIT MODE')}</span>
-              <strong>{t('Secret emulator')}</strong>
-              <span>
-                {t(
-                  'Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket and Virtual Boy files you already own.',
-                )}
+          <div className="secret-slot">
+            <button className="secret-card is-tool" onClick={() => onSecretTool('emulator')}>
+              <ElementMark tool="emulator" size={58} />
+              <span className="secret-card-copy">
+                <span className="mono secret-card-kicker">{t('8-BIT MODE')}</span>
+                <strong>{t('Secret emulator')}</strong>
+                <span>
+                  {t(
+                    'Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket and Virtual Boy files you already own.',
+                  )}
+                </span>
               </span>
-            </span>
-            <Icon name="forward" size={16} />
-          </button>
+              <Icon name="forward" size={16} />
+            </button>
+            <ToolPinButton
+              tool="emulator"
+              pinned={pinnedTools.includes('emulator')}
+              onToggle={onToggleToolPin}
+            />
+          </div>
 
-          <button className="secret-card is-tool" onClick={() => onSecretTool('disk')}>
-            <ElementMark tool="disk" size={58} />
-            <span className="secret-card-copy">
-              <span className="mono secret-card-kicker">{t('x533 / STORAGE')}</span>
-              <strong>{t('Disk pulse')}</strong>
-              <span>
-                {t(
-                  'Map what fills the drive, read its health as a pulse, then clear caches and temp files behind a typed confirmation.',
-                )}
+          <div className="secret-slot">
+            <button className="secret-card is-tool" onClick={() => onSecretTool('disk')}>
+              <ElementMark tool="disk" size={58} />
+              <span className="secret-card-copy">
+                <span className="mono secret-card-kicker">{t('x533 / STORAGE')}</span>
+                <strong>{t('Disk pulse')}</strong>
+                <span>
+                  {t(
+                    'Map what fills the drive, read its health as a pulse, then clear caches and temp files behind a typed confirmation.',
+                  )}
+                </span>
               </span>
-            </span>
-            <Icon name="forward" size={16} />
-          </button>
+              <Icon name="forward" size={16} />
+            </button>
+            <ToolPinButton
+              tool="disk"
+              pinned={pinnedTools.includes('disk')}
+              onToggle={onToggleToolPin}
+            />
+          </div>
         </div>
       </section>
 

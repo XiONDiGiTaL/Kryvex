@@ -113,14 +113,25 @@ which is exactly what happened before `electron/service-signin.ts`.
 Other providers keep the real popup, because they answer through
 `window.opener`, but their result is folded back rather than left in a window:
 
-- a service popup that reaches the opener's own site closes, and its page loads
-  in the module;
-- a popup that visited a sign-in host refreshes the module when it closes,
-  because the cookies it earned are what unlock the page.
+- the popup's starting point is anchored when it opens, not read while it
+  navigates. Google sends the *module* to `accounts.google.com` mid-flow, so the
+  live URL is the account host by the time the popup returns; comparing against
+  it would never recognise the product page. An account URL is anchored through
+  its `continue` target instead;
+- a popup that left the module's site and came back closes, and its page loads
+  in the module. A popup that never left (a compose window, an attachment
+  preview) keeps its own window;
+- whenever a popup closes without folding, the module is reconciled: its last
+  page when that page belongs in the module, otherwise a reload when the popup
+  touched an account page or changed a cookie the module reads. That is what
+  turns the signed-out page into a signed-in one, and it is why closing the
+  sign-in window never leaves the module behind.
 
-`signsInWithin` and `returnsToOpener` are pure and covered by
-`tests/service-signin.test.ts`; the wiring is the window-open handler and the
-`did-create-window` hook in `electron/main.ts`.
+`signsInWithin`, `returnsToOpener`, `moduleHome` and `popupOutcome` are pure and
+covered by `tests/service-signin.test.ts`; the watcher itself is covered by
+`tests/service-popup-watch.test.ts`, and `pnpm verify:signin-fold` drives the
+real app through a two-origin sign-in to prove the window closes and the module
+ends up on the returned page.
 
 ### Google's own account pages
 
@@ -199,6 +210,17 @@ clients already publish:
 Four-digit years in parentheses are ignored, counts are capped at 999, and the
 window title mirrors the total. The renderer also flashes the taskbar button
 when a count rises while the window is unfocused; focusing clears it.
+
+## Pinning
+
+A service is pinned from its card, or unpinned from the sidebar's right-click
+menu, and the rail keeps that order through drag and `Alt` + arrow. Kryvex's
+own tools (Lexium, the media player, the emulator and Disk pulse) are not
+services — they have no URL, category or session — but they answer to the same
+rail: each card in **Services → Secret services** carries a pin, and a pinned
+tool lands under the pinned services with a shell glyph instead of a favicon.
+The choice lives in `settings.pinnedTools`, so it survives a restart, and only
+known tool ids survive a hand-edited state file.
 
 ## Service presets
 
