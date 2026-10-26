@@ -13,6 +13,7 @@ import type {
   HomeNote,
   HomeSettings,
   LexiumSettings,
+  LinkSettings,
   PartySettings,
   PlayerSettings,
   RepeatMode,
@@ -43,6 +44,7 @@ import {
 } from './party-rules';
 import {
   DEFAULT_DISK,
+  DEFAULT_LINK,
   DEFAULT_EMULATOR,
   DEFAULT_HOME,
   DEFAULT_LEXIUM,
@@ -79,6 +81,7 @@ import { hostOf, isHttpUrl } from './url';
 import { sanitizeFeeds } from './rss';
 import { normalizeWidgetAreas, normalizeWidgetOrder } from './home-widgets';
 import { resolveAssistantSettings } from './vexium-core';
+import { resolveLexiumEngine } from './lexium';
 
 const VIEWS: ViewId[] = ['home', 'services', 'browser', 'assistant', 'settings'];
 const DENSITIES: Density[] = ['comfortable', 'compact'];
@@ -456,26 +459,49 @@ export function sanitizeEmulator(raw: unknown): EmulatorSettings {
   };
 }
 
-const LEXIUM_ENGINES = ['local-whisper', 'whisper-cpp', 'openai'] as const;
+const LEXIUM_ENGINES = ['windows-speech', 'local-whisper', 'whisper-cpp', 'openai'] as const;
 const REPEAT_MODES: RepeatMode[] = ['off', 'all', 'one'];
 
-/** Lexium keeps addresses, not secrets: the key is optional and local. */
-export function sanitizeLexium(raw: unknown): LexiumSettings {
+/**
+ * Lexium keeps addresses, not secrets: the key is optional and local.
+ *
+ * `localSpeech` says whether this build has an in-box speech engine (the
+ * desktop app on Windows). It is only used for the one-time move off the old
+ * default address; see resolveLexiumEngine.
+ */
+export function sanitizeLexium(raw: unknown, localSpeech = false): LexiumSettings {
   const base = DEFAULT_LEXIUM;
-  if (!isRecord(raw)) return { ...base };
-  const engine = LEXIUM_ENGINES.includes(raw.engine as (typeof LEXIUM_ENGINES)[number])
+  if (!isRecord(raw)) {
+    return localSpeech
+      ? { ...base, engine: 'windows-speech', baseUrl: '', migrated: true }
+      : { ...base };
+  }
+  const requested = LEXIUM_ENGINES.includes(raw.engine as (typeof LEXIUM_ENGINES)[number])
     ? (raw.engine as LexiumSettings['engine'])
     : base.engine;
+  const savedUrl = normalizeBaseUrl(raw.baseUrl) || (raw.baseUrl === '' ? '' : base.baseUrl);
+  const { engine, baseUrl, migrated } = resolveLexiumEngine({
+    engine: requested,
+    baseUrl: savedUrl,
+    migrated: raw.migrated === true,
+    localSpeech,
+  });
   return {
     engine,
-    baseUrl: normalizeBaseUrl(raw.baseUrl) || (raw.baseUrl === '' ? '' : base.baseUrl),
+    baseUrl,
     model: cleanText(raw.model, 48) || base.model,
     language: cleanLanguage(raw.language, 'auto'),
     target: cleanLanguage(raw.target, 'en') || base.target,
     translateUrl: normalizeBaseUrl(raw.translateUrl) || (raw.translateUrl === '' ? '' : base.translateUrl),
     apiKey: cleanText(raw.apiKey, 160),
     ocrLanguage: cleanOcrLanguage(raw.ocrLanguage),
+    migrated,
   };
+}
+
+/** The speech engine a build can use without a server, if it has one at all. */
+export function hasLocalSpeechEngine(): boolean {
+  return typeof window !== 'undefined' && window.kryvex?.platform === 'win32';
 }
 
 export function sanitizeDisk(raw: unknown): DiskSettings {
@@ -485,6 +511,15 @@ export function sanitizeDisk(raw: unknown): DiskSettings {
     disclaimerAcceptedAt:
       Number.isFinite(accepted) && accepted > 0 && accepted <= Date.now() ? accepted : 0,
   };
+}
+
+/**
+ * Link is a boolean with one consequence, so anything but an explicit `true`
+ * means off: a hand-edited state file cannot open a listening socket.
+ */
+export function sanitizeLink(raw: unknown): LinkSettings {
+  if (!isRecord(raw)) return { ...DEFAULT_LINK };
+  return { enabled: raw.enabled === true };
 }
 
 export function sanitizePlayer(raw: unknown): PlayerSettings {
@@ -522,9 +557,9 @@ export function sanitizeParty(raw: unknown): PartySettings {
   };
 }
 
-function sanitizeSettings(raw: unknown): Settings {
+function sanitizeSettings(raw: unknown, options: { localSpeech?: boolean } = {}): Settings {
   const base = starterState().settings;
-  if (!isRecord(raw)) return base;
+  if (!isRecord(raw)) return speechDefault(base, options);
   return {
     themeId: typeof raw.themeId === 'string' && isThemeId(raw.themeId) ? raw.themeId : base.themeId,
     themeGallerySeen: themeGallerySeenValue(raw.themeGallerySeen),
@@ -544,6 +579,9 @@ function sanitizeSettings(raw: unknown): Settings {
     serviceNotifications:
       raw.serviceNotifications === undefined ? true : Boolean(raw.serviceNotifications),
     autoCheckUpdates: raw.autoCheckUpdates === undefined ? true : Boolean(raw.autoCheckUpdates),
+    // A profile that already pins a built-in tool has answered this.
+    secretServices:
+      raw.secretServices === true || sanitizePinnedTools(raw.pinnedTools).length > 0,
     wallpaper: sanitizeWallpaper(raw.wallpaper),
     assistant: sanitizeAssistant(raw.assistant),
     chromium: sanitizeChromium(raw.chromium),
@@ -552,9 +590,10 @@ function sanitizeSettings(raw: unknown): Settings {
     resources: sanitizeResources(raw.resources),
     vpn: sanitizeVpn(raw.vpn),
     emulator: sanitizeEmulator(raw.emulator),
-    lexium: sanitizeLexium(raw.lexium),
+    lexium: sanitizeLexium(raw.lexium, options.localSpeech === true),
     player: sanitizePlayer(raw.player),
     disk: sanitizeDisk(raw.disk),
+    link: sanitizeLink(raw.link),
     pinnedTools: sanitizePinnedTools(raw.pinnedTools),
     lifecycle: sanitizeLifecycle(raw.lifecycle, base.lifecycle ?? DEFAULT_LIFECYCLE),
     typography: sanitizeTypography(raw.typography),
@@ -565,8 +604,25 @@ function sanitizeSettings(raw: unknown): Settings {
  * Never trust a state file: users can edit it, and older versions may not
  * match the current shape. Anything invalid is dropped, never fatal.
  */
-export function sanitizeState(raw: unknown): PersistedState {
-  if (!isRecord(raw)) return starterState();
+/**
+ * The settings a fresh profile starts with.
+ *
+ * A build that has its own speech engine starts there instead of pointing at a
+ * Whisper server nobody installed; every other value is the starter catalogue.
+ */
+function speechDefault(settings: Settings, options: { localSpeech?: boolean }): Settings {
+  if (options.localSpeech !== true) return settings;
+  return { ...settings, lexium: sanitizeLexium(null, true) };
+}
+
+export function sanitizeState(
+  raw: unknown,
+  options: { localSpeech?: boolean } = {},
+): PersistedState {
+  if (!isRecord(raw)) {
+    const fresh = starterState();
+    return { ...fresh, settings: speechDefault(fresh.settings, options) };
+  }
   const defaults = starterState();
 
   const servicesRaw = Array.isArray(raw.services) ? raw.services : defaults.services;
@@ -611,7 +667,7 @@ export function sanitizeState(raw: unknown): PersistedState {
     services,
     bookmarks,
     history,
-    settings: sanitizeSettings(raw.settings),
+    settings: sanitizeSettings(raw.settings, options),
     recent,
     browser: sanitizeBrowser(raw.browser),
     feeds: sanitizeFeeds(raw.feeds),

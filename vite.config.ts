@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import pkg from './package.json';
@@ -18,5 +19,14 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     target: 'chrome140',
+    rollupOptions: {
+      // Two pages ship in one bundle: the desktop shell, and the phone
+      // companion page that the main process serves over the local network.
+      // The link server reads both out of `dist/`, so they must build together.
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        companion: resolve(__dirname, 'companion.html'),
+      },
+    },
   },
 });

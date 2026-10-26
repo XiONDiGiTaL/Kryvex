@@ -101,7 +101,7 @@ export function ToolQuickMenu({
         </>
       ) : null}
 
-      {tool === 'lexium' || tool === 'disk' ? (
+      {tool === 'lexium' || tool === 'disk' || tool === 'link' ? (
         <div className="service-quick-row">
           <div>
             <strong>{t('{name} settings', { name })}</strong>

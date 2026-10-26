@@ -248,12 +248,65 @@ export interface PlaylistImportResult {
 }
 
 /**
+ * One phone paired with Kyvex Link. The token never crosses to the shell: the
+ * shell revokes by `id`, a hash of the token that cannot be replayed.
+ */
+export interface LinkDeviceInfo {
+  id: string;
+  label: string;
+  address: string;
+  pairedAt: number;
+  lastSeenAt: number;
+}
+
+/** Everything the phone may know about a file: never a path on this machine. */
+export interface LinkFileInfo {
+  id: string;
+  name: string;
+  size: number;
+  at: number;
+}
+
+/** The link's state for the Kryvex view: addresses, code, devices, transfers. */
+export interface LinkStatus {
+  enabled: boolean;
+  running: boolean;
+  port: number;
+  /** The live pairing code, empty until the server starts. */
+  code: string;
+  codeExpiresAt: number;
+  /** Loopback-free URLs, LAN first; the first is the one to type on the phone. */
+  urls: string[];
+  /** Where received files land. */
+  folder: string;
+  devices: LinkDeviceInfo[];
+  received: LinkFileInfo[];
+  offered: LinkFileInfo[];
+  error?: string;
+}
+
+/** A toast the main process asks the shell to show on the link's behalf. */
+export interface LinkNotice {
+  message: string;
+  tone: 'info' | 'success' | 'warning' | 'danger';
+}
+
+/** What a paired phone can ask the shell to do. */
+export type LinkCommandEvent =
+  | { command: 'open-url'; url: string }
+  | { command: 'rooms' | 'home' };
+
+/**
  * One answer from the main-process Whisper proxy. `payload` is the server's own
  * JSON, parsed in the renderer by the same parser a direct request would use.
  */
 export interface LexiumProxyResult {
   ok: boolean;
-  error?: 'offline' | 'http' | 'invalid';
+  /**
+   * `unsupported` is the in-box speech engine on a platform that has none: it
+   * is not a network failure, and the interface must not describe it as one.
+   */
+  error?: 'offline' | 'http' | 'invalid' | 'unsupported';
   status?: number;
   /** The server's own message, trimmed, when it replied with an error. */
   detail?: string;

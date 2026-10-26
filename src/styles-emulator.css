@@ -28,6 +28,21 @@
   margin-top: 1px;
 }
 
+.emulator-disclaimer-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.emulator-credit {
+  color: var(--ink-faint);
+  font-size: 10.5px;
+}
+
+.emulator-credit .link {
+  color: var(--accent);
+  font-size: inherit;
+}
+
 .emulator-disclaimer p {
   margin: 0;
   font-size: 11px;

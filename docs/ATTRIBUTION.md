@@ -49,6 +49,46 @@ project's filter data natively instead.
 - Source for the MPL-2.0 components is available from the package links above
   and inside `node_modules` after installation.
 
+## EmulatorJS
+
+- **Project:** https://github.com/EmulatorJS/EmulatorJS
+- **License:** GPL-3.0
+- **How Kryvex uses it:** the Emulator view loads EmulatorJS from the project's
+  own CDN (`https://cdn.emulatorjs.org/stable/data/`) inside a sandboxed
+  `<iframe>` that is not granted `allow-same-origin`. No EmulatorJS file is
+  vendored, copied into `dist/`, patched or republished. The page is fetched by
+  the user's client at run time, from the project's host — the same arm's-length
+  relationship a web page has with a library CDN.
+- **Why it is not bundled.** GPL-3.0 obligations attach to *conveying* the
+  program. Kryvex conveys its own MIT code and ships no copy of EmulatorJS, so
+  no GPL-3.0 code is distributed inside the installer or the web bundle. This
+  is also why the emulator is not forked into a "Kryvex variant": a fork built
+  from that source is still GPL-3.0, and shipping it inside an MIT distribution
+  would require the combined distribution to carry the GPL and a written offer
+  of source — a larger obligation, not a smaller one.
+- **Where the boundary is:** Kryvex configures the emulator through its
+  documented `EJS_*` globals, hands it a ROM over `postMessage`, and exchanges
+  save states through its public API. It does not modify the emulator's code or
+  claim the emulation as its own.
+- **Attribution:** shown in the Emulator view ("Emulation by EmulatorJS,
+  GPL-3.0, loaded from its official CDN"), with a link to the source.
+
+## Kyvex Link and its prior art
+
+- **What it is:** the Link service, its HTTP/SSE listener (`electron/link-server.ts`,
+  `electron/link.ts`) and the phone page (`src/companion/`) are original Kryvex
+  code, covered by the repository's MIT license.
+- **Prior art read, not copied:** KDE Connect, Microsoft Phone Link, Sefirah and
+  Blip were inspected for what the feature should do — pairing, clipboard,
+  file transfer, remote commands, a companion app. No source, string, asset or
+  protocol implementation was copied from any of them, and none of them is a
+  dependency, a bundled component or a runtime service of Kryvex.
+- **Own protocol:** pairing uses a rotating six-digit code exchanged once for a
+  local token, and the listener only accepts private source addresses. See
+  [LINK.md](LINK.md).
+- Those projects remain under their own licenses; this notice makes no claim
+  about them.
+
 ## Simple Icons
 
 - **Project:** https://simpleicons.org / https://github.com/simple-icons/simple-icons

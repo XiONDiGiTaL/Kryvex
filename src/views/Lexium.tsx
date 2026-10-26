@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import type { LexiumSettings } from '../types';
 import { useT } from '../lib/i18n';
 import {
@@ -15,6 +15,7 @@ import {
   guessLanguage,
   healthEndpoint,
   imageValidation,
+  isLocalSpeechEngine,
   languageName,
   normalizeBaseUrl,
   transcribeAudio,
@@ -29,6 +30,7 @@ import { transcribeWithBridge } from '../lib/lexium-bridge';
 import { loadAudioFile, type LoadedAudio } from '../lib/lexium-audio';
 import { readImageText } from '../lib/lexium-ocr';
 import { ElementMark } from '../components/ElementMark';
+import { LexiumServerSetup } from '../components/LexiumServerSetup';
 import { Icon } from '../components/ui';
 
 type Tab = 'transcribe' | 'translate' | 'image';
@@ -92,7 +94,63 @@ export function Lexium({
   const guessed = useMemo(() => (input.trim() ? guessLanguage(input) : 'und'), [input]);
   const speechReady = engineState === 'ready';
 
+  // Opening the tool checks the engine once, so a server that is already
+  // running shows READY without the user hunting for the button, and a first
+  // run shows the setup path instead of a silent failure later. Changing the
+  // engine or its address re-checks it: picking a server should say whether it
+  // answers without a second click.
+  useEffect(() => {
+    void checkEngine();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.engine, settings.baseUrl]);
+
+  function useDetectedServer(engine: LexiumSettings['engine'], baseUrl: string) {
+    onUpdate({ engine, baseUrl, migrated: true });
+    setEngineState('idle');
+    setEngineDetail('');
+    onToast(t('Speech server set to {url}.', { url: baseUrl }), 'success');
+  }
+
+  /**
+   * The engine Windows already has: no address, no download, nothing to start.
+   * `migrated` is written here too, so this choice is never undone by the
+   * one-time move off the old default.
+   */
+  function useThisPcEngine() {
+    onUpdate({ engine: 'windows-speech', baseUrl: '', migrated: true });
+    setEngineState('idle');
+    setEngineDetail('');
+    setTranscribeError(null);
+    onToast(t('Transcribing on this PC from now on.'), 'success');
+  }
+
+  /**
+   * Why the PC speech engine is not answering.
+   *
+   * The reasons are told apart on purpose: an engine that is not run by this
+   * build, a machine with no recogniser installed, and a broken script need
+   * three different answers, and none of them is "the server is offline".
+   */
+  function localEngineProblem(reason?: string): string {
+    if (reason === 'unsupported') {
+      return t(
+        'This build cannot run the PC speech engine. Use the desktop app, or start a server below.',
+      );
+    }
+    if (reason === 'no-recognizer') {
+      return t(
+        'This PC has no speech recogniser installed. Add a language with speech in Windows settings, or start a server below.',
+      );
+    }
+    return t('The speech engine on this PC could not be started. Start a server below instead.');
+  }
+
   function failureCopy(error: LexiumFailure, status?: number, detail?: string): string {
+    // The in-box engine reports a reason code in `detail` instead of a status.
+    if (isLocalSpeechEngine(settings.engine)) {
+      if (error === 'empty') return t('The speech engine did not hear any words in that file.');
+      return localEngineProblem(detail);
+    }
     if (error === 'offline') {
       return window.kryvex?.lexiumTranscribe
         ? t(
@@ -114,6 +172,36 @@ export function Lexium({
   }
 
   async function checkEngine() {
+    const bridge = window.kryvex;
+    // The PC engine has no address to fetch: the main process reports whether
+    // this machine has a recogniser, and which languages it covers.
+    if (isLocalSpeechEngine(settings.engine)) {
+      if (!bridge?.lexiumProbe) {
+        setEngineState('offline');
+        setEngineDetail(localEngineProblem('unsupported'));
+        return;
+      }
+      setEngineState('checking');
+      setEngineDetail('');
+      try {
+        const answer = await bridge.lexiumProbe({ engine: settings.engine, baseUrl: '' });
+        if (answer?.ok) {
+          setEngineState('ready');
+          setEngineDetail(
+            answer.detail
+              ? t('This PC is listening ({languages}).', { languages: answer.detail })
+              : t('The speech engine on this PC is ready.'),
+          );
+        } else {
+          setEngineState('offline');
+          setEngineDetail(localEngineProblem(answer?.detail));
+        }
+      } catch {
+        setEngineState('offline');
+        setEngineDetail(localEngineProblem('powershell'));
+      }
+      return;
+    }
     const endpoint = healthEndpoint(settings.engine, settings.baseUrl);
     if (!endpoint) {
       setEngineState('offline');
@@ -125,7 +213,6 @@ export function Lexium({
     // The desktop app probes from the main process: a renderer request can be
     // refused by CORS before it ever reaches a working server, which would make
     // a healthy engine look offline.
-    const bridge = window.kryvex;
     if (bridge?.lexiumProbe) {
       try {
         const answer = await bridge.lexiumProbe({
@@ -350,7 +437,14 @@ export function Lexium({
         <span className={`lexium-engine-dot ${speechReady ? 'is-ready' : engineState === 'offline' ? 'is-down' : ''}`}>
           <span className="status-dot" />
           <span className="mono">
-            {ENGINE_LABELS[settings.engine]} · {speechReady ? t('READY') : t('NOT CHECKED')}
+            {ENGINE_LABELS[settings.engine]} ·{' '}
+            {speechReady
+              ? t('READY')
+              : engineState === 'offline'
+                ? t('OFFLINE')
+                : engineState === 'checking'
+                  ? t('Checking…')
+                  : t('NOT CHECKED')}
           </span>
         </span>
       </div>
@@ -443,6 +537,20 @@ export function Lexium({
 
           {transcribeError ? <p className="lexium-error">{transcribeError}</p> : null}
 
+          {/* A first run has no server, so the failure is paired with the way out
+              instead of leaving the user at an error line. */}
+          {transcribeError || engineState === 'offline' ? (
+            <details className="lexium-setup-details" open={Boolean(transcribeError)}>
+              <summary>{t('Set up a server')}</summary>
+              <LexiumServerSetup
+                onPick={useDetectedServer}
+                onCopy={(value, label) => void copy(value, label)}
+                onUseThisPc={useThisPcEngine}
+                usingThisPc={isLocalSpeechEngine(settings.engine)}
+              />
+            </details>
+          ) : null}
+
           {transcript ? (
             <div className="lexium-result">
               <div className="lexium-result-head">
@@ -509,9 +617,13 @@ export function Lexium({
             </div>
           ) : (
             <p className="lexium-hint">
-              {t(
-                'Nothing leaves this device except the audio sent to the speech server you configured. No model is bundled, so the engine has to run somewhere: local is the default.',
-              )}
+              {isLocalSpeechEngine(settings.engine)
+                ? t(
+                    'The words are read on this PC by the speech engine Windows already has. Nothing is uploaded and Vexium Core is not involved: it answers text, it cannot hear audio.',
+                  )
+                : t(
+                    'Nothing leaves this device except the audio sent to the speech server you configured. Vexium Core answers text, so speech-to-text talks to a Whisper engine: start one below and nothing else needs a server.',
+                  )}
             </p>
           )}
         </div>
@@ -819,7 +931,7 @@ export function Lexium({
           <div className="lexium-engine-check">
             <button className="btn secondary" onClick={() => void checkEngine()} disabled={engineState === 'checking'}>
               <Icon name="reload" size={14} />
-              {engineState === 'checking' ? t('Checking…') : t('Check speech server')}
+              {engineState === 'checking' ? t('Checking…') : t('Check speech engine')}
             </button>
             <span className={`mono lexium-check ${engineState}`}>
               {engineState === 'ready'
@@ -833,15 +945,14 @@ export function Lexium({
 
         {engineDetail ? <p className="lexium-hint">{engineDetail}</p> : null}
 
-        <div className="lexium-commands">
-          <div>
-            <span className="mono">{'local-whisper'}</span>
-            <code>{'uvicorn app.main:app --host 127.0.0.1 --port 8000'}</code>
-          </div>
-          <div>
-            <span className="mono">{'whisper.cpp'}</span>
-            <code>{'whisper-server -m models/ggml-base.bin --port 8080'}</code>
-          </div>
+        <LexiumServerSetup
+          onPick={useDetectedServer}
+          onCopy={(value, label) => void copy(value, label)}
+          onUseThisPc={useThisPcEngine}
+          usingThisPc={isLocalSpeechEngine(settings.engine)}
+        />
+
+        <div className="lexium-commands is-single">
           <div>
             <span className="mono">{'LibreTranslate'}</span>
             <code>{'docker run -ti --rm -p 5000:5000 libretranslate/libretranslate'}</code>

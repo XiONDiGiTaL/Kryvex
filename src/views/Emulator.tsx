@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { EmulatorSettings, EmulatorSystem } from '../types';
 import { useT } from '../lib/i18n';
+import { openExternalUrl } from '../lib/external';
 import type { LifecycleVerdict } from '../lib/lifecycle';
 import {
   ROM_ACCEPT,
@@ -815,11 +816,25 @@ export function Emulator({
 
       <div className="emulator-disclaimer">
         <Icon name="warning" size={15} />
+        <div className="emulator-disclaimer-copy">
         <p>
           {t(
             'Kryvex does not host, provide or link to ROMs, and does not promote piracy. Use only ROMs and BIOS files you are legally entitled to use.',
           )}
         </p>
+        {/* Emulation is EmulatorJS's work, not Kryvex's. The project is GPL-3.0
+            and is fetched from its own CDN inside a sandboxed frame, never
+            bundled here, so the credit and the source link belong in the UI. */}
+        <p className="emulator-credit">
+          {t('Emulation by EmulatorJS, GPL-3.0, loaded from its official CDN and not bundled with Kryvex.')}{' '}
+          <button
+            className="link"
+            onClick={() => openExternalUrl('https://github.com/EmulatorJS/EmulatorJS')}
+          >
+            {t('Source and licence')}
+          </button>
+        </p>
+        </div>
       </div>
 
       <div className="emulator-layout">

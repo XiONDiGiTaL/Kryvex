@@ -2355,3 +2355,130 @@ Not covered by these runs: a profile that also holds signed-in services, because
 the seed profile is local-only. The models directory and the runtime do not
 depend on service sessions, and the fix is not in the published 0.9.2 binary,
 which still shows the old label until the next cut.
+
+## Workspace windows proof of concept (2026-10-26)
+
+Run in `X:\Veyra`, Windows 11, on the tree that adds the Workspace surface.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer and main typecheck | `pnpm typecheck` | exit 0 |
+| Window rules | `npx vitest run tests/workspace.test.ts` | 15/15 — containment, edge resize, the z band under 8 windows and 160 raises, dropped placement, maximize/restore, minimize, close and renumbering, refit on shrink, detached reachability |
+| Full suite | `npx vitest run` | **787/787** across 75 files |
+| Production build | `pnpm build` | exit 0, `dist/assets/index-Br9v0XwV.js` 1,377 kB |
+
+### Driven in the renderer (web build, `npx vite --port 5183`)
+
+The rail reads Home, Services, Browser, **Workspace**, Vexium, Rooms, Settings.
+`#/workspace` measured its canvas at 683×861 and showed the empty state. Two
+services were added from the bar's button (the dialog is the same one the
+Services page uses); they opened as windows at 423×585, cascaded 26 px apart, at
+`z-index` 30 and 31, fully inside the canvas.
+
+- **Raise:** a pointer down on the lower window swapped the two z values and
+  `document.elementFromPoint(300, 300)` then returned the raised frame.
+- **Drag:** a pointer drag on the title bar moved the window exactly
+  +40 / +30 px (160,255 → 200,285) with no change in size.
+- **Resize:** a drag on the east handle grew the width from 423 to 483 and
+  stopped at the canvas edge.
+- **Maximize / restore:** filled 683×861 exactly, and restore returned
+  200,285 × 483×728.
+- **Minimize:** the frame stayed mounted with `opacity: 0`, `pointer-events:
+  none` and `inert`, and a tray chip appeared; the chip restored it.
+- **Dialog above live windows:** with both frames mounted, Add service put
+  `.modal-layer` at `z-index` 50 over the board's 25 and the windows' 30/31, and
+  a hit test 20 px inside the dialog returned the dialog, not a service.
+- **Surface resize:** shrinking the viewport re-fitted both windows inside a
+  556×496 canvas.
+- **Route away and back:** on `#/home` the frames stayed mounted but hidden
+  (`opacity: 0`, stage `is-idle`), and returning to `#/workspace` restored the
+  exact geometry and stacking.
+
+The Home eyebrow now reads **Home** instead of `WORKSPACE 01 / ELEMENT x529`,
+and the three stale catalogue entries were removed with it.
+
+Not covered here: live guest content. The renderer without Electron has no
+`<webview>`, so each frame drew the existing "open in this browser" card. The
+window mechanics above are the same either way — the guest is an OOPIF inside the
+same frame — but a two-service drag over real Google and GitHub sessions has to
+be confirmed in the desktop build.
+
+## Kyvex Link: the phone companion (0.9.4-hotfix, 2026-10-26)
+
+Run on 2026-10-26 in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3, on
+the working tree that became this commit.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer typecheck | `pnpm typecheck` (`tsc --noEmit` ×2) | exit 0 |
+| Full suite | `npx vitest run` | **818/818** across 76 files |
+| Link rules | `npx vitest run tests/link-rules.test.ts` | 22/22 — code and token shape, ten private address families accepted and nine public forms refused, traversal/reserved/percent-encoded names rewritten, collisions numbered, scheme and credential rules for links, the command allowlist, size labels |
+| State sanitiser | `npx vitest run tests/store.test.ts` | 40/40 — the link starts off and only an explicit `true` turns it on; `link` is a pinnable tool |
+| Translation coverage | `npx vitest run tests/i18n-coverage.test.ts` | 5/5 — the ratchet held at es 41 / de 68 / fr 56 with 49 new strings translated |
+| Renderer copy audit | `npx vitest run tests/i18n.test.ts` | PASS — no hardcoded UI strings; the companion's own table is why its page uses a local helper |
+| Production build | `npx vite build` | exit 0, and the build now emits `dist/companion.html` + `companion-*.js` 21.26 kB (7.03 kB gzip) beside the shell |
+| End-to-end harness | `pnpm verify:link` (`scripts/verify-link.cjs`) | **30/30 PASS** |
+
+### What the harness asserts
+
+It launches the built app on a disposable profile whose saved switch is on and
+never opens the Link page, so the boot path is what starts the listener:
+
+- the listener is up on the first free port in 43110–43129 and a six-digit code
+  is ready;
+- `/` serves the companion page, the page references its bundle, the bundle is
+  served as JavaScript (21,154 bytes), and `GET /../package.json` sent as a raw
+  path returns 401 with no file;
+- an unpaired visitor is told `paired: false`; a wrong code mints nothing; state
+  without a token is 401; seven wrong guesses produce 429 twice;
+- the live code pairs a device, the desktop's device list carries a 16-character
+  handle with no `token` field, and pairing retires the code;
+- the event stream opens with `text/event-stream`, a clipboard post is accepted,
+  and the desktop relays it back as an `event: clipboard` frame containing the
+  text;
+- an upload named `../escape me.txt` is stored as `escape me.txt` inside
+  `Downloads\Kryvex Link` with the exact payload, is listed by the desktop, and a
+  second harness run with a name already on disk gets `escape me (2).txt` rather
+  than a failure;
+- `focus` runs and `shutdown` is refused with 400;
+- a link from the phone lands the shell on `#/browser` and the persisted state
+  holds a tab for `https://example.com/from-the-phone`;
+- the outbox is empty until a file is offered; a seeded offer is listed without a
+  path on this machine and downloads with matching bytes and a
+  `content-disposition` carrying the name; an unknown id is 404;
+- unpairing is 200 and the retired token is 401 on the next request.
+
+### The phone page, driven in a real browser
+
+The built app ran on a disposable profile and the preview browser opened
+`http://127.0.0.1:43110/`. The pairing form rendered (`Pair with Kryvex`, the
+six-digit field, the phone-name field), the code was typed, and **Pair** landed
+on the app with the tab bar **Clipboard / Files / Send / Remote / This phone** and
+a `LIVE` badge:
+
+- **Phone → desktop clipboard:** typing a sentence and pressing *Send to desktop*
+  put it on the Windows clipboard — confirmed independently with
+  `powershell Get-Clipboard` — and the page's own Clipboard panel showed it back
+  through the event stream.
+- **Desktop → phone clipboard:** `Set-Clipboard` on the desktop appeared in the
+  page within the poll interval.
+- **Phone → desktop file:** a synthetic `File` dispatched at the page's own file
+  input uploaded through the page's XHR path; the page listed it under *Sent to
+  the desktop* (26 B) and the bytes were on disk in
+  `Downloads\Kryvex Link\from-the-page.txt`.
+- **Remote:** pressing *Open Rooms* on the page moved the desktop shell to
+  `#/rooms`; the transport showed *Nothing here yet.*, which is correct with no
+  media playing.
+- No console error and no failed request appeared in the page or the shell.
+
+### Not executed (do not treat as passing)
+
+- **A real phone.** The page was driven from Chromium on this machine; no
+  Android or iOS device was on the network during the run, so the touch layout,
+  *Add to home screen* and the phone's own browser quirks are unverified.
+- **OS notifications.** They need a secure origin, and this link is plain HTTP on
+  the LAN; the in-page notice path was exercised, the `Notification` path was not.
+- **The offer picker.** *Offer a file* opens the native dialog, which cannot be
+  driven here; the download half it feeds was tested with a seeded offer.
+- **A public source address.** The 403 for a non-private peer is covered by unit
+  tests on the address rule; no request from off-network was produced.

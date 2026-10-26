@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import type { PlaylistImportResult, PopupTabInfo, PopupTabRect } from './types';
+import type {
+  LinkCommandEvent,
+  LinkNotice,
+  LinkStatus,
+  PlaylistImportResult,
+  PopupTabInfo,
+  PopupTabRect,
+} from './types';
 
 type DownloadState = 'progressing' | 'paused' | 'completed' | 'cancelled' | 'interrupted';
 
@@ -346,6 +353,33 @@ const api = {
   wallpaperSave: (dataUrl: string): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:wallpaper:save', dataUrl),
   wallpaperClear: (): Promise<boolean> => ipcRenderer.invoke('kryvex:wallpaper:clear'),
+  // Kyvex Link. A token is minted in the main process against the pairing code
+  // the desktop shows; the shell only ever reads status or asks for an action.
+  linkStatus: (): Promise<LinkStatus | null> => ipcRenderer.invoke('kryvex:link:status'),
+  linkConfigure: (patch: { enabled?: boolean }): Promise<LinkStatus | null> =>
+    ipcRenderer.invoke('kryvex:link:configure', patch),
+  linkNewCode: (): Promise<LinkStatus | null> => ipcRenderer.invoke('kryvex:link:code'),
+  linkRevoke: (token: string): Promise<boolean> => ipcRenderer.invoke('kryvex:link:revoke', token),
+  linkRevokeAll: (): Promise<boolean> => ipcRenderer.invoke('kryvex:link:revoke-all'),
+  linkOffer: (): Promise<LinkStatus | null> => ipcRenderer.invoke('kryvex:link:offer'),
+  linkRemove: (id: string, deleteFile: boolean): Promise<LinkStatus | null> =>
+    ipcRenderer.invoke('kryvex:link:remove', id, deleteFile),
+  linkClear: (deleteFiles: boolean): Promise<LinkStatus | null> =>
+    ipcRenderer.invoke('kryvex:link:clear', deleteFiles),
+  linkReveal: (id: string): Promise<boolean> => ipcRenderer.invoke('kryvex:link:reveal', id),
+  linkOpen: (id: string): Promise<boolean> => ipcRenderer.invoke('kryvex:link:open', id),
+  linkNotify: (title: string, body: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:link:notify', title, body),
+  onLinkNotice: (listener: (notice: LinkNotice) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, notice: LinkNotice) => listener(notice);
+    ipcRenderer.on('kryvex:link:notice', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:link:notice', wrapped);
+  },
+  onLinkCommand: (listener: (event: LinkCommandEvent) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, command: LinkCommandEvent) => listener(command);
+    ipcRenderer.on('kryvex:link:command', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:link:command', wrapped);
+  },
   attention: (active: boolean): void => ipcRenderer.send('kryvex:attention', active),
   onOpenUrl: (listener: (url: string) => void): (() => void) => {
     const wrapped = (_event: IpcRendererEvent, url: string) => listener(url);

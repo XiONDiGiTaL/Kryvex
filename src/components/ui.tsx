@@ -56,7 +56,9 @@ type IconName =
   | 'heart'
   | 'note'
   | 'droplet'
-  | 'moon';
+  | 'moon'
+  | 'power'
+  | 'link';
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -261,6 +263,19 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="m15 2.6 2.6 2.4L15 7.4" />
       <path d="M20 14.6A4.4 4.4 0 0 1 15.6 19H6.4" />
       <path d="m9 21.4-2.6-2.4L9 16.6" />
+    </>
+  ),
+  power: (
+    <>
+      <path d="M12 3.6v8" />
+      <path d="M6.3 6.7a8 8 0 1 0 11.4 0" />
+    </>
+  ),
+  link: (
+    <>
+      <path d="M9.6 14.4 14.4 9.6" />
+      <path d="m10.9 7.1 1.2-1.2a4.1 4.1 0 0 1 5.8 5.8l-1.2 1.2" />
+      <path d="m13.1 16.9-1.2 1.2a4.1 4.1 0 0 1-5.8-5.8l1.2-1.2" />
     </>
   ),
   'repeat-one': (

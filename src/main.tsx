@@ -6,6 +6,7 @@ import './styles-board.css';
 import './styles-tools.css';
 import './styles-disk.css';
 import './styles-emulator.css';
+import './styles-link.css';
 import './styles-mobile.css';
 import './styles-web.css';
 

@@ -1,14 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  ENGINE_LABELS,
   cleanLanguage,
   cleanOcrLanguage,
   chunkText,
   encodeWav,
   formatClock,
   guessLanguage,
+  healthEndpoint,
   imageValidation,
   audioValidation,
+  isLocalSpeechEngine,
   languageName,
+  resolveLexiumEngine,
   parseLibreTranslation,
   parseMyMemory,
   parseTranscription,
@@ -140,6 +144,55 @@ describe('wav pipeline', () => {
     expect(peaks).toHaveLength(4);
     expect(Math.max(...peaks)).toBe(1);
     expect(waveformPeaks(new Float32Array(0), 4)).toEqual([]);
+  });
+});
+
+describe('the speech engine this PC already has', () => {
+  it('moves an untouched profile onto it exactly once', () => {
+    expect(
+      resolveLexiumEngine({
+        engine: 'local-whisper',
+        baseUrl: 'http://localhost:8000',
+        migrated: false,
+        localSpeech: true,
+      }),
+    ).toEqual({ engine: 'windows-speech', baseUrl: '', migrated: true });
+    // A later choice of a server is never undone, and a machine that really
+    // runs its own server keeps it.
+    expect(
+      resolveLexiumEngine({
+        engine: 'local-whisper',
+        baseUrl: 'http://localhost:8000',
+        migrated: true,
+        localSpeech: true,
+      }).engine,
+    ).toBe('local-whisper');
+    expect(
+      resolveLexiumEngine({
+        engine: 'local-whisper',
+        baseUrl: 'http://127.0.0.1:9000',
+        migrated: false,
+        localSpeech: true,
+      }).engine,
+    ).toBe('local-whisper');
+    // A build with no in-box engine (the web client) is left alone.
+    expect(
+      resolveLexiumEngine({
+        engine: 'local-whisper',
+        baseUrl: 'http://localhost:8000',
+        migrated: false,
+        localSpeech: false,
+      }).engine,
+    ).toBe('local-whisper');
+  });
+
+  it('knows which engine has no address to talk to', () => {
+    expect(isLocalSpeechEngine('windows-speech')).toBe(true);
+    expect(isLocalSpeechEngine('whisper-cpp')).toBe(false);
+    // Nothing to fetch: the main process runs it and reports the words.
+    expect(transcriptionEndpoint('windows-speech', '')).toBe('');
+    expect(healthEndpoint('windows-speech', '')).toBe('');
+    expect(ENGINE_LABELS['windows-speech'].length).toBeGreaterThan(0);
   });
 });
 

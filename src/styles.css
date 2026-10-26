@@ -1708,6 +1708,314 @@ kbd {
   }
 }
 
+/* ------------------------------------------------------------ workspace --- */
+
+/*
+ * The canvas is a surface, not a panel. The wallpaper is painted by `.app`, and
+ * `.app.has-wallpaper .app-main` is transparent, so the surface only adds the
+ * dotted grid and the dashed frame that say where windows live.
+ */
+.workspace-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.workspace-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px 0;
+}
+
+.workspace-bar .workspace-label {
+  margin: 0;
+}
+
+.workspace-count {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+
+.workspace-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 12px 16px 16px;
+  border: 1px dashed color-mix(in srgb, var(--line) 90%, transparent);
+  border-radius: 16px;
+  overflow: hidden;
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--ink) 8%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  transition:
+    border-color 120ms var(--ease),
+    background-color 120ms var(--ease);
+}
+
+.workspace-canvas.is-drop {
+  border-color: var(--accent);
+  background-color: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.workspace-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.workspace-empty h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.workspace-empty p {
+  margin: 0 0 6px;
+  max-width: 46ch;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.workspace-empty-mark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 2px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.workspace-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/*
+ * The window board.
+ *
+ * It is pinned to the measured canvas and lives at z-index 25, below every
+ * Kryvex layer (modals 50, palette 60, toasts 70, context menu 90). The board
+ * itself takes no pointer events: only a window does, so clicks between windows
+ * still reach the canvas underneath and its drop target.
+ */
+.service-stage.is-canvas {
+  position: fixed;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 1;
+  background: transparent;
+}
+
+.service-stage.is-canvas .service-frame.is-window {
+  display: flex;
+  position: absolute;
+  opacity: 1;
+  pointer-events: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg);
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.42);
+}
+
+.service-stage.is-canvas .service-frame.is-window.is-minimized {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The actions a window moved out of its title bar live in its options panel. */
+.service-quick-manage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.service-quick-manage .btn {
+  justify-content: flex-start;
+  white-space: nowrap;
+}
+
+/* A window drags from its title bar, the way a browser window does. */
+.service-frame.is-window .service-toolbar {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  cursor: grab;
+}
+
+.service-frame.is-window .service-toolbar:active {
+  cursor: grabbing;
+}
+
+.service-frame.is-window .service-toolbar .icon-btn,
+.service-frame.is-window .service-toolbar .btn,
+.service-frame.is-window .service-toolbar .service-quick-trigger {
+  cursor: pointer;
+}
+
+.service-frame.is-window .service-title-line h1 {
+  font-size: 14px;
+}
+
+.window-glyph {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+/*
+ * The corner of a window. The three controls are grouped behind a divider so
+ * they read as the window's own, not as three more service buttons: minimize,
+ * maximize, close, left to right, with close closest to the corner.
+ */
+.window-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  padding-left: 9px;
+  border-left: 1px solid var(--line-soft);
+  flex: none;
+}
+
+.window-controls .icon-btn {
+  width: 27px;
+  height: 27px;
+}
+
+/* A minimized window is not painted and takes no input, but its guest is
+   still mounted: a chat module keeps its connection while it is away. */
+.service-frame.is-floating.is-minimized {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/*
+ * Eight pointer handles. They are aria-hidden on purpose: the one focusable
+ * `service-float-resize` corner below serves keyboard users with the arrow keys.
+ */
+.service-window-edge {
+  position: absolute;
+  z-index: 3;
+  touch-action: none;
+}
+
+.service-window-edge.is-n,
+.service-window-edge.is-s {
+  right: 10px;
+  left: 10px;
+  height: 7px;
+  cursor: ns-resize;
+}
+
+.service-window-edge.is-e,
+.service-window-edge.is-w {
+  top: 10px;
+  bottom: 10px;
+  width: 7px;
+  cursor: ew-resize;
+}
+
+.service-window-edge.is-n {
+  top: -3px;
+}
+
+.service-window-edge.is-s {
+  bottom: -3px;
+}
+
+.service-window-edge.is-e {
+  right: -3px;
+}
+
+.service-window-edge.is-w {
+  left: -3px;
+}
+
+.service-window-edge.is-ne,
+.service-window-edge.is-nw,
+.service-window-edge.is-se,
+.service-window-edge.is-sw {
+  width: 14px;
+  height: 14px;
+  z-index: 4;
+}
+
+.service-window-edge.is-nw {
+  top: -4px;
+  left: -4px;
+  cursor: nwse-resize;
+}
+
+.service-window-edge.is-ne {
+  top: -4px;
+  right: -4px;
+  cursor: nesw-resize;
+}
+
+.service-window-edge.is-sw {
+  bottom: -4px;
+  left: -4px;
+  cursor: nesw-resize;
+}
+
+.service-window-edge.is-se {
+  right: -4px;
+  bottom: -4px;
+  cursor: nwse-resize;
+}
+
+.workspace-tray {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.workspace-tray-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 190px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 12px;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.workspace-tray-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .service-unread {
   color: var(--ink);
   border-color: color-mix(in srgb, var(--accent) 48%, transparent);

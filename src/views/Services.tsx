@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { PersistedState, SecretToolId, Service, ServiceCategory } from '../types';
 import { CATEGORIES, SERVICE_COLORS } from '../lib/services';
-import { SECRET_TOOL_LABELS } from '../lib/secret-tools';
+import { SECRET_TOOL_IDS, SECRET_TOOL_LABELS } from '../lib/secret-tools';
 import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
 import { EmptyState, Icon, ServiceIcon } from '../components/ui';
@@ -53,6 +53,7 @@ export function Services({
   onToggleToolPin,
   onUpdateEmulator,
   onUpdatePlayer,
+  onEnableSecretServices,
 }: {
   state: PersistedState;
   onOpen: (service: Service) => void;
@@ -66,11 +67,17 @@ export function Services({
   onToggleToolPin: (tool: SecretToolId) => void;
   onUpdateEmulator: (patch: Partial<PersistedState['settings']['emulator']>) => void;
   onUpdatePlayer: (patch: Partial<PersistedState['settings']['player']>) => void;
+  /** The one-time answer that keeps the built-in tools visible. */
+  onEnableSecretServices: () => void;
 }) {
   const t = useT();
   const pinnedTools = state.settings.pinnedTools;
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | ServiceCategory>('all');
+  // Closed on every visit, the way a settings group is: the tools are one
+  // deliberate step away, never in the way of the installed services.
+  const [secretOpen, setSecretOpen] = useState(false);
+  const secretEnabled = state.settings.secretServices;
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -269,12 +276,42 @@ export function Services({
         </div>
       )}
 
-      <section className="secret-service" aria-labelledby="secret-services-title">
+      <section className={`secret-service ${secretOpen ? 'is-open' : ''}`} aria-labelledby="secret-services-title">
         <div className="section-head">
-          <h2 id="secret-services-title">{t('Secret services')}</h2>
-          <span className="mono muted-label">{t('BUILT IN · LOCAL FILES')}</span>
+          <button
+            className="secret-toggle"
+            onClick={() => setSecretOpen(value => !value)}
+            aria-expanded={secretOpen}
+            aria-controls="secret-services-body"
+          >
+            <h2 id="secret-services-title">{t('Secret services')}</h2>
+            <span className="mono muted-label">
+              {t('{count} BUILT IN', { count: SECRET_TOOL_IDS.length })}
+            </span>
+            <Icon name="chevron" size={15} className={secretOpen ? 'flip-y' : ''} />
+          </button>
         </div>
-        <div className="secret-grid">
+
+        {secretOpen && !secretEnabled ? (
+          <div className="secret-consent" role="group" aria-label={t('Secret services')}>
+            <p>
+              {t(
+                'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kyvex Link. They need no account and no server, and their files stay local.',
+              )}
+            </p>
+            <div className="secret-consent-actions">
+              <button className="btn primary small" onClick={onEnableSecretServices}>
+                <Icon name="check" size={14} />
+                {t('Enable secret services')}
+              </button>
+              <button className="btn ghost small" onClick={() => setSecretOpen(false)}>
+                {t('Not now')}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="secret-grid" id="secret-services-body" hidden={!secretOpen || !secretEnabled}>
           <div className="secret-slot">
             <button className="secret-card is-tool" onClick={() => onSecretTool('lexium')}>
               <ElementMark tool="lexium" size={58} />
@@ -394,6 +431,37 @@ export function Services({
               <ToolPinButton
                 tool="disk"
                 pinned={pinnedTools.includes('disk')}
+                onToggle={onToggleToolPin}
+              />
+            </div>
+          </div>
+
+          <div className="secret-slot">
+            <button className="secret-card is-tool" onClick={() => onSecretTool('link')}>
+              <ElementMark tool="link" size={58} />
+              <span className="secret-card-copy">
+                <span className="mono secret-card-kicker">{t('x534 / LINK')}</span>
+                <strong>{SECRET_TOOL_LABELS.link}</strong>
+                <span>
+                  {t(
+                    'Pair a phone over your own network for clipboard, files and a remote; nothing leaves the two devices.',
+                  )}
+                </span>
+              </span>
+              <Icon name="forward" size={16} />
+            </button>
+            <div className="secret-buttons">
+              <ToolQuickMenu
+                tool="link"
+                emulator={state.settings.emulator}
+                player={state.settings.player}
+                onUpdateEmulator={onUpdateEmulator}
+                onUpdatePlayer={onUpdatePlayer}
+                onOpen={onSecretTool}
+              />
+              <ToolPinButton
+                tool="link"
+                pinned={pinnedTools.includes('link')}
                 onToggle={onToggleToolPin}
               />
             </div>

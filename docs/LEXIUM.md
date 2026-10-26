@@ -15,10 +15,52 @@ numbers the shell itself as x529.
 
 ## Speech engines
 
-Open **Engines and languages** at the bottom of the page. Three request shapes
-are supported, and nothing is contacted until you press a button.
+Open **Engines and languages** at the bottom of the page. Four engines are
+supported, and nothing is contacted until you press a button.
 
-### local-whisper (default)
+### This PC (default in the desktop app)
+
+Windows already ships a speech recogniser, reachable through .NET's
+`System.Speech`. The desktop build runs it in the main process, so the first
+transcription works with **no download, no server and no account**: a fresh
+profile starts here instead of pointing at port 8000.
+
+- The renderer produces the same 16 kHz mono PCM WAV it would upload, and the
+  main process writes it to a temporary file for the recogniser to read.
+- It is a *dictation* engine: best on clear speech by one speaker. For accents,
+  music or several speakers a Whisper server is far more accurate, and the panel
+  says so rather than pretending otherwise.
+- It covers the languages installed in Windows. The check reports which ones
+  (`This PC is listening (en-US)`); with none installed it says so and points at
+  the server options.
+- It exists in the desktop app only. The web client has no such engine and keeps
+  the server default.
+
+**Vexium Core cannot fill this gap** — it is a text model, so it can read and
+write, but it cannot hear audio. Speech to text needs a speech model, which is
+what this engine or one of the three servers below is.
+
+### Setting up a server instead
+
+The first run is not a dead end either way. The Transcribe tab carries a **Set
+up a server** panel that:
+
+1. says what the engine is for and why Vexium Core is not it,
+2. lists one copyable command per engine, and
+3. has a **Scan this machine** button that probes `127.0.0.1:8080`
+   (whisper.cpp), `127.0.0.1:8000` (local-whisper) and `127.0.0.1:8001`
+   (OpenAI-compatible). If one answers, **Use this server** writes it into the
+   settings and the next check reports READY.
+
+The panel also appears inside **Engines and languages**. Opening Lexium checks
+the configured engine once, so a server that is already running shows READY
+without looking for the button.
+
+The shortest path on Windows is whisper.cpp: download a release build, download
+`ggml-base.bin`, then run the command from the panel. Nothing is installed and
+nothing runs as a service; closing the terminal stops the engine.
+
+### local-whisper
 
 The [local-whisper](https://github.com/neromorph/local-whisper) app exposes
 `POST /transcribe` on port 8000 and accepts `.mp3` and `.wav` directly.
@@ -119,9 +161,14 @@ usually enough; a fully offline machine cannot run the reader.
 | Transcript history | None: the transcript lives in the page until you leave it |
 
 - **No answer / offline**: the engine is not running, the address is wrong, or
-  a browser blocked the request. A page served over **HTTPS cannot call a plain
+  a browser blocked the request. The failure now expands **Set up a server**
+  in the Transcribe tab, so the command to start one is one click away. A page served over **HTTPS cannot call a plain
   `http://` engine on your LAN**; only `http://localhost` is exempt. Run the
   client locally, put the engine behind HTTPS, or use a tunnel.
+- **The PC engine**: three separate answers, because they need three different
+  fixes — this build cannot run one (the web client), this machine has no
+  recogniser installed (add a language with speech in Windows settings), or the
+  recogniser could not be started (start a server instead).
 - **HTTP 4xx/5xx**: the server answered but rejected the request. Check the
   engine path (`/transcribe`, `/inference`, `/v1/audio/transcriptions`) and the
   model name.
@@ -130,9 +177,17 @@ usually enough; a fully offline machine cannot run the reader.
 - **Decode error**: the file is DRM-protected or uses a codec this Chromium
   build cannot decode. Export it as WAV or MP3 and retry.
 
+## Verification
+
+`pnpm verify:lexium-speech` (Windows) synthesises a WAV with the same Windows
+speech stack, converts it to the 16 kHz mono payload the renderer sends, and
+runs the real main-process module and proxy: probe, transcription, the proxy
+path and the refusal of an empty upload. It needs no network and no model.
+
 ## Privacy
 
-Audio is sent only to the address in the engine panel, over the URL you typed.
+With the PC engine nothing leaves the machine at all: the audio is recognised on
+this device. With a server engine, audio is sent only to the address in the engine panel, over the URL you typed.
 The original file, the transcript, the translation and the image are never
 uploaded to Kryvex. Translation text goes to the configured server, or to
 MyMemory only when that server is unreachable. Nothing is written to the state

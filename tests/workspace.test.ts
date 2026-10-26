@@ -1,0 +1,187 @@
+import { describe, expect, it } from 'vitest';
+import {
+  MAX_WINDOW_Z,
+  MIN_FLOAT_HEIGHT,
+  MIN_FLOAT_WIDTH,
+  MIN_WINDOW_Z,
+  clampCanvasRect,
+  resizeEdges,
+} from '../src/lib/floating';
+import {
+  type WindowMap,
+  type WindowSpace,
+  clampWindows,
+  closeWindow,
+  floatWindow,
+  minimizedWindows,
+  moveWindow,
+  openWindow,
+  raiseWindow,
+  resizeWindow,
+  toggleMaximize,
+  toggleMinimize,
+  windowsOfKind,
+} from '../src/lib/workspace';
+
+const viewport = { width: 1440, height: 900 };
+const canvas = { width: 1000, height: 700 };
+const space: WindowSpace = { viewport, canvas };
+
+function opened(ids: string[]): WindowMap {
+  return ids.reduce((map, id) => openWindow(map, id, 'canvas', space), {} as WindowMap);
+}
+
+describe('workspace canvas geometry', () => {
+  it('contains a window inside the canvas instead of letting it hang over', () => {
+    const rect = clampCanvasRect({ x: -500, y: -400, width: 4000, height: 3000 }, canvas);
+    expect(rect).toEqual({ x: 0, y: 0, width: canvas.width, height: canvas.height });
+  });
+
+  it('keeps a minimum size when the canvas is generous', () => {
+    const rect = clampCanvasRect({ x: 10, y: 10, width: 20, height: 20 }, canvas);
+    expect(rect.width).toBe(MIN_FLOAT_WIDTH);
+    expect(rect.height).toBe(MIN_FLOAT_HEIGHT);
+  });
+
+  it('moves the dragged edge and leaves the opposite one where it was', () => {
+    const base = { x: 200, y: 100, width: 600, height: 400 };
+    const west = resizeEdges(base, 'w', 100, 0, canvas);
+    expect(west.x).toBe(300);
+    expect(west.x + west.width).toBe(base.x + base.width);
+    const north = resizeEdges(base, 'n', 0, 50, canvas);
+    expect(north.y).toBe(150);
+    expect(north.y + north.height).toBe(base.y + base.height);
+  });
+
+  it('clamps an edge drag against the canvas and the minimum size', () => {
+    const base = { x: 100, y: 100, width: 600, height: 400 };
+    const beyond = resizeEdges(base, 'se', 5000, 5000, canvas);
+    expect(beyond.width).toBe(canvas.width - base.x);
+    expect(beyond.height).toBe(canvas.height - base.y);
+    const collapsed = resizeEdges(base, 'se', -5000, -5000, canvas);
+    expect(collapsed.width).toBe(MIN_FLOAT_WIDTH);
+    expect(collapsed.height).toBe(MIN_FLOAT_HEIGHT);
+    const northWest = resizeEdges(base, 'nw', -5000, -5000, canvas);
+    expect(northWest.x).toBe(0);
+    expect(northWest.y).toBe(0);
+  });
+});
+
+describe('workspace windows', () => {
+  it('opens a canvas window inside the surface', () => {
+    const map = opened(['a']);
+    const entry = map.a;
+    expect(entry?.kind).toBe('canvas');
+    expect(entry?.rect.x).toBeGreaterThanOrEqual(0);
+    expect(entry?.rect.y).toBeGreaterThanOrEqual(0);
+    expect((entry?.rect.x ?? 0) + (entry?.rect.width ?? 0)).toBeLessThanOrEqual(canvas.width);
+    expect((entry?.rect.y ?? 0) + (entry?.rect.height ?? 0)).toBeLessThanOrEqual(canvas.height);
+  });
+
+  it('places a dropped window at the drop point', () => {
+    const map = openWindow({}, 'a', 'canvas', space, { x: 40, y: 60 });
+    expect(map.a?.rect.x).toBe(40);
+    expect(map.a?.rect.y).toBe(60);
+  });
+
+  it('never lets a window climb into the modal layer', () => {
+    let map = opened(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']);
+    for (let round = 0; round < 20; round += 1) {
+      for (const id of ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']) {
+        map = raiseWindow(map, id);
+        for (const entry of Object.values(map)) {
+          expect(entry.z).toBeGreaterThanOrEqual(MIN_WINDOW_Z);
+          expect(entry.z).toBeLessThanOrEqual(MAX_WINDOW_Z);
+        }
+      }
+    }
+    // Raising is still a real raise: the last window asked for is on top.
+    const top = Math.max(...Object.values(map).map(entry => entry.z));
+    expect(map.a?.z).toBe(top);
+  });
+
+  it('puts a clicked window above the others', () => {
+    const map = opened(['a', 'b', 'c']);
+    const raised = raiseWindow(map, 'a');
+    expect(raised.a?.z).toBeGreaterThan(raised.b?.z ?? 0);
+    expect(raised.a?.z).toBeGreaterThan(raised.c?.z ?? 0);
+  });
+
+  it('drags and resizes inside the canvas', () => {
+    const map = opened(['a']);
+    const dragged = moveWindow(map, 'a', 5000, 5000, space);
+    expect(dragged.a?.rect.x).toBe(canvas.width - (dragged.a?.rect.width ?? 0));
+    expect(dragged.a?.rect.y).toBe(canvas.height - (dragged.a?.rect.height ?? 0));
+    const resized = resizeWindow(dragged, 'a', 'se', 5000, 5000, space);
+    expect((resized.a?.rect.x ?? 0) + (resized.a?.rect.width ?? 0)).toBe(canvas.width);
+  });
+
+  it('maximizes to the canvas and restores the previous box', () => {
+    const map = opened(['a']);
+    const before = map.a?.rect;
+    const maximized = toggleMaximize(map, 'a', space);
+    expect(maximized.a?.rect).toEqual({ x: 0, y: 0, width: canvas.width, height: canvas.height });
+    const restored = toggleMaximize(maximized, 'a', space);
+    expect(restored.a?.rect).toEqual(before);
+    expect(restored.a?.restore).toBeUndefined();
+  });
+
+  it('refuses to drag or resize a maximized window', () => {
+    const maximized = toggleMaximize(opened(['a']), 'a', space);
+    expect(moveWindow(maximized, 'a', 40, 40, space)).toBe(maximized);
+    expect(resizeWindow(maximized, 'a', 'se', 40, 40, space)).toBe(maximized);
+  });
+
+  it('minimizes without losing the box, and lists it for the tray', () => {
+    const map = opened(['a', 'b']);
+    const minimized = toggleMinimize(map, 'b');
+    expect(minimized.b?.minimized).toBe(true);
+    expect(minimized.b?.rect).toEqual(map.b?.rect);
+    expect(minimizedWindows(minimized, 'canvas')).toEqual(['b']);
+    expect(toggleMinimize(minimized, 'b').b?.minimized).toBe(false);
+  });
+
+  it('closes a window and renumbers the rest', () => {
+    const map = opened(['a', 'b', 'c']);
+    const closed = closeWindow(map, 'b');
+    expect(closed.b).toBeUndefined();
+    expect(windowsOfKind(closed, 'canvas').sort()).toEqual(['a', 'c']);
+    expect(closed.a?.z).toBe(MIN_WINDOW_Z);
+  });
+
+  it('re-fits every window when the canvas shrinks, and is stable when it does not', () => {
+    const map = opened(['a', 'b']);
+    expect(clampWindows(map, space)).toBe(map);
+    const smaller: WindowSpace = { viewport, canvas: { width: 500, height: 420 } };
+    const fitted = clampWindows(map, smaller);
+    for (const entry of Object.values(fitted)) {
+      expect(entry.rect.width).toBeLessThanOrEqual(500);
+      expect(entry.rect.height).toBeLessThanOrEqual(420);
+    }
+  });
+
+  it('keeps a detached float reachable by its title bar rather than contained', () => {
+    const map = openWindow({}, 'a', 'detached', space);
+    const dragged = moveWindow(map, 'a', -5000, 0, space);
+    expect(dragged.a?.rect.x).toBeLessThan(0);
+  });
+
+  it('re-frames a module that is already a canvas window when it floats', () => {
+    const map = opened(['a', 'b']);
+    const floated = floatWindow(map, 'a', space);
+    expect(floated.a?.kind).toBe('detached');
+    expect(windowsOfKind(floated, 'detached')).toEqual(['a']);
+    expect(windowsOfKind(floated, 'canvas')).toEqual(['b']);
+    // It belongs to the app now, so it is no longer contained by the canvas.
+    const dragged = moveWindow(floated, 'a', -5000, -5000, space);
+    expect(dragged.a?.rect.x).toBeLessThan(0);
+    expect(windowsOfKind(dragged, 'detached')).toEqual(['a']);
+  });
+
+  it('raises a float that is already floating instead of stacking a second one', () => {
+    const first = floatWindow({}, 'a', space);
+    const second = floatWindow(floatWindow(first, 'b', space), 'a', space);
+    expect(windowsOfKind(second, 'detached').sort()).toEqual(['a', 'b']);
+    expect(second.a?.z).toBeGreaterThan(second.b?.z ?? 0);
+  });
+});

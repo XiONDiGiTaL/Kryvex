@@ -338,10 +338,68 @@ export function encodeWav(samples: Float32Array, sampleRate = 16000): ArrayBuffe
 /* --------------------------------------------------------------- servers --- */
 
 export const ENGINE_LABELS: Record<LexiumEngine, string> = {
+  'windows-speech': 'This PC',
   'local-whisper': 'local-whisper',
   'whisper-cpp': 'whisper.cpp server',
   openai: 'OpenAI-compatible',
 };
+
+/**
+ * True for the engine that runs on this machine's own speech stack instead of
+ * over HTTP: it has no address to check, so the desktop app asks the main
+ * process whether the recogniser is there instead.
+ */
+export function isLocalSpeechEngine(engine: LexiumEngine): boolean {
+  return engine === 'windows-speech';
+}
+
+/** The address the app shipped with before the PC engine existed. */
+export const STOCK_SPEECH_URL = 'http://localhost:8000';
+
+/**
+ * The one-time move off the untouched transcription default.
+ *
+ * A new profile used to point at a local-whisper server on port 8000, which no
+ * first-run machine has: transcribing anything ended on "nothing answered".
+ * Windows ships a speech engine, so the desktop build starts there and works
+ * with no download and no setup. Everything is conditional on the profile being
+ * untouched (`migrated` is written on the first load) and on the address being
+ * the stock one, so a machine that really does run its own server on 8000 keeps
+ * it, and choosing that server later is never undone.
+ */
+export function resolveLexiumEngine(input: {
+  engine: LexiumEngine;
+  baseUrl: string;
+  migrated: boolean;
+  /** True only in the desktop app on a platform with an in-box speech engine. */
+  localSpeech: boolean;
+}): { engine: LexiumEngine; baseUrl: string; migrated: boolean } {
+  const untouched =
+    !input.migrated &&
+    input.localSpeech &&
+    input.engine === 'local-whisper' &&
+    normalizeBaseUrl(input.baseUrl) === STOCK_SPEECH_URL;
+  if (!untouched) return { engine: input.engine, baseUrl: input.baseUrl, migrated: true };
+  return { engine: 'windows-speech', baseUrl: '', migrated: true };
+}
+
+export interface LocalCandidate {
+  engine: LexiumEngine;
+  baseUrl: string;
+  label: string;
+}
+
+/**
+ * The default ports of the three supported engines, in the order a first run
+ * should try them. Lexium can scan these so an engine that is already running
+ * is discovered instead of typed in: the ports are the defaults each project
+ * ships with, not a guess about the user's setup.
+ */
+export const LOCAL_SERVERS: LocalCandidate[] = [
+  { engine: 'whisper-cpp', baseUrl: 'http://127.0.0.1:8080', label: ENGINE_LABELS['whisper-cpp'] },
+  { engine: 'local-whisper', baseUrl: 'http://127.0.0.1:8000', label: ENGINE_LABELS['local-whisper'] },
+  { engine: 'openai', baseUrl: 'http://127.0.0.1:8001', label: ENGINE_LABELS.openai },
+];
 
 export const WHISPER_MODELS = ['tiny', 'base', 'small', 'medium', 'turbo'] as const;
 

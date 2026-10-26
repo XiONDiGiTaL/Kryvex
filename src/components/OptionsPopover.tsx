@@ -17,6 +17,13 @@ import { Icon } from './ui';
  */
 const PANEL_OPEN_EVENT = 'kryvex:options-open';
 
+/**
+ * Dispatched by an action inside the panel that opens a dialog or leaves the
+ * view. The panel closes itself first, so a delete confirmation is never left
+ * sitting behind the popover that asked for it.
+ */
+export const OPTIONS_CLOSE_EVENT = 'kryvex:options-close';
+
 export function OptionsPopover({
   name,
   triggerTitle,
@@ -44,10 +51,13 @@ export function OptionsPopover({
       setOpen(false);
       wrapper.current?.querySelector<HTMLElement>('.icon-btn')?.focus();
     };
+    const closeSelf = () => setOpen(false);
     document.addEventListener(PANEL_OPEN_EVENT, closeOthers);
+    document.addEventListener(OPTIONS_CLOSE_EVENT, closeSelf);
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener(PANEL_OPEN_EVENT, closeOthers);
+      document.removeEventListener(OPTIONS_CLOSE_EVENT, closeSelf);
       document.removeEventListener('keydown', onKey);
     };
   }, [open, panelId]);

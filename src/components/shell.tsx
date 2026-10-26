@@ -9,7 +9,7 @@ import type {
   ViewId,
 } from '../types';
 import { SECRET_TOOL_LABELS } from '../lib/secret-tools';
-import { isServiceDrag, readServiceDrag } from '../lib/service-drag';
+import { SERVICE_DRAG_TYPE, isServiceDrag, readServiceDrag } from '../lib/service-drag';
 import { dropAnchor } from '../lib/store';
 import { getTheme } from '../lib/themes';
 import { useT } from '../lib/i18n';
@@ -21,11 +21,14 @@ import { ServiceMediaDock } from './ServiceMediaDock';
 const NAV: Array<{
   id: ViewId;
   label: string;
-  icon: 'home' | 'layers' | 'globe' | 'spark' | 'users' | 'sliders';
+  icon: 'home' | 'layers' | 'globe' | 'monitor' | 'spark' | 'users' | 'sliders';
 }> = [
   { id: 'home', label: 'Home', icon: 'home' },
   { id: 'services', label: 'Services', icon: 'layers' },
   { id: 'browser', label: 'Browser', icon: 'globe' },
+  // Windows live between the browser and Vexium: a surface for services, not
+  // another place to read about them.
+  { id: 'workspace', label: 'Workspace', icon: 'monitor' },
   { id: 'assistant', label: 'Vexium', icon: 'spark' },
   { id: 'rooms', label: 'Rooms', icon: 'users' },
   { id: 'settings', label: 'Settings', icon: 'sliders' },
@@ -35,11 +38,12 @@ const NAV: Array<{
  * A pinned tool needs a glyph, and the element tiles are too dense to read at
  * rail size. Each tool borrows the nearest icon from the shell's own set.
  */
-const TOOL_ICONS: Record<SecretToolId, 'language' | 'music' | 'play' | 'monitor'> = {
+const TOOL_ICONS: Record<SecretToolId, 'language' | 'music' | 'play' | 'monitor' | 'link'> = {
   lexium: 'language',
   player: 'music',
   emulator: 'play',
   disk: 'monitor',
+  link: 'link',
 };
 
 export function Header({
@@ -279,6 +283,9 @@ export function Sidebar({
                   // Firefox and Chromium both need some payload for a drag to
                   // start; the id is only read back by this same list.
                   event.dataTransfer.setData('text/plain', service.id);
+                  // The same payload the Services page uses, so a pinned row can
+                  // be dragged onto the Workspace canvas and open there.
+                  event.dataTransfer.setData(SERVICE_DRAG_TYPE, service.id);
                 }}
                 onDragOver={event => {
                   if (!dragId.current || dragId.current === service.id) return;

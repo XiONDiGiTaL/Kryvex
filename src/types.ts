@@ -22,13 +22,15 @@ export type ViewId =
   | 'home'
   | 'services'
   | 'browser'
+  | 'workspace'
   | 'assistant'
   | 'rooms'
   | 'settings'
   | 'emulator'
   | 'lexium'
   | 'player'
-  | 'disk';
+  | 'disk'
+  | 'link';
 
 export type ServiceCategory =
   | 'communication'
@@ -55,11 +57,11 @@ export type LifecycleMode = 'keep' | 'mute' | 'pause' | 'auto-pause' | 'stop';
 export type LifecycleServiceId = 'emulator' | 'disk' | 'rooms' | 'modules';
 
 /**
- * Kryvex's own tools: the four built-in services that are not web modules.
- * They cannot be installed, renamed or removed, but they can be pinned to the
- * same rail as installed services.
+ * Kryvex's own tools: the built-in services that are not web modules. They
+ * cannot be installed, renamed or removed, but they can be pinned to the same
+ * rail as installed services.
  */
-export type SecretToolId = 'lexium' | 'player' | 'emulator' | 'disk';
+export type SecretToolId = 'lexium' | 'player' | 'emulator' | 'disk' | 'link';
 
 export interface LifecycleSettings {
   /** Applied to every service that does not override it. */
@@ -601,7 +603,14 @@ export interface EmulatorSettings {
   crt: boolean;
 }
 
-export type LexiumEngine = 'local-whisper' | 'whisper-cpp' | 'openai';
+/**
+ * Where speech-to-text comes from.
+ *
+ * `windows-speech` is the engine Windows already ships: it is run from the main
+ * process, needs no download and no server, and is the default on the desktop
+ * build. The other three are HTTP servers the user starts, for better accuracy.
+ */
+export type LexiumEngine = 'windows-speech' | 'local-whisper' | 'whisper-cpp' | 'openai';
 
 /** Lexium: the in-house translator, transcriber and OCR reader. */
 export interface LexiumSettings {
@@ -611,6 +620,12 @@ export interface LexiumSettings {
   baseUrl: string;
   /** Model name for local-whisper/OpenAI-compatible servers; whisper.cpp picks its model at launch. */
   model: string;
+  /**
+   * Set once the engine has been decided, so a profile still on the untouched
+   * default moves to the PC speech engine exactly once and a later choice of a
+   * Whisper server is never migrated again.
+   */
+  migrated?: boolean;
   /** Spoken language, or 'auto' to let the engine detect it. */
   language: string;
   /** Translation target used by every tab. */
@@ -679,6 +694,12 @@ export interface Settings {
   serviceNotifications: boolean;
   /** Ask GitHub for a newer release shortly after launch. */
   autoCheckUpdates: boolean;
+  /**
+   * The built-in tools are opt-in on first use: a profile that has never
+   * opened one is asked once, and the answer is kept. A profile that already
+   * pins a tool counts as having answered yes.
+   */
+  secretServices: boolean;
   /** Background image laid behind the workspace. */
   wallpaper: WallpaperSettings;
   /** Local model runtime used by Vexium. */
@@ -701,6 +722,8 @@ export interface Settings {
   player: PlayerSettings;
   /** Secret storage tool: the disclaimer is accepted once, not per visit. */
   disk: DiskSettings;
+  /** Kyvex Link: the phone companion served on this machine's network. */
+  link: LinkSettings;
   /**
    * Built-in tools pinned beside services in the sidebar rail, in the order
    * they were pinned. Unknown or duplicate entries are dropped on load.
@@ -715,6 +738,14 @@ export interface Settings {
 export interface DiskSettings {
   /** 0 until the user accepts the cleanup disclaimer. */
   disclaimerAcceptedAt: number;
+}
+
+/**
+ * Kyvex Link is off until it is started on its own page: it opens a socket the
+ * rest of the local network can reach, so it is never a default.
+ */
+export interface LinkSettings {
+  enabled: boolean;
 }
 
 /** What the shell sends to the main-process Whisper proxy. */
@@ -738,8 +769,14 @@ export interface LexiumProxyResult {
 
 export interface LexiumProbeResult {
   ok: boolean;
-  error?: 'offline' | 'invalid';
+  error?: 'offline' | 'invalid' | 'unsupported';
   status?: number;
+  /**
+   * Why an engine is not ready, or which recognisers the PC speech engine has.
+   * One field, two engines: an address reports its message, the in-box engine
+   * reports its reason code.
+   */
+  detail?: string;
 }
 
 export interface BrowserTab {
@@ -892,6 +929,43 @@ export interface UpdateStatus {
   error?: UpdateErrorCode;
 }
 
+/**
+ * Kyvex Link's state as the shell sees it. The types live here rather than
+ * being imported from the Electron tree, because the renderer is built without
+ * it; the main process keeps the token out of this shape on purpose.
+ */
+export interface LinkStatusView {
+  enabled: boolean;
+  running: boolean;
+  port: number;
+  code: string;
+  codeExpiresAt: number;
+  urls: string[];
+  folder: string;
+  devices: Array<{
+    /** Public handle for unpairing; not the device's token. */
+    id: string;
+    label: string;
+    address: string;
+    pairedAt: number;
+    lastSeenAt: number;
+  }>;
+  received: Array<{ id: string; name: string; size: number; at: number }>;
+  offered: Array<{ id: string; name: string; size: number; at: number }>;
+  error?: string;
+}
+
+/** A toast the main process asks the shell to show on the link's behalf. */
+export interface LinkNotice {
+  message: string;
+  tone: ToastTone;
+}
+
+/** What a paired phone can ask the shell to do. */
+export type LinkCommandEvent =
+  | { command: 'open-url'; url: string }
+  | { command: 'rooms' | 'home' };
+
 export interface KryvexBridge {
   platform: string;
   loadState: () => Promise<unknown>;
@@ -958,6 +1032,21 @@ export interface KryvexBridge {
   serviceClearSession: (partition: string) => Promise<boolean>;
   serviceStop: (partition: string) => Promise<number>;
   serviceSetNotifications: (enabled: boolean) => Promise<boolean>;
+  // Kyvex Link. The status the view reads carries device handles, never tokens:
+  // the shell can ask the main process to unpair, not to impersonate a phone.
+  linkStatus: () => Promise<LinkStatusView | null>;
+  linkConfigure: (patch: { enabled?: boolean }) => Promise<LinkStatusView | null>;
+  linkNewCode: () => Promise<LinkStatusView | null>;
+  linkRevoke: (id: string) => Promise<boolean>;
+  linkRevokeAll: () => Promise<boolean>;
+  linkOffer: () => Promise<LinkStatusView | null>;
+  linkRemove: (id: string, deleteFile: boolean) => Promise<LinkStatusView | null>;
+  linkClear: (deleteFiles: boolean) => Promise<LinkStatusView | null>;
+  linkReveal: (id: string) => Promise<boolean>;
+  linkOpen: (id: string) => Promise<boolean>;
+  linkNotify: (title: string, body: string) => Promise<boolean>;
+  onLinkNotice: (listener: (notice: LinkNotice) => void) => () => void;
+  onLinkCommand: (listener: (event: LinkCommandEvent) => void) => () => void;
   serviceSetPolicy: (
     partition: string,
     policy: { notifications: boolean; muted: boolean },

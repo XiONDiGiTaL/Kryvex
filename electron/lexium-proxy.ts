@@ -1,12 +1,14 @@
 import {
   MAX_AUDIO_BYTES,
   isLexiumEngine,
+  isLocalSpeechEngine,
   lexiumEndpoint,
   lexiumFields,
   lexiumFilename,
   lexiumHealthEndpoint,
   type LexiumEngine,
 } from './lexium-rules';
+import { speechProbe, speechTranscribe } from './lexium-speech';
 import type { LexiumProxyResult } from './types';
 
 /**
@@ -45,10 +47,25 @@ export async function transcribe(
   if (!isLexiumEngine(engine)) {
     return { ok: false, error: 'invalid' };
   }
-  const endpoint = lexiumEndpoint(engine, String(payload.baseUrl ?? ''));
-  if (!endpoint) return { ok: false, error: 'invalid' };
   const bytes = decodeAudio(payload.audio);
   if (!bytes || bytes.length === 0) return { ok: false, error: 'invalid' };
+
+  // The engine this machine already has needs no address and no upload: the
+  // recogniser is run here, on the file the renderer produced.
+  if (isLocalSpeechEngine(engine)) {
+    const answer = await speechTranscribe(bytes, String(payload.language ?? ''));
+    if (!answer.ok) {
+      return {
+        ok: false,
+        error: answer.reason === 'unsupported' ? 'unsupported' : 'offline',
+        detail: answer.reason ?? 'unknown',
+      };
+    }
+    return { ok: true, status: 200, payload: { text: answer.text } };
+  }
+
+  const endpoint = lexiumEndpoint(engine, String(payload.baseUrl ?? ''));
+  if (!endpoint) return { ok: false, error: 'invalid' };
 
   const form = new FormData();
   form.append(
@@ -103,6 +120,14 @@ export async function probe(request: unknown): Promise<LexiumProxyResult> {
   const payload = (request ?? {}) as Record<string, unknown>;
   const engine = payload.engine;
   if (!isLexiumEngine(engine)) return { ok: false, error: 'invalid' };
+  if (isLocalSpeechEngine(engine)) {
+    const answer = await speechProbe();
+    // The reason is what the interface turns into words: "no recogniser" and
+    // "this build cannot run one" are different problems with different fixes.
+    return answer.ok
+      ? { ok: true, status: 200, detail: (answer.cultures ?? []).join(', ') }
+      : { ok: false, error: 'offline', detail: answer.reason ?? 'unknown' };
+  }
   const endpoint = lexiumHealthEndpoint(engine, String(payload.baseUrl ?? ''));
   if (!endpoint) return { ok: false, error: 'invalid' };
   try {

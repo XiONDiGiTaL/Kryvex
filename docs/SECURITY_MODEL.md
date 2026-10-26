@@ -220,6 +220,45 @@ user chose. BMI and the calorie target are estimates computed from the values
 entered, shown beside a not-medical-advice note rather than presented as
 measurements or guidance.
 
+## Kyvex Link: the one listener Kryvex opens
+
+Everything else in this document is about Kryvex as a client. Kyvex Link is the
+single feature that accepts a connection, so its rules are stated here rather
+than only in its own guide ([LINK.md](LINK.md)).
+
+- **Off unless switched on.** The link is a setting, default off; no profile
+  opens a socket until the user starts it, and starting it is a click on its own
+  page, not a first-run default.
+- **A private-network listener.** It binds `0.0.0.0` on a port in 43110–43129 so
+  a phone on the same Wi-Fi can reach it, and it refuses any request whose source
+  address is not loopback, RFC 1918, CGNAT, link-local or an IPv6 equivalent
+  (`isPrivateAddress`). A port-forwarded or tunneled request is answered 403
+  before its body is read. This is a shared-network threat model, not a public
+  one: the listener is not designed to face the internet.
+- **Capability tokens, never account credentials.** A 48-hex-character token is
+  minted only when a client presents the live six-digit pairing code, compared
+  with `crypto.timingSafeEqual`; codes expire after five minutes, a code pairs one
+  device, and guessing is limited to five attempts per source address per minute.
+  Tokens are stored in `<userData>/link-index.json`, are never sent to another
+  device, and are never exposed to the renderer: the shell sees a 16-character
+  digest as a device handle, so a compromised renderer cannot replay one.
+- **Input from the phone is data, not instructions.** A file name is reduced to
+  one safe path segment, an uploaded body is capped at 256 MB, clipboard text at
+  100,000 characters, a link must be `http`/`https` with no embedded credentials,
+  and a remote command must be in a fixed allowlist. There is no route that
+  accepts a path to read, a URL to fetch server-side, or a shell command.
+- **Only the built companion page is served.** Static requests resolve inside the
+  build output and must carry an allowed extension; a traversal attempt gets no
+  file. Every `/api/*` route except `hello` and `pair` requires a valid token.
+- **Unpairing is a dead door.** Revoking a device closes its event stream and its
+  token fails on the next request. Unpairing touches nothing else: no Kryvex
+  session, no pinned service, no file.
+
+Not implemented, deliberately: any relay or tunnel that would work across
+networks, phone → desktop notification mirroring (a web page cannot read
+Android's notification stream), and notification permission on a plain-http
+origin (browsers require a secure context, so notices show in-page there).
+
 ## Not yet implemented
 
 - Per-module permission scopes and persisted site grants (media grants are

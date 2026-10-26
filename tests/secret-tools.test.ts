@@ -8,7 +8,7 @@ import {
 
 describe('built-in tool pins', () => {
   it('names every tool the Services page offers', () => {
-    expect(SECRET_TOOL_IDS).toEqual(['lexium', 'player', 'emulator', 'disk']);
+    expect(SECRET_TOOL_IDS).toEqual(['lexium', 'player', 'emulator', 'disk', 'link']);
     for (const id of SECRET_TOOL_IDS) expect(SECRET_TOOL_LABELS[id]).toBeTruthy();
   });
 

@@ -26,6 +26,7 @@ import { downloads } from './downloads';
 import { extensions } from './extensions';
 import { configurePrivacySwitches, hardenSession } from './hardening';
 import { ensureBrowserIdentity, followUserAgent } from './identity';
+import { link } from './link';
 import { localModel } from './local-model';
 import { media } from './media';
 import { modelManager } from './model-download';
@@ -778,6 +779,42 @@ function registerIpc(): void {
   ipcMain.handle('kryvex:lexium:probe', (event, request: unknown) =>
     isShellSender(event) ? lexiumProxy.probe(request) : { ok: false, error: 'invalid' },
   );
+  // Kyvex Link: the phone companion. The renderer owns the on/off setting and
+  // asks for everything else; the pairing code, tokens and file names stay in
+  // the main process, so the shell can never mint a device of its own.
+  ipcMain.handle('kryvex:link:status', (event) => (isShellSender(event) ? link.status() : null));
+  ipcMain.handle('kryvex:link:configure', (event, patch: unknown) =>
+    isShellSender(event)
+      ? link.configure(
+          patch && typeof patch === 'object' ? (patch as { enabled?: unknown }) : {},
+        )
+      : null,
+  );
+  ipcMain.handle('kryvex:link:code', (event) => (isShellSender(event) ? link.newCode() : null));
+  ipcMain.handle('kryvex:link:revoke', (event, token: unknown) =>
+    isShellSender(event) ? link.revoke(token) : false,
+  );
+  ipcMain.handle('kryvex:link:revoke-all', (event) =>
+    isShellSender(event) ? link.revokeAll() : false,
+  );
+  ipcMain.handle('kryvex:link:offer', (event) => (isShellSender(event) ? link.offer() : null));
+  ipcMain.handle('kryvex:link:remove', (event, id: unknown, deleteFile: unknown) =>
+    isShellSender(event) ? link.removeFile(id, deleteFile) : null,
+  );
+  ipcMain.handle('kryvex:link:clear', (event, deleteFiles: unknown) =>
+    isShellSender(event) ? link.clearReceived(deleteFiles) : null,
+  );
+  ipcMain.handle('kryvex:link:reveal', (event, id: unknown) =>
+    isShellSender(event) ? link.reveal(id) : false,
+  );
+  ipcMain.handle('kryvex:link:open', (event, id: unknown) =>
+    isShellSender(event) ? link.open(id) : false,
+  );
+  ipcMain.handle('kryvex:link:notify', (event, title: unknown, body: unknown) => {
+    if (!isShellSender(event)) return false;
+    link.notify(typeof title === 'string' ? title : '', typeof body === 'string' ? body : '');
+    return true;
+  });
   ipcMain.handle('kryvex:resources:sample', (event, services: unknown) =>
     isShellSender(event) ? resources.sample(services) : null,
   );
@@ -1106,6 +1143,9 @@ if (!gotLock) {
     // Restore only the display rows here; WebTorrent is created on Resume.
     torrents.init();
     localModel.init();
+    // Pairing tokens and the transfer log outlive a restart, so they load
+    // before anything can ask for the link's status.
+    link.init();
     modelManager.init();
     extensions.init(session.defaultSession);
     hardenSession(session.defaultSession);
@@ -1123,6 +1163,7 @@ if (!gotLock) {
     mainWindow = createWindow();
     notifications.attachWindow(mainWindow);
     media.attachWindow(mainWindow);
+    link.attachWindow(mainWindow);
     partyAttachWindow(mainWindow);
     extensions.attachWindow(mainWindow);
     updater.attachWindow(mainWindow);
@@ -1165,6 +1206,7 @@ if (!gotLock) {
   let flushed = false;
   app.on('before-quit', event => {
     playerEmbed.dispose();
+    link.dispose();
     void torrents.shutdown();
     void localModel.dispose();
     if (flushed) return;

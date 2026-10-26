@@ -66,7 +66,23 @@ import { InstallPrompt } from './components/InstallPrompt';
 import { useResourceSnapshot } from './lib/resources';
 import { useServiceMedia } from './lib/media';
 import { ServiceStage } from './views/ServiceStage';
+import { Workspace, type CanvasRect } from './views/Workspace';
+import {
+  clampWindows,
+  closeWindow,
+  floatWindow,
+  moveWindow,
+  openWindow,
+  raiseWindow,
+  resizeWindow,
+  toggleMaximize,
+  toggleMinimize,
+  type WindowMap,
+  type WindowSpace,
+} from './lib/workspace';
+import type { ResizeDirection } from './lib/floating';
 import { Assistant } from './views/Assistant';
+import { Link } from './views/Link';
 import { Rooms } from './views/Rooms';
 import { Browser, type BrowserPanel } from './views/Browser';
 import { Settings } from './views/Settings';
@@ -90,13 +106,15 @@ function parseHash(hash: string): Route {
   const view: ViewId =
     head === 'services' ||
     head === 'browser' ||
+    head === 'workspace' ||
     head === 'assistant' ||
     head === 'rooms' ||
     head === 'settings' ||
     head === 'emulator' ||
     head === 'lexium' ||
     head === 'player' ||
-    head === 'disk'
+    head === 'disk' ||
+    head === 'link'
       ? head
       : 'home';
   return { view, query, key: raw };
@@ -118,9 +136,9 @@ export default function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [dialog, setDialog] = useState<{ mode: 'new' } | { mode: 'edit'; service: Service } | null>(
-    null,
-  );
+  const [dialog, setDialog] = useState<
+    { mode: 'new'; target?: 'workspace' } | { mode: 'edit'; service: Service } | null
+  >(null);
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
   const [permissionQueue, setPermissionQueue] = useState<PermissionPrompt[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -128,6 +146,10 @@ export default function App() {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   // Service apps stay mounted for the session; openIds is the live set.
   const [openIds, setOpenIds] = useState<string[]>([]);
+  // Windows are session state like openIds: geometry that outlived a restart
+  // would put a window somewhere the user never chose.
+  const [windows, setWindows] = useState<WindowMap>({});
+  const [canvas, setCanvas] = useState<CanvasRect | null>(null);
   const [unread, setUnread] = useState<Record<string, number>>({});
   const [update, setUpdate] = useState<UpdateStatus | null>(null);
   const [wallpaper, setWallpaper] = useState<WallpaperImage | null>(null);
@@ -462,6 +484,110 @@ export default function App() {
     );
   }, [route.serviceId]);
 
+  /**
+   * The two surfaces a window is measured against. The canvas is only known
+   * while the Workspace is mounted; before that (or on another view) the
+   * viewport stands in, and the clamp below pulls anything that lands outside
+   * back in as soon as the real box arrives.
+   */
+  const windowSpace = useCallback(
+    (): WindowSpace => ({
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      canvas: canvas ? { width: canvas.width, height: canvas.height } : null,
+    }),
+    [canvas],
+  );
+  const spaceRef = useRef(windowSpace);
+  useEffect(() => {
+    spaceRef.current = windowSpace;
+  }, [windowSpace]);
+
+  /** Opens a service as a window on the Workspace surface. */
+  const openInWorkspace = useCallback(
+    (service: Service, at?: { x: number; y: number }) => {
+      setState(current => markOpened(current, service.id));
+      setOpenIds(current =>
+        [service.id, ...current.filter(id => id !== service.id)].slice(0, 8),
+      );
+      setWindows(current => openWindow(current, service.id, 'canvas', windowSpace(), at));
+      navigate('workspace');
+    },
+    [navigate, windowSpace],
+  );
+
+  // A closed module cannot leave a window behind; the record goes with it.
+  useEffect(() => {
+    setWindows(current => {
+      const stale = Object.keys(current).filter(id => !openIds.includes(id));
+      if (stale.length === 0) return current;
+      return stale.reduce((next, id) => closeWindow(next, id), current);
+    });
+  }, [openIds]);
+
+  // Every surface change re-fits the windows that live on it.
+  useEffect(() => {
+    setWindows(current => clampWindows(current, windowSpace()));
+  }, [windowSpace]);
+
+  useEffect(() => {
+    const reflow = () => setWindows(current => clampWindows(current, spaceRef.current()));
+    window.addEventListener('resize', reflow);
+    return () => window.removeEventListener('resize', reflow);
+  }, []);
+
+  /** Detaches the open module into a window over the rest of the app. */
+  const floatService = useCallback(
+    (id: string) => {
+      setWindows(current => floatWindow(current, id, windowSpace()));
+      navigate('services');
+    },
+    [navigate, windowSpace],
+  );
+
+  const dockService = useCallback(
+    (id: string) => {
+      setWindows(current => closeWindow(current, id));
+      navigate(`#/service/${id}`);
+    },
+    [navigate],
+  );
+
+  /**
+   * Closing a window ends the guest: the module leaves the live set, the stage
+   * unmounts the frame and the main process stops the remaining guests for the
+   * partition. Cookies stay on disk, so reopening is a visit, not a sign-in.
+   */
+  const closeServiceWindow = useCallback((id: string) => {
+    setWindows(current => closeWindow(current, id));
+    setOpenIds(current => current.filter(openId => openId !== id));
+    // Unmounting the frame ends the guest normally; the main process also ends
+    // any guest that outlived its renderer, the same way a forced stop does.
+    void window.kryvex?.serviceStop(partitionFor(id)).catch(() => 0);
+  }, []);
+
+  const moveServiceWindow = useCallback((id: string, dx: number, dy: number) => {
+    setWindows(current => moveWindow(current, id, dx, dy, spaceRef.current()));
+  }, []);
+
+  const resizeServiceWindow = useCallback(
+    (id: string, direction: ResizeDirection, dx: number, dy: number) => {
+      setWindows(current => resizeWindow(current, id, direction, dx, dy, spaceRef.current()));
+    },
+    [],
+  );
+
+  const raiseServiceWindow = useCallback((id: string) => {
+    setWindows(current => raiseWindow(current, id));
+  }, []);
+
+  const minimizeServiceWindow = useCallback((id: string) => {
+    setWindows(current => toggleMinimize(current, id));
+  }, []);
+
+  const maximizeServiceWindow = useCallback((id: string) => {
+    setWindows(current => toggleMaximize(current, id, spaceRef.current()));
+  }, []);
+
   const handleServiceTitle = useCallback((service: Service, title: string) => {
     // "Notifications off" also means no unread badge or taskbar nudge from
     // this module; the site's own title still updates inside its frame.
@@ -513,6 +639,11 @@ export default function App() {
   const saveService = useCallback(
     (service: Service) => {
       const editing = Boolean(dialog && dialog.mode === 'edit');
+      // Added from the Workspace, the new module belongs on the canvas rather
+      // than opening focused: the dialog was opened to fill that surface.
+      const intoWorkspace = Boolean(
+        dialog && dialog.mode === 'new' && dialog.target === 'workspace',
+      );
       setState(current =>
         editing ? updateServiceInState(current, service) : addServiceToState(current, service),
       );
@@ -523,8 +654,9 @@ export default function App() {
           : t('{name} added.', { name: service.name }),
         'success',
       );
+      if (intoWorkspace) openInWorkspace(service);
     },
-    [dialog, pushToast, t],
+    [dialog, openInWorkspace, pushToast, t],
   );
 
   const deleteService = useCallback(
@@ -624,6 +756,20 @@ export default function App() {
       }),
     );
   }, []);
+
+  /**
+   * The link's on/off switch. The socket follows the state, so the main process
+   * is only told the intent; it never writes the setting back.
+   */
+  const updateLink = useCallback((enabled: boolean) => {
+    setState(current => updateSettings(current, { link: { enabled } }));
+    pushToast(
+      enabled
+        ? t('Kyvex Link is listening. Open its page on the phone.')
+        : t('Kyvex Link stopped listening.'),
+      'info',
+    );
+  }, [pushToast, t]);
 
   const updateLexium = useCallback((patch: Partial<SettingsModel['lexium']>) => {
     setState(current =>
@@ -858,6 +1004,32 @@ export default function App() {
       .catch(() => undefined);
   }, [isElectron, state.settings.serviceNotifications]);
 
+  // Kyvex Link: the saved switch is the intent, so a profile that left it on
+  // starts listening again without the user opening the Link page.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex?.linkConfigure) return;
+    void window.kryvex
+      .linkConfigure({ enabled: state.settings.link.enabled })
+      .catch(() => undefined);
+  }, [isElectron, state.settings.link.enabled]);
+
+  // A paired phone reaches the shell through the main process: a link opens in
+  // the browser, Rooms and Home are just a route. Nothing else crosses.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex?.onLinkCommand) return;
+    return window.kryvex.onLinkCommand(event => {
+      if (event.command === 'open-url') openExternalTab(event.url);
+      else navigate(event.command);
+    });
+  }, [isElectron, navigate, openExternalTab]);
+
+  // The phone gets notices of its own; the desktop gets a toast for the events
+  // the main process noticed while the Link page was closed.
+  useEffect(() => {
+    if (!isElectron || !window.kryvex?.onLinkNotice) return;
+    return window.kryvex.onLinkNotice(notice => pushToast(t(notice.message), notice.tone));
+  }, [isElectron, pushToast, t]);
+
   // Per-module mute/notification policy. Muted audio is enforced in both the
   // renderer (immediately) and the main process (for guests loaded later).
   useEffect(() => {
@@ -1016,6 +1188,8 @@ export default function App() {
         return t('Services');
       case 'browser':
         return t('Browser');
+      case 'workspace':
+        return t('Workspace');
       case 'assistant':
         return 'Vexium';
       case 'rooms':
@@ -1030,6 +1204,9 @@ export default function App() {
         return t('Media player');
       case 'disk':
         return t('Disk pulse');
+      case 'link':
+        // A product name, identical in every language.
+        return 'Kyvex Link';
       default:
         return t('Home');
     }
@@ -1126,6 +1303,8 @@ export default function App() {
           unread={unread}
           notifications={state.settings.serviceNotifications}
           mark={themeMark}
+          canvas={route.view === 'workspace' ? canvas : null}
+          windows={windows}
           onBack={() => navigate('services')}
           onEdit={service => setDialog({ mode: 'edit', service })}
           onDelete={deleteService}
@@ -1133,7 +1312,14 @@ export default function App() {
           onTitle={handleServiceTitle}
           onUpdateService={updateServiceFlags}
           onToast={pushToast}
-          onActivate={id => navigate(`#/service/${id}`)}
+          onFloat={floatService}
+          onDock={dockService}
+          onWindowMove={moveServiceWindow}
+          onWindowResize={resizeServiceWindow}
+          onWindowRaise={raiseServiceWindow}
+          onWindowClose={closeServiceWindow}
+          onWindowMinimize={minimizeServiceWindow}
+          onWindowMaximize={maximizeServiceWindow}
         />
 
         <KeepAlive
@@ -1159,6 +1345,7 @@ export default function App() {
             onToast={pushToast}
           />
         </KeepAlive>
+
 
         <KeepAlive id="rooms" active={route.view === 'rooms'} keep={roomsLifecycle.keepMounted}>
           <Rooms
@@ -1220,6 +1407,20 @@ export default function App() {
             onToggleToolPin={toggleToolPinInState}
             onUpdateEmulator={updateEmulator}
             onUpdatePlayer={updatePlayer}
+            onEnableSecretServices={() => {
+              updateSettingsPatch({ secretServices: true });
+              pushToast(t('Secret services enabled.'), 'success');
+            }}
+          />
+        ) : route.view === 'workspace' ? (
+          <Workspace
+            windows={windows}
+            onRect={setCanvas}
+            onAdd={() => setDialog({ mode: 'new', target: 'workspace' })}
+            onDropService={(id, at) => {
+              const service = state.services.find(item => item.id === id);
+              if (service) openInWorkspace(service, at);
+            }}
           />
         ) : route.view === 'assistant' ? (
           <Assistant
@@ -1256,6 +1457,15 @@ export default function App() {
           <Player
             onBack={() => navigate('services')}
             onOpenLink={openExternalTab}
+            onToast={pushToast}
+          />
+        ) : route.view === 'link' ? (
+          // The link keeps no renderer state: the server and every pairing live
+          // in the main process, so this view can mount and unmount freely.
+          <Link
+            settings={state.settings.link}
+            onToggle={updateLink}
+            onBack={() => navigate('services')}
             onToast={pushToast}
           />
         ) : route.view === 'browser' ? (

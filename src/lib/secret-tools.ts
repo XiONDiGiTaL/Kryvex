@@ -8,13 +8,20 @@ import type { SecretToolId } from '../types';
  * array. The names here are also their translation keys on the Services page,
  * which is why the pin controls can label a tool without owning their own copy.
  */
-export const SECRET_TOOL_IDS: readonly SecretToolId[] = ['lexium', 'player', 'emulator', 'disk'];
+export const SECRET_TOOL_IDS: readonly SecretToolId[] = [
+  'lexium',
+  'player',
+  'emulator',
+  'disk',
+  'link',
+];
 
 export const SECRET_TOOL_LABELS: Record<SecretToolId, string> = {
   lexium: 'Lexium',
   player: 'Media player',
   emulator: 'Secret emulator',
   disk: 'Disk pulse',
+  link: 'Kyvex Link',
 };
 
 export function isSecretToolId(value: unknown): value is SecretToolId {

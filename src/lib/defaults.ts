@@ -3,6 +3,7 @@ import type {
   EmulatorSettings,
   HomeSettings,
   LexiumSettings,
+  LinkSettings,
   PlayerSettings,
   ResourceSettings,
   SearchRegion,
@@ -124,4 +125,13 @@ export const DEFAULT_PLAYER: PlayerSettings = {
 
 export const DEFAULT_DISK: DiskSettings = {
   disclaimerAcceptedAt: 0,
+};
+
+/**
+ * The phone companion starts switched off. It opens a listening socket on the
+ * local network, so turning it on is the user's decision on the Link page, and
+ * a profile that has never opened that page keeps no port.
+ */
+export const DEFAULT_LINK: LinkSettings = {
+  enabled: false,
 };

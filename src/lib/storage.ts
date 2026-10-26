@@ -1,5 +1,5 @@
 import type { PersistedState } from '../types';
-import { sanitizeState } from './store';
+import { hasLocalSpeechEngine, sanitizeState } from './store';
 
 const KEY = 'kryvex.state.v1';
 
@@ -8,18 +8,21 @@ function bridge() {
 }
 
 export async function loadState(): Promise<PersistedState> {
+  // The sanitizer stays pure; this is the one place that knows what this build
+  // can do without a server, which is what decides the speech engine default.
+  const options = { localSpeech: hasLocalSpeechEngine() };
   const kx = bridge();
   if (kx) {
     try {
-      return sanitizeState(await kx.loadState());
+      return sanitizeState(await kx.loadState(), options);
     } catch {
-      return sanitizeState(null);
+      return sanitizeState(null, options);
     }
   }
   try {
-    return sanitizeState(JSON.parse(window.localStorage.getItem(KEY) ?? 'null'));
+    return sanitizeState(JSON.parse(window.localStorage.getItem(KEY) ?? 'null'), options);
   } catch {
-    return sanitizeState(null);
+    return sanitizeState(null, options);
   }
 }
 

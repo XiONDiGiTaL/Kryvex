@@ -56,7 +56,7 @@ export function Home({
     <section className="view home-view">
       <header className="view-head">
         <div>
-          <p className="eyebrow mono">{t('WORKSPACE 01 / ELEMENT x529')}</p>
+          <p className="eyebrow mono">{t('Home')}</p>
           <h1>{t('Everything connected, nothing scattered.')}</h1>
           <p className="lede">
             {t(

@@ -2,8 +2,16 @@
 
 .home-board {
   position: relative;
+  /**
+   * One width for every card-sized widget.
+   *
+   * The guide column and the narrow cards are sized from this same value, so a
+   * calculator moved into the wide column is exactly as wide as the Board Guide
+   * beside it instead of stretching across the whole board.
+   */
+  --home-card: clamp(250px, 26vw, 380px);
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(250px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr) var(--home-card);
   gap: 16px;
   margin-bottom: 22px;
   padding: 18px;
@@ -42,6 +50,12 @@
    the full width instead of leaving a narrow gutter behind. */
 .home-board.is-single {
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* The guide is the yardstick the other cards match, so it stays card-sized too
+   instead of growing with a very wide window. */
+.home-guide {
+  max-width: var(--home-card);
 }
 
 .home-board-side {
@@ -184,6 +198,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Card-sized even when the widget sits in the wide column. */
+  width: min(100%, var(--home-card));
   padding: 11px 13px;
   border: 1px solid var(--line-soft);
   border-radius: var(--r-md);
@@ -1798,6 +1814,71 @@ body[data-player-bar='1'] .media-dock.is-floating {
   margin-top: 26px;
   padding-top: 16px;
   border-top: 1px dashed color-mix(in srgb, var(--accent) 26%, var(--line));
+}
+
+/*
+ * The group header is the disclosure control, like a settings tab: the whole
+ * row opens and closes the built-in tools, which stay out of the way until
+ * they are asked for.
+ */
+.secret-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+}
+
+.secret-toggle:hover h2 {
+  color: var(--accent);
+}
+
+.secret-toggle h2 {
+  margin: 0;
+  transition: color 120ms var(--ease);
+}
+
+.secret-toggle .muted-label {
+  margin-left: auto;
+}
+
+.secret-toggle > svg {
+  color: var(--ink-faint);
+  flex: none;
+}
+
+/* The one-time question. Answering it keeps the tools on for good. */
+.secret-consent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line));
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+}
+
+.secret-consent p {
+  margin: 0;
+  max-width: 74ch;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
+.secret-consent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.secret-service .secret-grid {
+  margin-top: 14px;
 }
 
 .secret-card {

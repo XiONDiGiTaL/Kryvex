@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.3, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.4, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -12,9 +12,10 @@ history/bookmarks, a persisted torrent queue that restores paused, a Chromium
 engine panel that exposes real launch switches and page preferences,
 microphone/camera prompts for web calls, HTTPS upgrades,
 tracking-parameter stripping, per-site fingerprint farbling and a shared
-download location. Four in-house secret tools sit beside the modules: Lexium,
-the media player, the gated 8-bit emulator and Disk pulse, a local drive
-analyzer with a guarded cleaner that scans in its own worker thread. Fictional
+download location. Five in-house secret tools sit behind their own gated tab
+beside the modules: Lexium, the media player, the gated 8-bit emulator, Disk
+pulse, a local drive analyzer with a guarded cleaner that scans in its own
+worker thread, and Kyvex Link, the paired phone companion. Fictional
 element `x529`, symbol `Kx`, tagline
 “Precision in Every Connection.”
 
@@ -772,7 +773,24 @@ account sign-in, a captcha solve, or another provider.
 
 ## Next concrete action
 
-0.9.3 is cut from the `v0.9.3` tag with the Setup, Portable and checksum assets:
+0.9.4 is a feature release, so it moves the version line rather than wearing a
+`-hotfix.N`. It is cut from the `v0.9.4` tag with the Setup, Portable and
+checksum assets, and it carries **Kyvex Link**: the desktop serves one small page
+on the local network, a phone pairs with a six-digit code, and from then on it
+has the clipboard in both directions, file transfer in both directions, a link
+that opens a Kryvex tab, and a remote for the player. The link is off until its
+switch is turned on, it binds private addresses only, and nothing leaves the two
+devices. The batch also gives Lexium an in-house engine: transcription runs
+through Vexium Core on this machine with no server to install, the external
+Whisper path is kept for anyone who has one, and the service now explains how to
+set that up instead of failing at a new user. Secret services moved behind a
+collapsed tab that asks once before the tools appear, the emulator's EmulatorJS
+GPL-3.0 notice is recorded and shown in its view, the Home calculator is sized to
+the Board Guide card it sits beside, and a floating service window carries a
+standard right-hand minimize / maximize / close cluster. See
+`docs/RELEASE_0.9.4.md` and `docs/LINK.md`.
+
+0.9.3 was cut from the `v0.9.3` tag with the Setup, Portable and checksum assets:
 a correction release for the Vexium Core button, which on a machine that already
 held the 3B read "Downloading 0%" while it was only starting the server. The busy
 label now comes from the press (`coreBusyState()` in `src/lib/vexium-core.ts`), so

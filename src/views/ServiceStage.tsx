@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Service } from '../types';
+import { floatWindowStyle, type ResizeDirection } from '../lib/floating';
 import {
-  cascadeFloat,
-  clampFloatRect,
-  defaultFloatRect,
-  dragFloat,
-  floatWindowStyle,
-  resizeFloat,
-  type FloatRect,
-} from '../lib/floating';
+  canvasWindowStyle,
+  minimizedWindows,
+  type ServiceWindow,
+  type WindowMap,
+} from '../lib/workspace';
 import { CATEGORIES, partitionFor } from '../lib/services';
 import { useT } from '../lib/i18n';
 import { hostOf } from '../lib/url';
@@ -30,6 +28,13 @@ import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from '../components/
 import { ServiceQuickMenu } from '../components/ServiceQuickMenu';
 import { Webview, type WebviewElement, type WebviewStatus } from '../components/Webview';
 
+export interface StageCanvas {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 interface StageProps {
   services: Service[];
   openIds: string[];
@@ -41,6 +46,10 @@ interface StageProps {
   unread: Record<string, number>;
   notifications: boolean;
   mark?: ThemeMarkKind;
+  /** The Workspace surface in viewport pixels, or null outside that view. */
+  canvas: StageCanvas | null;
+  /** Every window the shell holds, in both of its places. */
+  windows: WindowMap;
   onBack: () => void;
   onEdit: (service: Service) => void;
   onDelete: (service: Service) => void;
@@ -48,8 +57,16 @@ interface StageProps {
   onTitle: (service: Service, title: string) => void;
   onUpdateService: (service: Service, patch: Partial<Service>) => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
-  /** Bring a floated module back into the stage as the open view. */
-  onActivate: (id: string) => void;
+  /** Detach the open module into a window over the whole app. */
+  onFloat: (id: string) => void;
+  /** Return a windowed module to the focused view. */
+  onDock: (id: string) => void;
+  onWindowMove: (id: string, dx: number, dy: number) => void;
+  onWindowResize: (id: string, direction: ResizeDirection, dx: number, dy: number) => void;
+  onWindowRaise: (id: string) => void;
+  onWindowClose: (id: string) => void;
+  onWindowMinimize: (id: string) => void;
+  onWindowMaximize: (id: string) => void;
 }
 
 /**
@@ -73,6 +90,8 @@ export function ServiceStage({
   unread,
   notifications,
   mark = 'kx',
+  canvas,
+  windows,
   onBack,
   onEdit,
   onDelete,
@@ -80,137 +99,79 @@ export function ServiceStage({
   onTitle,
   onUpdateService,
   onToast,
-  onActivate,
+  onFloat,
+  onDock,
+  onWindowMove,
+  onWindowResize,
+  onWindowRaise,
+  onWindowClose,
+  onWindowMinimize,
+  onWindowMaximize,
 }: StageProps) {
+  const t = useT();
   const active = services.find(service => service.id === activeId) ?? null;
   const open = openIds
     .map(id => services.find(service => service.id === id))
     .filter((service): service is Service => Boolean(service));
 
   /**
-   * A floated module keeps its place over the whole workspace while the user
-   * works somewhere else. The geometry is session state, not a setting: a
-   * window that reappears at a stale coordinate after a restart would be worse
-   * than one that opens where the stage puts it.
+   * Which windows belong on screen right now.
+   *
+   * The focused module always fills the stage: if the same service is also held
+   * as a window, the window record is kept and simply not drawn, so returning to
+   * the Workspace puts it back where it was without a reload. A canvas window is
+   * only drawn while the canvas is measured, which is what keeps it from
+   * appearing as a viewport float after a route change.
    */
-  const [floats, setFloats] = useState<Record<string, { rect: FloatRect; z: number }>>({});
-  const zTop = useRef(40);
-
-  const viewport = useCallback(
-    () => ({ width: window.innerWidth, height: window.innerHeight }),
-    [],
-  );
-
-  const raise = useCallback((id: string) => {
-    setFloats(current => {
-      const entry = current[id];
-      if (!entry) return current;
-      const top = Math.max(0, ...Object.values(current).map(item => item.z));
-      if (entry.z >= top) return current;
-      zTop.current += 1;
-      return { ...current, [id]: { rect: entry.rect, z: zTop.current } };
-    });
-  }, []);
-
-  const floatService = useCallback(
-    (service: Service) => {
-      setFloats(current => {
-        if (current[service.id]) return current;
-        const bounds = viewport();
-        const index = Object.keys(current).length;
-        const rect = cascadeFloat(defaultFloatRect(bounds), index, bounds);
-        zTop.current += 1;
-        return { ...current, [service.id]: { rect, z: zTop.current } };
-      });
-      // The stage behind a floated module should not keep the module docked.
-      onBack();
-    },
-    [onBack, viewport],
-  );
-
-  const dockService = useCallback(
-    (service: Service) => {
-      setFloats(current => {
-        if (!current[service.id]) return current;
-        const next = { ...current };
-        delete next[service.id];
-        return next;
-      });
-      onActivate(service.id);
-    },
-    [onActivate],
-  );
-
-  const moveFloat = useCallback(
-    (id: string, dx: number, dy: number) => {
-      setFloats(current => {
-        const entry = current[id];
-        if (!entry) return current;
-        return { ...current, [id]: { ...entry, rect: dragFloat(entry.rect, dx, dy, viewport()) } };
-      });
-    },
-    [viewport],
-  );
-
-  const resizeFloatWindow = useCallback(
-    (id: string, dx: number, dy: number) => {
-      setFloats(current => {
-        const entry = current[id];
-        if (!entry) return current;
-        return { ...current, [id]: { ...entry, rect: resizeFloat(entry.rect, dx, dy, viewport()) } };
-      });
-    },
-    [viewport],
-  );
-
-  // A closed module cannot leave a window behind, and a resized app window must
-  // not push a float out of reach.
-  useEffect(() => {
-    setFloats(current => {
-      const next: typeof current = {};
-      let changed = false;
-      for (const [id, entry] of Object.entries(current)) {
-        if (!openIds.includes(id)) {
-          changed = true;
-          continue;
-        }
-        const rect = clampFloatRect(entry.rect, viewport());
-        if (
-          rect.x !== entry.rect.x ||
-          rect.y !== entry.rect.y ||
-          rect.width !== entry.rect.width ||
-          rect.height !== entry.rect.height
-        ) {
-          changed = true;
-          next[id] = { ...entry, rect };
-        } else {
-          next[id] = entry;
-        }
-      }
-      return changed ? next : current;
-    });
-  }, [openIds, viewport]);
+  const windowed = open.flatMap(service => {
+    const entry = windows[service.id];
+    if (!entry || service.id === activeId) return [];
+    if (entry.kind === 'canvas' && !canvas) return [];
+    return [{ service, entry }];
+  });
+  const floatingCount = windowed.filter(item => item.entry.kind === 'detached').length;
+  // A minimized window keeps its guest alive but stops being painted, so the
+  // tray is the only way back to it. Both kinds get one: the canvas holds its
+  // own, and the stage holds the modules floated over it.
+  const minimized = minimizedWindows(windows, canvas ? 'canvas' : 'detached')
+    .map(id => services.find(service => service.id === id))
+    .filter((service): service is Service => Boolean(service));
 
   if (open.length === 0) return null;
 
-  const floatingCount = Object.keys(floats).length;
-
   return (
     <section
-      className={`service-stage ${active ? 'has-active' : 'is-idle'} ${
-        floatingCount > 0 ? 'has-float' : ''
+      className={`service-stage ${
+        canvas
+          ? 'is-canvas'
+          : `${active ? 'has-active' : 'is-idle'} ${floatingCount > 0 ? 'has-float' : ''}`
       }`}
-      aria-hidden={!active && floatingCount === 0}
+      // The Workspace board is pinned to the measured surface and sits in its own
+      // band below every Kryvex dialog, so no window can cover the chrome that
+      // owns it. Outside the Workspace the stage keeps its old viewport rules.
+      style={
+        canvas
+          ? {
+              left: canvas.left,
+              top: canvas.top,
+              width: canvas.width,
+              height: canvas.height,
+              zIndex: 25,
+            }
+          : undefined
+      }
+      aria-hidden={canvas ? undefined : !active && floatingCount === 0}
     >
       {open.map(service => {
-        const float = service.id === activeId ? undefined : floats[service.id];
+        const entry = service.id === activeId ? undefined : windows[service.id];
+        const box =
+          entry && (entry.kind !== 'canvas' || canvas !== null) ? entry : null;
         return (
           <ServiceFrame
             key={`${service.id}-${reloadTokens[service.id] ?? 0}-${engineRevision}`}
             service={service}
             active={service.id === activeId}
-            floating={float ? float.rect : null}
-            floatZ={float ? float.z : 0}
+            box={box}
             isElectron={isElectron}
             unread={unread[service.id] ?? 0}
             notifications={notifications}
@@ -222,14 +183,36 @@ export function ServiceStage({
             onTitle={title => onTitle(service, title)}
             onUpdateService={patch => onUpdateService(service, patch)}
             onToast={onToast}
-            onFloat={() => floatService(service)}
-            onDock={() => dockService(service)}
-            onFloatFocus={() => raise(service.id)}
-            onFloatDrag={(dx, dy) => moveFloat(service.id, dx, dy)}
-            onFloatResize={(dx, dy) => resizeFloatWindow(service.id, dx, dy)}
+            onFloat={() => onFloat(service.id)}
+            onDock={() => onDock(service.id)}
+            onWindowMove={(dx, dy) => onWindowMove(service.id, dx, dy)}
+            onWindowResize={(direction, dx, dy) =>
+              onWindowResize(service.id, direction, dx, dy)
+            }
+            onWindowRaise={() => onWindowRaise(service.id)}
+            onWindowClose={() => onWindowClose(service.id)}
+            onWindowMinimize={() => onWindowMinimize(service.id)}
+            onWindowMaximize={() => onWindowMaximize(service.id)}
           />
         );
       })}
+
+      {minimized.length > 0 ? (
+        <div className="workspace-tray" role="group" aria-label={t('Minimized windows')}>
+          {minimized.map(service => (
+            <button
+              key={service.id}
+              className="workspace-tray-item"
+              onClick={() => onWindowMinimize(service.id)}
+              title={service.name}
+              aria-label={t('Restore {name}', { name: service.name })}
+            >
+              <ServiceIcon service={service} size={16} />
+              <span>{service.name}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -237,8 +220,7 @@ export function ServiceStage({
 function ServiceFrame({
   service,
   active,
-  floating,
-  floatZ,
+  box,
   isElectron,
   unread,
   notifications,
@@ -252,15 +234,17 @@ function ServiceFrame({
   onToast,
   onFloat,
   onDock,
-  onFloatFocus,
-  onFloatDrag,
-  onFloatResize,
+  onWindowMove,
+  onWindowResize,
+  onWindowRaise,
+  onWindowClose,
+  onWindowMinimize,
+  onWindowMaximize,
 }: {
   service: Service;
   active: boolean;
-  /** A floated box, or null when the module fills the stage. */
-  floating: FloatRect | null;
-  floatZ: number;
+  /** The window record for this module, or null when it fills the stage. */
+  box: ServiceWindow | null;
   isElectron: boolean;
   unread: number;
   notifications: boolean;
@@ -274,12 +258,21 @@ function ServiceFrame({
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
   onFloat: () => void;
   onDock: () => void;
-  onFloatFocus: () => void;
-  onFloatDrag: (dx: number, dy: number) => void;
-  onFloatResize: (dx: number, dy: number) => void;
+  onWindowMove: (dx: number, dy: number) => void;
+  onWindowResize: (direction: ResizeDirection, dx: number, dy: number) => void;
+  onWindowRaise: () => void;
+  onWindowClose: () => void;
+  onWindowMinimize: () => void;
+  onWindowMaximize: () => void;
 }) {
   const t = useT();
   const controller = useRef<WebviewElement | null>(null);
+  // A canvas window is never "active": the active route is the Workspace, not a
+  // service. Visibility, not activation, drives loading, probing and pausing.
+  const isWindow = box?.kind === 'canvas';
+  const isDetached = box?.kind === 'detached';
+  const minimized = Boolean(box?.minimized);
+  const visible = active || (box !== null && !minimized);
   const [status, setStatus] = useState<WebviewStatus>({
     loading: true,
     canGoBack: false,
@@ -308,13 +301,13 @@ function ServiceFrame({
   // removes focus for us. Drop it explicitly or keystrokes could keep landing
   // in a service that is no longer in front.
   useEffect(() => {
-    if (active) return;
+    if (visible) return;
     try {
       controller.current?.blur();
     } catch {
       /* the guest may not be attached yet */
     }
-  }, [active]);
+  }, [visible]);
 
   useEffect(() => {
     if (!isElectron || status.loading) return;
@@ -357,7 +350,7 @@ function ServiceFrame({
    * do not run DOM work in the background.
    */
   useEffect(() => {
-    if (!isElectron || !codeProfile || !active || status.loading || status.error) {
+    if (!isElectron || !codeProfile || !visible || status.loading || status.error) {
       setCodePrompt(null);
       return;
     }
@@ -395,7 +388,7 @@ function ServiceFrame({
       alive = false;
       window.clearInterval(timer);
     };
-  }, [isElectron, codeProfile, active, status.loading, status.error]);
+  }, [isElectron, codeProfile, visible, status.loading, status.error]);
 
   useEffect(() => {
     setCode('');
@@ -443,15 +436,28 @@ function ServiceFrame({
   const notificationsOn = notifications && service.notifications !== false;
   const pauseWhenInactive = service.persistence === 'pause';
 
-  // Pointer capture keeps a drag alive over the guest: the webview would
-  // otherwise swallow every move once the pointer crossed into it.
+  /**
+   * A drag starts on a title bar but usually travels across a guest, and a guest
+   * does not forward pointer events to the page around it. Capturing the pointer
+   * on the element that started the gesture is what keeps the shell receiving
+   * moves for the whole drag, so a window can be dragged over another service
+   * without the gesture freezing halfway.
+   */
   function beginDrag(event: React.PointerEvent<HTMLElement>) {
-    if (!floating) return;
+    if (!box || minimized) return;
+    const target = event.target as HTMLElement | null;
+    // Title-bar buttons keep their own clicks; only the bar itself drags.
+    if (target?.closest('button, a, input, select, textarea, [role="menu"]')) return;
     event.preventDefault();
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      /* capture is an optimisation; the window listeners follow anyway */
+    }
     let lastX = event.clientX;
     let lastY = event.clientY;
     const move = (next: PointerEvent) => {
-      onFloatDrag(next.clientX - lastX, next.clientY - lastY);
+      onWindowMove(next.clientX - lastX, next.clientY - lastY);
       lastX = next.clientX;
       lastY = next.clientY;
     };
@@ -465,14 +471,19 @@ function ServiceFrame({
     window.addEventListener('pointercancel', stop);
   }
 
-  function beginResize(event: React.PointerEvent<HTMLElement>) {
-    if (!floating) return;
+  function beginResize(event: React.PointerEvent<HTMLElement>, direction: ResizeDirection) {
+    if (!box || minimized) return;
     event.preventDefault();
     event.stopPropagation();
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      /* capture is an optimisation; the window listeners follow anyway */
+    }
     let lastX = event.clientX;
     let lastY = event.clientY;
     const move = (next: PointerEvent) => {
-      onFloatResize(next.clientX - lastX, next.clientY - lastY);
+      onWindowResize(direction, next.clientX - lastX, next.clientY - lastY);
       lastX = next.clientX;
       lastY = next.clientY;
     };
@@ -489,18 +500,31 @@ function ServiceFrame({
   return (
     <div
       className={`service-frame ${active ? 'is-active' : ''} ${
-        !active && pauseWhenInactive ? 'is-parked' : ''
-      } ${floating ? 'is-floating' : ''}`}
-      style={floating ? floatWindowStyle(floating, floatZ) : undefined}
+        !visible && pauseWhenInactive ? 'is-parked' : ''
+      } ${isDetached ? 'is-floating' : ''} ${isWindow ? 'is-window' : ''} ${
+        minimized ? 'is-minimized' : ''
+      }`}
+      style={
+        box
+          ? isWindow
+            ? canvasWindowStyle(box.rect, box.z)
+            : floatWindowStyle(box.rect, box.z)
+          : undefined
+      }
       data-service={service.id}
-      aria-hidden={!active && !floating}
-      inert={!active && !floating}
+      aria-hidden={!visible}
+      inert={!visible}
       onPointerDown={() => {
-        if (floating) onFloatFocus();
+        if (box && !minimized) onWindowRaise();
       }}
     >
-      <header className="service-toolbar">
-        {floating ? (
+      <header
+        className="service-toolbar"
+        // A window drags from its title bar, the way a browser window does. The
+        // handler ignores anything interactive inside it.
+        onPointerDown={isWindow ? beginDrag : undefined}
+      >
+        {isDetached ? (
           <span
             className="service-float-grip"
             role="separator"
@@ -519,7 +543,7 @@ function ServiceFrame({
               const move = moves[event.key];
               if (!move) return;
               event.preventDefault();
-              onFloatDrag(move[0], move[1]);
+              onWindowMove(move[0], move[1]);
             }}
           >
             <span />
@@ -527,14 +551,17 @@ function ServiceFrame({
             <span />
           </span>
         ) : null}
-        <button
-          className="icon-btn"
-          onClick={floating ? onDock : onBack}
-          aria-label={t('Back to services')}
-          title={t('Back')}
-        >
-          <Icon name="back" size={16} />
-        </button>
+        {/* The back affordance belongs to the focused and detached frames only. */}
+        {!isWindow ? (
+          <button
+            className="icon-btn"
+            onClick={isDetached ? onDock : onBack}
+            aria-label={t('Back to services')}
+            title={t('Back')}
+          >
+            <Icon name="back" size={16} />
+          </button>
+        ) : null}
 
         <ServiceIcon service={service} size={30} />
 
@@ -581,6 +608,22 @@ function ServiceFrame({
             variant="toolbar"
             notificationsGloballyOn={notifications}
             onChange={onUpdateService}
+            // A window keeps the standard three controls in the corner, so the
+            // service's own plumbing is reached from this panel instead.
+            manage={
+              box
+                ? {
+                    onOpenExternal: () => {
+                      openExternalUrl(service.url);
+                      onToast(t('Opened in your default browser.'), 'info');
+                    },
+                    onDock,
+                    onClearSession: () => onClearSession(service),
+                    onEdit: () => onEdit(service),
+                    onRemove: () => onDelete(service),
+                  }
+                : undefined
+            }
           />
           <button
             className="icon-btn"
@@ -590,44 +633,85 @@ function ServiceFrame({
           >
             <Icon name="reload" size={16} />
           </button>
-          <button
-            className="btn secondary small"
-            onClick={() => {
-              openExternalUrl(service.url);
-              onToast(t('Opened in your default browser.'), 'info');
-            }}
-          >
-            <Icon name="external" size={14} />
-            {t('Open externally')}
-          </button>
-          <button
-            className="icon-btn"
-            onClick={floating ? onDock : onFloat}
-            title={floating ? t('Dock this module') : t('Float this module over the workspace')}
-            aria-label={floating ? t('Dock this module') : t('Float this module')}
-            aria-pressed={Boolean(floating)}
-          >
-            <Icon name={floating ? 'monitor' : 'layers'} size={16} />
-          </button>
-          <button
-            className="icon-btn"
-            onClick={() => onClearSession(service)}
-            title={t('Clear this session')}
-            aria-label={t('Clear this session')}
-          >
-            <Icon name="lock" size={16} />
-          </button>
-          <button className="icon-btn" onClick={() => onEdit(service)} title={t('Edit')} aria-label={t('Edit service')}>
-            <Icon name="edit" size={16} />
-          </button>
-          <button
-            className="icon-btn danger"
-            onClick={() => onDelete(service)}
-            title={t('Remove')}
-            aria-label={t('Remove service')}
-          >
-            <Icon name="trash" size={16} />
-          </button>
+          {!box ? (
+            <>
+              <button
+                className="btn secondary small"
+                onClick={() => {
+                  openExternalUrl(service.url);
+                  onToast(t('Opened in your default browser.'), 'info');
+                }}
+              >
+                <Icon name="external" size={14} />
+                {t('Open externally')}
+              </button>
+              <button
+                className="icon-btn"
+                onClick={onFloat}
+                title={t('Float this module over the workspace')}
+                aria-label={t('Float this module')}
+              >
+                <Icon name="layers" size={16} />
+              </button>
+              <button
+                className="icon-btn"
+                onClick={() => onClearSession(service)}
+                title={t('Clear this session')}
+                aria-label={t('Clear this session')}
+              >
+                <Icon name="lock" size={16} />
+              </button>
+              <button
+                className="icon-btn"
+                onClick={() => onEdit(service)}
+                title={t('Edit')}
+                aria-label={t('Edit service')}
+              >
+                <Icon name="edit" size={16} />
+              </button>
+              <button
+                className="icon-btn danger"
+                onClick={() => onDelete(service)}
+                title={t('Remove')}
+                aria-label={t('Remove service')}
+              >
+                <Icon name="trash" size={16} />
+              </button>
+            </>
+          ) : (
+            /* The corner of a window, in the order every desktop title bar uses:
+               close last and furthest right, next to minimize and maximize. */
+            <span className="window-controls">
+              <button
+                className="icon-btn"
+                onClick={onWindowMinimize}
+                title={t('Minimize')}
+                aria-label={t('Minimize')}
+              >
+                <span className="window-glyph" aria-hidden="true">
+                  −
+                </span>
+              </button>
+              <button
+                className="icon-btn"
+                onClick={onWindowMaximize}
+                title={box.restore ? t('Restore') : t('Maximize')}
+                aria-label={box.restore ? t('Restore') : t('Maximize')}
+              >
+                <span className="window-glyph" aria-hidden="true">
+                  {box.restore ? '❐' : '□'}
+                </span>
+              </button>
+              <button
+                className="icon-btn danger"
+                onClick={onWindowClose}
+                title={t('Close')}
+                aria-label={t('Close')}
+              >
+                <Icon name="close" size={14} />
+              </button>
+            </span>
+          )}
         </div>
       </header>
 
@@ -694,7 +778,7 @@ function ServiceFrame({
       ) : null}
 
       <div className="service-canvas">
-        {active && status.loading && !status.error ? (
+        {visible && status.loading && !status.error ? (
           <div className="loading-bar" aria-hidden="true" />
         ) : null}
 
@@ -727,7 +811,7 @@ function ServiceFrame({
             partition={partitionFor(service.id)}
             allowPopups
             muted={service.muted}
-            paused={!active && pauseWhenInactive}
+            paused={!visible && pauseWhenInactive}
             controller={controller}
             onStatus={setStatus}
             onTitle={onTitle}
@@ -775,7 +859,7 @@ function ServiceFrame({
           </div>
         ) : null}
 
-        {active && status.error ? (
+        {visible && status.error ? (
           <div className="webview-error" role="alert">
             <Icon name="shield" size={22} />
             <h3>{t('This module could not load')}</h3>
@@ -808,26 +892,50 @@ function ServiceFrame({
         ) : null}
       </div>
 
-      {floating ? (
-        <span
-          className="service-float-resize"
-          role="separator"
-          aria-label={t('Resize this window')}
-          title={t('Drag to resize')}
-          tabIndex={0}
-          onPointerDown={beginResize}
-          onKeyDown={event => {
-            const step = event.shiftKey ? 32 : 8;
-            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-              event.preventDefault();
-              onFloatResize(event.key === 'ArrowRight' ? step : 0, event.key === 'ArrowDown' ? step : 0);
-            }
-            if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-              event.preventDefault();
-              onFloatResize(event.key === 'ArrowLeft' ? -step : 0, event.key === 'ArrowUp' ? -step : 0);
-            }
-          }}
-        />
+      {box ? (
+        <>
+          {/* Eight edges for the pointer; the keyboard keeps the one focusable
+              handle below, so a window is resizable without a mouse. */}
+          {isWindow
+            ? (['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as ResizeDirection[]).map(
+                direction => (
+                  <span
+                    key={direction}
+                    className={`service-window-edge is-${direction}`}
+                    aria-hidden="true"
+                    onPointerDown={event => beginResize(event, direction)}
+                  />
+                ),
+              )
+            : null}
+          <span
+            className="service-float-resize"
+            role="separator"
+            aria-label={t('Resize this window')}
+            title={t('Drag to resize')}
+            tabIndex={0}
+            onPointerDown={event => beginResize(event, 'se')}
+            onKeyDown={event => {
+              const step = event.shiftKey ? 32 : 8;
+              if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                event.preventDefault();
+                onWindowResize(
+                  'se',
+                  event.key === 'ArrowRight' ? step : 0,
+                  event.key === 'ArrowDown' ? step : 0,
+                );
+              }
+              if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                onWindowResize(
+                  'se',
+                  event.key === 'ArrowLeft' ? -step : 0,
+                  event.key === 'ArrowUp' ? -step : 0,
+                );
+              }
+            }}
+          />
+        </>
       ) : null}
     </div>
   );

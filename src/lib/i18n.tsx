@@ -10,6 +10,7 @@ import { homeToolsCopy } from './i18n-home-tools';
 import { lifecycleCopy } from './i18n-lifecycle';
 import { currencyCopy } from './i18n-currency';
 import { sessionCopy } from './i18n-session';
+import { linkCopy } from './i18n-link';
 import { sweepEs } from './i18n-sweep-es';
 import { sweepDe } from './i18n-sweep-de';
 import { sweepFr } from './i18n-sweep-fr';
@@ -52,6 +53,14 @@ type Vars = Record<string, string | number>;
 const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>> = {
   es: {
     Home: 'Inicio',
+    'Add services here to display them.': 'Añade servicios aquí para mostrarlos.',
+    'Drag a pinned service here, or add one.': 'Arrastra un servicio fijado aquí o añade uno.',
+    '{count} WINDOWS': '{count} VENTANAS',
+    Minimize: 'Minimizar',
+    Maximize: 'Maximizar',
+    Restore: 'Restaurar',
+    'Minimized windows': 'Ventanas minimizadas',
+    'Restore {name}': 'Restaurar {name}',
     Services: 'Servicios',
     Browser: 'Navegador',
     Settings: 'Ajustes',
@@ -81,7 +90,6 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'ELEMENT x529 / Kx': 'ELEMENTO x529 / Kx',
     '{count} SERVICES': '{count} SERVICIOS',
     '{count} PINNED': '{count} FIJADOS',
-    'WORKSPACE 01 / ELEMENT x529': 'ESPACIO 01 / ELEMENTO x529',
     'Everything connected, nothing scattered.': 'Todo conectado, nada disperso.',
     '{count} modules ready. Each one keeps its own session, cookies and sign-in, so switching context never means signing in again.':
       '{count} módulos listos. Cada uno mantiene su propia sesión, cookies e inicio de sesión, así que cambiar de contexto nunca significa volver a entrar.',
@@ -467,6 +475,14 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
   },
   de: {
     Home: 'Start',
+    'Add services here to display them.': 'Füge hier Dienste hinzu, um sie anzuzeigen.',
+    'Drag a pinned service here, or add one.': 'Ziehe einen angehefteten Dienst hierher oder füge einen hinzu.',
+    '{count} WINDOWS': '{count} FENSTER',
+    Minimize: 'Minimieren',
+    Maximize: 'Maximieren',
+    Restore: 'Wiederherstellen',
+    'Minimized windows': 'Minimierte Fenster',
+    'Restore {name}': '{name} wiederherstellen',
     Services: 'Dienste',
     Browser: 'Browser',
     Settings: 'Einstellungen',
@@ -496,7 +512,6 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'ELEMENT x529 / Kx': 'ELEMENT x529 / Kx',
     '{count} SERVICES': '{count} DIENSTE',
     '{count} PINNED': '{count} ANGEHEFTET',
-    'WORKSPACE 01 / ELEMENT x529': 'ARBEITSBEREICH 01 / ELEMENT x529',
     'Everything connected, nothing scattered.': 'Alles verbunden, nichts verstreut.',
     '{count} modules ready. Each one keeps its own session, cookies and sign-in, so switching context never means signing in again.':
       '{count} Module bereit. Jedes behält seine eigene Sitzung, Cookies und Anmeldung, sodass ein Kontextwechsel nie eine neue Anmeldung bedeutet.',
@@ -876,6 +891,14 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
   },
   fr: {
     Home: 'Accueil',
+    'Add services here to display them.': 'Ajoutez des services ici pour les afficher.',
+    'Drag a pinned service here, or add one.': 'Glissez un service épinglé ici, ou ajoutez-en un.',
+    '{count} WINDOWS': '{count} FENÊTRES',
+    Minimize: 'Réduire',
+    Maximize: 'Agrandir',
+    Restore: 'Restaurer',
+    'Minimized windows': 'Fenêtres réduites',
+    'Restore {name}': 'Restaurer {name}',
     Services: 'Services',
     Browser: 'Navigateur',
     Settings: 'Paramètres',
@@ -905,7 +928,6 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
     'ELEMENT x529 / Kx': 'ÉLÉMENT x529 / Kx',
     '{count} SERVICES': '{count} SERVICES',
     '{count} PINNED': '{count} ÉPINGLÉS',
-    'WORKSPACE 01 / ELEMENT x529': 'ESPACE 01 / ÉLÉMENT x529',
     'Everything connected, nothing scattered.': 'Tout est connecté, rien n’est dispersé.',
     '{count} modules ready. Each one keeps its own session, cookies and sign-in, so switching context never means signing in again.':
       '{count} modules prêts. Chacun conserve sa session, ses cookies et sa connexion, changer de contexte ne signifie donc jamais se reconnecter.',
@@ -2845,6 +2867,7 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           ...lifecycleCopy[language],
           ...currencyCopy[language],
           ...sessionCopy[language],
+          ...linkCopy[language],
         };
   return {
     language,

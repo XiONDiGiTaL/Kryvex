@@ -11,9 +11,18 @@
  * without Electron.
  */
 
-export type LexiumEngine = 'local-whisper' | 'whisper-cpp' | 'openai';
+/**
+ * `windows-speech` is not an address: it is the recogniser Windows already
+ * ships, run by the main process. It has no endpoint to build, which is why the
+ * two functions below return an empty string for it.
+ */
+export type LexiumEngine = 'windows-speech' | 'local-whisper' | 'whisper-cpp' | 'openai';
 
-const ENGINES: LexiumEngine[] = ['local-whisper', 'whisper-cpp', 'openai'];
+const ENGINES: LexiumEngine[] = ['windows-speech', 'local-whisper', 'whisper-cpp', 'openai'];
+
+export function isLocalSpeechEngine(engine: LexiumEngine): boolean {
+  return engine === 'windows-speech';
+}
 
 export function isLexiumEngine(value: unknown): value is LexiumEngine {
   return typeof value === 'string' && (ENGINES as string[]).includes(value);
@@ -34,6 +43,7 @@ export function lexiumBaseUrl(value: unknown): string {
 }
 
 export function lexiumEndpoint(engine: LexiumEngine, baseUrl: string): string {
+  if (isLocalSpeechEngine(engine)) return '';
   const base = lexiumBaseUrl(baseUrl);
   if (!base) return '';
   if (engine === 'whisper-cpp') return `${base}/inference`;
@@ -44,6 +54,7 @@ export function lexiumEndpoint(engine: LexiumEngine, baseUrl: string): string {
 }
 
 export function lexiumHealthEndpoint(engine: LexiumEngine, baseUrl: string): string {
+  if (isLocalSpeechEngine(engine)) return '';
   const base = lexiumBaseUrl(baseUrl);
   if (!base) return '';
   return engine === 'local-whisper' ? `${base}/health` : base;

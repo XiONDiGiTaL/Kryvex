@@ -199,15 +199,18 @@ fallback and the full feature-parity table.
 
 ## In-house tools: Lexium and the player
 
-Services → **Secret services** now holds three element tiles besides the
-emulator: two tools built into Kryvex rather than embedded from the web.
+Services → **Secret services** holds the tools built into Kryvex rather than
+embedded from the web: Lexium, the media player, the emulator, Disk pulse and
+Kyvex Link.
 
 **Lexium (Lx · x530)** transcribes imported recordings, translates text in both
 directions and reads text out of images. Audio is decoded in the renderer to
-16 kHz mono WAV and sent to a Whisper server you run; translation goes to a
-LibreTranslate server with a labelled keyless fallback; OCR runs in the page
-through Tesseract. Nothing is stored after you leave the page. Setup, formats,
-limits and failure modes: [docs/LEXIUM.md](docs/LEXIUM.md).
+16 kHz mono WAV, which the desktop app hands to the speech engine Windows
+already has — no download and no server — or to a Whisper server you run
+instead; translation goes to a LibreTranslate server with a labelled keyless
+fallback; OCR runs in the page through Tesseract. Nothing is stored after you
+leave the page. Setup, formats, limits and failure modes:
+[docs/LEXIUM.md](docs/LEXIUM.md).
 
 **Media player (Mx · x531)** queues local audio and video, direct media links,
 Spotify playlists/albums/tracks and YouTube playlists/videos, with repeat,
@@ -221,6 +224,21 @@ and Vimeo pages still open in their own modules. Details:
 The catalogue also gained Twitch, TikTok, Facebook, SoundCloud and Vimeo
 presets. TikTok, Twitch and Facebook default to **Start muted**, so an
 autoplaying feed cannot make noise until you unmute the module.
+
+## Kyvex Link: the phone companion
+
+**Kyvex Link (Lk · x534)** is Kryvex's own phone companion, and it needs no app
+store: Kryvex serves one page on your local network, you open it on the phone and
+type a six-digit code once. From then on the phone has the desktop clipboard in
+both directions, file transfer in both directions (phone → `Downloads\Kryvex
+Link`; desktop → phone by offering a file), a box that opens a link straight in
+the Kryvex browser, a remote for the media player, and notices from the desktop.
+
+It is off until you start it, it only answers private network addresses, and a
+token is minted only against a live code. Nothing is uploaded to a service, there
+is no account, and unpairing is one click on either side. Setup, the security
+model, the limits and what is deliberately not supported yet:
+[docs/LINK.md](docs/LINK.md).
 
 ## What's new in 0.8.8
 

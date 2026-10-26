@@ -215,10 +215,11 @@ when a count rises while the window is unfocused; focusing clears it.
 
 A service is pinned from its card, or unpinned from the sidebar's right-click
 menu, and the rail keeps that order through drag and `Alt` + arrow. Kryvex's
-own tools (Lexium, the media player, the emulator and Disk pulse) are not
-services — they have no URL, category or session — but they answer to the same
-rail: each card in **Services → Secret services** carries a pin, and a pinned
-tool lands under the pinned services with a shell glyph instead of a favicon.
+own tools (Lexium, the media player, the emulator, Disk pulse and Kyvex Link)
+are not services — they have no URL, category or session — but they answer to
+the same rail: each card in **Services → Secret services** carries a pin, and a
+pinned tool lands under the pinned services with a shell glyph instead of a
+favicon.
 The choice lives in `settings.pinnedTools`, so it survives a restart, and only
 known tool ids survive a hand-edited state file.
 
@@ -239,8 +240,22 @@ webview can never paint over the switches that belong to it.
 
 The built-in tools use the same panel (`ToolQuickMenu`). The player offers
 Shuffle and the Spotify ad guard, the emulator offers Gamepad and CRT scanlines,
-and Lexium and Disk pulse — which have no switches of their own — offer the way
-into their window instead of invented toggles.
+and Lexium, Disk pulse and Kyvex Link — which have no switches of their own —
+offer the way into their window instead of invented toggles.
+
+## Secret services are collapsed, and asked about once
+
+The built-in tools sit behind a collapsed **Secret services** section on the
+Services page, closed on every visit the way a settings group is. Opening it on
+a profile that has never used them asks once — *Enable secret services* or *Not
+now* — and the answer is kept in `settings.secretServices`; a profile that
+already pins a tool counts as having answered yes. The tools themselves are
+unchanged by the question: collapsing hides them from view, not from the app.
+
+One of the five is different in kind. **Kyvex Link** (`#/link`, element x534)
+serves a page on the local network for a phone to pair with, so its switch opens
+a socket rather than a window: see [LINK.md](LINK.md) for pairing, the security
+model and the limits.
 
 ## Service presets
 

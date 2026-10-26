@@ -184,6 +184,9 @@ export const sweepFr: Record<string, string> = {
     'Kryvex demande à GitHub Releases la dernière version publiée. Seul le flux public des versions est contacté.',
   'Kryvex could not read a console header from this file, and the extension is used by more than one system. Pick the console this ROM belongs to and it will start that core.':
     'Kryvex n’a pas pu lire d’en-tête de console dans ce fichier, et l’extension est utilisée par plusieurs systèmes. Choisissez la console de cette ROM et ce cœur démarrera.',
+  'Emulation by EmulatorJS, GPL-3.0, loaded from its official CDN and not bundled with Kryvex.':
+    'Émulation par EmulatorJS, GPL-3.0, chargé depuis son CDN officiel et non intégré à Kryvex.',
+  'Source and licence': 'Code source et licence',
   'Kryvex does not host, provide or link to ROMs, and does not promote piracy. Use only ROMs and BIOS files you are legally entitled to use.':
     'Kryvex n’héberge, ne fournit ni ne référence de ROMs et ne fait pas la promotion du piratage. N’utilisez que des ROMs et fichiers BIOS que vous avez le droit légal d’utiliser.',
   'Kryvex does not provide, host, link to or endorse ROMs, BIOS files or any copyrighted game data. The emulator only plays files you already have, and you are responsible for having the legal right to use them.':

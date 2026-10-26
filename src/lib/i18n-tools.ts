@@ -11,6 +11,12 @@ type ToolLanguage = 'es' | 'de' | 'fr';
 export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
   es: {
     'Secret services': 'Servicios secretos',
+    '{count} BUILT IN': '{count} INTEGRADOS',
+    'Enable secret services': 'Activar servicios secretos',
+    'Secret services enabled.': 'Servicios secretos activados.',
+    'Not now': 'Ahora no',
+    'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kyvex Link. They need no account and no server, and their files stay local.':
+      'Los servicios secretos son las herramientas integradas en Kryvex que funcionan en este equipo: Lexium, el reproductor multimedia, el emulador, Disk pulse y Kyvex Link. No necesitan cuenta ni servidor, y sus archivos se quedan aquí.',
     'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.':
       'Transcribe grabaciones, traduce conversaciones en ambos sentidos y lee texto de fotos, en los servidores que elijas.',
     'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.':
@@ -77,6 +83,43 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
     '{label} copied.': '{label} copiado.',
     'Transcribed {duration} of audio.': 'Transcritos {duration} de audio.',
     'Connected to {url}.': 'Conectado a {url}.',
+    'Set up a server': 'Configurar un servidor',
+    'Run a transcription server on this machine': 'Ejecuta un servidor de transcripción en este equipo',
+    'Vexium Core is a text model, so it cannot hear audio. Transcription needs a speech model; start one of these and Lexium will use it.':
+      'Vexium Core es un modelo de texto, así que no puede oír audio. La transcripción necesita un modelo de voz; inicia uno de estos y Lexium lo usará.',
+    'Start one of these, then press Check speech server.': 'Inicia uno de estos y pulsa Comprobar servidor de voz.',
+    'Examples only; follow each project’s own instructions if they differ.':
+      'Solo son ejemplos; sigue las instrucciones de cada proyecto si difieren.',
+    'Scan this machine': 'Escanear este equipo',
+    'Scanning…': 'Escaneando…',
+    'No local server answered on the usual ports.': 'Ningún servidor local respondió en los puertos habituales.',
+    'Use this server': 'Usar este servidor',
+    'Found {name} at {url}.': 'Se encontró {name} en {url}.',
+    'Copy command': 'Copiar comando',
+    'Speech server set to {url}.': 'Servidor de voz establecido en {url}.',
+    'Check speech engine': 'Comprobar motor de voz',
+    'No setup: {name}': 'Sin configuración: {name}',
+    'Use this PC': 'Usar este equipo',
+    'In use': 'En uso',
+    'Windows already has a speech engine. It needs no download and no server, and it is best on clear speech: for accents, music or several speakers a Whisper server below is far more accurate.':
+      'Windows ya incluye un motor de voz. No necesita descargas ni servidor, y funciona mejor con voz clara: para acentos, música o varias personas, un servidor Whisper de abajo es mucho más preciso.',
+    'Vexium Core is a text model, so it cannot hear audio. Transcription needs a speech model: use the one this PC has, or start a server of your own.':
+      'Vexium Core es un modelo de texto, así que no puede oír audio. La transcripción necesita un modelo de voz: usa el que ya tiene este equipo o inicia tu propio servidor.',
+    'The speech engine on this PC is ready.': 'El motor de voz de este equipo está listo.',
+    'This PC is listening ({languages}).': 'Este equipo escucha ({languages}).',
+    'The words are read on this PC by the speech engine Windows already has. Nothing is uploaded and Vexium Core is not involved: it answers text, it cannot hear audio.':
+      'Las palabras las lee en este equipo el motor de voz que Windows ya incluye. No se sube nada y Vexium Core no participa: responde texto, no puede oír audio.',
+    'This build cannot run the PC speech engine. Use the desktop app, or start a server below.':
+      'Esta versión no puede usar el motor de voz del equipo. Usa la aplicación de escritorio o inicia un servidor abajo.',
+    'This PC has no speech recogniser installed. Add a language with speech in Windows settings, or start a server below.':
+      'Este equipo no tiene ningún reconocedor de voz instalado. Añade un idioma con voz en los ajustes de Windows o inicia un servidor abajo.',
+    'The speech engine on this PC could not be started. Start a server below instead.':
+      'No se pudo iniciar el motor de voz de este equipo. Inicia mejor un servidor abajo.',
+    'The speech engine did not hear any words in that file.':
+      'El motor de voz no oyó ninguna palabra en ese archivo.',
+    'Transcribing on this PC from now on.': 'A partir de ahora se transcribe en este equipo.',
+    'Nothing leaves this device except the audio sent to the speech server you configured. Vexium Core answers text, so speech-to-text talks to a Whisper engine: start one below and nothing else needs a server.':
+      'Nada sale de este equipo excepto el audio enviado al servidor de voz que configures. Vexium Core responde texto, así que la transcripción usa un motor Whisper: inicia uno abajo y nada más necesita servidor.',
     'No answer from {url}. Start the engine or change the address.':
       'Sin respuesta de {url}. Inicia el motor o cambia la dirección.',
     'No answer from the server. Start it, check the address, and allow localhost requests if a browser blocks the connection.':
@@ -151,6 +194,12 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
   },
   de: {
     'Secret services': 'Geheime Dienste',
+    '{count} BUILT IN': '{count} INTEGRIERT',
+    'Enable secret services': 'Geheime Dienste aktivieren',
+    'Secret services enabled.': 'Geheime Dienste aktiviert.',
+    'Not now': 'Jetzt nicht',
+    'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kyvex Link. They need no account and no server, and their files stay local.':
+      'Geheime Dienste sind die in Kryvex eingebauten Werkzeuge, die auf diesem Rechner laufen: Lexium, der Mediaplayer, der Emulator, Disk pulse und Kyvex Link. Sie brauchen kein Konto und keinen Server, und ihre Dateien bleiben lokal.',
     'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.':
       'Aufnahmen transkribieren, Chats in beide Richtungen übersetzen und Text aus Fotos lesen: auf Servern deiner Wahl.',
     'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.':
@@ -217,6 +266,43 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
     '{label} copied.': '{label} kopiert.',
     'Transcribed {duration} of audio.': '{duration} Audio transkribiert.',
     'Connected to {url}.': 'Verbunden mit {url}.',
+    'Set up a server': 'Server einrichten',
+    'Run a transcription server on this machine': 'Einen Transkriptionsserver auf diesem Rechner starten',
+    'Vexium Core is a text model, so it cannot hear audio. Transcription needs a speech model; start one of these and Lexium will use it.':
+      'Vexium Core ist ein Textmodell und kann kein Audio hören. Transkription braucht ein Sprachmodell; starte eines davon und Lexium nutzt es.',
+    'Start one of these, then press Check speech server.': 'Starte eines davon und drücke dann Sprachserver prüfen.',
+    'Examples only; follow each project’s own instructions if they differ.':
+      'Nur Beispiele; folge den Anleitungen der Projekte, falls sie abweichen.',
+    'Scan this machine': 'Diesen Rechner durchsuchen',
+    'Scanning…': 'Suche läuft…',
+    'No local server answered on the usual ports.': 'Auf den üblichen Ports hat kein lokaler Server geantwortet.',
+    'Use this server': 'Diesen Server verwenden',
+    'Found {name} at {url}.': '{name} unter {url} gefunden.',
+    'Copy command': 'Befehl kopieren',
+    'Speech server set to {url}.': 'Sprachserver auf {url} gesetzt.',
+    'Check speech engine': 'Spracherkennung prüfen',
+    'No setup: {name}': 'Ohne Einrichtung: {name}',
+    'Use this PC': 'Diesen PC verwenden',
+    'In use': 'In Verwendung',
+    'Windows already has a speech engine. It needs no download and no server, and it is best on clear speech: for accents, music or several speakers a Whisper server below is far more accurate.':
+      'Windows bringt bereits eine Spracherkennung mit. Sie braucht keinen Download und keinen Server und funktioniert am besten bei klarer Sprache: bei Akzenten, Musik oder mehreren Sprechenden ist ein Whisper-Server unten deutlich genauer.',
+    'Vexium Core is a text model, so it cannot hear audio. Transcription needs a speech model: use the one this PC has, or start a server of your own.':
+      'Vexium Core ist ein Textmodell und kann kein Audio hören. Transkription braucht ein Sprachmodell: nimm das, das dieser PC schon hat, oder starte einen eigenen Server.',
+    'The speech engine on this PC is ready.': 'Die Spracherkennung auf diesem PC ist bereit.',
+    'This PC is listening ({languages}).': 'Dieser PC hört zu ({languages}).',
+    'The words are read on this PC by the speech engine Windows already has. Nothing is uploaded and Vexium Core is not involved: it answers text, it cannot hear audio.':
+      'Die Wörter liest die Spracherkennung, die Windows bereits mitbringt, auf diesem PC. Es wird nichts hochgeladen und Vexium Core ist nicht beteiligt: es antwortet in Text, es kann kein Audio hören.',
+    'This build cannot run the PC speech engine. Use the desktop app, or start a server below.':
+      'Diese Version kann die Spracherkennung des PCs nicht nutzen. Verwende die Desktop-App oder starte unten einen Server.',
+    'This PC has no speech recogniser installed. Add a language with speech in Windows settings, or start a server below.':
+      'Auf diesem PC ist keine Spracherkennung installiert. Füge in den Windows-Einstellungen eine Sprache mit Spracherkennung hinzu oder starte unten einen Server.',
+    'The speech engine on this PC could not be started. Start a server below instead.':
+      'Die Spracherkennung auf diesem PC konnte nicht gestartet werden. Starte stattdessen unten einen Server.',
+    'The speech engine did not hear any words in that file.':
+      'Die Spracherkennung hat in dieser Datei keine Wörter gehört.',
+    'Transcribing on this PC from now on.': 'Ab jetzt wird auf diesem PC transkribiert.',
+    'Nothing leaves this device except the audio sent to the speech server you configured. Vexium Core answers text, so speech-to-text talks to a Whisper engine: start one below and nothing else needs a server.':
+      'Nichts verlässt diesen Rechner außer dem Audio, das an den eingerichteten Sprachserver geht. Vexium Core antwortet in Text, daher nutzt die Transkription eine Whisper-Engine: starte unten eine, sonst braucht nichts einen Server.',
     'No answer from {url}. Start the engine or change the address.':
       'Keine Antwort von {url}. Starte die Engine oder ändere die Adresse.',
     'No answer from the server. Start it, check the address, and allow localhost requests if a browser blocks the connection.':
@@ -291,6 +377,12 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
   },
   fr: {
     'Secret services': 'Services secrets',
+    '{count} BUILT IN': '{count} INTÉGRÉS',
+    'Enable secret services': 'Activer les services secrets',
+    'Secret services enabled.': 'Services secrets activés.',
+    'Not now': 'Pas maintenant',
+    'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kyvex Link. They need no account and no server, and their files stay local.':
+      'Les services secrets sont les outils intégrés à Kryvex qui tournent sur cet ordinateur : Lexium, le lecteur multimédia, l’émulateur, Disk pulse et Kyvex Link. Ils ne demandent ni compte ni serveur, et leurs fichiers restent en local.',
     'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.':
       'Transcrivez des enregistrements, traduisez les conversations dans les deux sens et lisez le texte des photos: sur les serveurs de votre choix.',
     'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.':
@@ -357,6 +449,43 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
     '{label} copied.': '{label} copié.',
     'Transcribed {duration} of audio.': '{duration} d’audio transcrites.',
     'Connected to {url}.': 'Connecté à {url}.',
+    'Set up a server': 'Configurer un serveur',
+    'Run a transcription server on this machine': 'Lancer un serveur de transcription sur cette machine',
+    'Vexium Core is a text model, so it cannot hear audio. Transcription needs a speech model; start one of these and Lexium will use it.':
+      'Vexium Core est un modèle de texte et ne peut pas entendre l’audio. La transcription a besoin d’un modèle vocal ; lancez-en un et Lexium l’utilisera.',
+    'Start one of these, then press Check speech server.': 'Lancez-en un, puis cliquez sur Vérifier le serveur vocal.',
+    'Examples only; follow each project’s own instructions if they differ.':
+      'Ce ne sont que des exemples ; suivez les instructions de chaque projet si elles diffèrent.',
+    'Scan this machine': 'Analyser cette machine',
+    'Scanning…': 'Analyse…',
+    'No local server answered on the usual ports.': 'Aucun serveur local n’a répondu sur les ports habituels.',
+    'Use this server': 'Utiliser ce serveur',
+    'Found {name} at {url}.': '{name} trouvé sur {url}.',
+    'Copy command': 'Copier la commande',
+    'Speech server set to {url}.': 'Serveur vocal défini sur {url}.',
+    'Check speech engine': 'Vérifier le moteur vocal',
+    'No setup: {name}': 'Sans configuration : {name}',
+    'Use this PC': 'Utiliser cet ordinateur',
+    'In use': 'Utilisé',
+    'Windows already has a speech engine. It needs no download and no server, and it is best on clear speech: for accents, music or several speakers a Whisper server below is far more accurate.':
+      'Windows intègre déjà un moteur vocal. Il ne demande ni téléchargement ni serveur, et il donne le meilleur sur une parole claire : pour des accents, de la musique ou plusieurs personnes, un serveur Whisper ci-dessous est bien plus précis.',
+    'Vexium Core is a text model, so it cannot hear audio. Transcription needs a speech model: use the one this PC has, or start a server of your own.':
+      'Vexium Core est un modèle de texte : il ne peut pas entendre l’audio. La transcription a besoin d’un modèle vocal : utilisez celui que cet ordinateur possède déjà, ou lancez votre propre serveur.',
+    'The speech engine on this PC is ready.': 'Le moteur vocal de cet ordinateur est prêt.',
+    'This PC is listening ({languages}).': 'Cet ordinateur écoute ({languages}).',
+    'The words are read on this PC by the speech engine Windows already has. Nothing is uploaded and Vexium Core is not involved: it answers text, it cannot hear audio.':
+      'Les mots sont lus sur cet ordinateur par le moteur vocal que Windows fournit déjà. Rien n’est envoyé et Vexium Core n’intervient pas : il répond en texte, il ne peut pas entendre l’audio.',
+    'This build cannot run the PC speech engine. Use the desktop app, or start a server below.':
+      'Cette version ne peut pas utiliser le moteur vocal de l’ordinateur. Utilisez l’application de bureau ou lancez un serveur ci-dessous.',
+    'This PC has no speech recogniser installed. Add a language with speech in Windows settings, or start a server below.':
+      'Cet ordinateur n’a aucun moteur de reconnaissance vocale installé. Ajoutez une langue avec reconnaissance vocale dans les paramètres de Windows ou lancez un serveur ci-dessous.',
+    'The speech engine on this PC could not be started. Start a server below instead.':
+      'Le moteur vocal de cet ordinateur n’a pas pu démarrer. Lancez plutôt un serveur ci-dessous.',
+    'The speech engine did not hear any words in that file.':
+      'Le moteur vocal n’a entendu aucun mot dans ce fichier.',
+    'Transcribing on this PC from now on.': 'La transcription se fera désormais sur cet ordinateur.',
+    'Nothing leaves this device except the audio sent to the speech server you configured. Vexium Core answers text, so speech-to-text talks to a Whisper engine: start one below and nothing else needs a server.':
+      'Rien ne quitte cette machine hormis l’audio envoyé au serveur vocal configuré. Vexium Core répond en texte, la transcription utilise donc un moteur Whisper : lancez-en un ci-dessous et rien d’autre n’a besoin d’un serveur.',
     'No answer from {url}. Start the engine or change the address.':
       'Aucune réponse de {url}. Démarrez le moteur ou changez l’adresse.',
     'No answer from the server. Start it, check the address, and allow localhost requests if a browser blocks the connection.':

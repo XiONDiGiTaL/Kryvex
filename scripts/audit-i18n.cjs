@@ -42,7 +42,8 @@ const TECHNICAL = [
   // OpenVPN/CLI flag examples are syntax, not copy.
   /^--[a-z0-9-]+(\s+\S+)*$/i,
   /^(https?|magnet|file|kryvex|data):/i,
-  /^(Kryvex|Vexium|Veyra|Vex|XiONDiGiTaL|GitHub|Google|Discord|YouTube|Wikipedia|DuckDuckGo|Bing|Electron|Chromium|Torrent|WebTorrent|GGUF|Llama|uBlock|Ghostery|AdGuard)\b/,
+  // Product names are identical in every locale, including the companion app's.
+  /^(Kryvex|Kyvex|Vexium|Veyra|Vex|XiONDiGiTaL|GitHub|Google|Discord|YouTube|Wikipedia|DuckDuckGo|Bing|Electron|Chromium|Torrent|WebTorrent|GGUF|Llama|uBlock|Ghostery|AdGuard)\b/,
   /^[#./][\w./-]+$/,
   /^[\w-]+(\.[\w-]+)+(\/[\w./-]*)?$/,
   /^\w+(\/[\w.-]+)+$/,

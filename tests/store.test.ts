@@ -254,6 +254,66 @@ describe('sanitizeState', () => {
   });
 });
 
+describe('built-in tools consent', () => {
+  it('is asked for once and stays answered', () => {
+    expect(sanitizeState(null).settings.secretServices).toBe(false);
+    expect(sanitizeState({ settings: { secretServices: true } }).settings.secretServices).toBe(true);
+    // A profile that already pins a built-in tool has answered this.
+    expect(sanitizeState({ settings: { pinnedTools: ['lexium'] } }).settings.secretServices).toBe(
+      true,
+    );
+    expect(sanitizeState({ settings: { pinnedTools: ['nonsense'] } }).settings.secretServices).toBe(
+      false,
+    );
+  });
+});
+
+describe('Kyvex Link switch', () => {
+  it('starts off and only an explicit true turns it on', () => {
+    expect(sanitizeState(null).settings.link.enabled).toBe(false);
+    expect(sanitizeState({ settings: { link: {} } }).settings.link.enabled).toBe(false);
+    expect(sanitizeState({ settings: { link: { enabled: 'yes' } } }).settings.link.enabled).toBe(
+      false,
+    );
+    expect(sanitizeState({ settings: { link: { enabled: true } } }).settings.link.enabled).toBe(
+      true,
+    );
+  });
+
+  it('accepts the companion as a built-in tool that can be pinned', () => {
+    expect(sanitizeState({ settings: { pinnedTools: ['link'] } }).settings.pinnedTools).toEqual([
+      'link',
+    ]);
+  });
+});
+
+describe('speech engine default', () => {
+  it('gives a first run on a machine with an in-box engine no server to start', () => {
+    const fresh = sanitizeState(null, { localSpeech: true });
+    expect(fresh.settings.lexium.engine).toBe('windows-speech');
+    expect(fresh.settings.lexium.baseUrl).toBe('');
+    // The web client has no in-box engine, so it keeps the server default.
+    expect(sanitizeState(null, { localSpeech: false }).settings.lexium.engine).toBe(
+      'local-whisper',
+    );
+  });
+
+  it('moves an existing stock profile once and then leaves it alone', () => {
+    const stock = {
+      settings: { lexium: { engine: 'local-whisper', baseUrl: 'http://localhost:8000' } },
+    };
+    const moved = sanitizeState(stock, { localSpeech: true });
+    expect(moved.settings.lexium.engine).toBe('windows-speech');
+    expect(moved.settings.lexium.migrated).toBe(true);
+    const chosen = sanitizeState(
+      { settings: { lexium: { engine: 'local-whisper', baseUrl: 'http://localhost:8000', migrated: true } } },
+      { localSpeech: true },
+    );
+    expect(chosen.settings.lexium.engine).toBe('local-whisper');
+    expect(chosen.settings.lexium.baseUrl).toBe('http://localhost:8000');
+  });
+});
+
 describe('operations', () => {
   it('adds feeds by URL and removes them without touching the rest', () => {
     const base = newState();

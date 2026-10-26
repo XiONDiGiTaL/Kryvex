@@ -92,6 +92,49 @@ grants are per origin for the current app session, not a persisted per-module
 capability; a restart forgets them. There is no hibernation or crash isolation
 supervisor yet.
 
+## Workspace windows
+
+A module can be framed in three places without ever being loaded twice.
+
+| Mode | Where | Geometry |
+| --- | --- | --- |
+| Focus | the service route | fills the stage |
+| Detached | "Float this module" over any view | viewport pixels, only the title bar has to stay reachable |
+| Workspace | the Workspace surface | canvas pixels, fully contained by the canvas |
+
+The stage owns every guest. A window is a record, not a copy:
+`windows[id] = { kind, rect, z, restore?, minimized? }` in
+`src/lib/workspace.ts`, with the arithmetic in `src/lib/floating.ts`. Changing a
+window changes its box; the `<webview>` is never remounted, so a module keeps its
+scroll position, its call and its connection while it is dragged, resized,
+minimized or moved to another view.
+
+**Stacking.** Windows live in a band (`MIN_WINDOW_Z` 30 – `MAX_WINDOW_Z` 45) and
+`raise` renumbers the whole map instead of incrementing one counter, so a window
+can never climb above Kryvex's own layers: modals 50, palette 60, toasts 70, the
+theme gallery 80, the service context menu 90. On the Workspace, the whole board
+is one fixed layer at `z-index: 25`, which is what keeps a Kryvex dialog above
+live service content.
+
+**Geometry.** A canvas window is clamped inside the canvas on every drag,
+resize and surface change, with a 380×280 minimum; a detached float keeps the
+older reachability rule so it can hang off-screen. Both are re-clamped on window
+resize, on a canvas resize and on a DPR change, because the persisted shape is
+CSS pixels.
+
+**Close and minimize differ.** Closing removes the module from the live set, so
+the frame unmounts and the partition's guests are stopped; cookies stay on disk,
+so reopening is a visit rather than a sign-in. Minimizing keeps the guest mounted
+and merely stops painting it (opacity, `inert`, no pointer events), which is the
+same bargain as a parked module; the tray at the bottom of the canvas restores
+it.
+
+**Not persisted.** Window geometry is session state like `openIds`: a window that
+reappeared at a stale coordinate after a restart would be worse than one that
+opens where the surface puts it. In the web build there is no `<webview>`, so the
+frame shows the usual "open in this browser" card; the canvas, its drop target
+and the window chrome still work.
+
 ## State
 
 `PersistedState` (schema version 1):

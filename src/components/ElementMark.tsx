@@ -12,7 +12,7 @@ import type { CSSProperties } from 'react';
  * Its old pixel screen becomes a watermark inside the tile, so all three
  * services share one silhouette while the emulator still looks like hardware.
  */
-export type ToolMark = 'lexium' | 'player' | 'emulator' | 'disk';
+export type ToolMark = 'lexium' | 'player' | 'emulator' | 'disk' | 'link';
 
 type Mark = {
   number: string;
@@ -29,6 +29,7 @@ const MARKS: Record<ToolMark, Mark> = {
   // shorter word the emulator is known by; the accessible name keeps the noun.
   emulator: { number: 'x532', symbol: '8-bit', name: 'Emulator', caption: 'Retro' },
   disk: { number: 'x533', symbol: 'Dx', name: 'Disk pulse', caption: 'Disk' },
+  link: { number: 'x534', symbol: 'Lk', name: 'Kyvex Link', caption: 'Link' },
 };
 
 function Glyph({ tool }: { tool: ToolMark }) {
@@ -39,6 +40,15 @@ function Glyph({ tool }: { tool: ToolMark }) {
         <path d="M3.8 12h16.4" />
         <path d="M12 3.8c2.2 2.3 3.4 5.1 3.4 8.2S14.2 17.9 12 20.2C9.8 17.9 8.6 15.1 8.6 12S9.8 6.1 12 3.8Z" />
         <path d="M5.4 6.6c1.7 1.1 4.1 1.7 6.6 1.7s4.9-.6 6.6-1.7" />
+      </svg>
+    );
+  }
+  if (tool === 'link') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="2.5" y="4.5" width="12" height="9" rx="1.6" />
+        <rect x="15.5" y="11" width="6.5" height="9" rx="1.6" />
+        <path d="M14.5 9.6h1.4M17.6 14.6h1.2" />
       </svg>
     );
   }

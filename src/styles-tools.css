@@ -662,6 +662,88 @@
   font-size: 10px;
   color: var(--ink);
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.lexium-commands > div {
+  align-items: center;
+}
+
+.lexium-commands.is-single {
+  padding-top: 0;
+}
+
+/* ------------------------------------------------------ speech setup --- */
+
+.lexium-setup {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.lexium-setup-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.lexium-setup-head strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lexium-setup-head p {
+  margin: 4px 0 0;
+  max-width: 72ch;
+  color: var(--ink-faint);
+  font-size: 10.5px;
+  line-height: 1.65;
+}
+
+.lexium-setup-head .btn {
+  flex: none;
+}
+
+.lexium-setup-found {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lexium-setup-found li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  font-size: 11px;
+}
+
+.lexium-setup-details {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.lexium-setup-details > summary {
+  padding: 9px 12px;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.lexium-setup-details .lexium-setup {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 12px;
 }
 
 /* ---------------------------------------------------------- media player --- */
