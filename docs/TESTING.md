@@ -2403,7 +2403,7 @@ window mechanics above are the same either way — the guest is an OOPIF inside 
 same frame — but a two-service drag over real Google and GitHub sessions has to
 be confirmed in the desktop build.
 
-## Kyvex Link: the phone companion (0.9.4-hotfix, 2026-10-26)
+## Kyvex Link: the phone companion (0.9.4, 2026-10-26)
 
 Run on 2026-10-26 in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3, on
 the working tree that became this commit.
@@ -2482,3 +2482,64 @@ a `LIVE` badge:
   driven here; the download half it feeds was tested with a seeded offer.
 - **A public source address.** The 403 for a non-private peer is covered by unit
   tests on the address rule; no request from off-network was produced.
+
+## World clock and screen capture: the installed 0.9.4-hotfix.1 (2026-10-26)
+
+Run on 2026-10-26 in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3, on
+the working tree that became this commit, and then against the build installed by
+`Kryvex-Setup-0.9.4-hotfix.1-x64.exe`.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer and main typecheck | `pnpm typecheck` (`tsc --noEmit` ×2) | exit 0 |
+| Full suite | `npx vitest run` | **828/828** across 77 files |
+| World clock rules | `npx vitest run tests/world-clock.test.ts` | rows are places, a bare zone string from an older board still loads, an unknown zone is dropped, a second city in the same zone relabels that row, a fifth is refused, removal by id, 12/24-hour formatting and day offsets |
+| Capture rules | `npx vitest run tests/capture-rules.test.ts tests/screen-capture.test.ts` | extension forced to match the kind, a proposed `setup.exe` becomes a `.png` stem, traversal and control characters stripped, non-base64 and oversized payloads refused, dimension labels |
+| Store migration | `npx vitest run tests/store.test.ts` | an old `captures` inbox folds into sticky notes, `screenCaptures` and `clockHour12` are sanitised, the widget flags come from the registry |
+| Translation coverage | `npx vitest run tests/i18n-coverage.test.ts` | ratchet held; the new clock and capture strings exist in es/de/fr |
+| Renderer copy audit | `node scripts/audit-i18n.cjs` | PASS — no hardcoded UI strings in 49 renderer files |
+| Web build | `pnpm build:web` | PASS (1.7 MiB): `assets/main-DEX2m-Ju.js`, `assets/main-BKKSMrRQ.css`, `assets/companion-CTBsK4FZ.js`, worker cache `kryvex-web-0.9.4-hotfix.1-v1` |
+| Windows packaging | `pnpm package:win` | exit 0 — Setup (134,362,910 B) and Portable (134,125,765 B), no EPERM on `release/win-unpacked` |
+| Version resource | `Get-Item C:\Kryvex\Kryvex.exe` | `ProductVersion 0.9.4.0`, `FileVersion 0.9.4-hotfix.1` |
+| Wizard capture | `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer release/Kryvex-Setup-0.9.4-hotfix.1-x64.exe` | PASS — 5 pages, installer exit 0, install page 25,350 ms, archived to `docs/media/releases/0.9.4-hotfix.1-wizard/` |
+| Checksums | `pnpm release:checksums` | wrote both digests to `release/SHA256SUMS.txt` |
+| Release record | `pnpm release:check` | PASS for 0.9.4-hotfix.1, 11/11 |
+| Installed build, driven over CDP | `pnpm verify:home-tools` (`scripts/verify-home-tools.cjs`) | **12/12 PASS** |
+
+### What the installed-build harness asserts
+
+It launched `C:\Kryvex\Kryvex.exe` on a disposable profile with
+`--remote-debugging-port`, then used the board the way a user would:
+
+- the page opens, and both the footer and `appInfo()` report **0.9.4-hotfix.1**;
+- the **Widgets** picker switches **World clock** and **Screen capture** on, and
+  both cards draw on the board;
+- the clock's 12-hour switch flips (`24H` → `12H`, stored as `clockHour12`);
+- typing *Izmir* and submitting reached the geocoder, the card offered the
+  result, and **Add city** produced a row labelled **Izmir** — not the zone's
+  name — which the row's × then removed (1 → 0);
+- the capture card drew its target list populated from the system sources
+  (**Kryvex**, Brave windows, the screen);
+- no page exception was raised during any of it.
+
+The save path was exercised earlier in this same working tree, before the release
+commit: the card captured the Kryvex service to a 1440×846 PNG and **Save as…**
+opened the native dialog over the app and wrote a 156 KB file into
+`Downloads\Kryvex Captures`, which the recent list then showed. That run's
+cleanup deleted the folder it created.
+
+### Not executed (do not treat as passing)
+
+- **The save dialog against this installed binary.** The dialog is native and
+  cannot be driven by the CDP harness; the file write and the folder default were
+  proven on the same sources in the run above, not on this package.
+- **A recorded clip through the OS dialog.** The WebM path is covered by unit
+  tests and by a three-second recording that produced a playable preview, but its
+  save was not taken through the dialog.
+- **The browser/PWA fallback.** The web shell has no main process, so the card
+  asks the browser to share a surface and downloads the result; that path was
+  not driven in a browser.
+- **A city lookup with no network.** The offline message and the rows already on
+  the clock are unit-tested; no live offline run was made.
+- **A capture of a minimised window.** The source list offers windows the system
+  reports; what a minimised window yields was not measured.

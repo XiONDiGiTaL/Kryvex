@@ -5,7 +5,7 @@
  * load; a navigation goes to the network first so a new release is picked up,
  * and falls back to the cached shell when the device is offline.
  */
-const CACHE = 'kryvex-web-0.9.4-v1';
+const CACHE = 'kryvex-web-0.9.4-hotfix.1-v1';
 const SHELL = ['./', './index.html', './manifest.webmanifest'];
 
 /**

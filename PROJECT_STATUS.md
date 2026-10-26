@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.4, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.4-hotfix.1, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -772,6 +772,17 @@ account sign-in, a captcha solve, or another provider.
 - “Kryvex” clearance unresolved (above).
 
 ## Next concrete action
+
+0.9.4-hotfix.1 is the first hotfix of 0.9.4, cut from the `v0.9.4-hotfix.1` tag:
+the version line stays at 0.9.4, the build wears `-hotfix.1`, and the packaged
+`ProductVersion` is still `0.9.4.0` with the suffix in `FileVersion`. It carries
+two Home-board corrections. The world clock lists looked-up cities rather than
+zones — a user in İzmir reads **İzmir**, not Istanbul — each row can be removed,
+and a 12/24-hour switch drives both the card and the board header. The "quick
+capture" inbox, which stored typed lines and never removed them, is replaced by a
+screen capture and recorder that targets an open service, a window or a screen,
+takes a still or a clip, and writes the file through a native save dialog in the
+main process. See `docs/RELEASE_0.9.4-hotfix.1.md`.
 
 0.9.4 is a feature release, so it moves the version line rather than wearing a
 `-hotfix.N`. It is cut from the `v0.9.4` tag with the Setup, Portable and
