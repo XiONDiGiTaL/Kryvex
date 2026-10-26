@@ -305,3 +305,27 @@ app and asserts:
 - the stage fills the window, with the guest at 1192×770 in a 1440×900 window.
 
 Results are recorded in [TESTING.md](TESTING.md).
+
+## Added to the catalogue
+
+The preset list in `src/lib/catalog.ts` gained the services people kept adding
+by hand, in the categories the filter chips already understand:
+
+| Preset | Category | Endpoint |
+| --- | --- | --- |
+| Proton Mail | communication | `https://mail.proton.me` |
+| Outlook | communication | `https://outlook.live.com/mail/` |
+| mail.com | communication | `https://www.mail.com/mail/` |
+| Mailinator | communication | `https://www.mailinator.com` |
+| Wikipedia | resources | `https://www.wikipedia.org` |
+| Weather.com | resources | `https://weather.com` |
+| Amazon | other | `https://www.amazon.com` |
+| eBay | other | `https://www.ebay.com` |
+| Temu | other | `https://www.temu.com` |
+| AliExpress | other | `https://www.aliexpress.com` |
+
+These are links, not integrations: each opens in its own hardened session like
+a user-added service. Mailinator carries a warning in its note because its
+inboxes are public by design, Temu and AliExpress start muted because their
+feeds autoplay, and Weather.com is described as the full site rather than a
+replacement for the Home board's keyless feed.

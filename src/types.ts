@@ -224,7 +224,7 @@ export type SearchEngine =
   | 'petal';
 /** A country filter for the regional engine list. */
 export type SearchRegion = 'global' | 'cn' | 'kr' | 'cz' | 'vn' | 'intl';
-export const LANGUAGE_SETTINGS = ['system', 'en', 'es', 'de', 'fr'] as const;
+export const LANGUAGE_SETTINGS = ['system', 'en', 'es', 'de', 'fr', 'tr'] as const;
 export type LanguageSetting = (typeof LANGUAGE_SETTINGS)[number];
 export type ResolvedLanguage = Exclude<LanguageSetting, 'system'>;
 
@@ -552,6 +552,10 @@ export interface HomeSettings {
   clockAccent: ClockAccent;
   /** Family for the time only; the rest of the board keeps the UI font. */
   clockFont: TypographyFont;
+  /** Size of the board clock as a percentage of its design size, 70-180. */
+  clockScale: number;
+  /** Left, centred or right inside the board's main column. */
+  clockAlign: ClockAlign;
   /** Recent screen captures, newest first. Files live where the user saved them. */
   screenCaptures: ScreenCapture[];
   /** The in-house board guide opens once; it stays available afterwards. */
@@ -715,16 +719,30 @@ export interface PlayerSettings {
   visualizerIntensity: number;
 }
 
-export type TypographyFont = 'default' | 'system' | 'humanist' | 'serif' | 'mono';
+export type TypographyFont =
+  | 'default'
+  | 'system'
+  | 'humanist'
+  | 'serif'
+  | 'mono'
+  | 'display'
+  | 'slab';
 
 /**
- * The board clock's three looks: free on the board, a bordered card, or the
- * tracked monospace reading of a clock radio. Variety by choice, not one taste.
+ * The board clock's looks: free on the board, a bordered card, the tracked
+ * monospace reading of a clock radio, a stroked outline and a serif editorial
+ * line. Variety by choice, not one taste.
  */
-export type ClockStyle = 'bare' | 'card' | 'mono';
+export type ClockStyle = 'bare' | 'card' | 'mono' | 'outline' | 'classic';
 
 /** Which theme colour the time is drawn in. */
 export type ClockAccent = 'theme' | 'accent' | 'muted';
+
+/**
+ * Where the clock sits in its column. Left is the board's own rhythm; centred is
+ * the clean dashboard look; right mirrors it beside the board tools.
+ */
+export type ClockAlign = 'left' | 'center' | 'right';
 
 /**
  * Global text appearance: one scale for every UI size token and one curated

@@ -11,6 +11,8 @@ import { lifecycleCopy } from './i18n-lifecycle';
 import { currencyCopy } from './i18n-currency';
 import { sessionCopy } from './i18n-session';
 import { linkCopy } from './i18n-link';
+import { clockCopy } from './i18n-clock';
+import { turkishCopy } from './i18n-tr';
 import { sweepEs } from './i18n-sweep-es';
 import { sweepDe } from './i18n-sweep-de';
 import { sweepFr } from './i18n-sweep-fr';
@@ -21,9 +23,10 @@ export const LANGUAGES: ReadonlyArray<{ id: LanguageSetting; label: string }> = 
   { id: 'es', label: 'Español' },
   { id: 'de', label: 'Deutsch' },
   { id: 'fr', label: 'Français' },
+  { id: 'tr', label: 'Türkçe' },
 ];
 
-const SUPPORTED: ResolvedLanguage[] = ['en', 'es', 'de', 'fr'];
+const SUPPORTED: ResolvedLanguage[] = ['en', 'es', 'de', 'fr', 'tr'];
 
 export function normalizeLanguage(value: string | undefined): ResolvedLanguage {
   const base = (value ?? 'en').toLowerCase().split('-')[0];
@@ -50,7 +53,7 @@ export function languageLabel(id: LanguageSetting, t?: (key: string) => string):
 type Vars = Record<string, string | number>;
 
 /** English is the source language; every key is a complete English sentence. */
-const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>> = {
+const translations: Partial<Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>>> = {
   es: {
     Home: 'Inicio',
     'Add services here to display them.': 'Añade servicios aquí para mostrarlos.',
@@ -1308,7 +1311,7 @@ const translations: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, strin
   },
 };
 
-const supplement: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>> = {
+const supplement: Partial<Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>>> = {
   es: {
     'Open command palette': 'Abrir paleta de comandos',
     'Fictional element x529 · Kx': 'Elemento ficticio x529 · Kx',
@@ -1644,7 +1647,7 @@ const supplement: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>
 };
 
 /** Media prompts and the downloads-hub torrent controls. */
-const mediaAndTorrent: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>> = {
+const mediaAndTorrent: Partial<Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>>> = {
   es: {
     Microphone: 'Micrófono',
     Camera: 'Cámara',
@@ -2126,7 +2129,7 @@ function interpolate(template: string, vars?: Vars): string {
 }
 
 /** Copy for the persistent service engine: notifications, sessions, badges. */
-const serviceCopy: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>> = {
+const serviceCopy: Partial<Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>>> = {
   es: {
     AI: 'IA',
     Resources: 'Recursos',
@@ -2226,7 +2229,7 @@ const serviceCopy: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string
  * Vexium copy is kept separate because the assistant is a self-contained
  * surface: status, empty state, composer and runtime errors.
  */
-const assistantCopy: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>> = {
+const assistantCopy: Partial<Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>>> = {
   es: {
     'VEXIUM / LOCAL RUNTIME': 'VEXIUM / ENTORNO LOCAL',
     'A first-party assistant that talks to a model runtime on this machine. No account, no key, no cloud call: Kryvex only reaches loopback.': 'Un asistente propio que habla con un entorno de modelos en este equipo. Sin cuenta, sin clave y sin nube: Kryvex solo llega al loopback.',
@@ -2406,7 +2409,7 @@ const assistantCopy: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, stri
 /**
  * Rooms copy: hangout language, capture picker and presence labels.
  */
-const roomsCopy: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>> = {
+const roomsCopy: Partial<Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>>> = {
   es: {
     'Rooms': 'Salas',
     'ROOMS / PEER TO PEER': 'SALAS / ENTRE PARES',
@@ -2656,7 +2659,7 @@ const roomsCopy: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>>
  * Engine panel copy. Kept as its own catalogue so the Chromium settings read
  * like the rest of the interface in every shipped language.
  */
-const engineCopy: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>> = {
+const engineCopy: Partial<Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>>> = {
   es: {
     'Chromium engine': 'Motor Chromium',
     '{count} preferences differ from the Chromium defaults.':
@@ -2836,7 +2839,20 @@ const engineCopy: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>
   },
 };
 
+/**
+ * A per-language catalogue that a language may not have written yet.
+ *
+ * Turkish ships partial on purpose, so every block is read through this helper
+ * and a missing language contributes nothing instead of throwing.
+ */
+type Copy = Partial<Record<ResolvedLanguage, Record<string, string>>>;
+
+function pick(copy: Copy, language: ResolvedLanguage): Record<string, string> {
+  return copy[language] ?? {};
+}
+
 export function makeI18n(language: ResolvedLanguage): I18nValue {
+  const sweeps: Copy = { es: sweepEs, de: sweepDe, fr: sweepFr };
   const catalog =
     language === 'en'
       ? {}
@@ -2845,29 +2861,32 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           // pre-ratchet backlog stops falling back to English. Every newer
           // catalogue below overrides it, so a string never regresses to the
           // sweep's wording once a feature module owns it.
-          ...(language === 'es' ? sweepEs : language === 'de' ? sweepDe : sweepFr),
-          ...translations[language],
-          ...supplement[language],
-          ...mediaAndTorrent[language],
-          ...privacyCopy[language],
-          ...serviceCopy[language],
-          ...assistantCopy[language],
-          ...engineCopy[language],
-          ...roomsCopy[language],
-          ...galleryCopy[language],
+          ...pick(sweeps, language),
+          ...pick(translations, language),
+          ...pick(supplement, language),
+          ...pick(mediaAndTorrent, language),
+          ...pick(privacyCopy, language),
+          ...pick(serviceCopy, language),
+          ...pick(assistantCopy, language),
+          ...pick(engineCopy, language),
+          ...pick(roomsCopy, language),
+          ...pick(galleryCopy, language),
           // Newest feature copy wins: a key added here is defined once, not in
           // every language block above.
-          ...featureCopy[language],
-          ...toolsCopy[language],
-          ...modelsCopy[language],
-          ...browserCopy[language],
-          ...wellnessCopy[language],
-          ...playbackCopy[language],
-          ...homeToolsCopy[language],
-          ...lifecycleCopy[language],
-          ...currencyCopy[language],
-          ...sessionCopy[language],
-          ...linkCopy[language],
+          ...pick(featureCopy, language),
+          ...pick(toolsCopy, language),
+          ...pick(modelsCopy, language),
+          ...pick(browserCopy, language),
+          ...pick(wellnessCopy, language),
+          ...pick(playbackCopy, language),
+          ...pick(homeToolsCopy, language),
+          ...pick(lifecycleCopy, language),
+          ...pick(currencyCopy, language),
+          ...pick(sessionCopy, language),
+          ...pick(linkCopy, language),
+          ...pick(clockCopy, language),
+          // Turkish is written as one catalogue, so it lands last and wins.
+          ...(language === 'tr' ? turkishCopy : {}),
         };
   return {
     language,
@@ -2895,7 +2914,7 @@ export function extensionMessage(t: I18nValue['t'], message: string): string {
   return message;
 }
 
-const privacyCopy: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>> = {
+const privacyCopy: Partial<Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>>> = {
   es: {
     'Privacy protections': 'Privacidad reforzada',
     'Block fingerprinting': 'Bloquear huellas digitales',
@@ -3082,7 +3101,7 @@ export function useLocalizedTheme() {
  * Theme gallery: first-run previews and the Settings section. Kept in its own
  * map so the gallery can grow without touching the base catalogue.
  */
-const galleryCopy: Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>> = {
+const galleryCopy: Partial<Record<Exclude<ResolvedLanguage, 'en'>, Record<string, string>>> = {
   es: {
     'Pick a family to preview it on a mock workspace, then the theme you want.':
       'Elige una familia para verla en un espacio de trabajo simulado y luego el tema que quieras.',

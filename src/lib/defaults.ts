@@ -76,6 +76,8 @@ export const DEFAULT_HOME: HomeSettings = {
   clockStyle: 'bare',
   clockAccent: 'theme',
   clockFont: 'default',
+  clockScale: 100,
+  clockAlign: 'left',
   screenCaptures: [],
   guideSeen: false,
 };

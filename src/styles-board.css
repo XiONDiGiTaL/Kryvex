@@ -74,6 +74,13 @@
   gap: 12px;
 }
 
+/* The clock takes the free width so its alignment choice has room to mean
+   something; the tools keep their own width at the end of the row. */
+.home-board-top > .home-clock {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 /*
  * The board clock. Three looks, one structure: the style decides the framing,
  * `--clock-font` (set inline when a family was chosen) decides the face, and the
@@ -85,6 +92,19 @@
   flex-direction: column;
   gap: 2px;
   --clock-font: var(--font-sans);
+  /* 1 is the design size; the size control scales this, and the stylesheet's
+     clamp() still keeps a large clock inside a narrow board. */
+  --clock-scale: 1;
+}
+
+.home-clock.align-center {
+  align-items: center;
+  text-align: center;
+}
+
+.home-clock.align-right {
+  align-items: flex-end;
+  text-align: right;
 }
 
 .home-greeting {
@@ -96,7 +116,7 @@
 
 .home-time {
   font-family: var(--clock-font);
-  font-size: clamp(34px, 4.3vw, 54px);
+  font-size: calc(var(--clock-scale, 1) * clamp(34px, 4.3vw, 54px));
   font-weight: 300;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -112,7 +132,7 @@
 
 /* Bare: no frame, larger and lighter, the board's own type doing the work. */
 .home-clock.is-bare .home-time {
-  font-size: clamp(38px, 5vw, 62px);
+  font-size: calc(var(--clock-scale, 1) * clamp(38px, 5vw, 62px));
   font-weight: 200;
   letter-spacing: -0.035em;
   line-height: 0.95;
@@ -128,7 +148,43 @@
 }
 
 .home-clock.is-card .home-time {
-  font-size: clamp(30px, 3.6vw, 44px);
+  font-size: calc(var(--clock-scale, 1) * clamp(30px, 3.6vw, 44px));
+}
+
+/* Outline: the digits as a drawn line, for a board that wants shape without
+   weight. The stroke colour follows the accent class because it uses the text
+   colour, so the two settings still compose. */
+.home-clock.is-outline .home-time {
+  color: transparent;
+  -webkit-text-stroke: 1.2px var(--accent);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-size: calc(var(--clock-scale, 1) * clamp(36px, 4.6vw, 58px));
+}
+
+.home-clock.is-outline.accent-theme .home-time {
+  -webkit-text-stroke-color: var(--fg);
+}
+
+.home-clock.is-outline.accent-muted .home-time {
+  -webkit-text-stroke-color: var(--muted);
+}
+
+/* Classic: a serif reading with a hairline over it, the editorial look. */
+.home-clock.is-classic {
+  --clock-font: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+}
+
+.home-clock.is-classic .home-time {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: calc(var(--clock-scale, 1) * clamp(34px, 4.2vw, 52px));
+}
+
+.home-clock.is-classic .home-greeting {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 /* Mono: tracked capitals, a clock radio rather than a headline. */
@@ -185,6 +241,17 @@
   background: var(--bg);
   color: var(--fg);
   font-size: 11px;
+}
+
+.home-clock-scale {
+  width: 96px;
+  accent-color: var(--accent);
+}
+
+.home-clock-scale-value {
+  min-width: 34px;
+  font-size: 10px;
+  color: var(--muted);
 }
 
 .home-customize {
@@ -2688,6 +2755,37 @@ body[data-player-bar='1'] .media-dock.is-floating {
   font-size: 9px;
   letter-spacing: 0.08em;
 }
+
+/* The card's head controls: a quiet Add city beside the format switch. */
+.home-clock-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-clock-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 6px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+/* The search is a mode inside the card, so it gets a faint rule to separate it
+   from the clocks above it rather than the card's whole frame. */
+.home-clock-search {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.home-clock-cancel {
+  flex: none;
+}
+
 
 .home-clock-place span {
   overflow: hidden;

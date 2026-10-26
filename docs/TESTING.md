@@ -2661,3 +2661,108 @@ on a boolean now.
 - **The installed binary.** This ran against `pnpm build`.
 - **Reduced motion.** The stylesheet disables animation under
   `prefers-reduced-motion`, but the emulation was not switched on.
+
+## Dragging a pinned service onto the canvas (2026-10-26)
+
+The 0.9.4-hotfix.2 section above reported this drag as working. It did not: that
+harness dispatched `dragover` and `drop` inside the page, which skips the
+browser's own drag arbitration — and the arbitration was refusing every one of
+these drops.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer and main typecheck | `pnpm typecheck` | exit 0 |
+| Full suite | `npx vitest run` | **856/856** across 80 files; 6 new in `tests/service-drag.test.ts` |
+| Production build | `pnpm build` | exit 0 |
+
+### The cause, and how it was proved
+
+Chromium intersects the effect a drop target asks for with the source's
+`effectAllowed`, and a target asking for something the source never offered gets
+no `drop` event at all. The pinned row declared `move` (it is also reordered in
+place) while the canvas demanded `copy`, so the delivered `dragover` ended with
+the operation still `move` and the drop was cancelled before the shell could see
+it. A Services card declared `copy`, which is why the same canvas accepted that
+drag — the gesture only failed from the rail.
+
+A throwaway script (`.tmp-ws-drag.cjs`, deleted after the runs) launched the built
+app on a disposable profile and pushed a real drag through Chromium's pipeline
+with `Input.dispatchDragEvent`, carrying the rail's exact payload
+(`text/plain` + `application/x-kryvex-service`) and the operation mask that
+`effectAllowed` produces:
+
+- mask 16 (`move`, the rail as it was): `dragenter` and `dragover` delivered,
+  `dropEffect` stuck at `move`, **no `drop` event**, no window;
+- mask 1 (`copy`, a Services card): drop delivered, `dropEffect: copy`, a
+  680×473 window at the drop point;
+- mask 17 (`copyMove`, the rail after the fix): drop delivered, `dropEffect:
+  copy`, a 680×473 window;
+- mask 16 again, with the canvas now deriving its request: drop delivered as
+  `move`, a window. A move-only source can no longer be refused.
+
+### The rail's own drags
+
+The same script re-ran the two drags the rail already had, because the change
+touches the shared drop handlers:
+
+- a pinned row dropped on the row above it reordered to `Rail Two, Rail One`
+  with the operation staying `move`, so the reorder cursor is unchanged;
+- a Services card dropped on the rail pinned `Rail Two` (`Rail One, Rail Two`,
+  two rows) with the operation `copy`.
+
+### Not executed (do not treat as passing)
+
+- **A hand-driven drag.** CDP mouse events do not start a native drag in this
+  Electron build, so the drop was fed through the browser's drag pipeline rather
+  than by a moving pointer. The pipeline is where the effect is arbitrated, which
+  is the part that was broken.
+- **The installed binary.** This ran against `pnpm build`.
+
+## World clock card and board clock controls (2026-10-26)
+
+The clock's search became a mode, and the board clock gained size, alignment and
+two more looks. Verified on the built app with a disposable profile whose saved
+state was one city (`İzmir`), `clockStyle: outline`, `clockFont: mono`,
+`clockScale: 145` and `clockAlign: center`, read back through CDP:
+
+| Check | Result |
+| --- | --- |
+| Saved city with the search collapsed | The card showed `İzmir`, one row, the **Add city** button and no search field |
+| **Add city** opens the field | Field appeared, placeholder `Please enter a city`, focus landed in it |
+| Size reaches the digits | `145%` rendered the outline clock at **84.1 px** (58 px `clamp()` ceiling × 1.45); the **Fit** chip returned it to **58 px** |
+| Alignment reaches the layout | **Right** produced `align-right`, computed `align-items: flex-end` and `text-align: right` |
+| Closing the search | **Add city** returned and the field went away, leaving a clock rather than a search box |
+| Controls offered | Show the clock · Bare · Card · Clock radio · Outline · Classic · Theme · Accent · Muted · 70% · 85% · Fit · 120% · 145% · 180% · Left · Centre · Right |
+
+`pnpm typecheck` exit 0; `npx vitest run tests/i18n-coverage.test.ts
+tests/store.test.ts tests/home-widgets.test.ts` 57/57; `pnpm build` exit 0.
+The German and French words for `Position` are the same as English, so the
+control is keyed `Alignment` (`Ausrichtung`, `Alignement`) to keep the coverage
+ratchet honest.
+
+## Catalogue additions and Turkish (2026-10-26)
+
+Ten presets joined the catalogue (mail providers, Wikipedia, Weather.com, the
+marketplaces) and Turkish became the fifth UI language. The built app was
+opened on a disposable profile whose saved language was `tr`:
+
+| Check | Result |
+| --- | --- |
+| Locale | `document.documentElement.lang` = `tr` |
+| Home board | Greeting read **İyi günler** |
+| Services view | Heading **Servisler**; filter chips read **Tümü 5 · İletişim 2 · Üretkenlik 1 · Geliştirme 1 · AI 0 · Kaynaklar 0 · Medya 1 · Diğer 0** |
+| Settings → Language | **Türkçe** is in `LANGUAGES`, so the picker offers it |
+| Resolver | `normalizeLanguage('tr-TR')` → `tr`; `languageLabel('tr')` → `Türkçe` |
+
+Unit coverage: `tests/services.test.ts` now pins the ten new ids, Mailinator's
+public-inbox warning, the muted marketplaces, Wikipedia/Amazon categories and
+id uniqueness (17/17). `tests/i18n-coverage.test.ts` gained the Turkish
+ratchet (`TURKISH_BACKLOG` 1291, measured — only a fall) and a placeholder
+audit that walks **es, de, fr and tr** and fails if a translation drops or
+renames an interpolation token; all four pass today.
+
+Full suite **866/866** in 80 files; `pnpm typecheck` exit 0; `pnpm build` exit 0.
+
+Turkish is deliberately partial: the shell, board, clock, workspace, service
+controls, browser, player, rooms, emulator/disk and Vexium labels are
+translated and the long explanatory paragraphs still fall back to English.

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { makeI18n } from '../src/lib/i18n';
+import { languageLabel, makeI18n, normalizeLanguage } from '../src/lib/i18n';
 
 /**
  * Translation coverage.
@@ -255,6 +255,19 @@ const ADDED = [
   'Font',
   'Clock font',
   'Muted',
+  // The clock's size, placement and two more looks.
+  'Add a city to the world clock',
+  'Please enter a city',
+  'Close the city search',
+  'Size',
+  'Clock size',
+  'Fit',
+  'Alignment',
+  'Left',
+  'Centre',
+  'Right',
+  'Outline',
+  'Classic',
   'Window animation',
   'Subtle',
   'Bouncy',
@@ -283,5 +296,81 @@ describe('translation coverage', () => {
       const missing = ADDED.filter(key => t(key) === key);
       expect(missing, `${language} is missing ${missing.join(' | ')}`).toEqual([]);
     }
+  });
+});
+
+/**
+ * Turkish is the fifth UI language and the first that ships knowingly partial:
+ * the shell, board, workspace, service controls and clock are translated and
+ * everything else falls back to English. The ratchet keeps the untranslated
+ * remainder from growing while it is worked off.
+ */
+// Measured after the first Turkish pass: the shell, Home board, Workspace,
+// browser, player, rooms, capture and the clock are translated, and the long
+// explanatory copy is still English. Only lower this number.
+const TURKISH_BACKLOG = 1291;
+
+describe('Turkish', () => {
+  it('resolves a Turkish system locale to Turkish', () => {
+    expect(normalizeLanguage('tr-TR')).toBe('tr');
+    expect(languageLabel('tr')).toBe('Türkçe');
+  });
+
+  it('translates the furniture a reader meets first', () => {
+    const { t } = makeI18n('tr');
+    const required = [
+      'Home',
+      'Services',
+      'Browser',
+      'Workspace',
+      'Settings',
+      'Add',
+      'Close',
+      'Cancel',
+      'Save',
+      'Search',
+      'Weather',
+      'World clock',
+      'Widgets',
+      'Add service',
+      'Window animation',
+      'Please enter a city',
+      'Clock size',
+      'Alignment',
+      'Secret services',
+      'Minimize',
+      'Restore',
+    ];
+    expect(required.filter(key => t(key) === key)).toEqual([]);
+  });
+
+  it('never grows the untranslated set', () => {
+    const { t } = makeI18n('tr');
+    const missing = keys.filter(key => t(key) === key);
+    expect(missing.length).toBeLessThanOrEqual(TURKISH_BACKLOG);
+  });
+});
+
+/**
+ * A translation that drops or renames an interpolation token renders `{city}`
+ * literally or loses the value entirely. This is the cheapest way to catch a
+ * catalogue written by hand, and it covers every non-English language.
+ */
+describe('interpolation tokens', () => {
+  const tokens = (text: string) => new Set(text.match(/\{[a-zA-Z]+\}/g) ?? []);
+
+  it.each(['es', 'de', 'fr', 'tr'] as const)('are preserved in %s', language => {
+    const { t } = makeI18n(language);
+    const broken: string[] = [];
+    for (const key of keys) {
+      const value = t(key);
+      if (value === key) continue;
+      const wanted = tokens(key);
+      const found = tokens(value);
+      if (wanted.size !== found.size || [...wanted].some(token => !found.has(token))) {
+        broken.push(key);
+      }
+    }
+    expect(broken, `${language} drops a token in: ${broken.slice(0, 12).join(' | ')}`).toEqual([]);
   });
 });

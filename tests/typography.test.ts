@@ -42,9 +42,17 @@ describe('typography', () => {
       'humanist',
       'serif',
       'mono',
+      'display',
+      'slab',
     ]);
     expect(fontStackFor('default')).toBe('');
     expect(fontStackFor('mono')).toContain('monospace');
+    // Both additions are families that ship with the OS, never a download.
+    expect(fontStackFor('display')).toContain('Bahnschrift');
+    expect(fontStackFor('slab')).toContain('Rockwell');
+    for (const font of TYPOGRAPHY_FONTS) {
+      expect(/https?:/.test(font.stack)).toBe(false);
+    }
   });
 });
 

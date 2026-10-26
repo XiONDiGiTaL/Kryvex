@@ -122,6 +122,19 @@ older reachability rule so it can hang off-screen. Both are re-clamped on window
 resize, on a canvas resize and on a DPR change, because the persisted shape is
 CSS pixels.
 
+**Getting a service onto the canvas.** The bar's *Add service* opens the usual
+dialog with the Workspace as its target, and a drag drops the same way: a pinned
+row or a Services card let go over the canvas opens that service where the
+pointer landed, clamped to the surface. What makes the drag work is the effect
+it declares. Chromium intersects what a drop target asks for with the source's
+`effectAllowed`, and a target that asks for something never offered gets no drop
+at all — `dragover` arrives, the `drop` event never does, and the gesture looks
+broken rather than refused. A pinned row is the awkward one, because the same
+drag reorders the row where it stands (a `move`) or opens it here (a `copy`), so
+it declares `copyMove`, and `serviceDropEffect()` in `src/lib/service-drag.ts`
+derives the canvas's request from what the source actually allows (falling back
+to `move` for a move-only source) instead of demanding `copy`.
+
 **Close and minimize differ.** Closing removes the module from the live set, so
 the frame unmounts and the partition's guests are stopped; cookies stay on disk,
 so reopening is a visit rather than a sign-in. Minimizing keeps the guest mounted
@@ -243,6 +256,12 @@ Persistence rules:
   grow a widget past its cap or inject an unknown zone or kind. The calculator,
   capture card, countdowns and clock start switched off: only the clock, weather,
   guide and converter are on for a new workspace.
+- The board clock's look is five saved fields: `clockStyle` (`bare`, `card`,
+  `mono`, `outline`, `classic`), `clockAccent`, `clockFont`, `clockScale`
+  (70-180%, clamped on load) and `clockAlign` (`left`, `centre`, `right`). The
+  size multiplies the stylesheet's own `clamp()`, so a large clock still shrinks
+  on a narrow board instead of overflowing it, and the alignment applies inside
+  the column the clock already occupies rather than moving the board tools.
 - The water reminder reads `waterAt` on the day it belongs to. Logging a glass
   silences it for 90 minutes, because a nudge that survives the drink the user
   just logged reads as a stuck card rather than a reminder.

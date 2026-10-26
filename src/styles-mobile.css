@@ -211,7 +211,8 @@
   }
 
   .home-time {
-    font-size: 38px;
+    /* The size setting still applies on a narrow board. */
+    font-size: calc(var(--clock-scale, 1) * 38px);
   }
 
   .home-weather {

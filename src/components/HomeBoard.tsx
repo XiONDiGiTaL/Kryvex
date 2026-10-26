@@ -14,7 +14,15 @@ import type {
   WeatherResult,
 } from '../types';
 import { useI18n } from '../lib/i18n';
-import { CLOCK_ACCENTS, CLOCK_FONTS, CLOCK_STYLES, clockClasses, clockStyleVars } from '../lib/clock-style';
+import {
+  CLOCK_ACCENTS,
+  CLOCK_ALIGNS,
+  CLOCK_FONTS,
+  CLOCK_SCALE_STEPS,
+  CLOCK_STYLES,
+  clockClasses,
+  clockStyleVars,
+} from '../lib/clock-style';
 import {
   HOME_WIDGETS,
   HOME_WIDGET_FLAGS,
@@ -500,9 +508,15 @@ export function HomeBoard({
         <div className="home-board-top">
           {home.showBoardClock ? (
             <div
-              className={clockClasses(home.clockStyle, home.clockAccent, home.clockFont)}
-              style={clockStyleVars(home.clockFont) as React.CSSProperties}
+              className={clockClasses(
+                home.clockStyle,
+                home.clockAccent,
+                home.clockFont,
+                home.clockAlign,
+              )}
+              style={clockStyleVars(home.clockFont, home.clockScale) as React.CSSProperties}
               data-style={home.clockStyle}
+              data-align={home.clockAlign}
             >
               <span className="home-greeting">{t(greeting(now.getHours()))}</span>
               <strong className="home-time">{clock}</strong>
@@ -595,6 +609,43 @@ export function HomeBoard({
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="home-clock-style-row">
+                <span className="mono home-clock-style-label">{t('Size')}</span>
+                <input
+                  className="home-clock-scale"
+                  type="range"
+                  min={70}
+                  max={180}
+                  step={5}
+                  value={home.clockScale}
+                  aria-label={t('Clock size')}
+                  onChange={event => onUpdate({ clockScale: Number(event.target.value) })}
+                />
+                <span className="mono home-clock-scale-value">{home.clockScale}%</span>
+                {CLOCK_SCALE_STEPS.map(step => (
+                  <button
+                    key={step}
+                    className={`chip-btn ${home.clockScale === step ? 'is-active' : ''}`}
+                    aria-pressed={home.clockScale === step}
+                    onClick={() => onUpdate({ clockScale: step })}
+                  >
+                    {step === 100 ? t('Fit') : `${step}%`}
+                  </button>
+                ))}
+              </div>
+              <div className="home-clock-style-row">
+                <span className="mono home-clock-style-label">{t('Alignment')}</span>
+                {CLOCK_ALIGNS.map(entry => (
+                  <button
+                    key={entry.id}
+                    className={`chip-btn ${home.clockAlign === entry.id ? 'is-active' : ''}`}
+                    aria-pressed={home.clockAlign === entry.id}
+                    onClick={() => onUpdate({ clockAlign: entry.id })}
+                  >
+                    {t(entry.label)}
+                  </button>
+                ))}
               </div>
             </div>
             {HOME_WIDGETS.map(id => {

@@ -36,7 +36,7 @@ import type {
 } from '../types';
 import { LANGUAGE_SETTINGS } from '../types';
 import { BRAND_ICONS } from './brand-icons';
-import { isClockAccent, isClockStyle } from './clock-style';
+import { isClockAccent, isClockAlign, isClockStyle, sanitizeClockScale } from './clock-style';
 import { sanitizeChromium } from './chromium';
 import { isTypographyFont } from './typography';
 import {
@@ -456,6 +456,8 @@ export function sanitizeHome(raw: unknown): HomeSettings {
     clockStyle: isClockStyle(raw.clockStyle) ? raw.clockStyle : base.clockStyle,
     clockAccent: isClockAccent(raw.clockAccent) ? raw.clockAccent : base.clockAccent,
     clockFont: isTypographyFont(raw.clockFont) ? raw.clockFont : base.clockFont,
+    clockScale: sanitizeClockScale(raw.clockScale),
+    clockAlign: isClockAlign(raw.clockAlign) ? raw.clockAlign : base.clockAlign,
     screenCaptures: sanitizeScreenCaptures(raw.screenCaptures),
     guideSeen: raw.guideSeen === true || raw.momentumSeen === true,
   };

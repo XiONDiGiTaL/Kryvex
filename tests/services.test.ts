@@ -159,3 +159,38 @@ describe('starterState', () => {
   });
 
 });
+
+describe('catalogue additions', () => {
+  it('offers the mail providers and marketplaces people add by hand', () => {
+    const ids = SERVICE_PRESETS.map(preset => preset.id);
+    for (const id of [
+      'protonmail',
+      'outlook',
+      'mailcom',
+      'mailinator',
+      'wikipedia',
+      'weathercom',
+      'amazon',
+      'ebay',
+      'temu',
+      'aliexpress',
+    ]) {
+      expect(ids).toContain(id);
+    }
+  });
+
+  it('keeps every added preset honest about what it is', () => {
+    const byId = (id: string) => SERVICE_PRESETS.find(preset => preset.id === id);
+    // Public inboxes: the note has to say so, because the service cannot.
+    expect(byId('mailinator')?.note).toContain('public');
+    // A feed that autoplays must not start talking on its own.
+    expect(byId('temu')?.muted).toBe(true);
+    expect(byId('aliexpress')?.muted).toBe(true);
+    expect(byId('amazon')?.muted).toBeUndefined();
+    expect(byId('wikipedia')?.category).toBe('resources');
+    expect(byId('amazon')?.category).toBe('other');
+    // The catalogue has no duplicate ids.
+    const ids = SERVICE_PRESETS.map(preset => preset.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});

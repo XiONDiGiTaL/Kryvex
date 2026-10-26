@@ -37,6 +37,18 @@ export const TYPOGRAPHY_FONTS: Array<{ id: TypographyFont; label: string; stack:
     label: 'Monospace',
     stack: "'Cascadia Mono', 'JetBrains Mono', Consolas, ui-monospace, monospace",
   },
+  // Both extra families ship with Windows and macOS; nothing is downloaded, so
+  // they are free to use and available offline like the rest of the list.
+  {
+    id: 'display',
+    label: 'Display',
+    stack: "'Bahnschrift', 'DIN Alternate', 'Franklin Gothic Medium', 'Segoe UI Variable Display', 'Arial Narrow', sans-serif",
+  },
+  {
+    id: 'slab',
+    label: 'Slab',
+    stack: "'Rockwell', 'Bookman Old Style', 'Roboto Slab', Georgia, serif",
+  },
 ];
 
 export const MIN_TEXT_SCALE = 85;

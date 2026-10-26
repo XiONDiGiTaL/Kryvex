@@ -1,0 +1,55 @@
+/**
+ * Copy for the world clock card and the board clock's size, position and style
+ * controls. English stays the source; this module keeps the other three locales
+ * in step without growing the per-language blocks in `i18n.tsx`.
+ */
+export const clockCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
+  es: {
+    'Add a city to the world clock': 'Añadir una ciudad al reloj mundial',
+    'Please enter a city': 'Escribe una ciudad',
+    'Close the city search': 'Cerrar la búsqueda de ciudad',
+    Size: 'Tamaño',
+    'Clock size': 'Tamaño del reloj',
+    Fit: 'Ajuste',
+    Alignment: 'Alineación',
+    Left: 'Izquierda',
+    Centre: 'Centro',
+    Right: 'Derecha',
+    Outline: 'Contorno',
+    Classic: 'Clásico',
+    Display: 'Display',
+    Slab: 'Slab',
+  },
+  de: {
+    'Add a city to the world clock': 'Eine Stadt zur Weltuhr hinzufügen',
+    'Please enter a city': 'Bitte eine Stadt eingeben',
+    'Close the city search': 'Stadtsuche schließen',
+    Size: 'Größe',
+    'Clock size': 'Uhrgröße',
+    Fit: 'Standard',
+    Alignment: 'Ausrichtung',
+    Left: 'Links',
+    Centre: 'Mitte',
+    Right: 'Rechts',
+    Outline: 'Kontur',
+    Classic: 'Klassisch',
+    Display: 'Display',
+    Slab: 'Slab',
+  },
+  fr: {
+    'Add a city to the world clock': 'Ajouter une ville à l’horloge mondiale',
+    'Please enter a city': 'Veuillez saisir une ville',
+    'Close the city search': 'Fermer la recherche de ville',
+    Size: 'Taille',
+    'Clock size': 'Taille de l’horloge',
+    Fit: 'Ajusté',
+    Alignment: 'Alignement',
+    Left: 'Gauche',
+    Centre: 'Au centre',
+    Right: 'Droite',
+    Outline: 'Contour',
+    Classic: 'Classique',
+    Display: 'Display',
+    Slab: 'Slab',
+  },
+};
