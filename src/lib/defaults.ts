@@ -17,6 +17,7 @@ import {
   DEFAULT_WATER_GOAL_ML,
 } from './wellness';
 import { HOME_WIDGET_DEFAULT_AREAS, HOME_WIDGET_DEFAULT_ORDER } from './home-widgets';
+import { DEFAULT_SECTION_ORDER } from './home-sections';
 
 export const DEFAULT_SEARCH_REGION: SearchRegion = 'global';
 
@@ -60,6 +61,7 @@ export const DEFAULT_HOME: HomeSettings = {
   currencyTo: 'EUR',
   widgetOrder: [...HOME_WIDGET_DEFAULT_ORDER],
   widgetAreas: { ...HOME_WIDGET_DEFAULT_AREAS },
+  sectionOrder: [...DEFAULT_SECTION_ORDER],
   wellness: DEFAULT_WELLNESS,
   city: '',
   place: '',
@@ -70,6 +72,7 @@ export const DEFAULT_HOME: HomeSettings = {
   countdowns: [],
   worldClocks: [],
   clockHour12: false,
+  worldClockHour12: false,
   // The board clock starts free of its box: the boxed card is one of the three
   // looks, not the default.
   showBoardClock: true,

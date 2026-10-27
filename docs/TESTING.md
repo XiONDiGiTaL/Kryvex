@@ -2998,6 +2998,60 @@ harness deliberately cannot:
 - **Other platforms.** The pinned build is Windows x64, measured from the
   release asset. Nothing else was run.
 
+## The shell batch after the built-in tools (`pnpm verify:shell-batch`)
+
+Five small behaviours the shell was asked for, checked against the built app in a
+disposable profile over CDP. Each check is written so that the thing it asserts
+is the thing a person would notice: a panel that stays open where it should not,
+one clock changing the other's format, a caret that blinks on a card nobody
+clicked, or a room that is popped out and cannot be dragged.
+
+| Check | Result |
+| --- | --- |
+| The sliders button opens the options panel | PASS |
+| A press inside the panel leaves it open | PASS |
+| A press outside the panel closes it | PASS |
+| The world clock switch changes its own rows | PASS (`13:53` → `1:53 PM`) |
+| The world clock switch leaves the board clock alone | PASS (`06:53`) |
+| The board clock switch changes the board clock | PASS (`06:53` → `06:53 AM`) |
+| The board clock switch leaves the world clock alone | PASS |
+| The calculator shows no caret before it is clicked | PASS |
+| The caret blinks while the calculator has focus | PASS (`kx-calc-caret 1.06s`) |
+| The caret goes when the calculator loses focus | PASS |
+| The board offers an arrow to move a Home section up | PASS |
+| The page is drawn in the new order | PASS (`… Quick launch → Recent activity → Startup` ⇒ `… Quick launch → Startup → Recent activity`) |
+| The picker closes again, leaving the new order in place | PASS |
+| The Rooms view offers a pop-out | PASS |
+| The window is titled Rooms | PASS |
+| The window holds the room itself, not a copy of the page | PASS |
+| The window carries minimize, maximize and close | PASS |
+| The window opens inside the viewport | PASS (`594, 274` of `1440×900`) |
+| The route says where the room went | PASS |
+| The pop-out drags by its title bar | PASS (`40, 35`) |
+| *Bring it back* returns the room to its own view | PASS |
+| No renderer exception | PASS |
+
+Last run: **22/22 PASS**.
+
+### The clock's outline on a theme that has no `--fg`
+
+The outline style stroked its digits with `var(--fg)`, a token no theme defines:
+the declaration was invalid at computed-value time, `-webkit-text-stroke-color`
+fell back to `currentColor`, and the digits are `transparent` by design — so the
+clock was invisible on every theme, not only on the one it was reported on. The
+five `var(--fg)` uses in the stylesheets now name `var(--ink)`, the token the
+theme runtime actually sets.
+
+### What is not covered
+
+- **A region capture.** Implemented since this batch and covered by
+  `pnpm verify:capture-window`, which grew the whole area path (see the section
+  below this one).
+- **Reordering with the mouse.** The Home section arrows are exercised by a
+  press on the real button; dragging a block to a new place is not implemented.
+- **A second display.** The pop-out opens on the primary display's viewport;
+  moving a Kryvex window to another monitor is not part of this harness.
+
 ## The dragged capture area (`pnpm verify:capture-window`)
 
 The capture window's own harness gained the area path, because the crop is the

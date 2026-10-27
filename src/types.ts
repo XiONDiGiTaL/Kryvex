@@ -555,6 +555,12 @@ export type HomeWidgetId =
   | 'clock';
 export type HomeWidgetArea = 'main' | 'side';
 
+/**
+ * The Home view's own blocks, in the order a reader can rearrange them: the
+ * common actions, the quick launcher, the recent list and the startup summary.
+ */
+export type HomeSectionId = 'actions' | 'launch' | 'recent' | 'startup';
+
 /** The Home board is an overlay, not a new start page: it sits over the theme. */
 export interface HomeSettings {
   showBoard: boolean;
@@ -576,6 +582,8 @@ export interface HomeSettings {
   widgetOrder: HomeWidgetId[];
   /** Which column each widget occupies. */
   widgetAreas: Record<HomeWidgetId, HomeWidgetArea>;
+  /** The order of the Home view's blocks, top to bottom. */
+  sectionOrder: HomeSectionId[];
   wellness: WellnessSettings;
   city: string;
   /** Country or region label returned by geocoding, for the city chip. */
@@ -588,8 +596,14 @@ export interface HomeSettings {
   countdowns: HomeCountdown[];
   /** Up to four places; an empty list shows this machine and UTC. */
   worldClocks: WorldClockCity[];
-  /** 12-hour rows when true, 24-hour when false. */
+  /** 12-hour main clock when true, 24-hour when false. */
   clockHour12: boolean;
+  /**
+   * The world clock's own format. It is a separate field on purpose: a board
+   * clock read at a glance and a list of cities a person compares are two
+   * readers, and changing one must not change the other.
+   */
+  worldClockHour12: boolean;
   /** The board's own clock, the first thing the board draws. */
   showBoardClock: boolean;
   /** How that clock is laid out: no box, a card, or tracked mono. */

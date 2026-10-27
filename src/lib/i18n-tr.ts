@@ -105,6 +105,7 @@ export const turkishCopy: Record<string, string> = {
   'Move {name} down': '{name} aşağı taşı',
   'More settings': 'Diğer ayarlar',
   'Board settings': 'Pano ayarları',
+  'Home sections': 'Ana sayfa bölümleri',
 
   // Workspace windows
   'Add services here to display them.': 'Görüntülemek için servisleri buraya ekleyin.',
@@ -163,6 +164,7 @@ export const turkishCopy: Record<string, string> = {
   Outline: 'Ana hat',
   Classic: 'Klasik',
   'Clock style': 'Saat stili',
+  'Time format': 'Saat biçimi',
   'Show the clock': 'Saati göster',
   Bare: 'Sade',
   Card: 'Kart',
@@ -346,6 +348,11 @@ export const turkishCopy: Record<string, string> = {
   'Mute sound': 'Sesi kapat',
   Fullscreen: 'Tam ekran',
   'Pop out': 'Ayrı pencereye al',
+  'Rooms is open in a window.': 'Odalar bir pencerede açık.',
+  'The room keeps running there while you use the rest of Kryvex.':
+    'Sen Kryvex’in geri kalanını kullanırken oda orada çalışmaya devam eder.',
+  'Bring it back': 'Geri getir',
+  'Kryvex view': 'Kryvex görünümü',
   Playlist: 'Çalma listesi',
   'Open the player': 'Oynatıcıyı aç',
   'Play {name}': '{name} oynat',

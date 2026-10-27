@@ -147,6 +147,36 @@ describe('sanitizeState', () => {
     expect(sanitizeHome({}).screenCaptures).toEqual([]);
   });
 
+  it('splits the two clocks without losing the format a file was read in', () => {
+    // One switch served both clocks before they were split, so a file that only
+    // carries the old field keeps its world clock in the format it was read in.
+    const legacy = sanitizeHome({ clockHour12: true });
+    expect(legacy.clockHour12).toBe(true);
+    expect(legacy.worldClockHour12).toBe(true);
+
+    const split = sanitizeHome({ clockHour12: true, worldClockHour12: false });
+    expect(split.clockHour12).toBe(true);
+    expect(split.worldClockHour12).toBe(false);
+
+    const fresh = sanitizeHome({});
+    expect(fresh.clockHour12).toBe(false);
+    expect(fresh.worldClockHour12).toBe(false);
+  });
+
+  it('keeps a saved Home section order and repairs a broken one', () => {
+    expect(sanitizeHome({ sectionOrder: ['recent', 'startup', 'actions', 'launch'] }).sectionOrder)
+      .toEqual(['recent', 'startup', 'actions', 'launch']);
+    // An unknown block is dropped and anything missing is appended, so the page
+    // is always drawn from a complete list.
+    expect(sanitizeHome({ sectionOrder: ['launch', 'nope'] }).sectionOrder).toEqual([
+      'launch',
+      'actions',
+      'recent',
+      'startup',
+    ]);
+    expect(sanitizeHome({}).sectionOrder).toEqual(['actions', 'launch', 'recent', 'startup']);
+  });
+
   it('heals the old 0,0 default that builds saved for an unset location', () => {
     expect(sanitizeHome({ city: '', place: '', latitude: 0, longitude: 0 }).latitude).toBeNull();
     // A named place keeps its coordinates, including one at the equator.

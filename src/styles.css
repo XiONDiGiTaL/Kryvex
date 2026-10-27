@@ -1774,7 +1774,7 @@ kbd {
 
 .workspace-motion-row .btn.is-active {
   border-color: var(--accent);
-  color: var(--fg);
+  color: var(--ink);
 }
 
 .workspace-canvas {

@@ -2109,6 +2109,18 @@ body[data-player-bar='1'] .app-main {
   min-height: 200px;
 }
 
+/* Built-in tool windows reuse the service window chrome; the body only needs
+   to hold a scrolling view instead of a guest. */
+.tool-window-body {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.tool-window-body > .view {
+  min-height: 100%;
+}
+
 .preset-chip.is-tool {
   gap: 8px;
 }

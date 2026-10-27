@@ -232,9 +232,13 @@ so the rail highlights on `types` and reads the id only on drop.
 ## Options panel
 
 The sliders button on a service card or in a module's toolbar opens the options
-panel (`src/components/OptionsPopover.tsx`). It is a popover, not a menu: it
-holds switches, so an outside click does not dismiss it — it closes on its own
-trigger, on Escape, or on the close button, and only one is open at a time.
+panel (`src/components/OptionsPopover.tsx`). It closes four ways: its own
+trigger, either close control, `Escape`, or a press anywhere outside it. The
+outside test is a capture-phase `pointerdown` with a containment check, so a
+press on a switch inside the panel — or on the trigger that opened it — is not
+an outside press and cannot swallow a toggle. Only one panel is open at a time.
+A press that lands inside a service's own page never reaches the shell, so the
+panel also closes itself when the view behind it changes.
 While open it sits above the service canvas (`z-index: 70`, toolbar `20`) so a
 webview can never paint over the switches that belong to it.
 

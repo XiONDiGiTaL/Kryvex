@@ -5,12 +5,14 @@ import { Icon } from './ui';
 /**
  * The options popover behind the sliders button.
  *
- * It is a popover, not a menu: it holds switches and fields the user is reading
- * and clicking, so an outside click does not dismiss it. Losing the panel
- * halfway through a toggle is worse than one extra click, and a settings panel
- * that vanishes when the pointer lands anywhere else reads as a bug. It closes
- * on its own trigger, on Escape, or on the close button, and only one panel is
- * open at a time.
+ * It closes four ways: its own trigger, either close control, Escape, or a press
+ * anywhere outside it — including another card's trigger or the page behind it,
+ * which is how a person expects a settings panel to behave. A press inside the
+ * panel, or on the trigger that opened it, is not an outside press, so a toggle
+ * is never lost halfway through. Only one panel is open at a time.
+ *
+ * A press that lands on a service's own page cannot reach this renderer at all,
+ * so the panel also closes itself when the view behind it changes.
  *
  * While it is open it paints above the canvas, so a webview can never slide over
  * the switches that belong to the page it is showing.
@@ -52,13 +54,23 @@ export function OptionsPopover({
       wrapper.current?.querySelector<HTMLElement>('.icon-btn')?.focus();
     };
     const closeSelf = () => setOpen(false);
+    // Capture phase, so the press is judged before any handler inside the page
+    // can stop it from travelling, and the containment test keeps the trigger
+    // and the panel itself out of the "outside" set.
+    const onOutsidePress = (event: Event) => {
+      const target = event.target as Node | null;
+      if (target && wrapper.current?.contains(target)) return;
+      setOpen(false);
+    };
     document.addEventListener(PANEL_OPEN_EVENT, closeOthers);
     document.addEventListener(OPTIONS_CLOSE_EVENT, closeSelf);
     document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onOutsidePress, true);
     return () => {
       document.removeEventListener(PANEL_OPEN_EVENT, closeOthers);
       document.removeEventListener(OPTIONS_CLOSE_EVENT, closeSelf);
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onOutsidePress, true);
     };
   }, [open, panelId]);
 
@@ -72,7 +84,12 @@ export function OptionsPopover({
     <div
       className={`service-quick is-${variant} ${open ? 'is-open' : ''}`}
       ref={wrapper}
-      onClick={event => event.stopPropagation()}
+      onClick={event => {
+        // A press inside the panel must not reach the card behind it, which
+        // would open the service. The outside-press test does its own
+        // containment check, so it does not depend on this.
+        event.stopPropagation();
+      }}
     >
       <button
         className="icon-btn"

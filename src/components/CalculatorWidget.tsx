@@ -50,6 +50,9 @@ export function CalculatorWidget() {
   const [expression, setExpression] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  // The card takes the keyboard, so it shows a caret only while it holds it: a
+  // caret that blinks on a calculator nobody has clicked belongs to no field.
+  const [focused, setFocused] = useState(false);
 
   function press(key: string) {
     if (key === 'AC') {
@@ -105,6 +108,17 @@ export function CalculatorWidget() {
         'Click the calculator, then type: digits, operators, Enter to evaluate, Backspace to delete and Escape to clear.',
       )}
       onKeyDown={onKeyDown}
+      /**
+       * A press anywhere on the card takes the keyboard, including a press on a
+       * key: otherwise focus stays on the button that was pressed and the next
+       * typed digit would land on that button instead of the display.
+       */
+      onPointerDown={event => {
+        const node = event.currentTarget;
+        if (document.activeElement !== node) node.focus({ preventScroll: true });
+      }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
     >
       <div className="home-card-head">
         <span className="mono">{t('CALCULATOR')}</span>
@@ -114,7 +128,10 @@ export function CalculatorWidget() {
         {result !== null || failed ? (
           <span className="mono home-calc-expression">{expression || '0'}</span>
         ) : null}
-        <strong className={failed ? 'is-error' : ''}>{shown}</strong>
+        <span className="home-calc-value">
+          <strong className={failed ? 'is-error' : ''}>{shown}</strong>
+          {focused ? <span className="home-calc-caret" aria-hidden="true" /> : null}
+        </span>
       </div>
       <div className="home-calc-keys">
         {KEYS.map(item => (

@@ -33,8 +33,25 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 The three built-in tools are in and verified end to end — Arcade (x535, the
 xiondigital.net arcade in its own persistent partition), File Forge (x536,
 images, PDFs, data and batch rename behind one file boundary) and Canvas (x537,
-a vector sheet with undo, exports and a sticky-note handoff). `pnpm verify:inhouse`
-drives 18 checks against them.
+a vector sheet with undo, exports and a sticky-note handoff) — and all three can
+be placed as workspace windows from *Add service*. `pnpm verify:inhouse` drives
+29 checks against them.
+
+On top of that, this batch changed the shell itself:
+
+- the service options panel now closes on a press outside it;
+- the world clock and the board clock each own their 12/24-hour switch;
+- the clock's outline style is visible again (it stroked with `--fg`, a token no
+  theme defines, so the transparent digits had nothing to draw);
+- the centred clock sits a little right of its column, where the eye expects it;
+- the calculator shows a caret only while it holds the keyboard;
+- Rooms pops out into a window over the app and comes back with *Bring it back*;
+- the Home view's four blocks are reorderable from the board's own controls;
+
+`pnpm verify:shell-batch` covers the shell changes with 22 checks. Still open
+from the same request: an Android companion app for Kyvex Link and the deeper
+File Forge groups (audio conversion, PDF pages to images). See `docs/BACKLOG.md`.
+
 The dragged crop region followed in the same 0.9.5 line, and the screen capture
 card now offers **Whole target** (the default, unchanged) or **An area**. The area
 is drawn on a frozen frame — the target is armed, one frame is grabbed, and the

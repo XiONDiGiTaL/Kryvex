@@ -85,6 +85,7 @@ import { isThemeId, sanitizeCustomTheme } from './themes';
 import { hostOf, isHttpUrl } from './url';
 import { sanitizeFeeds } from './rss';
 import { normalizeWidgetAreas, normalizeWidgetOrder } from './home-widgets';
+import { normalizeSectionOrder } from './home-sections';
 import { resolveAssistantSettings } from './vexium-core';
 import { resolveLexiumEngine } from './lexium';
 
@@ -446,11 +447,16 @@ export function sanitizeHome(raw: unknown): HomeSettings {
     // both are derived from the registry defaults instead of being dropped.
     widgetOrder: normalizeWidgetOrder(raw.widgetOrder),
     widgetAreas: normalizeWidgetAreas(raw.widgetAreas),
+    sectionOrder: normalizeSectionOrder(raw.sectionOrder),
     unit: raw.unit === 'f' ? 'f' : 'c',
     notes: migrateCaptures(sanitizeNotes(raw.notes), raw.captures),
     countdowns: sanitizeCountdowns(raw.countdowns),
     worldClocks: sanitizeWorldClocks(raw.worldClocks),
     clockHour12: raw.clockHour12 === true,
+    // The two clocks shared one switch before they were split, so a file that
+    // only has the old field keeps its world clock in the format it was read in.
+    worldClockHour12:
+      raw.worldClockHour12 === undefined ? raw.clockHour12 === true : raw.worldClockHour12 === true,
     // The clock predates these fields, so an older file keeps showing it; the
     // look falls back to the default rather than to a value nobody chose.
     showBoardClock: raw.showBoardClock === undefined ? base.showBoardClock : raw.showBoardClock === true,

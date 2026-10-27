@@ -62,6 +62,11 @@ export const sessionCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
     'Stream size': 'Tamaño de la transmisión',
     'Fullscreen': 'Pantalla completa',
     'Pop out': 'Abrir aparte',
+    'Rooms is open in a window.': 'Salas está abierto en una ventana.',
+    'The room keeps running there while you use the rest of Kryvex.':
+      'La sala sigue funcionando allí mientras usas el resto de Kryvex.',
+    'Bring it back': 'Traerlo de vuelta',
+    'Kryvex view': 'Vista de Kryvex',
     'POPPED OUT': 'ABIERTO APARTE',
     'This build keeps the stream docked; fullscreen gives it the whole window.':
       'Esta versión mantiene la transmisión acoplada; la pantalla completa le da toda la ventana.',
@@ -163,6 +168,11 @@ export const sessionCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
     'Stream size': 'Streamgröße',
     'Fullscreen': 'Vollbild',
     'Pop out': 'Herauslösen',
+    'Rooms is open in a window.': 'Räume ist in einem Fenster geöffnet.',
+    'The room keeps running there while you use the rest of Kryvex.':
+      'Der Raum läuft dort weiter, während du den Rest von Kryvex nutzt.',
+    'Bring it back': 'Zurückholen',
+    'Kryvex view': 'Kryvex-Ansicht',
     'POPPED OUT': 'HERAUSGELÖST',
     'This build keeps the stream docked; fullscreen gives it the whole window.':
       'Diese Version hält den Stream angedockt; im Vollbild füllt er das ganze Fenster.',
@@ -263,6 +273,11 @@ export const sessionCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
     'Stream size': 'Taille du flux',
     'Fullscreen': 'Plein écran',
     'Pop out': 'Détacher',
+    'Rooms is open in a window.': 'Salons est ouvert dans une fenêtre.',
+    'The room keeps running there while you use the rest of Kryvex.':
+      'Le salon continue d’y tourner pendant que vous utilisez le reste de Kryvex.',
+    'Bring it back': 'Le ramener',
+    'Kryvex view': 'Vue Kryvex',
     'POPPED OUT': 'DÉTACHÉ',
     'This build keeps the stream docked; fullscreen gives it the whole window.':
       'Cette version garde le flux ancré ; le plein écran lui donne toute la fenêtre.',

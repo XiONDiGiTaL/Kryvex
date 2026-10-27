@@ -6,6 +6,7 @@
 export const homeToolsCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
   es: {
     Calculator: 'Calculadora',
+    'Home sections': 'Secciones de inicio',
     CALCULATOR: 'CALCULADORA',
     'Currency converter': 'Conversor de divisas',
     CURRENCY: 'DIVISAS',
@@ -142,6 +143,7 @@ export const homeToolsCopy: Record<'es' | 'de' | 'fr', Record<string, string>> =
   },
   de: {
     Calculator: 'Taschenrechner',
+    'Home sections': 'Startseiten-Bereiche',
     CALCULATOR: 'TASCHENRECHNER',
     'Currency converter': 'Währungsrechner',
     CURRENCY: 'WÄHRUNG',
@@ -278,6 +280,7 @@ export const homeToolsCopy: Record<'es' | 'de' | 'fr', Record<string, string>> =
   },
   fr: {
     Calculator: 'Calculatrice',
+    'Home sections': 'Sections de l’accueil',
     CALCULATOR: 'CALCULATRICE',
     'Currency converter': 'Convertisseur de devises',
     CURRENCY: 'DEVISES',

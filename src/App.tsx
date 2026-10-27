@@ -86,6 +86,8 @@ import { Assistant } from './views/Assistant';
 import { Arcade } from './views/Arcade';
 import { FileForge } from './views/FileForge';
 import { Canvas } from './views/Canvas';
+import { ToolWindowBoard } from './components/ToolWindowBoard';
+import { toolWindowId, viewWindowId, type ViewWindowId } from './lib/tool-windows';
 import { Link } from './views/Link';
 import { Rooms } from './views/Rooms';
 import { Browser, type BrowserPanel } from './views/Browser';
@@ -97,6 +99,9 @@ interface Route {
   query: URLSearchParams;
   key: string;
 }
+
+/** The one view the shell can pop out into its own window. */
+const ROOMS_VIEW: ViewWindowId = 'rooms';
 
 function parseHash(hash: string): Route {
   const raw = hash.replace(/^#\/?/, '');
@@ -526,6 +531,21 @@ export default function App() {
   );
 
   /**
+   * Opens one of Kryvex's own tools as a window on the Workspace surface.
+   *
+   * A tool has no service record, so nothing is added to the service list and
+   * nothing is marked as opened: the window is the whole of it, and closing it
+   * leaves no trace beyond the sheet Canvas keeps for the session.
+   */
+  const openToolInWorkspace = useCallback(
+    (tool: SecretToolId, at?: { x: number; y: number }) => {
+      setWindows(current => placeOnCanvas(current, toolWindowId(tool), windowSpace(), at));
+      navigate('workspace');
+    },
+    [navigate, windowSpace],
+  );
+
+  /**
    * Canvas can hand its typed words to the Home board.
    *
    * The board caps its list at forty notes, so a sheet that would push past the
@@ -563,10 +583,14 @@ export default function App() {
     [pushToast, state.settings.home.notes, t],
   );
 
-  // A closed module cannot leave a window behind; the record goes with it.
+  // A closed module cannot leave a window behind; the record goes with it. A
+  // tool window has no service record to close, so it is not collected here:
+  // its own controls are what end it.
   useEffect(() => {
     setWindows(current => {
-      const stale = Object.keys(current).filter(id => !openIds.includes(id));
+      const stale = Object.keys(current).filter(
+        id => !id.startsWith('tool:') && !openIds.includes(id),
+      );
       if (stale.length === 0) return current;
       return stale.reduce((next, id) => closeWindow(next, id), current);
     });
@@ -581,6 +605,26 @@ export default function App() {
     const reflow = () => setWindows(current => clampWindows(current, spaceRef.current()));
     window.addEventListener('resize', reflow);
     return () => window.removeEventListener('resize', reflow);
+  }, []);
+
+  /**
+   * Whether the room is currently in a window rather than on its route.
+   *
+   * It is read from the same map the service and tool windows live in, so a view
+   * window stacks, drags, minimizes and closes through the code that already
+   * does all of that. The route then says where the room went instead of drawing
+   * a second copy of it: one room, one session, two places it can be shown.
+   */
+  const roomsPopped = Boolean(windows[viewWindowId(ROOMS_VIEW)]);
+
+  /** Pops Rooms out of the route and into a window over the app. */
+  const popOutRooms = useCallback(() => {
+    setWindows(current => floatWindow(current, viewWindowId(ROOMS_VIEW), windowSpace()));
+  }, [windowSpace]);
+
+  /** Puts it back in its own view. */
+  const dockRooms = useCallback(() => {
+    setWindows(current => closeWindow(current, viewWindowId(ROOMS_VIEW)));
   }, []);
 
   /** Detaches the open module into a window over the rest of the app. */
@@ -611,6 +655,14 @@ export default function App() {
     // Unmounting the frame ends the guest normally; the main process also ends
     // any guest that outlived its renderer, the same way a forced stop does.
     void window.kryvex?.serviceStop(partitionFor(id)).catch(() => 0);
+  }, []);
+
+  /**
+   * Closing a tool window is the whole of closing it: there is no guest to stop
+   * and no service to remove, because the tool draws itself.
+   */
+  const closeToolWindow = useCallback((id: string) => {
+    setWindows(current => closeWindow(current, id));
   }, []);
 
   const moveServiceWindow = useCallback((id: string, dx: number, dy: number) => {
@@ -1449,6 +1501,50 @@ export default function App() {
           onWindowMaximize={maximizeServiceWindow}
         />
 
+        {/* Built-in tools get the same board, the same geometry and the same
+            stacking band as services; only the guest inside the frame differs. */}
+        <ToolWindowBoard
+          windows={windows}
+          canvas={route.view === 'workspace' ? canvas : null}
+          motion={state.settings.workspace}
+          onMove={moveServiceWindow}
+          onResize={resizeServiceWindow}
+          onRaise={raiseServiceWindow}
+          onClose={closeToolWindow}
+          onMinimize={minimizeServiceWindow}
+          onMaximize={maximizeServiceWindow}
+          renderView={() => (
+            <Rooms
+              settings={state.settings.party}
+              isElectron={isElectron}
+              initialRoom={route.query.get('room')}
+              onUpdateParty={updateParty}
+              onToast={pushToast}
+              embedded
+            />
+          )}
+          renderTool={tool =>
+            tool === 'arcade' ? (
+              <Arcade isElectron={isElectron} onOpenLink={openExternalTab} onBack={() => navigate('services')} embedded />
+            ) : tool === 'forge' ? (
+              <FileForge
+                isElectron={isElectron}
+                onBack={() => navigate('services')}
+                onToast={pushToast}
+                embedded
+              />
+            ) : (
+              <Canvas
+                isElectron={isElectron}
+                onBack={() => navigate('services')}
+                onToast={pushToast}
+                onAddNote={addStickyNote}
+                embedded
+              />
+            )
+          }
+        />
+
         <KeepAlive
           id="emulator"
           active={route.view === 'emulator'}
@@ -1474,14 +1570,37 @@ export default function App() {
         </KeepAlive>
 
 
+        {/*
+         * A room can live in a window over the app, which is what makes it
+         * possible to keep watching a room while using a service, the browser or
+         * the Workspace. The room itself is one session either way — the window
+         * holds the view, and the route shows where it went rather than a second
+         * copy of it.
+         */}
         <KeepAlive id="rooms" active={route.view === 'rooms'} keep={roomsLifecycle.keepMounted}>
-          <Rooms
-            settings={state.settings.party}
-            isElectron={isElectron}
-            initialRoom={route.query.get('room')}
-            onUpdateParty={updateParty}
-            onToast={pushToast}
-          />
+          {roomsPopped ? (
+            <div className="view rooms-popped">
+              <EmptyState
+                title={t('Rooms is open in a window.')}
+                body={t('The room keeps running there while you use the rest of Kryvex.')}
+                mark={themeMark}
+                action={
+                  <button className="btn primary" onClick={dockRooms}>
+                    {t('Bring it back')}
+                  </button>
+                }
+              />
+            </div>
+          ) : (
+            <Rooms
+              settings={state.settings.party}
+              isElectron={isElectron}
+              initialRoom={route.query.get('room')}
+              onUpdateParty={updateParty}
+              onToast={pushToast}
+              onPopOut={popOutRooms}
+            />
+          )}
         </KeepAlive>
 
         {route.serviceId ? (
@@ -1725,6 +1844,14 @@ export default function App() {
           onPlace={
             dialog.mode === 'new' && dialog.target === 'workspace'
               ? service => openInWorkspace(service)
+              : undefined
+          }
+          onPlaceTool={
+            dialog.mode === 'new' && dialog.target === 'workspace'
+              ? tool => {
+                  openToolInWorkspace(tool);
+                  setDialog(null);
+                }
               : undefined
           }
           onSave={saveService}

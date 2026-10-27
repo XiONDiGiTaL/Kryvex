@@ -7,6 +7,7 @@ import {
   type FormEvent,
 } from 'react';
 import type {
+  HomeSectionId,
   HomeSettings,
   HomeWidgetArea,
   HomeWidgetId,
@@ -32,6 +33,12 @@ import {
   widgetEnabled,
   widgetsInArea,
 } from '../lib/home-widgets';
+import {
+  DEFAULT_SECTION_ORDER,
+  HOME_SECTION_LABELS,
+  moveSection as moveSectionOrder,
+  normalizeSectionOrder,
+} from '../lib/home-sections';
 import {
   formatTemperature,
   weatherKind,
@@ -246,10 +253,16 @@ export function HomeBoard({
     onUpdate({ widgetAreas: { ...home.widgetAreas, [id]: area } });
   }
 
+  /** Moves one Home section by one place, using the same arrows as the widgets. */
+  function moveSection(id: HomeSectionId, delta: -1 | 1) {
+    onUpdate({ sectionOrder: moveSectionOrder(normalizeSectionOrder(home.sectionOrder), id, delta) });
+  }
+
   const kind = weather?.current ? weatherKind(weather.current.code) : 'cloud';
   const openNotes = useMemo(() => home.notes.filter(note => !note.done).length, [home.notes]);
-  // The board and the world clock share one switch, so a 12-hour preference
-  // never applies to one card and not the other.
+  // The board's clock has its own switch. The world clock keeps `worldClockHour12`
+  // in the same way, so changing the format of a list of cities never changes the
+  // format of the clock the reader glances at.
   const clock = now.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
@@ -525,6 +538,20 @@ export function HomeBoard({
           ) : null}
 
           <div className="home-board-tools">
+            {home.showBoardClock ? (
+              <button
+                type="button"
+                className="chip-btn home-clock-mode"
+                onClick={() => onUpdate({ clockHour12: !home.clockHour12 })}
+                aria-pressed={home.clockHour12}
+                aria-label={
+                  home.clockHour12 ? t('Use 24-hour time') : t('Use 12-hour time')
+                }
+                title={home.clockHour12 ? t('Use 24-hour time') : t('Use 12-hour time')}
+              >
+                {home.clockHour12 ? '12H' : '24H'}
+              </button>
+            ) : null}
             <button
               className={`home-heart ${home.wellness.onboarded ? '' : 'is-fresh'}`}
               onClick={() => setWellnessOpen(true)}
@@ -568,6 +595,16 @@ export function HomeBoard({
                   onClick={() => onUpdate({ showBoardClock: !home.showBoardClock })}
                 >
                   {t('Show the clock')}
+                </button>
+              </div>
+              <div className="home-clock-style-row">
+                <span className="mono home-clock-style-label">{t('Time format')}</span>
+                <button
+                  className="chip-btn"
+                  aria-pressed={home.clockHour12}
+                  onClick={() => onUpdate({ clockHour12: !home.clockHour12 })}
+                >
+                  {home.clockHour12 ? '12H' : '24H'}
                 </button>
               </div>
               <div className="home-clock-style-row">
@@ -648,6 +685,46 @@ export function HomeBoard({
                 ))}
               </div>
             </div>
+            {/*
+              * The sections of the Home view, in the order they appear below the
+              * board. The controls mirror the widget rows on purpose: two lists
+              * that are rearranged the same way are one thing to learn.
+              */}
+            <span className="mono home-widget-hint">{t('Home sections')}</span>
+            {(home.sectionOrder.length > 0
+              ? home.sectionOrder
+              : DEFAULT_SECTION_ORDER
+            ).map((id, index, order) => {
+              const label = t(HOME_SECTION_LABELS[id]);
+              return (
+                <div key={id} className="home-widget-row is-on">
+                  <span className="mono home-widget-index" aria-hidden="true">
+                    {index + 1}
+                  </span>
+                  <span className="chip-btn home-widget-name is-active">{label}</span>
+                  <div className="home-widget-actions">
+                    <button
+                      className="icon-btn"
+                      disabled={index === 0}
+                      onClick={() => moveSection(id, -1)}
+                      aria-label={t('Move {name} up', { name: label })}
+                      title={t('Move {name} up', { name: label })}
+                    >
+                      <Icon name="chevron" size={11} className="flip-y" />
+                    </button>
+                    <button
+                      className="icon-btn"
+                      disabled={index === order.length - 1}
+                      onClick={() => moveSection(id, 1)}
+                      aria-label={t('Move {name} down', { name: label })}
+                      title={t('Move {name} down', { name: label })}
+                    >
+                      <Icon name="chevron" size={11} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
             {HOME_WIDGETS.map(id => {
               const area = home.widgetAreas[id];
               const list = columns[area];

@@ -95,6 +95,7 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
       'Ambos dispositivos deben estar en la misma red Wi-Fi o Ethernet, y Kryvex debe estar permitido en el cortafuegos para redes privadas. Las VPN y los adaptadores virtuales no llegan al teléfono, así que usa la dirección marcada como tu red.',
 
     'Clock style': 'Estilo del reloj',
+    'Time format': 'Formato de hora',
     'Show the clock': 'Mostrar el reloj',
     Bare: 'Suelto',
     Card: 'Tarjeta',
@@ -210,6 +211,7 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
       'Beide Geräte müssen im selben WLAN- oder Ethernet-Netz sein, und Kryvex muss in der Firewall für private Netzwerke zugelassen sein. VPN- und virtuelle Adapter erreichen das Telefon nicht, nimm also die als dein Netzwerk markierte Adresse.',
 
     'Clock style': 'Uhrstil',
+    'Time format': 'Zeitformat',
     'Show the clock': 'Uhr anzeigen',
     Bare: 'Frei',
     Card: 'Karte',
@@ -323,6 +325,7 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
       'Les deux appareils doivent être sur le même réseau Wi-Fi ou Ethernet, et Kryvex doit être autorisé dans le pare-feu pour les réseaux privés. Les VPN et les adaptateurs virtuels n’atteignent pas le téléphone : utilisez l’adresse indiquée comme votre réseau.',
 
     'Clock style': 'Style de l’horloge',
+    'Time format': 'Format de l’heure',
     'Show the clock': 'Afficher l’horloge',
     Bare: 'Libre',
     Card: 'Carte',

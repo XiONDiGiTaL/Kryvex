@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /**
- * End-to-end check for the three tools 0.9.5 adds: Arcade (x535),
- * File Forge (x536) and Canvas (x537).
+ * End-to-end check for the tools 0.9.5 adds: Arcade (x535), File Forge (x536)
+ * and Canvas (x537), plus the built-in tool windows on the Workspace.
  *
  * It drives the built app in a disposable profile over CDP. What it proves,
  * in the order a user meets it:
@@ -15,6 +15,9 @@
  *     export — each as a code, with no dialog and no file;
  *   - Canvas draws a stroke, undoes and redoes it, places typed text, and hands
  *     that text to the Home board, which persists it to the profile on disk;
+ *   - Add service offers the three built-ins, and placing Canvas makes a tool
+ *     window that drags, resizes, keeps its z-index inside the window band and
+ *     closes without adding anything to the service list.
  *
  * Run after `pnpm build`:
  *
@@ -320,6 +323,137 @@ async function main() {
       if (!noteSaved) await sleep(200);
     }
     check(noteSaved, 'the typed words reach the Home board and are written to the profile');
+
+    /* ------------------------------------------- built-in tool windows --- */
+    await go(client, 'workspace', '.workspace-canvas');
+    await client.evaluate(`(() => {
+      const add = Array.from(document.querySelectorAll('.workspace-bar button'))
+        .find(button => /add service|servicio|Dienst|service/i.test(button.textContent));
+      add.click();
+      return true;
+    })()`);
+    await waitFor(client.evaluate, `Boolean(document.querySelector('.preset-chip.is-tool'))`, 5000, 'the built-in group');
+    const builtIn = await client.evaluate(
+      `Array.from(document.querySelectorAll('.preset-chip.is-tool')).map(chip => chip.textContent.trim())`,
+    );
+    check(builtIn.length === 3, `Add service offers the three built-ins (${builtIn.join(', ')})`);
+    await client.evaluate(`(() => {
+      const chip = Array.from(document.querySelectorAll('.preset-chip.is-tool'))
+        .find(item => item.textContent.includes('Canvas'));
+      chip.click();
+      return true;
+    })()`);
+
+    await waitFor(client.evaluate, `Boolean(document.querySelector('.service-frame.is-tool-window'))`, 8000, 'the tool window');
+    const placed = await client.evaluate(`(() => {
+      const frame = document.querySelector('.service-frame.is-tool-window');
+      const rect = frame.getBoundingClientRect();
+      const canvas = document.querySelector('.workspace-canvas').getBoundingClientRect();
+      return {
+        hasTitle: Boolean(frame.querySelector('.service-toolbar h1')),
+        inside: rect.left >= canvas.left - 1 && rect.top >= canvas.top - 1 &&
+          rect.right <= canvas.right + 1 && rect.bottom <= canvas.bottom + 1,
+        z: Number(window.getComputedStyle(frame).zIndex),
+        controls: frame.querySelectorAll('.window-controls button').length,
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      };
+    })()`);
+    check(placed.hasTitle, 'the tool window has a title bar with the service name');
+    check(placed.controls === 3, 'the window carries minimize, maximize and close in its corner');
+    check(placed.inside, 'the window is contained by the workspace canvas');
+    check(placed.z >= 30 && placed.z <= 45, `the window stays inside the chrome band (z=${placed.z})`);
+
+    // A drag is dispatched the way the browser delivers one — down on the bar,
+    // move and up after it — and the frame is read after the render has had a
+    // turn, because React does not paint inside the dispatch that scheduled it.
+    const dragged = await client.evaluate(`(async () => {
+      const frame = document.querySelector('.service-frame.is-tool-window');
+      const bar = frame.querySelector('.service-toolbar');
+      const point = (x, y) => ({
+        clientX: Math.round(x), clientY: Math.round(y), pointerId: 3,
+        pointerType: 'mouse', buttons: 1, bubbles: true, isPrimary: true,
+      });
+      const box = bar.getBoundingClientRect();
+      const from = { x: box.left + 140, y: box.top + 14 };
+      const before = frame.getBoundingClientRect();
+      bar.dispatchEvent(new PointerEvent('pointerdown', point(from.x, from.y)));
+      bar.dispatchEvent(new PointerEvent('pointermove', point(from.x + 40, from.y + 30)));
+      await new Promise(resolve => setTimeout(resolve, 40));
+      bar.dispatchEvent(new PointerEvent('pointerup', point(from.x + 40, from.y + 30)));
+      await new Promise(resolve => requestAnimationFrame(() => resolve()));
+      const after = frame.getBoundingClientRect();
+      return { fromLeft: before.left, fromTop: before.top, left: after.left, top: after.top };
+    })()`);
+    check(
+      Math.abs(dragged.left - dragged.fromLeft) > 1 || Math.abs(dragged.top - dragged.fromTop) > 1,
+      `a drag on the title bar moves the window (${Math.round(dragged.left - dragged.fromLeft)}, ${Math.round(dragged.top - dragged.fromTop)})`,
+    );
+    const movedTo = await client.evaluate(`(() => {
+      const rect = document.querySelector('.service-frame.is-tool-window').getBoundingClientRect();
+      return { width: rect.width, height: rect.height };
+    })()`);
+
+    const resized = await client.evaluate(`(async () => {
+      const frame = document.querySelector('.service-frame.is-tool-window');
+      const edge = frame.querySelector('.service-window-edge.is-se');
+      const point = (x, y) => ({
+        clientX: Math.round(x), clientY: Math.round(y), pointerId: 4,
+        pointerType: 'mouse', buttons: 1, bubbles: true, isPrimary: true,
+      });
+      const box = edge.getBoundingClientRect();
+      const from = { x: box.left + 1, y: box.top + 1 };
+      edge.dispatchEvent(new PointerEvent('pointerdown', point(from.x, from.y)));
+      edge.dispatchEvent(new PointerEvent('pointermove', point(from.x + 60, from.y + 40)));
+      await new Promise(resolve => setTimeout(resolve, 40));
+      edge.dispatchEvent(new PointerEvent('pointerup', point(from.x + 60, from.y + 40)));
+      await new Promise(resolve => requestAnimationFrame(() => resolve()));
+      const after = frame.getBoundingClientRect();
+      return { width: after.width, height: after.height };
+    })()`);
+    check(
+      resized.width > movedTo.width + 10 && resized.height > movedTo.height + 10,
+      `the south-east edge resizes the window (${Math.round(resized.width)}, ${Math.round(resized.height)})`,
+    );
+
+    await client.evaluate(`(() => {
+      const frame = document.querySelector('.service-frame.is-tool-window');
+      frame.querySelector('.window-controls button:nth-child(1)').click();
+      return true;
+    })()`);
+    await waitFor(client.evaluate, `Boolean(document.querySelector('.workspace-tray-item'))`, 5000, 'the minimized tray');
+    check(true, 'minimizing a tool window puts it in the tray');
+    await client.evaluate(`document.querySelector('.workspace-tray-item').click()`);
+    await waitFor(
+      client.evaluate,
+      `document.querySelector('.service-frame.is-tool-window').getBoundingClientRect().height > 50`,
+      5000,
+      'the window to come back',
+    );
+    check(true, 'the tray restores it');
+
+    await client.evaluate(`(() => {
+      const frame = document.querySelector('.service-frame.is-tool-window');
+      const controls = frame.querySelectorAll('.window-controls button');
+      controls[controls.length - 1].click();
+      return true;
+    })()`);
+    // Close plays the exit animation first when motion is on, so allow for it.
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      if (!(await client.evaluate(`Boolean(document.querySelector('.service-frame.is-tool-window'))`))) break;
+      await sleep(200);
+    }
+    check(
+      !(await client.evaluate(`Boolean(document.querySelector('.service-frame.is-tool-window'))`)),
+      'the close control ends the window',
+    );
+    const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    check(
+      (state.services ?? []).length === 0,
+      'placing a built-in window adds nothing to the service list',
+    );
 
     check(client.exceptions.length === 0, `no renderer exceptions (${client.exceptions.slice(0, 2).join(' | ')})`);
 

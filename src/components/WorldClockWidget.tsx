@@ -31,7 +31,9 @@ interface Match {
  * weather card uses, so somebody in İzmir can list İzmir instead of the zone's
  * regional name, Istanbul, which is the same clock but not their city. With
  * nothing chosen the widget still shows this machine and UTC, and the format is a
- * switch rather than a setting: 24-hour by default, 12-hour on a press.
+ * switch rather than a setting: 24-hour by default, 12-hour on a press. That
+ * switch is the card's own (`worldClockHour12`), so the board clock keeps the
+ * format the reader chose for it.
  *
  * The search box is a mode, not furniture: once a city is on the list the card
  * goes back to being a clock, and **Add city** beside the format switch brings
@@ -57,7 +59,7 @@ export function WorldClockWidget({
   const now = new Date();
   const rows = shownClocks(chosen);
   const full = chosen.length >= MAX_WORLD_CLOCKS;
-  const hour12 = home.clockHour12;
+  const hour12 = home.worldClockHour12;
 
   // Removing the last city leaves nothing worth hiding the search for.
   useEffect(() => {
@@ -148,7 +150,7 @@ export function WorldClockWidget({
           <button
             type="button"
             className="chip-btn home-clock-mode"
-            onClick={() => onUpdate({ clockHour12: !hour12 })}
+            onClick={() => onUpdate({ worldClockHour12: !hour12 })}
             aria-pressed={hour12}
             aria-label={hour12 ? t('Use 24-hour time') : t('Use 12-hour time')}
             title={hour12 ? t('Use 24-hour time') : t('Use 12-hour time')}

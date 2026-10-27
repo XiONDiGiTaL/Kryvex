@@ -97,9 +97,18 @@
   --clock-scale: 1;
 }
 
+/*
+ * Centred: the clock's own column starts at the left of the board, so centring
+ * inside it lands left of the page centre, where the tool buttons on the right
+ * already take their width. A small rightward shift puts the digits where the
+ * eye expects the centre to be, and it stays clamped on a narrow board so a big
+ * clock is never pushed over the tools.
+ */
 .home-clock.align-center {
   align-items: center;
   text-align: center;
+  --clock-centre-shift: clamp(0px, 3.2vw, 88px);
+  transform: translateX(var(--clock-centre-shift));
 }
 
 .home-clock.align-right {
@@ -153,7 +162,9 @@
 
 /* Outline: the digits as a drawn line, for a board that wants shape without
    weight. The stroke colour follows the accent class because it uses the text
-   colour, so the two settings still compose. */
+   colour, so the two settings still compose. Every colour here is the theme's
+   own ink: a stroke that resolves to `currentColor` on transparent digits is an
+   invisible clock, which is what a misspelled token used to produce. */
 .home-clock.is-outline .home-time {
   color: transparent;
   -webkit-text-stroke: 1.2px var(--accent);
@@ -163,7 +174,7 @@
 }
 
 .home-clock.is-outline.accent-theme .home-time {
-  -webkit-text-stroke-color: var(--fg);
+  -webkit-text-stroke-color: var(--ink);
 }
 
 .home-clock.is-outline.accent-muted .home-time {
@@ -239,7 +250,7 @@
   border: 1px solid var(--line-soft);
   border-radius: 8px;
   background: var(--bg);
-  color: var(--fg);
+  color: var(--ink);
   font-size: 11px;
 }
 
@@ -381,6 +392,18 @@
   color: var(--ink-faint);
 }
 
+/* One block that used to share a row and now stands on its own. */
+.home-columns.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.home-calc-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  max-width: 100%;
+}
+
 .home-calc-display strong {
   max-width: 100%;
   overflow: hidden;
@@ -389,6 +412,37 @@
   font-size: 24px;
   font-weight: 300;
   letter-spacing: -0.02em;
+}
+
+/*
+ * The caret: the card is a keyboard target, so it shows where the next digit
+ * lands — but only while it has focus, and it stops blinking for a reader who
+ * asked motion to stop.
+ */
+.home-calc-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-bottom: -0.12em;
+  background: var(--accent);
+  animation: kx-calc-caret 1.06s steps(1, end) infinite;
+}
+
+@keyframes kx-calc-caret {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-calc-caret {
+    animation: none;
+  }
 }
 
 .home-calc-display strong.is-error {

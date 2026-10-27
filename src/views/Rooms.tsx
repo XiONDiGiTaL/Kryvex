@@ -20,6 +20,14 @@ interface RoomsProps {
   initialRoom?: string | null;
   onUpdateParty: (patch: Partial<PartySettings>) => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  /**
+   * Pops the room out into a window over the app. A room is a place somebody
+   * watches while doing something else, so the shell offers this; a build with
+   * nowhere to put the window passes nothing and the control is not drawn.
+   */
+  onPopOut?: () => void;
+  /** Rendered inside that window: the window owns the title bar. */
+  embedded?: boolean;
 }
 
 type OverlayBox = { x: number; y: number; width: number; alpha: number };
@@ -147,6 +155,8 @@ export function Rooms({
   initialRoom = null,
   onUpdateParty,
   onToast,
+  onPopOut,
+  embedded = false,
 }: RoomsProps) {
   const { t, locale } = useI18n();
   const session = partySession;
@@ -452,18 +462,28 @@ export function Rooms({
   const sharedIsApp = sharedAppId.current !== null;
 
   return (
-    <section className="view rooms-view">
-      <header className="view-head">
-        <div>
-          <p className="eyebrow mono">{t('ROOMS / PEER TO PEER')}</p>
-          <h1>{t('Rooms')}</h1>
-          <p className="lede">
-            {t(
-              'Open a room, send the link, and share a screen, a window or one of your apps. Names and chat stay in the room; media goes straight between you.',
-            )}
-          </p>
-        </div>
-      </header>
+    <section className={`view rooms-view ${embedded ? 'is-embedded' : ''}`}>
+      {embedded ? null : (
+        <header className="view-head">
+          <div>
+            <p className="eyebrow mono">{t('ROOMS / PEER TO PEER')}</p>
+            <h1>{t('Rooms')}</h1>
+            <p className="lede">
+              {t(
+                'Open a room, send the link, and share a screen, a window or one of your apps. Names and chat stay in the room; media goes straight between you.',
+              )}
+            </p>
+          </div>
+          {onPopOut ? (
+            <div className="view-head-actions">
+              <button className="btn secondary small" onClick={onPopOut}>
+                <Icon name="monitor" size={14} />
+                {t('Pop out')}
+              </button>
+            </div>
+          ) : null}
+        </header>
+      )}
 
       {!inRoom ? (
         <div className="rooms-lobby">
@@ -572,6 +592,20 @@ export function Rooms({
               <span className="mono room-count">
                 {peerCount === 1 ? t('1 HERE') : t('{count} HERE', { count: peerCount })}
               </span>
+              {/* A room is often left open while the reader works elsewhere, so
+                  the pop-out is offered from inside it too, not only in the
+                  lobby where it is less useful. */}
+              {onPopOut && !embedded ? (
+                <button
+                  className="btn ghost small"
+                  onClick={onPopOut}
+                  title={t('Pop out')}
+                  aria-label={t('Pop out')}
+                >
+                  <Icon name="monitor" size={13} />
+                  {t('Pop out')}
+                </button>
+              ) : null}
               <button className="btn ghost small" onClick={() => void copyInvite()}>
                 <Icon name="check" size={13} />
                 {copied ? t('Copied') : t('Copy invite')}

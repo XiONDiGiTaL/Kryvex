@@ -145,7 +145,7 @@
 }
 
 .link-tag.is-primary {
-  color: var(--fg);
+  color: var(--ink);
   border-color: currentColor;
 }
 
@@ -160,7 +160,7 @@
 }
 
 .link-help summary:hover {
-  color: var(--fg);
+  color: var(--ink);
 }
 
 .link-help .hint {
