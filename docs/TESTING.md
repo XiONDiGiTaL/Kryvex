@@ -3131,6 +3131,7 @@ once and moved onto the current key.
 | Companion storage | `npx vitest run tests/link-companion.test.ts` | 9/9 — a token under the old key is moved forward and the old key removed, the current key wins when both hold a value, unpairing clears both spellings, the phone name moves the same way, a blank name falls back, and storage that throws reads empty instead of breaking the page |
 | Renderer copy audit | `node scripts/audit-i18n.cjs` | PASS — no hardcoded UI strings |
 | End-to-end harness | `pnpm verify:link` (`scripts/verify-link.cjs`) | **35/35 PASS** |
+| CI on the push | run 40536740847 (`.github/workflows/ci.yml`) | **success**, 1m19s — install, advisories, typecheck, unit tests, web build, one-time-code relay |
 
 ### The page check that failed before this fix
 
@@ -3142,6 +3143,26 @@ HEAD:companion.html` contains "Kryvex Link" **false**; `dist/companion.html`
 after the fix, **true**. The harness row above is that check passing, on the page
 the real server serves.
 
+### The CI the commit before this one failed, and why
+
+Run 40529322614, on the commit before this batch, is **failure**, and it stopped
+at step 5, *Install dependencies* — `pnpm install --frozen-lockfile` — two
+seconds in, with the advisories, typecheck, unit tests, web build and the
+one-time-code relay all **skipped**. Two seconds to failure is a manifest and
+lockfile that disagree, not a download that timed out, and that is exactly what
+they did: the shell batch's slice of `package.json` had been rebuilt from the
+version before the services batch, so it dropped `pdf-lib` while the lockfile's
+importer block still declared `pdf-lib ^1.17.1`. The dependency is not decoration
+— File Forge's PDF group loads it on demand with `await import('pdf-lib')` — and
+a local typecheck cannot see any of it, because the package is installed here
+whatever the manifest says and a dynamic import is not resolved at compile time.
+
+The first commit of this batch restores both dropped lines; the run for this
+batch passes that same step in 10 s. CI is also the only place the two files were
+ever reconciled on a clean checkout: locally, `pnpm install --frozen-lockfile`
+stopped at *Aborted removal of modules directory due to no TTY* rather than
+running, so the local checks could not settle it either way.
+
 ### What is not covered
 
 - **A real phone.** The page is driven over HTTP and in Chromium on this machine;
@@ -3151,3 +3172,8 @@ the real server serves.
   token from the previous build into this one.
 - **A downgrade.** A phone running the older page against a newer desktop is not
   a supported path; the old key is only ever read, never written.
+- **The Electron harnesses in CI.** `.github/workflows/ci.yml` installs,
+  typechecks, runs the unit suite, builds the web client and checks the
+  one-time-code relay; it does not run `verify:link`, `verify:inhouse` or
+  `verify:shell-batch`, which need a real Electron app. Their results above are
+  from this machine.

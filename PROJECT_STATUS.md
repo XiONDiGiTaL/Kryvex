@@ -52,7 +52,12 @@ On top of that, this batch changed the shell itself:
   than being asked for a new code.
 
 `pnpm verify:shell-batch` covers the shell changes with 22 checks and
-`pnpm verify:link` the phone page and its name with 35. Still open from the same
+`pnpm verify:link` the phone page and its name with 35. CI is green on the push
+(run 40536740847: install, advisories, typecheck, the unit suite, the web build
+and the one-time-code relay). One repair went with it — the shell batch's slice
+of `package.json` had dropped `pdf-lib` and the `verify:inhouse` script, and CI's
+install step is what caught it on that commit, since a local typecheck cannot: the
+package is installed here whatever the manifest says. Still open from the same
 request: an Android companion app for Kryvex Link and the deeper File Forge
 groups (audio conversion, PDF pages to images). See `docs/BACKLOG.md`.
 
