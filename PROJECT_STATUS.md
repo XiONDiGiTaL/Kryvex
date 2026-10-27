@@ -223,7 +223,9 @@ a row.
 
 The version line sits at **0.9.5** and stays there for a while: the batches below
 landed after `0.9.4-hotfix.3` was published, and they are committed on `main`
-without a tag, a release record or a published installer.
+without a tag or a published installer. The release record and its installer
+wizard capture are in place and pass the gate the Release workflow runs
+(`docs/RELEASE_0.9.5.md`, `pnpm release:check`), so the tag is what is left.
 
 - **Startup switches.** Lexium's local Whisper engine can start with Kryvex and
   stop on quit (stored in the runtime's own config, read before the renderer
