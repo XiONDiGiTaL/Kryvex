@@ -674,7 +674,20 @@ pnpm build     # dist/ + dist-electron/
 pnpm start     # launch built app
 pnpm capture   # build, launch with KRYVEX_CAPTURE=1, write screenshots/
 pnpm verify:updater  # local release feed, checksum rejection, source-mode guard
+pnpm art:installer   # redraw build/installerSidebar.bmp from the brand tokens
 ```
+
+### Installer artwork
+
+NSIS shows one image beside the finish page, and it is the only surface the app
+never draws. `scripts/installer-art.ps1` paints `build/installerSidebar.bmp`
+(164×314, 24-bit, which is what NSIS reads) with `System.Drawing`: the plate
+colour, the two signal squares, the `Kx` mark redrawn from the same stroke
+geometry as `brand/logo.svg`, the divider, the wordmark with its tracking, and
+the tagline. Nothing is scaled down from the 512px tile, so the type stays
+sharp at this size, and `-Preview <png>` writes a copy for review because a
+bitmap is awkward to look at. `nsis.installerSidebar` in `package.json` points
+at the file; regenerate it when the palette or the lockup changes.
 
 The capture routine drives real routes (`#/home`, `#/home?help=1`,
 `#/services`, `#/services?dialog=new`, `#/service/<id>`, `#/browser?newtab=1`,

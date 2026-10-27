@@ -2955,10 +2955,30 @@ directly: the switch starts as `aria-checked="false"`, the panel's own button
 turns it on, the state read back from the main process agrees, the choice is on
 disk in `speech/kryvex-speech.json`, and pressing it again turns it off without
 leaving an engine running. A fresh profile also reports `autostarted: false`, so
-Lexium never adopts an address Kryvex did not start. The Settings **Start with Windows** row is checked in
-the same run: an unpackaged build reports `canChange: false`, refuses
-`startupSet(true)`, and the row is disabled with **Available in the installed
-app.** Last run: **PASS**.
+Lexium never adopts an address Kryvex did not start. The Settings **Start with
+Windows** row is checked in the same run: an unpackaged build reports
+`canChange: false`, refuses `startupSet(true)`, and the row is disabled with
+**Available in the installed app.** Last run: **PASS**.
+
+### The packaged half (`pnpm verify:packaged-startup`)
+
+`scripts/verify-packaged-startup.cjs` runs `release/win-unpacked/Kryvex.exe` — a
+build where `app.isPackaged` is true — and checks the two things the source
+harness deliberately cannot:
+
+- **A real startup entry.** `startupSet(true)` writes
+  `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` with
+  `net.xiondigital.kryvex="…\Kryvex.exe"`, read back from Windows and compared
+  with the launched executable, then removed by the same switch. An entry that
+  already exists (a person who installed the app and turned it on) is left alone
+  and the check is skipped rather than overwritten.
+- **The engine at launch.** A model is installed once into
+  `.tmp-packaged-startup/profile` and reused on later runs, so the download is
+  not repeated. The switch is turned on, the window is closed, the engine's pid
+  is confirmed dead, and the app is reopened: `speechStatus()` must report
+  `running` with `autostarted: true` before anyone presses a button, and Lexium
+  must show that address. Last run: **PASS** on `tiny` — install, start, quit,
+  relaunch by itself, adoption, switch off.
 
 ### What is not covered
 
@@ -2970,14 +2990,10 @@ app.** Last run: **PASS**.
 - **`small` and `tiny` through the app.** Both are pinned and validated, and
   `tiny` is exercised by `--model=tiny`; `small` shares the same code path and
   was only verified as a download-on-demand entry, not transcribed here.
-- **A launch with the engine installed.** `resume()` is covered by
-  `tests/speech-runtime.test.ts` for the three quiet cases (switch off, nothing
-  installed, a model removed); starting a real model at launch needs the 141 MB
-  download, so it was not run here.
-- **Quitting with the engine running.** The quit path is
-  `before-quit → speech.dispose() → stop()` with a 1.5 s cap, and it is exercised
-  by every harness run, but no run had a live whisper server to kill.
-- **A real Windows startup entry.** Writing one needs the installed build, so
-  the harness proves the refusal and the row, not the registry value.
+- **The quiet launch cases.** `resume()` with the switch off, nothing
+  installed, or a removed model is covered by `tests/speech-runtime.test.ts`;
+  the packaged harness only exercises the case where a model exists.
+- **A machine with a real sign-in.** The Run entry is written and removed, but
+  no run signed out of Windows and signed back in to watch it start.
 - **Other platforms.** The pinned build is Windows x64, measured from the
   release asset. Nothing else was run.
