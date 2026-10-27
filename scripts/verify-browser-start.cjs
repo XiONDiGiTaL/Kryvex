@@ -287,7 +287,14 @@ server.listen(feedPort, '127.0.0.1');
     await cdp.evaluate(`document.activeElement?.blur(); true`);
     await screenshot(cdp, 'browser-private');
 
-    // Open a story in the private tab: no history may be recorded.
+    // Open a story in the private tab: no history may be recorded. The start
+    // page fetches its feeds asynchronously, so wait for the fixture story to
+    // arrive rather than trusting the sleep above to have covered it.
+    await waitFor(
+      cdp.evaluate,
+      `[...document.querySelectorAll('.start-story')].some(node => node.textContent.includes('Feed fixture one'))`,
+      'the feed story in the private tab',
+    );
     await cdp.evaluate(`(() => {
       const button = [...document.querySelectorAll('.start-story')].find(node =>
         node.textContent.includes('Feed fixture one'));
@@ -331,6 +338,11 @@ server.listen(feedPort, '127.0.0.1');
       cdp.evaluate,
       `!document.querySelector('.browser-start.is-private')`,
       'ordinary tab',
+    );
+    await waitFor(
+      cdp.evaluate,
+      `[...document.querySelectorAll('.start-story')].some(node => node.textContent.includes('Feed fixture one'))`,
+      'the feed story in the ordinary tab',
     );
     await cdp.evaluate(`(() => {
       const button = [...document.querySelectorAll('.start-story')].find(node =>
