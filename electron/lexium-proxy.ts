@@ -58,10 +58,26 @@ export async function transcribe(
       return {
         ok: false,
         error: answer.reason === 'unsupported' ? 'unsupported' : 'offline',
+        // The reason travels as a code, not as a sentence: the interface turns
+        // it into words in the user's own language, and `wrong-language` is a
+        // different problem from "the engine is offline".
         detail: answer.reason ?? 'unknown',
       };
     }
-    return { ok: true, status: 200, payload: { text: answer.text } };
+    // `text` keeps the shape `parseTranscription` reads; the rest lets the
+    // interface say which engine spoke, in which language, and whether it was
+    // sure enough of itself to be quoted.
+    return {
+      ok: true,
+      status: 200,
+      payload: {
+        text: answer.text,
+        confidence: answer.confidence ?? 0,
+        verdict: answer.verdict ?? 'ok',
+        culture: answer.culture ?? '',
+        language: (answer.culture ?? '').split(/[-_]/)[0] ?? '',
+      },
+    };
   }
 
   const endpoint = lexiumEndpoint(engine, String(payload.baseUrl ?? ''));

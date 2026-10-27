@@ -29,10 +29,24 @@ profile starts here instead of pointing at port 8000.
   main process writes it to a temporary file for the recogniser to read.
 - It is a *dictation* engine: best on clear speech by one speaker. For accents,
   music or several speakers a Whisper server is far more accurate, and the panel
-  says so rather than pretending otherwise.
+  says so rather than pretending otherwise. **A song is not a dictation source:**
+  the engine is a speech recogniser, and sung, mixed or noisy audio should go to
+  Whisper.
 - It covers the languages installed in Windows. The check reports which ones
   (`This PC is listening (en-US)`); with none installed it says so and points at
   the server options.
+- **The language is matched exactly, and never substituted.** The engine is
+  language-specific and does not refuse foreign audio: an English recogniser
+  reading a Turkish recording answers with confident English that is nowhere in
+  the audio. So a language this machine has no recogniser for is refused before
+  anything runs ("This PC has a dictation engine for en-US only, so it cannot
+  hear Turkish…"), and the fix is either the Windows language pack or a Whisper
+  server. `auto` still lets the engine use whichever recogniser it has.
+- **A result the engine was not sure of is labelled as such.** Each phrase comes
+  back with a confidence; below `DICTATION_CONFIDENCE_FLOOR` (0.55) the
+  transcript is shown with a warning that says the engine was not confident and
+  points at Whisper, instead of being presented as settled text. A confident
+  dictation carries a one-line note saying it was dictated on this PC.
 - It exists in the desktop app only. The web client has no such engine and keeps
   the server default.
 
@@ -165,10 +179,15 @@ usually enough; a fully offline machine cannot run the reader.
   in the Transcribe tab, so the command to start one is one click away. A page served over **HTTPS cannot call a plain
   `http://` engine on your LAN**; only `http://localhost` is exempt. Run the
   client locally, put the engine behind HTTPS, or use a tunnel.
-- **The PC engine**: three separate answers, because they need three different
+- **The PC engine**: four separate answers, because they need four different
   fixes — this build cannot run one (the web client), this machine has no
-  recogniser installed (add a language with speech in Windows settings), or the
-  recogniser could not be started (start a server instead).
+  recogniser installed (add a language with speech in Windows settings), the
+  chosen language has no recogniser here (add that language, or use Whisper; the
+  engine will not answer in another language), or the recogniser could not be
+  started (start a server instead).
+- **The PC engine was not sure**: a low-confidence dictation is flagged in the
+  result rather than silently quoted. Music, singing, an accent or several
+  speakers is the usual cause; a Whisper server is the answer.
 - **HTTP 4xx/5xx**: the server answered but rejected the request. Check the
   engine path (`/transcribe`, `/inference`, `/v1/audio/transcriptions`) and the
   model name.
@@ -181,8 +200,17 @@ usually enough; a fully offline machine cannot run the reader.
 
 `pnpm verify:lexium-speech` (Windows) synthesises a WAV with the same Windows
 speech stack, converts it to the 16 kHz mono payload the renderer sends, and
-runs the real main-process module and proxy: probe, transcription, the proxy
-path and the refusal of an empty upload. It needs no network and no model.
+runs the real main-process module and proxy: probe, transcription, the reported
+confidence and verdict, the proxy path, the refusal of an empty upload, and the
+refusal of a language this machine has no recogniser for (Turkish first). It
+needs no network and no model. Last run: confidence `0.844`, verdict `ok`,
+culture `en-US`, and `tr is not installed (en-US)` refused with no text.
+
+`pnpm verify:lexium-language` (Windows) drives the built **app**: it loads a real
+WAV through the real file input, with Turkish selected on a machine whose only
+recogniser is English. The request is refused in milliseconds with the message
+above and no transcript; switching to English then transcribes the same file and
+labels the result as dictated on this PC. Last run: **12/12 PASS**.
 
 ## Privacy
 

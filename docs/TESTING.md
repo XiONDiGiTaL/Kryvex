@@ -2856,3 +2856,56 @@ plain `Ethernet`), the address ranges (private and CGNAT in; `172.32.x`,
 loopback, link-local, multicast, `0.x`, malformed out), ordering and de-duping,
 the peer-payload sanitiser (a bare string, a loopback address, an empty
 withdrawal and an HTML-looking payload all refused), and the engine-token list.
+
+## The PC dictation engine's language guard (`pnpm verify:lexium-language`)
+
+The report behind this harness: a Turkish song was transcribed with **Use this
+PC** on a machine whose only recogniser is English, and the transcript came back
+as fluent English that was nowhere in the audio — an `en-US` dictation engine
+reading a Turkish recording. The engine does not refuse foreign audio, so the
+refusal has to happen in Lexium, before anything is sent.
+
+`scripts/verify-lexium-language.cjs` drives the built app in a disposable profile
+pinned to the PC engine, loads a real synthesised WAV through the real file
+input, and clicks the real button.
+
+| Check | Result |
+| --- | --- |
+| The engine line names the installed recogniser | PASS (`en-US`) |
+| The profile asks for Turkish, which this PC cannot hear | PASS |
+| The synthesised recording decoded in the renderer | PASS |
+| No transcript is produced for a missing language | PASS |
+| The message names the recogniser this PC actually has | PASS |
+| The message says it is the PC dictation engine that cannot hear it | PASS |
+| The engine was never started for that request | PASS |
+| The refusal is immediate | PASS (6 ms) |
+| The installed language still transcribes the recording | PASS ("The quick brown fox jumps over the lazy dog") |
+| The transcript is labelled with the language recognised | PASS (English) |
+| The result says it was dictated on this PC, without claiming to be unsure | PASS |
+| No page exception | PASS |
+
+Last run: **12/12 PASS**. Screenshots: `screenshots/lexium-language-guard.png`,
+`screenshots/lexium-dictation.png`.
+
+### What is not covered
+
+- **A Turkish recogniser.** This machine has none, which is what makes the
+  refusal testable; a machine that *does* install Turkish runs the engine
+  normally, and that path is covered by the English run plus
+  `pnpm verify:lexium-speech`.
+- **Singing on a Whisper server.** Only the language guard and the in-box engine
+  are exercised here; no Whisper server was run.
+- **A low-confidence transcript end to end.** The floor and the verdict are
+  covered by `tests/lexium-dictation.test.ts` and by the confidence the real
+  engine reported (`0.844`, verdict `ok`); no audio was found that makes the real
+  engine report below the floor, so the uncertain branch is not exercised in the
+  app. It is not reported as tested.
+
+### Unit rules (`tests/lexium-dictation.test.ts`)
+
+Recogniser selection (a missing language is refused, an installed one matches in
+any regional spelling, only `auto`/empty picks the first, a specific language
+never falls back), the installed-language list, the culture parser, the verdict
+(empty, below the floor, at the floor, above it, a missing confidence), and a
+parity table asserting the main-process module and the renderer copy agree over
+every culture/language combination, so the two cannot drift.

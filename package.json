@@ -56,6 +56,7 @@
     "verify:signin-fold": "pnpm build && node scripts/verify-service-signin-fold.cjs",
     "verify:model": "pnpm build && electron scripts/verify-local-model.cjs",
     "verify:lexium-speech": "pnpm build && node scripts/verify-lexium-speech.cjs",
+    "verify:lexium-language": "pnpm build && node scripts/verify-lexium-language.cjs",
     "verify:disk": "pnpm build && node scripts/verify-disk-pulse.cjs",
     "verify:party-close": "pnpm build && node scripts/verify-party-close.cjs",
     "verify:guards": "pnpm build && node scripts/verify-window-guards.cjs",

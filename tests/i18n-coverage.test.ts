@@ -303,6 +303,13 @@ const ADDED = [
   'The address could not be shared. Rejoin the room and try again.',
   'The clipboard refused the address.',
   'Use a member’s virtual IP in a compatible game or service’s direct-connect field. The host must have that game or service running. Kryvex shows the address; it does not create the network, route it or admit anyone.',
+  // The in-box dictation engine is language-specific, so it refuses a foreign
+  // language instead of answering in the one it knows.
+  'This PC has a dictation engine for {installed} only, so it cannot hear {language}. Add that language with speech in Windows settings, or use a Whisper server, which handles it far better.',
+  'no language',
+  'this language',
+  'The engine was not confident about these words. For accents, music, singing or several speakers a Whisper server is far more accurate.',
+  'Dictated on this PC by the speech engine Windows ships. Clear speech only: a Whisper server is far more accurate for accents, music and several speakers.',
 ];
 
 describe('translation coverage', () => {

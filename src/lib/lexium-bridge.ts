@@ -26,6 +26,11 @@ export interface BridgeOutcome {
   error?: LexiumFailure;
   status?: number;
   detail?: string;
+  /**
+   * The in-box engine's own judgement of its answer. A server does not report
+   * one, so the field is absent there and the interface stays quiet.
+   */
+  verdict?: 'ok' | 'uncertain' | 'empty';
 }
 
 /** Base64 in slices: `String.fromCharCode(...bytes)` overflows the stack. */
@@ -80,5 +85,16 @@ export async function transcribeWithBridge(
   }
   const transcript = parseTranscription(result.payload);
   if (!transcript.text) return { ok: false, error: 'empty' };
-  return { ok: true, transcript };
+
+  // The in-box engine answers with its own culture and verdict; use them so a
+  // transcript from this PC is labelled with the language that was actually
+  // recognised, and one the engine was unsure of is not presented as settled.
+  const meta = result.payload && typeof result.payload === 'object'
+    ? (result.payload as { verdict?: unknown; language?: unknown })
+    : null;
+  if (!transcript.language && typeof meta?.language === 'string' && meta.language) {
+    transcript.language = meta.language;
+  }
+  const verdict = meta?.verdict === 'uncertain' ? 'uncertain' : 'ok';
+  return { ok: true, transcript, verdict };
 }

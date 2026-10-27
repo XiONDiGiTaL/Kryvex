@@ -19,12 +19,26 @@ import { randomUUID } from 'node:crypto';
 import { unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import {
+  assessDictation,
+  cultureLanguage,
+  recognizerFor,
+  type DictationVerdict,
+} from './lexium-speech-rules';
 
 /** Long recordings are recognised at roughly real time; this is a ceiling. */
 const TRANSCRIBE_TIMEOUT_MS = 900_000;
 const PROBE_TIMEOUT_MS = 20_000;
+/** Installing a Windows language needs no restart of the app, so this expires. */
+const CULTURES_TTL_MS = 60_000;
 
-export type SpeechFailure = 'unsupported' | 'no-recognizer' | 'powershell' | 'empty';
+export type SpeechFailure =
+  | 'unsupported'
+  | 'no-recognizer'
+  /** The requested language has no recogniser here; never substituted. */
+  | 'wrong-language'
+  | 'powershell'
+  | 'empty';
 
 export interface SpeechProbe {
   ok: boolean;
@@ -39,6 +53,29 @@ export interface SpeechTranscript {
   reason?: SpeechFailure;
   /** The engine's own words, when it failed for a reason worth showing. */
   detail?: string;
+  /** Mean confidence the recogniser reported for the phrases it produced. */
+  confidence?: number;
+  /** The recogniser that produced the text, e.g. `tr-TR`. */
+  culture?: string;
+  verdict?: DictationVerdict;
+}
+
+let cachedCultures: { cultures: string[]; at: number } | null = null;
+
+/**
+ * The installed recogniser cultures, briefly cached because recognising a file
+ * asks for them first. Installing a language in Windows settings is rare and
+ * an app restart is not required either way.
+ */
+async function installedCultures(force = false): Promise<SpeechProbe> {
+  if (!force && cachedCultures && Date.now() - cachedCultures.at < CULTURES_TTL_MS) {
+    return { ok: true, cultures: cachedCultures.cultures };
+  }
+  const probe = await speechProbe();
+  if (probe.ok) {
+    cachedCultures = { cultures: probe.cultures ?? [], at: Date.now() };
+  }
+  return probe;
 }
 
 function hasPowerShell(): boolean {
@@ -99,6 +136,24 @@ $cultures = @($recognisers | ForEach-Object { $_.Culture.Name })
 
 export async function speechTranscribe(bytes: Buffer, language: string): Promise<SpeechTranscript> {
   if (!hasPowerShell()) return { ok: false, reason: 'unsupported' };
+
+  const probe = await installedCultures();
+  if (!probe.ok) return { ok: false, reason: probe.reason ?? 'powershell' };
+  const cultures = probe.cultures ?? [];
+  if (cultures.length === 0) return { ok: false, reason: 'no-recognizer' };
+
+  // A language mismatch is refused rather than answered with the nearest
+  // recogniser: an English engine reading Turkish sings produces fluent
+  // English that is not in the audio at all.
+  const culture = recognizerFor(cultures, language);
+  if (!culture) {
+    return {
+      ok: false,
+      reason: 'wrong-language',
+      detail: `${cultureLanguage(language)} is not installed (${cultures.join(', ')})`,
+    };
+  }
+
   const path = join(tmpdir(), `kryvex-speech-${randomUUID()}.wav`);
   try {
     writeFileSync(path, bytes);
@@ -110,40 +165,46 @@ export async function speechTranscribe(bytes: Buffer, language: string): Promise
     const output = await runPowerShell(
       `${PRELUDE}
 $recognisers = [System.Speech.Recognition.SpeechRecognitionEngine]::InstalledRecognizers()
-if ($recognisers.Count -eq 0) { [Console]::Out.Write('{"reason":"no-recognizer"}'); exit 0 }
-$wanted = ${quote(language)}.ToLowerInvariant()
-$choice = $null
-if ($wanted -and $wanted -ne 'auto') {
-  $code = ($wanted -split '[-_]')[0]
-  $choice = $recognisers | Where-Object { $_.Culture.TwoLetterISOLanguageName -eq $code } | Select-Object -First 1
-}
-if (-not $choice) { $choice = $recognisers | Where-Object { $_.Culture.TwoLetterISOLanguageName -eq 'en' } | Select-Object -First 1 }
-if (-not $choice) { $choice = $recognisers[0] }
+$culture = ${quote(culture)}
+$choice = $recognisers | Where-Object { $_.Culture.Name -eq $culture } | Select-Object -First 1
+if ($null -eq $choice) { [Console]::Out.Write('{"reason":"no-recognizer"}'); exit 0 }
 $engine = New-Object System.Speech.Recognition.SpeechRecognitionEngine($choice)
 $engine.LoadGrammar((New-Object System.Speech.Recognition.DictationGrammar))
 $engine.SetInputToWaveFile(${quote('__AUDIO__')})
 $parts = New-Object System.Collections.Generic.List[string]
+$scores = New-Object System.Collections.Generic.List[double]
 for ($index = 0; $index -lt 5000; $index++) {
   try { $piece = $engine.Recognize() } catch { break }
   if ($null -eq $piece) { break }
-  if ($piece.Text) { $parts.Add($piece.Text) }
+  if ($piece.Text) { $parts.Add($piece.Text); $scores.Add([double]$piece.Confidence) }
 }
+$mean = 0.0
+if ($scores.Count -gt 0) { $mean = ($scores | Measure-Object -Average).Average }
 $engine.Dispose()
-[Console]::Out.Write((ConvertTo-Json -Compress -InputObject @{ text = ($parts -join ' '); count = $parts.Count }))
+[Console]::Out.Write((ConvertTo-Json -Compress -InputObject @{ text = ($parts -join ' '); pieces = $parts.Count; confidence = [math]::Round($mean, 3); culture = $culture }))
 `.replace('__AUDIO__', path),
       TRANSCRIBE_TIMEOUT_MS,
     );
     const parsed = JSON.parse(output.trim() || '{}') as {
       text?: string;
       reason?: string;
-      count?: number;
+      pieces?: number;
+      confidence?: number;
+      culture?: string;
     };
     if (parsed.reason === 'no-recognizer') return { ok: false, reason: 'no-recognizer' };
     const text = (parsed.text ?? '').trim();
     // Silence, music or a language the recogniser does not have: an empty
     // transcript is a result, not a crash.
     if (!text) return { ok: false, reason: 'empty' };
-    return { ok: true, text };
+    const confidence = Number(parsed.confidence);
+    return {
+      ok: true,
+      text,
+      confidence: Number.isFinite(confidence) ? confidence : undefined,
+      culture: parsed.culture ?? culture,
+      verdict: assessDictation({ text, confidence }),
+    };
   } catch (error) {
     const stderr = String((error as { stderr?: string }).stderr ?? '').trim();
     return { ok: false, reason: 'powershell', detail: stderr.slice(0, 300) };

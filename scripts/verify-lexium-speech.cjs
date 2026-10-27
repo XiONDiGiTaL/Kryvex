@@ -152,6 +152,13 @@ async function main() {
     return fail(`recognition returned unexpected text: "${direct.text}"`);
   }
   log(`recognised: ${direct.text}`);
+  if (typeof direct.confidence !== 'number' || direct.confidence < 0 || direct.confidence > 1) {
+    return fail(`the engine reported no usable confidence: ${String(direct.confidence)}`);
+  }
+  if (direct.verdict !== 'ok' && direct.verdict !== 'uncertain') {
+    return fail(`the engine reported an unknown verdict: ${String(direct.verdict)}`);
+  }
+  log(`confidence ${direct.confidence} (${direct.verdict}), culture ${direct.culture}`);
 
   // The same call the renderer makes, through the proxy and its base64 body.
   const answer = await proxy.transcribe({
@@ -174,7 +181,42 @@ async function main() {
   if (refused.ok || refused.error !== 'invalid') return fail('an empty audio body was not refused');
   log('an empty upload is refused');
 
-  log('PASS in-box speech engine: probe, transcription and the proxy path');
+  /**
+   * The regression this check exists for: a Turkish recording on a machine
+   * with only an English recogniser used to come back as fluent English that
+   * was nowhere in the audio. A language with no recogniser must be refused,
+   * and no text may come back with it.
+   */
+  const installed = (probe.cultures ?? []).map(culture => String(culture).split(/[-_]/)[0].toLowerCase());
+  // Turkish first: that is the language the report was about.
+  const missing = ['tr', 'ja', 'ru', 'ar', 'hi'].find(code => !installed.includes(code));
+  if (!missing) {
+    log('SKIP every test language has a recogniser here, so the refusal cannot be exercised');
+  } else {
+    const wrong = await speech.speechTranscribe(bytes, missing);
+    if (wrong.ok) return fail(`a ${missing} request was answered instead of refused: "${wrong.text}"`);
+    if (wrong.reason !== 'wrong-language') {
+      return fail(`a ${missing} request failed for the wrong reason: ${String(wrong.reason)}`);
+    }
+    if (!wrong.detail) return fail('the refusal did not say which language is missing');
+    log(`refused a ${missing} request: ${wrong.detail}`);
+
+    const wrongProxy = await proxy.transcribe({
+      engine: 'windows-speech',
+      baseUrl: '',
+      language: missing,
+      filename: 'spoken.wav',
+      audio: bytes.toString('base64'),
+    });
+    if (wrongProxy.ok) return fail(`the proxy answered a ${missing} request instead of refusing it`);
+    if (wrongProxy.detail !== 'wrong-language') {
+      return fail(`the proxy reported ${String(wrongProxy.detail)} instead of wrong-language`);
+    }
+    if (wrongProxy.payload) return fail('a refused request still carried a payload');
+    log('the proxy refuses it too, with no text');
+  }
+
+  log('PASS in-box speech engine: probe, transcription, confidence, language refusal and the proxy path');
   try {
     fs.rmSync(dir, { recursive: true, force: true });
   } catch {

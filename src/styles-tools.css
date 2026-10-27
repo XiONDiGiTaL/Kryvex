@@ -407,6 +407,24 @@
   color: var(--danger);
 }
 
+.lexium-dictation {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--ink-faint);
+  max-width: 82ch;
+}
+
+/* The in-box engine was not sure what it heard: say so before the words, and
+   in the warning colour, because the text below is a guess it produced. */
+.lexium-dictation.is-uncertain {
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--warning) 34%, var(--line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  color: var(--ink);
+}
+
 .lexium-result {
   display: flex;
   flex-direction: column;

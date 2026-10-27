@@ -27,6 +27,7 @@ import {
   type Transcript,
 } from '../lib/lexium';
 import { transcribeWithBridge } from '../lib/lexium-bridge';
+import { recognizerFor } from '../lib/lexium-dictation';
 import { loadAudioFile, type LoadedAudio } from '../lib/lexium-audio';
 import { readImageText } from '../lib/lexium-ocr';
 import { ElementMark } from '../components/ElementMark';
@@ -72,6 +73,10 @@ export function Lexium({
   const [transcribeError, setTranscribeError] = useState<string | null>(null);
   const [engineState, setEngineState] = useState<EngineState>('idle');
   const [engineDetail, setEngineDetail] = useState<string>('');
+  /** Recogniser cultures the PC engine reported, for the language check. */
+  const [cultures, setCultures] = useState<string[]>([]);
+  /** How much to trust the transcript this PC produced, if it produced one. */
+  const [dictation, setDictation] = useState<'ok' | 'uncertain' | null>(null);
 
   /* ------------------------------------------------------------- translator --- */
   const [source, setSource] = useState('auto');
@@ -142,6 +147,15 @@ export function Lexium({
         'This PC has no speech recogniser installed. Add a language with speech in Windows settings, or start a server below.',
       );
     }
+    if (reason === 'wrong-language') {
+      return t(
+        'This PC has a dictation engine for {installed} only, so it cannot hear {language}. Add that language with speech in Windows settings, or use a Whisper server, which handles it far better.',
+        {
+          installed: cultures.length > 0 ? cultures.join(', ') : t('no language'),
+          language: settings.language === 'auto' ? t('this language') : languageName(settings.language),
+        },
+      );
+    }
     return t('The speech engine on this PC could not be started. Start a server below instead.');
   }
 
@@ -185,6 +199,16 @@ export function Lexium({
       setEngineDetail('');
       try {
         const answer = await bridge.lexiumProbe({ engine: settings.engine, baseUrl: '' });
+        // The probe reports the installed cultures; the transcribe button needs
+        // them to refuse a language this machine has no recogniser for.
+        setCultures(
+          answer?.ok && answer.detail
+            ? answer.detail
+                .split(',')
+                .map(item => item.trim())
+                .filter(Boolean)
+            : [],
+        );
         if (answer?.ok) {
           setEngineState('ready');
           setEngineDetail(
@@ -197,11 +221,13 @@ export function Lexium({
           setEngineDetail(localEngineProblem(answer?.detail));
         }
       } catch {
+        setCultures([]);
         setEngineState('offline');
         setEngineDetail(localEngineProblem('powershell'));
       }
       return;
     }
+    setCultures([]);
     const endpoint = healthEndpoint(settings.engine, settings.baseUrl);
     if (!endpoint) {
       setEngineState('offline');
@@ -282,8 +308,21 @@ export function Lexium({
 
   async function runTranscription() {
     if (!audio) return;
-    setTranscribing(true);
     setTranscribeError(null);
+    setDictation(null);
+
+    // The PC engine is language-specific and does not refuse foreign audio: it
+    // answers in the one language it knows, which is how a Turkish song became
+    // fluent English nonsense. Ask before sending anything.
+    if (isLocalSpeechEngine(settings.engine) && cultures.length > 0) {
+      if (!recognizerFor(cultures, settings.language)) {
+        setTranscript(null);
+        setTranscribeError(localEngineProblem('wrong-language'));
+        return;
+      }
+    }
+
+    setTranscribing(true);
     const filename = `${audio.name.replace(/\.[^.]+$/, '') || 'audio'}.wav`;
     const bridge = window.kryvex;
     const result = bridge?.lexiumTranscribe
@@ -315,6 +354,12 @@ export function Lexium({
       return;
     }
     setTranscript(result.transcript ?? null);
+    // A verdict only arrives from the in-box engine; a server's answer stands
+    // on its own and is not labelled.
+    const verdict = 'verdict' in result ? result.verdict : undefined;
+    setDictation(
+      isLocalSpeechEngine(settings.engine) ? (verdict === 'uncertain' ? 'uncertain' : 'ok') : null,
+    );
     onToast(
       t('Transcribed {duration} of audio.', { duration: formatClock(audio.duration) }),
       'success',
@@ -592,6 +637,19 @@ export function Lexium({
                   </button>
                 </div>
               </div>
+              {dictation === 'uncertain' ? (
+                <p className="lexium-dictation is-uncertain">
+                  {t(
+                    'The engine was not confident about these words. For accents, music, singing or several speakers a Whisper server is far more accurate.',
+                  )}
+                </p>
+              ) : dictation === 'ok' ? (
+                <p className="lexium-dictation">
+                  {t(
+                    'Dictated on this PC by the speech engine Windows ships. Clear speech only: a Whisper server is far more accurate for accents, music and several speakers.',
+                  )}
+                </p>
+              ) : null}
               <textarea
                 className="lexium-transcript"
                 value={transcript.text}

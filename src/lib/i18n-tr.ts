@@ -496,6 +496,16 @@ export const turkishCopy: Record<string, string> = {
   Expand: 'Genişlet',
   'MY VIRTUAL IP': 'SANAL IP ADRESİM',
   'DEVICES ON THIS NETWORK': 'BU AĞDAKİ CİHAZLAR',
+
+  // The in-box dictation engine: language-specific, and honest when unsure.
+  'This PC has a dictation engine for {installed} only, so it cannot hear {language}. Add that language with speech in Windows settings, or use a Whisper server, which handles it far better.':
+    'Bu bilgisayarda yalnızca {installed} için bir dikte motoru var, bu yüzden {language} dilini duyamaz. Windows ayarlarından o dili konuşma desteğiyle ekleyin veya çok daha iyi sonuç veren bir Whisper sunucusu kullanın.',
+  'no language': 'hiçbir dil',
+  'this language': 'bu dil',
+  'The engine was not confident about these words. For accents, music, singing or several speakers a Whisper server is far more accurate.':
+    'Motor bu sözcüklerden emin değildi. Aksanlar, müzik, şarkı söyleme veya birden fazla konuşmacı için bir Whisper sunucusu çok daha doğrudur.',
+  'Dictated on this PC by the speech engine Windows ships. Clear speech only: a Whisper server is far more accurate for accents, music and several speakers.':
+    'Bu bilgisayarda Windows’un konuşma motoruyla dikte edildi. Yalnızca net konuşma için: aksanlar, müzik ve birden fazla konuşmacı için bir Whisper sunucusu çok daha doğrudur.',
   'Detected network': 'Algılanan ağ',
   'Stop sharing my address': 'Adresimi paylaşmayı bırak',
   'Share this address with the room': 'Bu adresi odayla paylaş',
