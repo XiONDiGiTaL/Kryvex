@@ -65,6 +65,16 @@ who leaves loses their row. Withdrawing sends an empty address, which removes
 the row for everyone. Leaving the room clears the whole map: the addresses
 belonged to the people who were in it.
 
+## Accessibility
+
+The strip is a real button with `aria-expanded`, so it is reachable and
+operable from the keyboard alone; the addresses are native radio inputs grouped
+under `Detected network`, so arrow keys move between them; every copy control is
+a button with an `aria-label` that names the address it copies. State is text as
+well as colour (`data-vlan-state` plus the visible label), so the sharing state
+is not carried by colour alone. There is no drag, no context menu and no
+non-standard key handling in this panel to document.
+
 ## Verification
 
 `pnpm verify:vlan` drives the built app in a disposable profile and checks the
