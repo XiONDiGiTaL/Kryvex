@@ -3296,3 +3296,85 @@ by this fix and passed on the runner at their first attempt.
 - **Any runner but `windows-latest`.** Both runs used one image
   (`windows-2025-vs2026`, 20261021.278). A macOS or Linux runner would need a
   display server before any of this applies.
+
+## The rest of the harnesses, in batches (job `harnesses`)
+
+Run on 2026-10-27 in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3.
+
+Twenty-three more harnesses drove the app on this machine alone. They are a
+matrix of five jobs now — `browser`, `services`, `shell`, `rooms`, `tools` — each
+running its batch through `scripts/verify-batch.cjs`, which reads the commands out
+of `package.json`, so an alias that changes its script is not edited twice.
+
+A matrix rather than five more steps in the main job: every one of these boots
+the app in a disposable profile and takes the same ports and `.tmp-*` paths, so
+they cannot run beside each other, and inside one job a failure skips everything
+queued behind it — which is how the Link harness came to be skipped on the first
+runner run. The job also declares `needs: windows`, because when the install or
+the unit suite is what broke, five more jobs would fail identically for no new
+information, and every one of those failures is another notification.
+
+| Batch | Harnesses | Here | On the runner |
+| --- | --- | --- | --- |
+| browser | 6 | 56 s | 65 s |
+| services | 6 | 49 s | 54 s |
+| shell | 5 | 30 s | 32 s |
+| rooms | 3 | 5 s | 8 s |
+| tools | 3 | 30 s | 32 s |
+
+All twenty-three pass in both places. Run 40557385084 is green on every job: the
+main one in 1m25s, the batches between 43 s and 1m52s, and 3m20s of wall clock
+for the whole run because the five run beside each other.
+
+### The two runner failures, both in the check
+
+The matrix's first run (40554739880) passed four batches and failed `browser`;
+the second (40555786455) failed `browser` again, one harness further along.
+Neither was the app.
+
+- **`verify:chromium`** read the engine panel the moment it mounted and found
+  `["n/a","n/a","0","152.0.7977.167"]`. The graphics cell is filled by an IPC
+  that answers after the panel mounts, so a cold runner caught the placeholder;
+  the harness's own direct IPC call in that same run answered fine, reporting
+  `accelerated: false`. The app had the answer and the panel had not set it yet.
+  The check now waits for the cell to carry a value, and still fails on the
+  timeout if the panel never answers.
+- **`verify:popups`** then reported "the popup window was not found on the
+  desktop, so it left Kryvex". Nothing left Kryvex: the fixture's popup page
+  closes itself after 6 s as a backstop, and the harness reached its desktop read
+  — a fixed 400 ms sleep and a Win32 window enumeration — just as that fired.
+  Here the read lands about a second in; on the runner the harness took 13 s. The
+  backstop sits at 60 s now and the placement read waits for the windows to
+  appear rather than sleeping a fixed span, and when it still cannot find them it
+  prints the desktop it saw, so the next such failure says where the window was.
+
+### Sixteen harnesses stay local, each with its reason in the script
+
+`node scripts/verify-batch.cjs --list` prints them all. Most are environment
+rather than defect: an installed build (`verify:packaged-startup`,
+`verify:home-tools`), a published release to update from (`verify:self-update`),
+live Google pages whose answers change without this repo (`verify:google`,
+`verify:identity-matrix`), a real screen and media devices (`verify:rooms`), a
+display and the real Save dialog (`verify:capture-window`), torrent peers
+(`verify:torrents`), hundreds of megabytes of pinned model (`verify:speech`), and
+the OS speech voices a server image does not ship (`verify:lexium-speech`,
+`verify:lexium-language`). The four core harnesses are held back only because they
+already run in the main job.
+
+Two are findings rather than environment, and both are red here today:
+
+- **`verify:layout`** calls the eight element marks clipped at every window size.
+  The marks crop their own `::after` watermark on purpose — the rule dates from
+  0.8.5 — so it is the clipping rule, not the UI, that has to learn to read
+  decoration as decoration. It was held back rather than relaxed: a check
+  narrowed until it passes is worse than one that is honest about what it misses.
+- **`verify:home-tools`** drives the installed app at `C:\Kryvex\Kryvex.exe`, so
+  it asserts the version of whatever is installed — here 0.9.4-hotfix.1, not the
+  build under test. It takes `--exe` for pointing it at another build.
+
+### What is still not covered
+
+- **The sixteen held back**, above.
+- **Any runner but `windows-latest`.** Every run so far used the one image.
+- **Parallelism inside a batch.** The batches run beside each other; the
+  harnesses within one run in order, since they share ports and profile paths.

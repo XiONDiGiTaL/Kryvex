@@ -60,7 +60,18 @@ and the one-time-code relay), and it now runs those three Electron harnesses too
 run of them (40550101369) found what a runner differs on: the caret check had
 assumed the host allows motion, and a Windows runner asks for
 `prefers-reduced-motion: reduce`, where the app correctly holds the caret still.
-The check emulates both branches now, and run 40551244453 is green on all three. One repair went with it — the shell batch's slice
+The check emulates both branches now, and run 40551244453 is green on all three.
+
+The other twenty-three Electron harnesses followed into a five-batch matrix
+(`browser`, `services`, `shell`, `rooms`, `tools`), each batch its own job so a
+failure cannot skip the harnesses behind it. That matrix found two more checks
+that were wrong rather than the app: an engine panel read before its IPC had
+answered, and a popup fixture whose own six-second self-close fired inside the
+placement read. Both are fixed, and run 40557385084 is green on every job. Sixteen
+harnesses stay local with their reasons in `scripts/verify-batch.cjs`; two of those
+are real findings waiting on a decision — `verify:layout` counts the element
+marks' deliberate `::after` watermark as clipped UI, and `verify:home-tools`
+asserts the installed app's version rather than the build under test. One repair went with it — the shell batch's slice
 of `package.json` had dropped `pdf-lib` and the `verify:inhouse` script, and CI's
 install step is what caught it on that commit, since a local typecheck cannot: the
 package is installed here whatever the manifest says. Still open from the same
