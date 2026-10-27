@@ -432,6 +432,17 @@ const api = {
   captureSave: (request: unknown): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:capture:save', request),
   captureCopy: (data: string): Promise<boolean> => ipcRenderer.invoke('kryvex:capture:copy', data),
+  // Kryvex's file boundary: a pick, a written copy, a batch rename. Every path
+  // crosses a native dialog first and every payload is sniffed in the main
+  // process before it is written.
+  filesPick: (request: unknown): Promise<unknown> => ipcRenderer.invoke('kryvex:files:pick', request),
+  filesSave: (request: unknown): Promise<unknown> => ipcRenderer.invoke('kryvex:files:save', request),
+  filesRename: (request: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:files:rename', request),
+  filesReveal: (filePath: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:files:reveal', filePath),
+  filesCopyText: (text: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:files:copy-text', text),
   captureReveal: (filePath: string): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:capture:reveal', filePath),
   /** Show a fresh capture in its own preview window, snipping-tool style. */

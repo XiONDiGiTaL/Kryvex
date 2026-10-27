@@ -52,6 +52,18 @@
   z-index: 1;
 }
 
+/*
+ * The tile a popped-out view carries. It is the same silhouette as a tool mark
+ * so a window's title bar reads the same whatever it holds, but it names no
+ * element: a view is part of the shell, not one of the built-in services, so it
+ * carries the app's glyph instead of a number and a symbol.
+ */
+.element-tile.is-view {
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
 .element-tile-mosaic {
   position: absolute;
   top: 52%;
@@ -1798,4 +1810,305 @@ body[data-player-bar='1'] .app-main {
 
 .model-message.tone-info {
   color: var(--muted);
+}
+
+/* ------------------------------------------------------------------ Arcade --
+   The arcade is a page like any module, so its frame mirrors the service
+   canvas: one bordered box that fills the view, with the loading bar and the
+   fallback panel the stage already uses. */
+.arcade-view .arcade-frame {
+  position: relative;
+  flex: 1;
+  min-height: 320px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.arcade-view.is-embedded .arcade-frame {
+  border: 0;
+  border-radius: 0;
+  min-height: 0;
+}
+
+.arcade-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 10px 0 0;
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+
+.arcade-bar-error {
+  color: var(--danger, #e08585);
+}
+
+/* -------------------------------------------------------------- File Forge --
+   Two columns: the options for the active group, and the files in play. The
+   workbench is dense on purpose — it is a tool, not a page. */
+.forge-view .forge-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.forge-tabs,
+.forge-chips,
+.forge-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.forge-chips-gap {
+  margin-top: 8px;
+}
+
+.forge-view .forge-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.forge-view.is-embedded .forge-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.forge-options,
+.forge-files {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  padding: 14px;
+  overflow: auto;
+  min-height: 0;
+}
+
+.forge-label {
+  margin: 0 0 8px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+}
+
+.forge-options .forge-label:not(:first-child) {
+  margin-top: 16px;
+}
+
+.forge-hint {
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.forge-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.forge-field input,
+.forge-field textarea {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  padding: 7px 9px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.forge-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.forge-slider {
+  display: block;
+  margin-top: 12px;
+}
+
+.forge-slider input {
+  width: 100%;
+}
+
+.forge-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.forge-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  font-size: 11.5px;
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+.forge-list li.is-idle {
+  opacity: 0.45;
+}
+
+.forge-list li.is-blocked {
+  border: 1px solid var(--danger, #e08585);
+}
+
+.forge-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.forge-preview-text pre {
+  max-height: 220px;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.forge-view .forge-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.forge-busy {
+  font-size: 9.5px;
+  color: var(--accent);
+}
+
+.forge-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.forge-results li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+}
+
+/* ------------------------------------------------------------------ Canvas --
+   The sheet is painted at its own pixel size and scaled to the panel, so a
+   drawing keeps its coordinates whatever the window is doing. */
+.canvas-view .canvas-bar,
+.canvas-view .canvas-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.canvas-view .canvas-bar {
+  margin-bottom: 12px;
+}
+
+.canvas-tools,
+.canvas-widths,
+.canvas-history,
+.canvas-swatches,
+.canvas-export,
+.canvas-doc,
+.canvas-sheet-actions,
+.canvas-ground,
+.canvas-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.canvas-swatches {
+  padding: 0 4px;
+}
+
+.canvas-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.canvas-swatch.is-on {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.canvas-stage {
+  flex: 1;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  overflow: auto;
+}
+
+.canvas-sheet {
+  max-width: 100%;
+  max-height: 68vh;
+  border-radius: var(--r-sm);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.canvas-sheet.tool-text {
+  cursor: text;
+}
+
+.canvas-text {
+  margin-top: 12px;
+}
+
+.canvas-view .canvas-foot {
+  margin-top: 14px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.canvas-view.is-embedded .canvas-stage {
+  min-height: 200px;
+}
+
+.preset-chip.is-tool {
+  gap: 8px;
 }

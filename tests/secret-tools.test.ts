@@ -8,19 +8,31 @@ import {
 
 describe('built-in tool pins', () => {
   it('names every tool the Services page offers', () => {
-    expect(SECRET_TOOL_IDS).toEqual(['lexium', 'player', 'emulator', 'disk', 'link']);
+    expect(SECRET_TOOL_IDS).toEqual([
+      'lexium',
+      'player',
+      'emulator',
+      'disk',
+      'link',
+      'arcade',
+      'forge',
+      'canvas',
+    ]);
     for (const id of SECRET_TOOL_IDS) expect(SECRET_TOOL_LABELS[id]).toBeTruthy();
   });
 
   it('recognises only the tools the app ships', () => {
     expect(isSecretToolId('disk')).toBe(true);
+    expect(isSecretToolId('canvas')).toBe(true);
     expect(isSecretToolId('speaker')).toBe(false);
     expect(isSecretToolId(null)).toBe(false);
   });
 
   it('keeps the saved order and drops anything else', () => {
     expect(sanitizePinnedTools(['player', 'nope', 'player', 'disk'])).toEqual(['player', 'disk']);
+    expect(sanitizePinnedTools(['canvas', 'arcade'])).toEqual(['canvas', 'arcade']);
     expect(sanitizePinnedTools(undefined)).toEqual([]);
     expect(sanitizePinnedTools('lexium')).toEqual([]);
   });
 });
+

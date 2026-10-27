@@ -36,6 +36,7 @@ import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
 import { emptyVlanStatus } from './vlan-rules';
 import { captureTools } from './capture-tools';
 import { captureWindow } from './capture-window';
+import { fileKit } from './file-kit';
 import { playlistImporter } from './playlist';
 import { playerEmbed } from './player-embed';
 import * as lexiumProxy from './lexium-proxy';
@@ -808,6 +809,24 @@ function registerIpc(): void {
   ipcMain.handle('kryvex:capture:reveal', (event, target: unknown) =>
     isShellSender(event) ? captureTools.reveal(target) : false,
   );
+  // File Forge and Canvas: the bytes stay in the renderer, and this is the only
+  // place a path, a name or a rename comes from. Nothing here accepts a path the
+  // user did not choose in a dialog of this session.
+  ipcMain.handle('kryvex:files:pick', (event, request: unknown) =>
+    isShellSender(event) ? fileKit.pick(request) : { ok: false, files: [] },
+  );
+  ipcMain.handle('kryvex:files:save', (event, request: unknown) =>
+    isShellSender(event) ? fileKit.save(request) : { ok: false, saved: [] },
+  );
+  ipcMain.handle('kryvex:files:rename', (event, request: unknown) =>
+    isShellSender(event) ? fileKit.rename(request) : { ok: false, renamed: [] },
+  );
+  ipcMain.handle('kryvex:files:reveal', (event, target: unknown) =>
+    isShellSender(event) ? fileKit.reveal(target) : false,
+  );
+  ipcMain.handle('kryvex:files:copy-text', (event, text: unknown) =>
+    isShellSender(event) ? fileKit.copyText(text) : false,
+  );
   // A preview gets a window of its own, built from the same bytes the save path
   // already validates. The window's own actions are registered by its module.
   captureWindow.registerIpc();
@@ -1249,6 +1268,7 @@ if (!gotLock) {
     media.attachWindow(mainWindow);
     link.attachWindow(mainWindow);
     captureTools.attachWindow(mainWindow);
+    fileKit.attachWindow(mainWindow);
     partyAttachWindow(mainWindow);
     extensions.attachWindow(mainWindow);
     updater.attachWindow(mainWindow);
@@ -1281,6 +1301,7 @@ if (!gotLock) {
         mainWindow = createWindow();
         notifications.attachWindow(mainWindow);
         captureTools.attachWindow(mainWindow);
+        fileKit.attachWindow(mainWindow);
         partyAttachWindow(mainWindow);
         updater.attachWindow(mainWindow);
         modelManager.attachWindow(mainWindow);

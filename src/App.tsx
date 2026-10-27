@@ -83,6 +83,9 @@ import {
 } from './lib/workspace';
 import type { ResizeDirection } from './lib/floating';
 import { Assistant } from './views/Assistant';
+import { Arcade } from './views/Arcade';
+import { FileForge } from './views/FileForge';
+import { Canvas } from './views/Canvas';
 import { Link } from './views/Link';
 import { Rooms } from './views/Rooms';
 import { Browser, type BrowserPanel } from './views/Browser';
@@ -115,7 +118,10 @@ function parseHash(hash: string): Route {
     head === 'lexium' ||
     head === 'player' ||
     head === 'disk' ||
-    head === 'link'
+    head === 'link' ||
+    head === 'arcade' ||
+    head === 'forge' ||
+    head === 'canvas'
       ? head
       : 'home';
   return { view, query, key: raw };
@@ -517,6 +523,44 @@ export default function App() {
       navigate('workspace');
     },
     [navigate, windowSpace],
+  );
+
+  /**
+   * Canvas can hand its typed words to the Home board.
+   *
+   * The board caps its list at forty notes, so a sheet that would push past the
+   * cap is refused with a reason instead of silently dropping the text.
+   */
+  const addStickyNote = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const notes = state.settings.home.notes;
+      if (notes.length >= 40) {
+        pushToast(t('The board already holds forty notes. Clear one to make room.'), 'warning');
+        return;
+      }
+      setState(current => {
+        return updateSettings(current, {
+          home: {
+            ...current.settings.home,
+            // A note is only useful if it can be seen, so the widget is turned
+            // on rather than dropping the text somewhere invisible.
+            showTasks: true,
+            notes: [
+              ...current.settings.home.notes,
+              {
+                id: `note-${Date.now().toString(36)}-${current.settings.home.notes.length}`,
+                text: trimmed.slice(0, 160),
+                done: false,
+                createdAt: Date.now(),
+              },
+            ],
+          },
+        });
+      });
+    },
+    [pushToast, state.settings.home.notes, t],
   );
 
   // A closed module cannot leave a window behind; the record goes with it.
@@ -1282,6 +1326,12 @@ export default function App() {
       case 'link':
         // A product name, identical in every language.
         return 'Kyvex Link';
+      case 'arcade':
+        return 'Arcade';
+      case 'forge':
+        return 'File Forge';
+      case 'canvas':
+        return 'Canvas';
       default:
         return t('Home');
     }
@@ -1551,6 +1601,25 @@ export default function App() {
             onToggle={updateLink}
             onBack={() => navigate('services')}
             onToast={pushToast}
+          />
+        ) : route.view === 'arcade' ? (
+          <Arcade
+            isElectron={isElectron}
+            onOpenLink={openExternalTab}
+            onBack={() => navigate('services')}
+          />
+        ) : route.view === 'forge' ? (
+          <FileForge
+            isElectron={isElectron}
+            onBack={() => navigate('services')}
+            onToast={pushToast}
+          />
+        ) : route.view === 'canvas' ? (
+          <Canvas
+            isElectron={isElectron}
+            onBack={() => navigate('services')}
+            onToast={pushToast}
+            onAddNote={addStickyNote}
           />
         ) : route.view === 'browser' ? (
           <Browser

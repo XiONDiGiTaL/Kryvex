@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import type { Service, ServiceCategory } from '../types';
+import type { SecretToolId, Service, ServiceCategory } from '../types';
+import { EMBEDDABLE_TOOL_IDS, SECRET_TOOL_LABELS } from '../lib/secret-tools';
+import { ElementMark } from './ElementMark';
 import {
   CATEGORIES,
   SERVICE_COLORS,
@@ -15,6 +17,7 @@ export function ServiceDialog({
   initial,
   installed = [],
   onPlace,
+  onPlaceTool,
   onSave,
   onClose,
 }: {
@@ -23,6 +26,12 @@ export function ServiceDialog({
   installed?: readonly Service[];
   /** Opens an installed service in a window instead of adding a record. */
   onPlace?: (service: Service) => void;
+  /**
+   * Opens one of Kryvex's own tools in a window. Present only where a window is
+   * the point: the tools have no record to add, so offering them anywhere else
+   * would be a button that adds nothing.
+   */
+  onPlaceTool?: (tool: SecretToolId) => void;
   onSave: (service: Service) => void;
   onClose: () => void;
 }) {
@@ -170,6 +179,34 @@ export function ServiceDialog({
             </div>
             <p className="preset-note">
               {t('Open one of these in a window, or add something new below.')}
+            </p>
+          </div>
+        ) : null}
+
+        {onPlaceTool ? (
+          <div className="preset-block">
+            <div className="preset-head">
+              <span className="mono">{t('BUILT-IN SERVICES')}</span>
+              <span className="mono preset-credit">{t('NO ACCOUNT')}</span>
+            </div>
+            <div className="preset-grid">
+              {EMBEDDABLE_TOOL_IDS.map(tool => (
+                <button
+                  key={tool}
+                  type="button"
+                  className="preset-chip is-tool"
+                  onClick={() => onPlaceTool(tool)}
+                  aria-label={t('Open {name}', { name: t(SECRET_TOOL_LABELS[tool]) })}
+                >
+                  <ElementMark tool={tool} size={26} compact />
+                  <span>{t(SECRET_TOOL_LABELS[tool])}</span>
+                </button>
+              ))}
+            </div>
+            <p className="preset-note">
+              {t(
+                'Arcade, File Forge and Canvas run on this machine. They go straight into a window, with no sign-in and nothing added to your service list.',
+              )}
             </p>
           </div>
         ) : null}

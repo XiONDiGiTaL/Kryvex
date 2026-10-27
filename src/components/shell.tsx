@@ -38,12 +38,18 @@ const NAV: Array<{
  * A pinned tool needs a glyph, and the element tiles are too dense to read at
  * rail size. Each tool borrows the nearest icon from the shell's own set.
  */
-const TOOL_ICONS: Record<SecretToolId, 'language' | 'music' | 'play' | 'monitor' | 'link'> = {
+const TOOL_ICONS: Record<
+  SecretToolId,
+  'language' | 'music' | 'play' | 'monitor' | 'link' | 'image' | 'folder' | 'edit'
+> = {
   lexium: 'language',
   player: 'music',
   emulator: 'play',
   disk: 'monitor',
   link: 'link',
+  arcade: 'play',
+  forge: 'folder',
+  canvas: 'edit',
 };
 
 export function Header({

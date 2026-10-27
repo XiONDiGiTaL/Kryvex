@@ -30,6 +30,11 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
 ## Latest batch (27 Oct 2026, inside the 0.9.5 line)
 
+The three built-in tools are in and verified end to end — Arcade (x535, the
+xiondigital.net arcade in its own persistent partition), File Forge (x536,
+images, PDFs, data and batch rename behind one file boundary) and Canvas (x537,
+a vector sheet with undo, exports and a sticky-note handoff). `pnpm verify:inhouse`
+drives 18 checks against them.
 The dragged crop region followed in the same 0.9.5 line, and the screen capture
 card now offers **Whole target** (the default, unchanged) or **An area**. The area
 is drawn on a frozen frame — the target is armed, one frame is grabbed, and the

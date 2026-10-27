@@ -296,7 +296,7 @@ export function Services({
           <div className="secret-consent" role="group" aria-label={t('Secret services')}>
             <p>
               {t(
-                'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kyvex Link. They need no account and no server, and their files stay local.',
+                'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse, Kryvex Link, Arcade, File Forge and Canvas. They need no account and no server, and their files stay local.',
               )}
             </p>
             <div className="secret-consent-actions">
@@ -462,6 +462,99 @@ export function Services({
               <ToolPinButton
                 tool="link"
                 pinned={pinnedTools.includes('link')}
+                onToggle={onToggleToolPin}
+              />
+            </div>
+          </div>
+
+          <div className="secret-slot">
+            <button className="secret-card is-tool" onClick={() => onSecretTool('arcade')}>
+              <ElementMark tool="arcade" size={58} />
+              <span className="secret-card-copy">
+                <span className="mono secret-card-kicker">{t('x535 / ARCADE')}</span>
+                <strong>Arcade</strong>
+                <span>
+                  {t(
+                    'Direct access to the xiondigital.net arcade, showcasing games made by Kryvex’s developer.',
+                  )}
+                </span>
+              </span>
+              <Icon name="forward" size={16} />
+            </button>
+            <div className="secret-buttons">
+              <ToolQuickMenu
+                tool="arcade"
+                emulator={state.settings.emulator}
+                player={state.settings.player}
+                onUpdateEmulator={onUpdateEmulator}
+                onUpdatePlayer={onUpdatePlayer}
+                onOpen={onSecretTool}
+              />
+              <ToolPinButton
+                tool="arcade"
+                pinned={pinnedTools.includes('arcade')}
+                onToggle={onToggleToolPin}
+              />
+            </div>
+          </div>
+
+          <div className="secret-slot">
+            <button className="secret-card is-tool" onClick={() => onSecretTool('forge')}>
+              <ElementMark tool="forge" size={58} />
+              <span className="secret-card-copy">
+                <span className="mono secret-card-kicker">{t('x536 / FILES')}</span>
+                <strong>File Forge</strong>
+                <span>
+                  {t(
+                    'Resize and convert images, merge, split or reorder PDFs, turn JSON into CSV and rename in batches. Copies are exported; your originals stay where they are.',
+                  )}
+                </span>
+              </span>
+              <Icon name="forward" size={16} />
+            </button>
+            <div className="secret-buttons">
+              <ToolQuickMenu
+                tool="forge"
+                emulator={state.settings.emulator}
+                player={state.settings.player}
+                onUpdateEmulator={onUpdateEmulator}
+                onUpdatePlayer={onUpdatePlayer}
+                onOpen={onSecretTool}
+              />
+              <ToolPinButton
+                tool="forge"
+                pinned={pinnedTools.includes('forge')}
+                onToggle={onToggleToolPin}
+              />
+            </div>
+          </div>
+
+          <div className="secret-slot">
+            <button className="secret-card is-tool" onClick={() => onSecretTool('canvas')}>
+              <ElementMark tool="canvas" size={58} />
+              <span className="secret-card-copy">
+                <span className="mono secret-card-kicker">{t('x537 / CANVAS')}</span>
+                <strong>Canvas</strong>
+                <span>
+                  {t(
+                    'Sketch, draw and type on a sheet that stays on this machine, then save it as an image or send its words to the sticky notes.',
+                  )}
+                </span>
+              </span>
+              <Icon name="forward" size={16} />
+            </button>
+            <div className="secret-buttons">
+              <ToolQuickMenu
+                tool="canvas"
+                emulator={state.settings.emulator}
+                player={state.settings.player}
+                onUpdateEmulator={onUpdateEmulator}
+                onUpdatePlayer={onUpdatePlayer}
+                onOpen={onSecretTool}
+              />
+              <ToolPinButton
+                tool="canvas"
+                pinned={pinnedTools.includes('canvas')}
                 onToggle={onToggleToolPin}
               />
             </div>

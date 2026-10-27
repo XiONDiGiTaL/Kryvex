@@ -6,13 +6,22 @@ import type { CSSProperties } from 'react';
  * Themes already carry an element number and a two-letter symbol; the secret
  * services use the same language so they read as part of the product rather
  * than as embedded web apps. Numbers continue the fictional Kx series: x529 is
- * the shell itself, x530 Lexium, x531 the player, x532 the 8-bit emulator.
+ * the shell itself, x530 Lexium, x531 the player, x532 the 8-bit emulator,
+ * x535 the arcade, x536 File Forge and x537 Canvas.
  *
  * The emulator is the one mark whose symbol is a word rather than two letters.
  * Its old pixel screen becomes a watermark inside the tile, so all three
  * services share one silhouette while the emulator still looks like hardware.
  */
-export type ToolMark = 'lexium' | 'player' | 'emulator' | 'disk' | 'link';
+export type ToolMark =
+  | 'lexium'
+  | 'player'
+  | 'emulator'
+  | 'disk'
+  | 'link'
+  | 'arcade'
+  | 'forge'
+  | 'canvas';
 
 type Mark = {
   number: string;
@@ -30,6 +39,9 @@ const MARKS: Record<ToolMark, Mark> = {
   emulator: { number: 'x532', symbol: '8-bit', name: 'Emulator', caption: 'Retro' },
   disk: { number: 'x533', symbol: 'Dx', name: 'Disk pulse', caption: 'Disk' },
   link: { number: 'x534', symbol: 'Lk', name: 'Kyvex Link', caption: 'Link' },
+  arcade: { number: 'x535', symbol: 'Ar', name: 'Arcade' },
+  forge: { number: 'x536', symbol: 'Ff', name: 'File Forge', caption: 'Files' },
+  canvas: { number: 'x537', symbol: 'Cv', name: 'Canvas' },
 };
 
 function Glyph({ tool }: { tool: ToolMark }) {
@@ -69,6 +81,43 @@ function Glyph({ tool }: { tool: ToolMark }) {
         <path d="M7 10.4v3.4M5.3 12.1h3.4" />
         <circle cx="16" cy="10.9" r="1" />
         <circle cx="18.3" cy="13.2" r="1" />
+      </svg>
+    );
+  }
+  if (tool === 'arcade') {
+    // A cabinet seen from the front: marquee, screen, joystick and two buttons.
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4.2" y="2.6" width="15.6" height="18.8" rx="2.2" />
+        <path d="M4.2 6.4h15.6" />
+        <rect x="7" y="8.4" width="10" height="6.2" rx="1" />
+        <path d="M9.6 16.6v2.2" />
+        <circle cx="9.6" cy="18.9" r="1.1" />
+        <circle cx="14.2" cy="17.4" r="1" />
+        <circle cx="16.6" cy="18.9" r="1" />
+      </svg>
+    );
+  }
+  if (tool === 'forge') {
+    // Two sheets with an arrow between them: a file going in, a copy coming out.
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3.4 5.6h7.2v12.8H3.4z" />
+        <path d="M13.4 5.6h7.2v12.8h-7.2z" />
+        <path d="M11 12h2" />
+        <path d="M12.2 10.4 13.8 12l-1.6 1.6" />
+        <path d="M5.6 9.2h3.2M5.6 12h3.2" />
+      </svg>
+    );
+  }
+  if (tool === 'canvas') {
+    // A brush over a painted stroke, inside a frame.
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="4.4" width="18" height="15.2" rx="2.2" />
+        <path d="M6.6 15.8c1.8-3.4 3.6-5.4 5.4-6l1.4 1.4c-.6 1.8-2.6 3.6-6 5.4" />
+        <path d="M14.8 7.4l2.4 2.4" />
+        <path d="M17.6 6.6l-1 2.2-2.2 1" />
       </svg>
     );
   }

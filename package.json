@@ -69,6 +69,7 @@
     "verify:home-tools": "node scripts/verify-home-tools.cjs",
     "verify:capture-window": "node scripts/verify-capture-window.cjs",
     "verify:canvas": "node scripts/verify-workspace-placement.cjs",
+    "verify:inhouse": "pnpm build && node scripts/verify-inhouse-services.cjs",
     "verify:vlan": "node scripts/verify-vlan.cjs"
   },
   "build": {
@@ -128,6 +129,7 @@
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.20.1",
     "@trystero-p2p/torrent": "0.26.0",
+    "pdf-lib": "^1.17.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "webtorrent": "3.0.21"

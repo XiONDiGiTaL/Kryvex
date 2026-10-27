@@ -611,4 +611,176 @@ export const turkishCopy: Record<string, string> = {
   'Kryvex will not open with Windows.': 'Kryvex artık Windows ile açılmayacak.',
   'The Windows startup entry could not be changed.':
     'Windows başlangıç kaydı değiştirilemedi.',
+
+  // Arcade (x535)
+  'x535 / ARCADE': 'x535 / SALON',
+  'The xiondigital.net arcade, embedded here with its own saved session so scores and saves survive a restart.':
+    'xiondigital.net atari salonu; kaydedilmiş kendi oturumuyla buraya gömülü, böylece skorlar ve kayıtlar yeniden başlatmaya dayanır.',
+  'Direct access to the xiondigital.net arcade, showcasing games made by Kryvex’s developer.':
+    'xiondigital.net atari salonuna doğrudan erişim; Kryvex’in geliştiricisinin yaptığı oyunları gösterir.',
+  'The arcade did not load.': 'Atari salonu yüklenmedi.',
+  'Check the connection, then try again.': 'Bağlantıyı kontrol edip tekrar deneyin.',
+  'The arcade runs in the desktop app, which embeds it with its own saved session. The web build opens it in a browser tab instead.':
+    'Atari salonu masaüstü uygulamasında çalışır ve orada kendi kayıtlı oturumuyla gömülür. Web sürümü onu bunun yerine tarayıcı sekmesinde açar.',
+
+  // File Forge (x536)
+  'x536 / FILES': 'x536 / DOSYALAR',
+  'Resize and convert images, merge, split or reorder PDFs, turn JSON into CSV and rename in batches. Copies are exported; your originals stay where they are.':
+    'Görselleri boyutlandırıp dönüştürün, PDF’leri birleştirin, bölün veya yeniden sıralayın, JSON’u CSV’ye çevirin ve toplu olarak yeniden adlandırın. Dışa aktarılan kopyalardır; özgün dosyalarınız yerinde kalır.',
+  'Resize and convert images, merge, split or reorder PDFs, turn JSON into CSV and rename in batches. Everything runs on this machine and originals are left alone.':
+    'Görselleri boyutlandırıp dönüştürün, PDF’leri birleştirin, bölün veya yeniden sıralayın, JSON’u CSV’ye çevirin ve toplu olarak yeniden adlandırın. Her şey bu makinede çalışır, özgün dosyalara dokunulmaz.',
+  'Add files': 'Dosya ekle',
+  'Clear the list': 'Listeyi temizle',
+  Options: 'Seçenekler',
+  Images: 'Görseller',
+  Rename: 'Yeniden adlandır',
+  'Output format': 'Çıktı biçimi',
+  'Longest edge': 'En uzun kenar',
+  Original: 'Özgün',
+  'Quality {percent}%': 'Kalite %{percent}',
+  'BMP keeps no quality setting: it is written without compression.':
+    'BMP’de kalite ayarı yoktur: sıkıştırmasız yazılır.',
+  'What to do': 'Ne yapılacak',
+  'Images into a PDF': 'Görsellerden PDF',
+  Merge: 'Birleştir',
+  Split: 'Böl',
+  Reorder: 'Yeniden sırala',
+  'A PDF per image': 'Her görsel için bir PDF',
+  'One PDF with all of them': 'Hepsi tek PDF’de',
+  'A PDF per page': 'Her sayfa için bir PDF',
+  'Choose ranges': 'Aralık seç',
+  'Page ranges': 'Sayfa aralıkları',
+  'Page order': 'Sayfa sırası',
+  'Turn every page 90°': 'Her sayfayı 90° döndür',
+  'A PDF cannot be turned back into images here: that needs a page renderer Kryvex does not ship.':
+    'Burada bir PDF tekrar görsele çevrilemez: bunun için Kryvex’in birlikte gelmediği bir sayfa işleyici gerekir.',
+  Direction: 'Yön',
+  'JSON to CSV': 'JSON → CSV',
+  'CSV to JSON': 'CSV → JSON',
+  'A list of records becomes a table with one column per field. Numbers and true/false are read back as such; everything else stays text.':
+    'Kayıt listesi, her alan için bir sütunlu bir tabloya dönüşür. Sayılar ve true/false aynen geri okunur; kalan her şey metin kalır.',
+  'New name': 'Yeni ad',
+  'Use {name}, {n}, {ext}, {date} and {count}.': '{name}, {n}, {ext}, {date} ve {count} kullanın.',
+  'Start counting at': 'Saymaya şuradan başla',
+  'Renaming touches the originals. Nothing is overwritten, and the list below is exactly what will happen.':
+    'Yeniden adlandırma özgün dosyalara dokunur. Hiçbir şeyin üzerine yazılmaz ve aşağıdaki liste tam olarak ne olacağını gösterir.',
+  'NOTHING READY': 'HAZIR DOSYA YOK',
+  '{count} FILES READY': '{count} DOSYA HAZIR',
+  'Add files to begin.': 'Başlamak için dosya ekleyin.',
+  'would collide': 'çakışır',
+  'FIRST LINES': 'İLK SATIRLAR',
+  'Apply the batch': 'Toplu işi uygula',
+  'Convert and export a copy': 'Dönüştür ve kopya aktar',
+  'Copy the preview': 'Önizlemeyi kopyala',
+  'Kryvex tool': 'Kryvex aracı',
+  'One file is larger than the 48 MB this tool opens at once: {name}':
+    'Bir dosya bu aracın tek seferde açtığı 48 MB’tan büyük: {name}',
+  'That selection is more than 96 MB in total. Pick fewer files at once.':
+    'Bu seçim toplamda 96 MB’tan fazla. Tek seferde daha az dosya seçin.',
+  'That file could not be read: {name}': 'O dosya okunamadı: {name}',
+  'No readable file was chosen.': 'Okunabilir bir dosya seçilmedi.',
+  'An export had no usable extension: {name}': 'Bir aktarımın kullanılabilir uzantısı yoktu: {name}',
+  'That export was empty or too large to write: {name}':
+    'O aktarım boştu ya da yazılamayacak kadar büyüktü: {name}',
+  'That export did not contain the format it claimed: {name}':
+    'O aktarım belirttiği biçimi içermiyordu: {name}',
+  'Nothing was ready to export.': 'Aktarılacak bir şey hazır değildi.',
+  'The file could not be written.': 'Dosya yazılamadı.',
+  'That file was not chosen in this session.': 'O dosya bu oturumda seçilmedi.',
+  'That is not a usable file name: {name}': 'Bu kullanılabilir bir dosya adı değil: {name}',
+  'Two files would both become {name}.': 'İki dosya birden {name} olurdu.',
+  '{name} already exists.': '{name} zaten var.',
+  'The work could not be finished.': 'İş tamamlanamadı.',
+  'Waiting for a choice…': 'Seçim bekleniyor…',
+  'Converting images…': 'Görseller dönüştürülüyor…',
+  'Working on the PDF…': 'PDF üzerinde çalışılıyor…',
+  'Converting data…': 'Veri dönüştürülüyor…',
+  'Renaming…': 'Yeniden adlandırılıyor…',
+  'Exported {count} file(s).': '{count} dosya aktarıldı.',
+  'Renamed {count} file(s).': '{count} dosya yeniden adlandırıldı.',
+  'Add at least one image first.': 'Önce en az bir görsel ekleyin.',
+  'Add a JSON or CSV file first.': 'Önce bir JSON ya da CSV dosyası ekleyin.',
+  'Nothing in that list converts with the options above.':
+    'O listede hiçbir şey yukarıdaki seçeneklerle dönüşmüyor.',
+  'Merging needs two or more PDFs.': 'Birleştirme için iki ya da daha fazla PDF gerekir.',
+  'Splitting works on one PDF at a time.': 'Bölme aynı anda tek PDF ile çalışır.',
+  'Reordering works on one PDF at a time.': 'Yeniden sıralama aynı anda tek PDF ile çalışır.',
+  'That page range could not be read. Try a form like 1-3,5.':
+    'O sayfa aralığı okunamadı. 1-3,5 gibi bir biçim deneyin.',
+  'That order needs every page exactly once, from 1 to {count}.':
+    'Bu sıra her sayfayı 1 ile {count} arasında tam bir kez ister.',
+  'That PDF could not be read.': 'O PDF okunamadı.',
+  'That PDF is encrypted, so it has to be unlocked before Kryvex can read it.':
+    'O PDF şifreli; Kryvex okuyabilmesi için önce kilidinin açılması gerekiyor.',
+  'That file could not be written.': 'O dosya yazılamadı.',
+  '{name} could not be converted.': '{name} dönüştürülemedi.',
+  '{name} could not be read as a table.': '{name} tablo olarak okunamadı.',
+  '{name} could not be read.': '{name} okunamadı.',
+  '{name} is too large to read as text.': '{name} metin olarak okunamayacak kadar büyük.',
+  '{name} is not a list of records that can become a table.':
+    '{name} tabloya dönüşebilecek bir kayıt listesi değil.',
+  'Fix the highlighted names before applying the batch.':
+    'Toplu işi uygulamadan önce işaretli adları düzeltin.',
+  'File Forge needs the desktop app: the web build cannot open files on this machine.':
+    'File Forge masaüstü uygulamasını gerektirir: web sürümü bu makinedeki dosyaları açamaz.',
+  'Renaming needs the desktop app.': 'Yeniden adlandırma masaüstü uygulamasını gerektirir.',
+  'Saving needs the desktop app.': 'Kaydetmek masaüstü uygulamasını gerektirir.',
+  'Encoding…': 'Kodlanıyor…',
+  'Forget {name}': '{name} kaydını unut',
+
+  // Canvas (x537)
+  'x537 / CANVAS': 'x537 / TUVAL',
+  'Sketch, draw and type on a sheet that stays on this machine, then save it as an image or send its words to the sticky notes.':
+    'Bu makinede kalan bir sayfaya karalayın, çizin ve yazın; sonra görsel olarak kaydedin ya da sözcüklerini yapışkan notlara gönderin.',
+  'Draw, sketch and type on a sheet that stays on this machine. Save it as an image, send its words to a sticky note, or keep the sheet itself to carry on later.':
+    'Bu makinede kalan bir sayfaya çizin, karalayın ve yazın. Görsel olarak kaydedin, sözcüklerini bir yapışkan nota gönderin ya da sonra devam etmek için sayfayı saklayın.',
+  Tools: 'Araçlar',
+  Brush: 'Fırça',
+  Eraser: 'Silgi',
+  Line: 'Çizgi',
+  Rectangle: 'Dikdörtgen',
+  Ellipse: 'Elips',
+  Text: 'Metin',
+  'Colour {value}': 'Renk {value}',
+  'Stroke size': 'Çizgi kalınlığı',
+  Undo: 'Geri al',
+  Redo: 'Yinele',
+  'Clear the sheet': 'Sayfayı temizle',
+  'Drawing sheet': 'Çizim sayfası',
+  'Text to place': 'Yerleştirilecek metin',
+  'Text size {size}px': 'Metin boyutu {size} px',
+  'Save a copy': 'Kopya kaydet',
+  Words: 'Sözcükler',
+  'Text file': 'Metin dosyası',
+  'Rich text': 'Zengin metin',
+  'Send to sticky notes': 'Yapışkan notlara gönder',
+  'Sent {count} note(s) to the Home board.': 'Ana sayfaya {count} not gönderildi.',
+  'There is no typed text on the sheet yet.': 'Sayfada henüz yazılmış metin yok.',
+  'Type the words below, then click the sheet to place them.':
+    'Sözcükleri aşağıya yazın, sonra yerleştirmek için sayfaya tıklayın.',
+  Sheet: 'Sayfa',
+  'Open a sheet': 'Sayfa aç',
+  'Keep the sheet': 'Sayfayı sakla',
+  Ground: 'Zemin',
+  'Ground {value}': 'Zemin {value}',
+  'Saved {name}.': '{name} kaydedildi.',
+  'The sheet could not be encoded.': 'Sayfa kodlanamadı.',
+  'No sheet was chosen.': 'Hiç sayfa seçilmedi.',
+  '{name} is not a Kryvex sheet.': '{name} bir Kryvex sayfası değil.',
+  '{name} is open.': '{name} açık.',
+  'Opening a sheet needs the desktop app.': 'Sayfa açmak masaüstü uygulamasını gerektirir.',
+  'The sheet is drawn in this tab and kept for the session: saving it needs the desktop app.':
+    'Sayfa bu sekmede çizilir ve oturum boyunca saklanır: kaydetmek için masaüstü uygulaması gerekir.',
+  'The board already holds forty notes. Clear one to make room.':
+    'Panoda zaten kırk not var. Yer açmak için birini silin.',
+
+  // Built-in windows and the three new cards
+  'BUILT IN': 'YERLEŞİK',
+  'BUILT-IN SERVICES': 'YERLEŞİK SERVİSLER',
+  'NO ACCOUNT': 'HESAP GEREKMEZ',
+  'Arcade, File Forge and Canvas run on this machine. They go straight into a window, with no sign-in and nothing added to your service list.':
+    'Arcade, File Forge ve Canvas bu makinede çalışır. Doğrudan bir pencereye açılırlar; oturum açma yok ve servis listenize hiçbir şey eklenmez.',
+  'Built-in tool windows': 'Yerleşik araç pencereleri',
+  'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse, Kryvex Link, Arcade, File Forge and Canvas. They need no account and no server, and their files stay local.':
+    'Gizli servisler Kryvex’in içine gömülü, bu makinede çalışan araçlardır: Lexium, medya oynatıcı, emülatör, Disk pulse, Kryvex Link, Arcade, File Forge ve Canvas. Hesap ve sunucu gerektirmezler, dosyaları yerel kalır.',
 };

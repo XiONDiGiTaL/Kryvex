@@ -71,3 +71,7 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
   made through a canvas (`pnpm verify:capture-window`, 37 checks). Open: an area
   saved against one target size is dropped rather than adjusted when the frame
   comes back unable to hold it.
+- [ ] **File Forge, deeper groups.** Audio conversion (WAV is written by hand;
+  MP3/FLAC/OGG have no encoder in Chromium and must stay refused rather than
+  faked) and PDF pages back to images, which needs a page renderer (pdfjs-dist
+  is the reviewed candidate — Apache-2.0, ~8.5 MB in the bundle).

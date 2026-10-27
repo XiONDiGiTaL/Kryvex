@@ -5,6 +5,26 @@ import type {
 // sanitizer, defined next to the Electron wiring and shared with the UI.
 import type { ChromiumSettings, EngineInfo } from '../electron/chromium-rules';
 import type { PopupTabInfo, PopupTabRect } from '../electron/types';
+// The file boundary is a contract with the main process too: one set of rules,
+// shared with the tools that transform the bytes on this side.
+import type {
+  FileKind,
+  FileKitCode,
+  FilePickResult,
+  FileRenameResult,
+  FileSaveResult,
+  PickedFile,
+  WrittenFile,
+} from '../electron/file-kit-rules';
+export type {
+  FileKind,
+  FileKitCode,
+  FilePickResult,
+  FileRenameResult,
+  FileSaveResult,
+  PickedFile,
+  WrittenFile,
+};
 export type {
   PopupTabInfo,
   PopupTabRect,
@@ -30,7 +50,10 @@ export type ViewId =
   | 'lexium'
   | 'player'
   | 'disk'
-  | 'link';
+  | 'link'
+  | 'arcade'
+  | 'forge'
+  | 'canvas';
 
 export type ServiceCategory =
   | 'communication'
@@ -61,7 +84,15 @@ export type LifecycleServiceId = 'emulator' | 'disk' | 'rooms' | 'modules';
  * cannot be installed, renamed or removed, but they can be pinned to the same
  * rail as installed services.
  */
-export type SecretToolId = 'lexium' | 'player' | 'emulator' | 'disk' | 'link';
+export type SecretToolId =
+  | 'lexium'
+  | 'player'
+  | 'emulator'
+  | 'disk'
+  | 'link'
+  | 'arcade'
+  | 'forge'
+  | 'canvas';
 
 export interface LifecycleSettings {
   /** Applied to every service that does not override it. */
@@ -1105,6 +1136,20 @@ export type LinkCommandEvent =
 
 export interface KryvexBridge {
   platform: string;
+  /**
+   * The file boundary behind File Forge and Canvas.
+   *
+   * The renderer transforms bytes; these four calls are the only way a file is
+   * read, written or renamed, and each one goes through a native dialog in the
+   * main process. Nothing crosses with a bare path from this side.
+   */
+  filesPick: (request: { kind: FileKind; multiple?: boolean }) => Promise<FilePickResult>;
+  filesSave: (request: { items: { name: string; data: string }[] }) => Promise<FileSaveResult>;
+  filesRename: (request: {
+    items: { path: string; name: string }[];
+  }) => Promise<FileRenameResult>;
+  filesReveal: (filePath: string) => Promise<boolean>;
+  filesCopyText: (text: string) => Promise<boolean>;
   loadState: () => Promise<unknown>;
   saveState: (state: unknown) => Promise<boolean>;
   openExternal: (url: string) => Promise<boolean>;
