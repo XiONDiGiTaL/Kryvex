@@ -9,7 +9,9 @@
  *     press lands outside it, and a press inside it does not;
  *   - the world clock's 12/24-hour switch changes the card's rows and leaves the
  *     board clock alone, and the board clock's own switch does the reverse;
- *   - the calculator shows a blinking caret only while it holds focus;
+ *   - the calculator shows a caret only while it holds focus, and it blinks when
+ *     motion is allowed while holding still for a reader who asked it to stop —
+ *     both emulated, since a Windows runner asks for the latter;
  *   - a Home section can be moved above another one from the board's own
  *     controls, and the page is drawn in the new order;
  *   - Rooms pops out into a window over the app (the route says where it went),
@@ -279,6 +281,27 @@ async function main() {
     check(!caretBefore, 'the calculator shows no caret before it is clicked');
     await client.evaluate(press('.home-calculator', 30, 30));
     await waitFor(client.evaluate, `Boolean(document.querySelector('.home-calc-caret'))`, 4000, 'the caret');
+    // A Windows runner ships with the system's animations off, which Chromium
+    // reports as `prefers-reduced-motion: reduce` — and the caret stops blinking
+    // for exactly that reader, so a host that asks for less motion is not a
+    // failure. Neither branch is taken from the host: both are emulated, and the
+    // host's own answer is printed alongside them.
+    const hostMotion = await client.evaluate(
+      `window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduce' : 'no-preference'`,
+    );
+    const emulateMotion = value =>
+      client.send('Emulation.setEmulatedMedia', {
+        features: [{ name: 'prefers-reduced-motion', value }],
+      });
+    await emulateMotion('reduce');
+    const still = await client.evaluate(
+      `window.getComputedStyle(document.querySelector('.home-calc-caret')).animationName`,
+    );
+    check(
+      still === 'none',
+      `the caret holds still for a reader who asked motion to stop (this host asks for: ${hostMotion})`,
+    );
+    await emulateMotion('no-preference');
     const blinking = await client.evaluate(`(() => {
       const caret = document.querySelector('.home-calc-caret');
       const style = window.getComputedStyle(caret);
@@ -288,6 +311,7 @@ async function main() {
       blinking.animation !== 'none' && blinking.duration !== '0s',
       `the caret blinks while the calculator has focus (${blinking.animation} ${blinking.duration})`,
     );
+    await emulateMotion(hostMotion);
     await client.evaluate(`(() => { document.activeElement.blur(); return true; })()`);
     await waitFor(
       client.evaluate,
