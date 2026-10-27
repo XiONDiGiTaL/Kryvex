@@ -110,6 +110,19 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
     Bouncy: 'Con rebote',
     None: 'Ninguna',
     'Animation speed': 'Velocidad de la animación',
+    // Kryvex opening with Windows. The registry entry is the state, so the
+    // sentences below describe what Windows will actually do.
+    'Start with Windows': 'Iniciar con Windows',
+    'Windows only.': 'Solo Windows.',
+    'Available in the installed app.': 'Disponible en la app instalada.',
+    'Checking Windows startup…': 'Comprobando el inicio con Windows…',
+    'Kryvex opens when you sign in to Windows.': 'Kryvex se abre al iniciar sesión en Windows.',
+    'Kryvex does not start with Windows.': 'Kryvex no se inicia con Windows.',
+    'Kryvex will open when you sign in to Windows.':
+      'Kryvex se abrirá al iniciar sesión en Windows.',
+    'Kryvex will not open with Windows.': 'Kryvex no se abrirá con Windows.',
+    'The Windows startup entry could not be changed.':
+      'No se pudo cambiar la entrada de inicio de Windows.',
   },
   de: {
     'MY FILTERS': 'MEINE FILTER',
@@ -212,6 +225,17 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
     Bouncy: 'Federnd',
     None: 'Keine',
     'Animation speed': 'Animationsgeschwindigkeit',
+    'Start with Windows': 'Mit Windows starten',
+    'Windows only.': 'Nur unter Windows.',
+    'Available in the installed app.': 'In der installierten App verfügbar.',
+    'Checking Windows startup…': 'Windows-Autostart wird geprüft…',
+    'Kryvex opens when you sign in to Windows.': 'Kryvex öffnet sich bei der Windows-Anmeldung.',
+    'Kryvex does not start with Windows.': 'Kryvex startet nicht mit Windows.',
+    'Kryvex will open when you sign in to Windows.':
+      'Kryvex öffnet sich künftig bei der Windows-Anmeldung.',
+    'Kryvex will not open with Windows.': 'Kryvex öffnet sich nicht mehr mit Windows.',
+    'The Windows startup entry could not be changed.':
+      'Der Windows-Autostart-Eintrag konnte nicht geändert werden.',
   },
   fr: {
     'MY FILTERS': 'MES FILTRES',
@@ -314,5 +338,17 @@ export const featureCopy: Record<ExtraLanguage, Record<string, string>> = {
     Bouncy: 'Rebondissante',
     None: 'Aucune',
     'Animation speed': 'Vitesse de l’animation',
+    'Start with Windows': 'Lancer avec Windows',
+    'Windows only.': 'Windows uniquement.',
+    'Available in the installed app.': 'Disponible dans l’application installée.',
+    'Checking Windows startup…': 'Vérification du démarrage Windows…',
+    'Kryvex opens when you sign in to Windows.':
+      'Kryvex s’ouvre à l’ouverture de session Windows.',
+    'Kryvex does not start with Windows.': 'Kryvex ne démarre pas avec Windows.',
+    'Kryvex will open when you sign in to Windows.':
+      'Kryvex s’ouvrira à l’ouverture de session Windows.',
+    'Kryvex will not open with Windows.': 'Kryvex ne s’ouvrira plus avec Windows.',
+    'The Windows startup entry could not be changed.':
+      'L’entrée de démarrage Windows n’a pas pu être modifiée.',
   },
 };

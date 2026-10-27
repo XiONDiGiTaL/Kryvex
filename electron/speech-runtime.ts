@@ -43,6 +43,7 @@ import {
   buildSpeechArgs,
   installableArchiveEntry,
   isSafeSpeechModelId,
+  shouldAutostart,
   speechLayout,
   speechModelPath,
   speechThreads,
@@ -104,6 +105,14 @@ export interface SpeechRuntimeStatus {
   startedAt: number | null;
   /** Progress of an install in flight, so a reopened panel can resume reading. */
   progress: SpeechInstallProgress | null;
+  /** The user asked the engine to start with Kryvex. */
+  autostart: boolean;
+  /**
+   * This session's engine came up from that switch, not from a button press.
+   * Lexium adopts the address of an engine Kryvex started for it; one the user
+   * started by hand is theirs to point at.
+   */
+  autostarted: boolean;
   /** The last failure, as an id, never as a sentence. */
   error?: SpeechFailure;
   /** The tail of the server's own output, for the diagnostics line. */
@@ -124,6 +133,8 @@ interface SpeechConfig {
   models: Array<{ id: string; bytes: number; sha256: string; installedAt: string }>;
   model: string;
   port: number;
+  /** Start the server when Kryvex starts, and stop it when Kryvex quits. */
+  autostart: boolean;
 }
 
 const START_TIMEOUT_MS = 180_000;
@@ -132,7 +143,7 @@ const STOP_GRACE_MS = 4_000;
 const LOG_LINES = 40;
 
 function emptyConfig(): SpeechConfig {
-  return { binary: null, models: [], model: DEFAULT_SPEECH_MODEL, port: 0 };
+  return { binary: null, models: [], model: DEFAULT_SPEECH_MODEL, port: 0, autostart: false };
 }
 
 /** Splits a chunk into the last few lines, as the diagnostics panel shows them. */
@@ -182,6 +193,7 @@ export class SpeechRuntime {
   private progress: SpeechInstallProgress | null = null;
   private stopping = false;
   private abort: AbortController | null = null;
+  private autostarted = false;
   private artifacts: SpeechModelEntry[] = [];
 
   constructor(
@@ -246,6 +258,7 @@ export class SpeechRuntime {
           .slice(0, SPEECH_MODELS.length),
         model: isSafeSpeechModelId(raw.model) ? raw.model : DEFAULT_SPEECH_MODEL,
         port: typeof raw.port === 'number' && raw.port > 0 && raw.port < 65_536 ? raw.port : 0,
+        autostart: raw.autostart === true,
       };
     } catch {
       return emptyConfig();
@@ -314,6 +327,8 @@ export class SpeechRuntime {
       pid: this.child?.pid ?? null,
       startedAt: this.startedAt,
       progress: this.progress,
+      autostart: this.config.autostart,
+      autostarted: this.autostarted,
       // A failure is only reported while the runtime is in the failing state:
       // the last error must not follow a healthy status into the panel.
       ...(this.failure && this.phase === 'error' ? { error: this.failure } : {}),
@@ -507,6 +522,47 @@ export class SpeechRuntime {
     return true;
   }
 
+  /**
+   * The launch path: start the engine when the user asked for that.
+   *
+   * A fresh profile, a platform without the pinned build or a removed model all
+   * mean the same thing here — there is nothing to start — and none of them is
+   * a failure to report at startup.
+   */
+  async resume(): Promise<SpeechRuntimeStatus> {
+    if (this.starting || this.installing) return this.status();
+    const wanted = shouldAutostart({
+      enabled: this.config.autostart,
+      supported: this.supported(),
+      installed: this.installed(),
+      modelPresent: this.modelPresent(this.config.model),
+    });
+    if (!wanted) return this.status();
+    const answer = await this.start(this.config.model);
+    this.autostarted = answer.phase === 'running';
+    return answer;
+  }
+
+  /**
+   * Turns "start with Kryvex" on or off.
+   *
+   * Enabling also starts the engine now, because that is the state the next
+   * launch will be in and an empty promise is worse than a working one;
+   * disabling stops it, because a switch that leaves a server running says
+   * something it does not mean.
+   */
+  async setAutostart(value: unknown): Promise<SpeechRuntimeStatus> {
+    if (typeof value !== 'boolean') return this.status();
+    this.config.autostart = value;
+    this.saveConfig();
+    if (!value) return this.stop();
+    if (!this.supported() || !this.installed() || !this.modelPresent(this.config.model)) {
+      return this.status();
+    }
+    if (this.child && this.phase === 'running') return this.status();
+    return this.start(this.config.model);
+  }
+
   async start(rawModel?: unknown): Promise<SpeechRuntimeStatus> {
     if (this.starting) return this.starting;
     this.starting = this.doStart(rawModel).finally(() => {
@@ -654,6 +710,7 @@ export class SpeechRuntime {
     this.child = null;
     this.port = null;
     this.startedAt = null;
+    this.autostarted = false;
     this.phase = this.installed() ? 'stopped' : 'idle';
     this.stopping = false;
     this.failure = undefined;

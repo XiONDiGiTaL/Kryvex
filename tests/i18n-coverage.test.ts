@@ -349,6 +349,19 @@ const ADDED = [
   'The server stopped on its own. The lines below say why.',
   'Download the server before starting it.',
   'A download is already running.',
+  // Starting with Windows, and the speech engine starting with Kryvex.
+  'Start with Kryvex',
+  'The engine starts with Kryvex and stops when Kryvex quits.',
+  'Start the engine with Kryvex and stop it on quit.',
+  'Start with Windows',
+  'Windows only.',
+  'Available in the installed app.',
+  'Checking Windows startup…',
+  'Kryvex opens when you sign in to Windows.',
+  'Kryvex does not start with Windows.',
+  'Kryvex will open when you sign in to Windows.',
+  'Kryvex will not open with Windows.',
+  'The Windows startup entry could not be changed.',
 ];
 
 describe('translation coverage', () => {

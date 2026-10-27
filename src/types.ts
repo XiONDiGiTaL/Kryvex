@@ -201,6 +201,12 @@ export interface PermissionPrompt {
   devices: MediaPermission[];
 }
 
+/**
+ * Whether Windows starts Kryvex at sign-in. Only booleans cross the bridge: the
+ * sentence a person reads is written in the renderer, so it is translated.
+ */
+export type StartupStatus = import('../electron/types').StartupStatus;
+
 export interface DefaultBrowserStatus {
   supported: boolean;
   isDefault: boolean;
@@ -1148,6 +1154,9 @@ export interface KryvexBridge {
   defaultBrowserStatus: () => Promise<DefaultBrowserStatus>;
   defaultBrowserSet: () => Promise<DefaultBrowserStatus>;
   openDefaultApps: () => Promise<boolean>;
+  /** Whether Windows starts Kryvex at sign-in; read from the Run entry itself. */
+  startupStatus: () => Promise<StartupStatus>;
+  startupSet: (enabled: boolean) => Promise<StartupStatus>;
   takeBrowserUrls: () => Promise<string[]>;
   browserClearTab: (partition: string) => Promise<boolean>;
   popupsList: () => Promise<PopupTabInfo[]>;
@@ -1212,6 +1221,14 @@ export interface KryvexBridge {
   ) => Promise<import('../electron/types').SpeechRuntimeStatus | null>;
   /** Stops a download in flight; the partial file is removed with it. */
   speechCancel: () => Promise<boolean>;
+  /**
+   * Start the local engine with Kryvex, and stop it on quit. Enabling also
+   * starts it now; disabling stops it, so the switch never lies about what is
+   * running.
+   */
+  speechAutostart: (
+    enabled: boolean,
+  ) => Promise<import('../electron/types').SpeechRuntimeStatus | null>;
   onSpeechProgress: (
     listener: (event: import('../electron/types').SpeechInstallProgress) => void,
   ) => () => void;

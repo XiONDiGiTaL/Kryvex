@@ -2948,7 +2948,17 @@ and downloads nothing: the shell window exposes the bridge, the handlers answer
 it, the catalogue arrives intact, a model id outside the catalogue is refused
 before anything is fetched, Lexium renders the card with the three models and
 the **Download and start** button, the failure line reads in the user's
-language, and merely opening the panel installs nothing. Last run: **PASS**.
+language, and merely opening the panel installs nothing.
+
+It also presses the **Start with Kryvex** switch rather than calling the bridge
+directly: the switch starts as `aria-checked="false"`, the panel's own button
+turns it on, the state read back from the main process agrees, the choice is on
+disk in `speech/kryvex-speech.json`, and pressing it again turns it off without
+leaving an engine running. A fresh profile also reports `autostarted: false`, so
+Lexium never adopts an address Kryvex did not start. The Settings **Start with Windows** row is checked in
+the same run: an unpackaged build reports `canChange: false`, refuses
+`startupSet(true)`, and the row is disabled with **Available in the installed
+app.** Last run: **PASS**.
 
 ### What is not covered
 
@@ -2960,5 +2970,14 @@ language, and merely opening the panel installs nothing. Last run: **PASS**.
 - **`small` and `tiny` through the app.** Both are pinned and validated, and
   `tiny` is exercised by `--model=tiny`; `small` shares the same code path and
   was only verified as a download-on-demand entry, not transcribed here.
+- **A launch with the engine installed.** `resume()` is covered by
+  `tests/speech-runtime.test.ts` for the three quiet cases (switch off, nothing
+  installed, a model removed); starting a real model at launch needs the 141 MB
+  download, so it was not run here.
+- **Quitting with the engine running.** The quit path is
+  `before-quit → speech.dispose() → stop()` with a 1.5 s cap, and it is exercised
+  by every harness run, but no run had a live whisper server to kill.
+- **A real Windows startup entry.** Writing one needs the installed build, so
+  the harness proves the refusal and the row, not the registry value.
 - **Other platforms.** The pinned build is Windows x64, measured from the
   release asset. Nothing else was run.

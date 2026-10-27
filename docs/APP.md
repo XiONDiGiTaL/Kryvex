@@ -550,6 +550,23 @@ protocol commands alone are not enough on Windows 10/11.
 handed to the renderer; `takeBrowserUrls()` drains URLs queued before the
 renderer mounted. Kryvex never changes the system default silently.
 
+## Start with Windows
+
+`electron/startup.ts` reads and writes the per-user Windows `Run` entry through
+`app.getLoginItemSettings` / `app.setLoginItemSettings`. The registry value is
+the state: the switch in Settings shows what Windows will actually do, so an
+entry removed by hand in Task Manager turns the switch off instead of leaving a
+stale copy behind.
+
+The path is the part that needs care. An installed copy registers its own
+executable; a portable copy registers `PORTABLE_EXECUTABLE_FILE` (the file the
+user launches) rather than the temporary folder Electron reports as
+`process.execPath`, and a stale variable that no longer points at a file is
+ignored. Nothing is written from an unpackaged run: that entry would start the
+Electron binary with no project, so the switch is disabled there and
+`startupSet` refuses. The entry is written only when the switch is used, and it
+is removed by the same switch, not by quitting.
+
 ## IPC surface
 
 | Channel | Direction | Validation |
@@ -566,6 +583,8 @@ renderer mounted. Kryvex never changes the system default silently.
 | `kryvex:chromium:set` | renderer → main | shell sender; the whole profile is sanitised by `sanitizeChromium`, unknown fields dropped |
 | `kryvex:app:info` | renderer → main | none needed |
 | `kryvex:open-external` | renderer → main | http(s) only |
+| `kryvex:startup:status` | renderer → main | none needed; returns booleans only |
+| `kryvex:startup:set` | renderer → main | shell sender, boolean required, refused unless the entry would open Kryvex |
 | `kryvex:shield:status` | renderer → main | read-only status |
 | `kryvex:shield:enabled` | renderer → main | boolean + shell sender only |
 | `kryvex:shield:update` | renderer → main | shell sender only |

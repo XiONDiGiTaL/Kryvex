@@ -205,6 +205,23 @@ export function buildSpeechArgs(input: {
   ];
 }
 
+/**
+ * Whether a launch may start the engine by itself.
+ *
+ * The switch is a promise about the next launch, so a launch keeps it only when
+ * there is something to start: a fresh profile has no build and no model, and a
+ * platform without the pinned build has neither. Only a literal `true` counts,
+ * so a value read back from disk cannot turn the engine on by accident.
+ */
+export function shouldAutostart(input: {
+  enabled: unknown;
+  supported: boolean;
+  installed: boolean;
+  modelPresent: boolean;
+}): boolean {
+  return input.enabled === true && input.supported && input.installed && input.modelPresent;
+}
+
 export function speechPercent(received: number, total: number): number {
   if (!Number.isFinite(received) || !Number.isFinite(total) || total <= 0) return 0;
   return Math.max(0, Math.min(100, Math.floor((received / total) * 100)));

@@ -6,6 +6,7 @@ import type {
   PlaylistImportResult,
   PopupTabInfo,
   PopupTabRect,
+  StartupStatus,
   VlanStatus,
 } from './types';
 
@@ -242,6 +243,9 @@ const api = {
     ipcRenderer.invoke('kryvex:browser:default-set'),
   openDefaultApps: (): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:browser:default-settings'),
+  startupStatus: (): Promise<StartupStatus> => ipcRenderer.invoke('kryvex:startup:status'),
+  startupSet: (enabled: boolean): Promise<StartupStatus> =>
+    ipcRenderer.invoke('kryvex:startup:set', enabled),
   takeBrowserUrls: (): Promise<string[]> => ipcRenderer.invoke('kryvex:browser:pending-urls'),
   browserClearTab: (partition: string): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:browser:clear-tab', partition),
@@ -304,6 +308,8 @@ const api = {
   speechRemove: (model: string): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:speech:remove', model),
   speechCancel: (): Promise<boolean> => ipcRenderer.invoke('kryvex:speech:cancel'),
+  speechAutostart: (enabled: boolean): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:speech:autostart', enabled),
   onSpeechProgress: (listener: (event: unknown) => void): (() => void) => {
     const wrapped = (_event: IpcRendererEvent, payload: unknown) => listener(payload);
     ipcRenderer.on('kryvex:speech:progress', wrapped);

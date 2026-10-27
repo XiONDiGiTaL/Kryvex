@@ -577,4 +577,21 @@ export const turkishCopy: Record<string, string> = {
     'Sunucu kendi kendine durdu. Aşağıdaki satırlar nedenini söylüyor.',
   'Download the server before starting it.': 'Başlatmadan önce sunucuyu indirin.',
   'A download is already running.': 'Zaten bir indirme sürüyor.',
+  // Starting with Windows, and the speech engine starting with Kryvex.
+  'Start with Kryvex': 'Kryvex ile başlat',
+  'The engine starts with Kryvex and stops when Kryvex quits.':
+    'Motor Kryvex ile başlar ve Kryvex kapanınca durur.',
+  'Start the engine with Kryvex and stop it on quit.':
+    'Motoru Kryvex ile başlat ve kapanınca durdur.',
+  'Start with Windows': 'Windows ile başlat',
+  'Windows only.': 'Yalnızca Windows.',
+  'Available in the installed app.': 'Kurulu uygulamada kullanılabilir.',
+  'Checking Windows startup…': 'Windows başlangıcı denetleniyor…',
+  'Kryvex opens when you sign in to Windows.': 'Kryvex, Windows oturum açılışında açılır.',
+  'Kryvex does not start with Windows.': 'Kryvex Windows ile başlamıyor.',
+  'Kryvex will open when you sign in to Windows.':
+    'Kryvex, Windows oturum açılışında açılacak.',
+  'Kryvex will not open with Windows.': 'Kryvex artık Windows ile açılmayacak.',
+  'The Windows startup entry could not be changed.':
+    'Windows başlangıç kaydı değiştirilemedi.',
 };

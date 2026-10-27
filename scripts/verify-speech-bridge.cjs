@@ -224,6 +224,125 @@ async function main() {
   log(`card rendered: "${card.heading}" · ${card.models.join(' / ')}`);
   log(`buttons: ${JSON.stringify(card.buttons)}`);
 
+  // ------------------------------------------------- the launch switch ---
+  // The switch is a promise about the next launch, so it is pressed here the
+  // way a user would: the panel's own button, then the state read back from the
+  // main process.
+  const autostartBefore = await cdp.evaluate(`window.kryvex.speechStatus()`);
+  if (autostartBefore.autostart !== false) {
+    return fail(`a fresh profile asked to start with Kryvex (${autostartBefore.autostart})`);
+  }
+  // Nothing was started by Kryvex here, so Lexium must not adopt an address it
+  // did not choose.
+  if (autostartBefore.autostarted !== false) {
+    return fail('an engine was reported as started by Kryvex in a fresh profile');
+  }
+  const launchRow = await cdp.evaluate(`(() => {
+    const row = document.querySelector('.lexium-autostart');
+    if (!row) return { found: false };
+    const button = row.querySelector('button[role="switch"]');
+    return {
+      found: true,
+      label: (row.querySelector('strong')?.textContent ?? '').trim(),
+      note: (row.querySelector('p')?.textContent ?? '').trim(),
+      checked: button ? button.getAttribute('aria-checked') : null,
+    };
+  })()`);
+  if (!launchRow.found) return fail('the card has no start-with-Kryvex switch');
+  if (launchRow.label !== 'Start with Kryvex') {
+    return fail(`the launch switch is labelled "${launchRow.label}"`);
+  }
+  if (launchRow.checked !== 'false') {
+    return fail(`the launch switch began as aria-checked=${launchRow.checked}`);
+  }
+  log(`launch switch rendered: "${launchRow.label}" — ${launchRow.note}`);
+
+  const pressed = await cdp.evaluate(`(async () => {
+    document.querySelector('.lexium-autostart button[role="switch"]').click();
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const status = await window.kryvex.speechStatus();
+      const checked = document.querySelector('.lexium-autostart button[role="switch"]').getAttribute('aria-checked');
+      // The answer travels through the main process and then a React render,
+      // so both have to agree before the press counts as done.
+      if (status.autostart && checked === 'true') return { phase: status.phase, checked };
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return null;
+  })()`);
+  if (!pressed) return fail('pressing the launch switch did not turn it on');
+  if (pressed.checked !== 'true') return fail(`the switch stayed aria-checked=${pressed.checked}`);
+  if (pressed.phase === 'running') {
+    return fail('an engine that is not installed was reported running');
+  }
+  log(`pressing the switch turned it on (phase ${pressed.phase})`);
+
+  // The choice has to outlive the window: it lives in the runtime's own config,
+  // which is read before the renderer exists on the next launch.
+  const savedConfig = path.join(userData, 'speech', 'kryvex-speech.json');
+  if (!fs.existsSync(savedConfig)) return fail('the switch was not written to the speech config');
+  const saved = JSON.parse(fs.readFileSync(savedConfig, 'utf8'));
+  if (saved.autostart !== true) {
+    return fail(`the config saved autostart=${String(saved.autostart)}`);
+  }
+  log('the choice survives a restart: speech/kryvex-speech.json says autostart true');
+
+  const released = await cdp.evaluate(`(async () => {
+    document.querySelector('.lexium-autostart button[role="switch"]').click();
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const status = await window.kryvex.speechStatus();
+      const checked = document.querySelector('.lexium-autostart button[role="switch"]').getAttribute('aria-checked');
+      if (!status.autostart && checked === 'false') {
+        return { phase: status.phase, pid: status.pid, checked };
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return null;
+  })()`);
+  if (!released) return fail('pressing the launch switch again did not turn it off');
+  if (released.phase === 'running' || released.pid) {
+    return fail('turning the switch off left an engine running');
+  }
+  log(`pressing it again turned it off (phase ${released.phase})`);
+
+  // -------------------------------------------------- Windows startup ---
+  const startup = await cdp.evaluate(`window.kryvex.startupStatus()`);
+  if (!startup || typeof startup !== 'object') return fail('startupStatus returned nothing');
+  if (startup.supported !== true) {
+    return fail(`Windows startup reported unsupported: ${JSON.stringify(startup)}`);
+  }
+  if (startup.canChange !== false) {
+    return fail('an unpackaged run offered to write a Windows Run entry');
+  }
+  const refused = await cdp.evaluate(`window.kryvex.startupSet(true)`);
+  if (!refused || refused.enabled !== false) {
+    return fail('an unpackaged run wrote a Windows startup entry');
+  }
+  log('an unpackaged run refuses to register a startup entry');
+
+  await cdp.evaluate(`window.location.hash = '#/settings'; true`);
+  await sleep(1500);
+  const startupRow = await cdp.evaluate(`(() => {
+    const rows = [...document.querySelectorAll('.setting-row')];
+    const match = rows.find(row => (row.querySelector('strong')?.textContent ?? '').trim() === 'Start with Windows');
+    if (!match) return { found: false };
+    const button = match.querySelector('button[role="switch"]');
+    return {
+      found: true,
+      note: (match.querySelector('p')?.textContent ?? '').trim(),
+      disabled: button ? button.disabled : null,
+      checked: button ? button.getAttribute('aria-checked') : null,
+    };
+  })()`);
+  if (!startupRow.found) return fail('Settings has no Start with Windows row');
+  if (startupRow.disabled !== true) return fail('the startup switch is usable in an unpackaged run');
+  if (startupRow.checked !== 'false') {
+    return fail(`the startup switch claims aria-checked=${startupRow.checked}`);
+  }
+  if (startupRow.note !== 'Available in the installed app.') {
+    return fail(`the startup row reads "${startupRow.note}"`);
+  }
+  log(`Settings startup row: ${startupRow.note}`);
+
   // Nothing was downloaded by looking at it.
   const after = await cdp.evaluate(`window.kryvex.speechStatus()`);
   if (after.installed) return fail('opening the panel installed something');

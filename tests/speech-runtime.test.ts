@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+import { SpeechRuntime } from '../electron/speech-runtime';
 import {
   DEFAULT_SPEECH_MODEL,
   SPEECH_BUILD,
@@ -12,6 +16,7 @@ import {
   isSafeSpeechModelId,
   speechLayout,
   speechModelPath,
+  shouldAutostart,
   speechPercent,
   speechThreads,
   validateSpeechArtifacts,
@@ -133,6 +138,78 @@ describe('the layout and the command line', () => {
     expect(speechThreads(16)).toBe(8);
     expect(speechThreads(64)).toBe(8);
     expect(speechThreads(0)).toBe(2);
+  });
+});
+
+/**
+ * Starting with Kryvex is a promise about the next launch, so the decision is a
+ * rule rather than a side effect: a switch left on with nothing installed must
+ * not try to spawn a server that is not there.
+ */
+describe('starting the engine with Kryvex', () => {
+  const ready = { enabled: true, supported: true, installed: true, modelPresent: true };
+
+  it('starts only when the switch is on and there is a build and a model', () => {
+    expect(shouldAutostart(ready)).toBe(true);
+    expect(shouldAutostart({ ...ready, enabled: false })).toBe(false);
+    expect(shouldAutostart({ ...ready, enabled: 'yes' })).toBe(false);
+    expect(shouldAutostart({ ...ready, installed: false })).toBe(false);
+    expect(shouldAutostart({ ...ready, modelPresent: false })).toBe(false);
+    expect(shouldAutostart({ ...ready, supported: false })).toBe(false);
+  });
+
+  const roots: string[] = [];
+  afterEach(() => {
+    while (roots.length) rmSync(roots.pop() as string, { recursive: true, force: true });
+  });
+
+  function runtime(): { engine: SpeechRuntime; root: string } {
+    const root = mkdtempSync(join(tmpdir(), 'kryvex-speech-autostart-'));
+    roots.push(root);
+    const engine = new SpeechRuntime(root);
+    engine.init();
+    return { engine, root };
+  }
+
+  it('remembers the switch in its own config', async () => {
+    const { engine, root } = runtime();
+    expect(engine.status().autostart).toBe(false);
+
+    const enabled = await engine.setAutostart(true);
+    expect(enabled.autostart).toBe(true);
+    // Nothing is installed, so turning it on cannot start anything: the card
+    // still offers the download.
+    expect(enabled.installed).toBe(false);
+    expect(['idle', 'stopped']).toContain(enabled.phase);
+
+    const saved = JSON.parse(readFileSync(join(root, 'kryvex-speech.json'), 'utf8')) as {
+      autostart?: unknown;
+    };
+    expect(saved.autostart).toBe(true);
+
+    const disabled = await engine.setAutostart(false);
+    expect(disabled.autostart).toBe(false);
+    expect((JSON.parse(readFileSync(join(root, 'kryvex-speech.json'), 'utf8')) as { autostart?: unknown }).autostart).toBe(false);
+  });
+
+  it('ignores anything that is not a boolean', async () => {
+    const { engine } = runtime();
+    await engine.setAutostart(true);
+    const answer = await engine.setAutostart('false');
+    expect(answer.autostart).toBe(true);
+  });
+
+  it('does nothing at launch while the switch is off or nothing is installed', async () => {
+    const { engine } = runtime();
+    const off = await engine.resume();
+    expect(off.phase).toBe('idle');
+
+    await engine.setAutostart(true);
+    const on = await engine.resume();
+    // On, but nothing downloaded: the launch stays quiet instead of failing.
+    expect(['idle', 'stopped']).toContain(on.phase);
+    expect(on.error).toBeUndefined();
+    expect(on.pid).toBeNull();
   });
 });
 

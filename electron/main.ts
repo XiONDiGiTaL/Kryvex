@@ -21,6 +21,7 @@ import {
   trackChromiumGuest,
 } from './chromium';
 import { defaultBrowser } from './default-browser';
+import { startupStatus, setStartup } from './startup';
 import { diskService } from './disk-service';
 import { downloads } from './downloads';
 import { extensions } from './extensions';
@@ -765,6 +766,14 @@ function registerIpc(): void {
     if (!isShellSender(event)) return [];
     return defaultBrowser.takePendingUrls();
   });
+  // Windows startup. The registry entry is the state, so the switch reads it
+  // back instead of keeping a copy that could drift from it.
+  ipcMain.handle('kryvex:startup:status', (event) =>
+    isShellSender(event) ? startupStatus() : { supported: false, enabled: false, canChange: false },
+  );
+  ipcMain.handle('kryvex:startup:set', (event, enabled: unknown) =>
+    isShellSender(event) ? setStartup(enabled) : startupStatus(),
+  );
   ipcMain.handle('kryvex:services:clear-session', (event, partition: unknown) => {
     if (!isShellSender(event)) return false;
     return serviceSessions.clear(partition);
@@ -844,6 +853,9 @@ function registerIpc(): void {
     isShellSender(event) ? speech.remove(model) : speech.status(),
   );
   ipcMain.handle('kryvex:speech:cancel', event => (isShellSender(event) ? speech.cancel() : false));
+  ipcMain.handle('kryvex:speech:autostart', (event, enabled: unknown) =>
+    isShellSender(event) ? speech.setAutostart(enabled) : speech.status(),
+  );
   // Kyvex Link: the phone companion. The renderer owns the on/off setting and
   // asks for everything else; the pairing code, tokens and file names stay in
   // the main process, so the shell can never mint a device of its own.
@@ -1260,6 +1272,10 @@ if (!gotLock) {
       });
     }
 
+    // A user who asked the engine to start with Kryvex gets it before Lexium is
+    // ever opened. A capture run is not that: it must not spawn a server.
+    if (!CAPTURE) void speech.resume();
+
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         mainWindow = createWindow();
@@ -1282,13 +1298,16 @@ if (!gotLock) {
     playerEmbed.dispose();
     link.dispose();
     void torrents.shutdown();
-    void localModel.dispose();
-    void speech.dispose();
     if (flushed) return;
     event.preventDefault();
     flushed = true;
+    // The speech engine is a child process: quit waits for it to be gone
+    // rather than for the kill to have been sent, so a second launch does not
+    // find a server already holding its port.
     void Promise.race([
-      serviceSessions.flush(),
+      Promise.all([serviceSessions.flush(), speech.dispose(), localModel.dispose()]).then(
+        () => undefined,
+      ),
       new Promise(resolve => setTimeout(resolve, 1500)),
     ]).then(() => app.quit());
   });

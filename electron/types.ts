@@ -241,6 +241,21 @@ export interface DefaultBrowserStatus {
 }
 
 /**
+ * Whether Windows starts Kryvex at sign-in.
+ *
+ * Only booleans: the sentence a person reads is written in the renderer, so it
+ * is translated like the rest of the interface.
+ */
+export interface StartupStatus {
+  /** Windows is the only platform this is implemented for. */
+  supported: boolean;
+  /** The Run entry exists right now. */
+  enabled: boolean;
+  /** The entry would open Kryvex, so it may be written. */
+  canChange: boolean;
+}
+
+/**
  * One row resolved from a public Spotify or YouTube playlist. `url` is the
  * media the player can actually decode: a Spotify preview MP3, or the watch
  * page that feeds the sandboxed YouTube embed.

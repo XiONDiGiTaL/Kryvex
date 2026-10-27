@@ -63,6 +63,12 @@ export const speechCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
       'El servidor se detuvo solo. Las líneas de abajo dicen por qué.',
     'Download the server before starting it.': 'Descarga el servidor antes de iniciarlo.',
     'A download is already running.': 'Ya hay una descarga en curso.',
+    // The engine can be asked to start with Kryvex and stop on quit.
+    'Start with Kryvex': 'Iniciar con Kryvex',
+    'The engine starts with Kryvex and stops when Kryvex quits.':
+      'El motor arranca con Kryvex y se detiene al cerrarlo.',
+    'Start the engine with Kryvex and stop it on quit.':
+      'Arranca el motor con Kryvex y detenlo al cerrar.',
   },
   de: {
     'Whisper on this machine': 'Whisper auf diesem PC',
@@ -118,6 +124,11 @@ export const speechCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
       'Der Server hat sich selbst beendet. Die Zeilen unten nennen den Grund.',
     'Download the server before starting it.': 'Lade den Server herunter, bevor du ihn startest.',
     'A download is already running.': 'Es läuft bereits ein Download.',
+    'Start with Kryvex': 'Mit Kryvex starten',
+    'The engine starts with Kryvex and stops when Kryvex quits.':
+      'Die Engine startet mit Kryvex und wird beim Beenden gestoppt.',
+    'Start the engine with Kryvex and stop it on quit.':
+      'Starte die Engine mit Kryvex und stoppe sie beim Beenden.',
   },
   fr: {
     'Whisper on this machine': 'Whisper sur cet ordinateur',
@@ -174,5 +185,10 @@ export const speechCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
       'Le serveur s’est arrêté tout seul. Les lignes ci-dessous en donnent la raison.',
     'Download the server before starting it.': 'Téléchargez le serveur avant de le démarrer.',
     'A download is already running.': 'Un téléchargement est déjà en cours.',
+    'Start with Kryvex': 'Lancer avec Kryvex',
+    'The engine starts with Kryvex and stops when Kryvex quits.':
+      'Le moteur démarre avec Kryvex et s’arrête à sa fermeture.',
+    'Start the engine with Kryvex and stop it on quit.':
+      'Démarrez le moteur avec Kryvex et arrêtez-le à la fermeture.',
   },
 };

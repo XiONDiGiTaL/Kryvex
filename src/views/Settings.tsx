@@ -13,6 +13,7 @@ import type {
   Settings as SettingsModel,
   ShieldCustomPatch,
   ShieldStatus,
+  StartupStatus,
   UpdateStatus,
   ViewId,
   VpnStatus,
@@ -169,6 +170,7 @@ export function Settings({
   const [filtersDirty, setFiltersDirty] = useState(false);
   const [extensions, setExtensions] = useState<ExtensionRecord[]>([]);
   const [defaultBrowser, setDefaultBrowser] = useState<DefaultBrowserStatus | null>(null);
+  const [startup, setStartup] = useState<StartupStatus | null>(null);
   const [downloadLocation, setDownloadLocation] = useState<DownloadLocation | null>(null);
   const [engine, setEngine] = useState<EngineInfo | null>(null);
   const [model, setModel] = useState<LocalModelStatus | null>(null);
@@ -290,6 +292,20 @@ export function Settings({
       .defaultBrowserStatus()
       .then(next => {
         if (alive) setDefaultBrowser(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [isElectron]);
+
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    let alive = true;
+    void window.kryvex
+      .startupStatus()
+      .then(next => {
+        if (alive) setStartup(next);
       })
       .catch(() => undefined);
     return () => {
@@ -440,6 +456,30 @@ export function Settings({
       );
     } catch {
       onToast(t('Could not open the default-browser settings.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /**
+   * Writes the Windows Run entry and reads it straight back: the registry is the
+   * state, so the switch shows what Windows will do rather than what we asked
+   * for.
+   */
+  async function toggleStartup() {
+    if (!window.kryvex || !startup?.canChange) return;
+    setBusy('startup');
+    try {
+      const next = await window.kryvex.startupSet(!startup.enabled);
+      setStartup(next);
+      onToast(
+        next.enabled
+          ? t('Kryvex will open when you sign in to Windows.')
+          : t('Kryvex will not open with Windows.'),
+        'success',
+      );
+    } catch {
+      onToast(t('The Windows startup entry could not be changed.'), 'danger');
     } finally {
       setBusy(null);
     }
@@ -2403,6 +2443,35 @@ export function Settings({
               <option value="rooms">{t('Rooms')}</option>
               <option value="settings">{t('Settings')}</option>
             </select>
+          </div>
+
+          <div className="setting-row">
+            <div>
+              <strong>{t('Start with Windows')}</strong>
+              <p>
+                {!isElectron
+                  ? t('Available in the Windows app.')
+                  : !startup
+                    ? t('Checking Windows startup…')
+                    : !startup.supported
+                      ? t('Windows only.')
+                      : !startup.canChange
+                        ? t('Available in the installed app.')
+                        : startup.enabled
+                          ? t('Kryvex opens when you sign in to Windows.')
+                          : t('Kryvex does not start with Windows.')}
+              </p>
+            </div>
+            <button
+              className={`switch ${startup?.enabled ? 'is-on' : ''}`}
+              role="switch"
+              aria-checked={Boolean(startup?.enabled)}
+              aria-label={t('Start with Windows')}
+              disabled={!isElectron || !startup?.canChange || busy === 'startup'}
+              onClick={() => void toggleStartup()}
+            >
+              <span />
+            </button>
           </div>
 
           <div className="setting-row">

@@ -3326,6 +3326,13 @@ select:hover {
   background: var(--accent);
 }
 
+/* A switch that cannot be used here (a Windows setting on the web build, a
+   startup entry on an unpackaged run) has to look unavailable. */
+.switch:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .about-panel {
   display: flex;
   flex-direction: column;

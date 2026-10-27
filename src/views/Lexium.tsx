@@ -109,6 +109,39 @@ export function Lexium({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.engine, settings.baseUrl]);
 
+  // An engine that starts with Kryvex is already up before this page is opened,
+  // and its address is chosen by the main process, so Lexium adopts it instead
+  // of probing a port no server is on. Only that case qualifies: an engine the
+  // user started by hand is theirs to select, and the scan below finds it.
+  useEffect(() => {
+    const bridge = typeof window !== 'undefined' ? window.kryvex : undefined;
+    if (!bridge?.speechStatus) return;
+    let alive = true;
+    let tries = 0;
+    const look = async () => {
+      const status = await bridge.speechStatus?.();
+      if (!alive || !status?.autostarted) return;
+      if (status.phase === 'running' && status.baseUrl) {
+        const same =
+          settings.engine === 'whisper-cpp' &&
+          normalizeBaseUrl(settings.baseUrl) === status.baseUrl;
+        if (!same) useLocalEngine(status.baseUrl);
+        return;
+      }
+      // A model loading at launch finishes in seconds, not instantly.
+      if (status.phase === 'starting' && tries < 60) {
+        tries += 1;
+        setTimeout(() => void look().catch(() => undefined), 1000);
+      }
+    };
+    void look().catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+    // Once per mount: the launch switch is what makes an engine auto-start.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function useDetectedServer(engine: LexiumSettings['engine'], baseUrl: string) {
     onUpdate({ engine, baseUrl, migrated: true });
     setEngineState('idle');

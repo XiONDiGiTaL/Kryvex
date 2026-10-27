@@ -160,6 +160,18 @@ export function LexiumLocalEngine({
     await bridge?.speechCancel?.();
   }
 
+  /**
+   * The launch switch. Turning it on starts the engine now as well, so the
+   * switch shows the state the next launch will be in; turning it off stops the
+   * server instead of leaving one running behind a switch that says otherwise.
+   */
+  async function toggleAutostart() {
+    setBusy(true);
+    const answer = await bridge?.speechAutostart?.(!status?.autostart);
+    setBusy(false);
+    apply(answer);
+  }
+
   if (!available) {
     return (
       <div className="lexium-setup-local">
@@ -272,6 +284,27 @@ export function LexiumLocalEngine({
                 {t('Use this engine')}
               </button>
             ) : null}
+          </div>
+
+          <div className="setting-row lexium-autostart">
+            <div>
+              <strong>{t('Start with Kryvex')}</strong>
+              <p>
+                {status?.autostart
+                  ? t('The engine starts with Kryvex and stops when Kryvex quits.')
+                  : t('Start the engine with Kryvex and stop it on quit.')}
+              </p>
+            </div>
+            <button
+              className={`switch ${status?.autostart ? 'is-on' : ''}`}
+              role="switch"
+              aria-checked={Boolean(status?.autostart)}
+              aria-label={t('Start with Kryvex')}
+              onClick={() => void toggleAutostart()}
+              disabled={busy}
+            >
+              <span />
+            </button>
           </div>
 
           {busy && progress ? (

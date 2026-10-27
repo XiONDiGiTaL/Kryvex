@@ -96,8 +96,18 @@ next transcription works. Nothing is uploaded and no account is involved.
   `models/<id>.bin`, and `kryvex-speech.json` recording what was installed and
   verified. The archive, the staging folder and any partial download are removed
   as soon as the install finishes or fails.
+- **Start with Kryvex** keeps the engine across launches. The switch is stored
+  in `kryvex-speech.json` and read by the main process, so the engine comes up
+  at launch before Lexium is ever opened and goes down with the app; turning the
+  switch on starts it at once, and turning it off stops it rather than leaving a
+  server running behind a switch that says otherwise. A fresh profile has
+  nothing installed, so an on switch starts nothing until the download exists.
+  Lexium adopts the address of an engine Kryvex started for it (a model still
+  loading at launch is waited for), so the next transcription works without a
+  press; an engine started by hand is still selected by the user.
 - The server binds **loopback only**, on port 8129 (or an OS-assigned port if
-  that one is taken) and is killed when the app quits.
+  that one is taken). Quitting waits for the child to be gone rather than only
+  for the kill to be sent, so a restart does not find a server holding the port.
 - It is Windows x64 only, because that is the release build measured here. The
   web client, and other platforms, keep the server options below.
 
