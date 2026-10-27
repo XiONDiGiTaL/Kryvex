@@ -32,6 +32,7 @@ import { media } from './media';
 import { modelManager } from './model-download';
 import { notifications } from './notifications';
 import { partyAttachWindow, partyInit, registerPartyIpc } from './party';
+import { emptyVlanStatus } from './vlan-rules';
 import { captureTools } from './capture-tools';
 import { captureWindow } from './capture-window';
 import { playlistImporter } from './playlist';
@@ -42,6 +43,7 @@ import { popupTabs } from './popup-tabs';
 import { fetchFeed } from './rss';
 import { resources } from './resources';
 import { vpn } from './vpn';
+import { vlanStatus } from './vlan';
 import { weather } from './weather';
 import { isSafePartition } from './privacy';
 import { serviceSessions } from './service-sessions';
@@ -860,6 +862,12 @@ function registerIpc(): void {
   );
   ipcMain.handle('kryvex:spotify:guard', (event, enabled: unknown) =>
     isShellSender(event) ? spotifyAds.setEnabled(enabled) : false,
+  );
+  // Virtual LAN is read-only: the shell asks which tunnel addresses this
+  // machine already has. There is no handler that creates an adapter, changes
+  // a route or starts an engine, because Kryvex does none of those.
+  ipcMain.handle('kryvex:vlan:status', (event) =>
+    isShellSender(event) ? vlanStatus() : emptyVlanStatus(),
   );
   ipcMain.handle('kryvex:vpn:status', (event) => (isShellSender(event) ? vpn.status() : null));
   ipcMain.handle('kryvex:vpn:configure', (event, settings: unknown) =>

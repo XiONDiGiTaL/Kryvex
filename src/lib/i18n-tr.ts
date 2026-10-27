@@ -487,4 +487,30 @@ export const turkishCopy: Record<string, string> = {
     '{name} zaten kurulu. Kaydettiğinde ikinci bir tane eklemek yerine mevcut olan açılır.',
   '{name} is already installed. Opened the one you have.':
     '{name} zaten kurulu. Mevcut olan açıldı.',
+
+  // Virtual LAN: the network belongs to an engine the user installed, Kryvex
+  // reads the address and shows it, and the member copies it by hand.
+  'Virtual LAN': 'Sanal LAN',
+  'Sharing {ip}': '{ip} paylaşılıyor',
+  '{count} devices': '{count} cihaz',
+  Expand: 'Genişlet',
+  'MY VIRTUAL IP': 'SANAL IP ADRESİM',
+  'DEVICES ON THIS NETWORK': 'BU AĞDAKİ CİHAZLAR',
+  'Detected network': 'Algılanan ağ',
+  'Stop sharing my address': 'Adresimi paylaşmayı bırak',
+  'Share this address with the room': 'Bu adresi odayla paylaş',
+  'Virtual LAN needs the desktop app. The desktop reads the tunnel an engine on your machine has already created.':
+    'Sanal LAN için masaüstü uygulaması gerekir. Masaüstü, makinenizdeki bir motorun zaten oluşturduğu tüneli okur.',
+  'No tunnel adapter is running. Start your own ZeroTier, EasyTier, Tailscale, WireGuard, Hamachi or OpenVPN network, then reopen this panel.':
+    'Çalışan bir tünel bağdaştırıcısı yok. Kendi ZeroTier, EasyTier, Tailscale, WireGuard, Hamachi veya OpenVPN ağınızı başlatıp bu paneli yeniden açın.',
+  'Nothing is shared yet. Members appear here when they publish an address.':
+    'Henüz hiçbir şey paylaşılmadı. Üyeler bir adres yayımladığında burada görünür.',
+  'This device': 'Bu cihaz',
+  'The address is no longer shared.': 'Adres artık paylaşılmıyor.',
+  'The address was shared with the room.': 'Adres odayla paylaşıldı.',
+  'The address could not be shared. Rejoin the room and try again.':
+    'Adres paylaşılamadı. Odaya yeniden katılıp tekrar deneyin.',
+  'The clipboard refused the address.': 'Pano adresi reddetti.',
+  'Use a member’s virtual IP in a compatible game or service’s direct-connect field. The host must have that game or service running. Kryvex shows the address; it does not create the network, route it or admit anyone.':
+    'Bir üyenin sanal IP adresini uyumlu bir oyunun veya servisin doğrudan bağlantı alanına yazın. Oyunu barındıran tarafta çalışıyor olması gerekir. Kryvex adresi gösterir; ağı kurmaz, yönlendirmez ve kimseyi kabul etmez.',
 };

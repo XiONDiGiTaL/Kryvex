@@ -1047,6 +1047,35 @@ export interface LinkStatusView {
   error?: string;
 }
 
+/**
+ * The overlay-network family a tunnel adapter belongs to, as the shell sees it.
+ * The renderer is built without the Electron tree, so the list is repeated
+ * here; the two only ever disagree if one is edited alone.
+ */
+export type VlanEngine =
+  | 'zerotier'
+  | 'easytier'
+  | 'tailscale'
+  | 'wireguard'
+  | 'openvpn'
+  | 'hamachi'
+  | 'nebula'
+  | 'n2n'
+  | 'generic';
+
+/** One tunnel adapter this machine already has, with its virtual address. */
+export interface VlanAdapterView {
+  name: string;
+  address: string;
+  engine: VlanEngine;
+}
+
+/** What Kryvex can honestly report about virtual LANs: the user's own adapters. */
+export interface VlanStatusView {
+  adapters: VlanAdapterView[];
+  detail: string;
+}
+
 /** A toast the main process asks the shell to show on the link's behalf. */
 export interface LinkNotice {
   message: string;
@@ -1197,6 +1226,8 @@ export interface KryvexBridge {
   chromiumSet: (settings: ChromiumSettings) => Promise<EngineInfo | null>;
   partySources: () => Promise<PartySource[]>;
   partySelectSource: (id: string, audio: boolean) => Promise<boolean>;
+  /** Tunnel addresses this machine already has; read-only, nothing is created. */
+  vlanStatus: () => Promise<VlanStatusView>;
   /** Write a capture the renderer produced, after the user picks a folder. */
   captureSave: (request: {
     data: string;

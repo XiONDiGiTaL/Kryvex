@@ -2810,3 +2810,49 @@ describe it. The service records are read back from `kryvex-state.json`, so
 - **Two accounts actually signed in.** The isolation claim rests on one session
   partition per service id, which the record ids prove here; no second sign-in
   was performed against a real site.
+
+## Virtual LAN in a room (`pnpm verify:vlan`)
+
+`scripts/verify-vlan.cjs` drives the built app in a disposable profile, opens a
+room and exercises the strip. It compares what the panel shows against
+`os.networkInterfaces()` on the machine running it, which is what makes an
+invented or stale address fail rather than pass.
+
+| Check | Result |
+| --- | --- |
+| The lobby shows no Virtual LAN strip | PASS (no room, nothing to publish into) |
+| The only bridge member whose name contains `vlan` is `vlanStatus` | PASS (no IPC can start a network, route it or elevate) |
+| The strip is labelled and starts idle with the panel closed | PASS |
+| Every address listed is a real address on this machine | PASS (`10.147.19.81`, `10.124.101.81`, both real ZeroTier adapters) |
+| No listed address is loopback or link-local | PASS |
+| Each address names the engine family it belongs to | PASS (`zerotier`) |
+| Nothing is listed as shared before anyone shares | PASS |
+| Publishing lists this device once, marked as this device | PASS |
+| The published address is the one the machine really has | PASS |
+| The strip reports the address it published | PASS |
+| Withdrawing removes the row | PASS |
+| No page exception | PASS |
+
+Last run: **18/18 PASS**. Screenshots: `screenshots/vlan-strip.png`,
+`screenshots/vlan-shared.png`.
+
+### Not executed (do not treat as passing)
+
+- **Two machines over a virtual IP.** This machine has a live ZeroTier adapter,
+  but nothing was reached across it; no game or service was connected to. That
+  belongs to milestone B in `docs/VIRTUAL_LAN_EVAL.md` §8.
+- **The no-adapter state**, because this machine has two tunnel adapters up: the
+  empty-state wording is covered by `tests/vlan-rules.test.ts` and the panel's
+  own copy, not by this run.
+- **The browser build's notice**, which `pnpm build:web` builds but this harness
+  does not drive.
+
+### Unit rules (`tests/vlan-rules.test.ts`)
+
+Adapter families (`ZeroTier One`, `easytier`, `Tailscale`, `WireGuard Tunnel`,
+`TAP-Windows Adapter V9`, `Hamachi`, `tun0`), the virtual-machine and container
+exclusions (`vEthernet (Default Switch)`, VirtualBox host-only, VMware, `veth0`,
+plain `Ethernet`), the address ranges (private and CGNAT in; `172.32.x`,
+loopback, link-local, multicast, `0.x`, malformed out), ordering and de-duping,
+the peer-payload sanitiser (a bare string, a loopback address, an empty
+withdrawal and an HTML-looking payload all refused), and the engine-token list.

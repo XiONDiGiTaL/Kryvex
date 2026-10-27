@@ -6,6 +6,7 @@ import type {
   PlaylistImportResult,
   PopupTabInfo,
   PopupTabRect,
+  VlanStatus,
 } from './types';
 
 type DownloadState = 'progressing' | 'paused' | 'completed' | 'cancelled' | 'interrupted';
@@ -398,6 +399,10 @@ const api = {
     return () => ipcRenderer.removeListener('kryvex:update:changed', wrapped);
   },
   partySources: (): Promise<unknown> => ipcRenderer.invoke('kryvex:party:sources'),
+  // Virtual LAN: which tunnel addresses this machine already has. The answer is
+  // read from the adapters the user's own engine created; nothing here starts a
+  // network or changes a route.
+  vlanStatus: (): Promise<VlanStatus> => ipcRenderer.invoke('kryvex:vlan:status'),
   partySelectSource: (id: string, audio: boolean): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:party:select', id, audio),
   // Screen capture: the pixels stay in the renderer, the file write and the

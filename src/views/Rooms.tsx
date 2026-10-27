@@ -12,6 +12,7 @@ import {
   sanitizeDisplayName,
 } from '../lib/party-rules';
 import { Icon } from '../components/ui';
+import { VirtualLanPanel } from '../components/VirtualLanPanel';
 
 interface RoomsProps {
   settings: PartySettings;
@@ -586,6 +587,19 @@ export function Rooms({
               </button>
             </div>
           </header>
+
+          {/* Virtual LAN sits between the room header and the stage, as asked:
+              the room stays chat and sharing, and the network is an optional
+              extra a member opts into. */}
+          <VirtualLanPanel
+            isElectron={isElectron}
+            peers={state.peers}
+            shared={state.vlan}
+            mine={state.myVlan}
+            onShare={(ip, engine) => session.shareVlan(ip, engine)}
+            onStop={() => session.stopVlan()}
+            onToast={onToast}
+          />
 
           <div className={`room-body ${theatre ? 'is-theatre' : ''}`}>
             <div className={`room-stage size-${tileSize}`} ref={stageRef}>

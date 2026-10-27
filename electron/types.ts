@@ -181,6 +181,40 @@ export interface PartySource {
   thumbnail?: string;
 }
 
+/**
+ * The overlay-network families whose adapter Kryvex can name.
+ *
+ * `generic` is any tunnel it recognised but cannot attribute to a product, so
+ * the panel can still say "a tunnel" rather than guessing a brand.
+ */
+export type VlanEngine =
+  | 'zerotier'
+  | 'easytier'
+  | 'tailscale'
+  | 'wireguard'
+  | 'openvpn'
+  | 'hamachi'
+  | 'nebula'
+  | 'n2n'
+  | 'generic';
+
+/** One tunnel adapter this machine already has, with its virtual address. */
+export interface VlanAdapter {
+  name: string;
+  address: string;
+  engine: VlanEngine;
+}
+
+/**
+ * What the main process can honestly say about virtual LANs here: the adapters
+ * the user's own engine has already created. Kryvex creates none, routes none
+ * and admits nobody; an empty list means no overlay network is running.
+ */
+export interface VlanStatus {
+  adapters: VlanAdapter[];
+  detail: string;
+}
+
 /** One in-app popup tab: a real popup window the shell places over the canvas. */
 export interface PopupTabInfo {
   id: string;

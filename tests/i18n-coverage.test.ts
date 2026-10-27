@@ -282,6 +282,27 @@ const ADDED = [
   'A second instance keeps its own session, so two copies can be signed in to different accounts.',
   '{name} is already installed. Saving opens the one you have instead of adding a second.',
   '{name} is already installed. Opened the one you have.',
+  // Virtual LAN: the network belongs to an engine the user installed, so the
+  // wording has to keep Kryvex out of claims it cannot back.
+  'Virtual LAN',
+  'Sharing {ip}',
+  '{count} devices',
+  'Hide',
+  'Expand',
+  'MY VIRTUAL IP',
+  'DEVICES ON THIS NETWORK',
+  'Detected network',
+  'Stop sharing my address',
+  'Share this address with the room',
+  'Virtual LAN needs the desktop app. The desktop reads the tunnel an engine on your machine has already created.',
+  'No tunnel adapter is running. Start your own ZeroTier, EasyTier, Tailscale, WireGuard, Hamachi or OpenVPN network, then reopen this panel.',
+  'Nothing is shared yet. Members appear here when they publish an address.',
+  'This device',
+  'The address is no longer shared.',
+  'The address was shared with the room.',
+  'The address could not be shared. Rejoin the room and try again.',
+  'The clipboard refused the address.',
+  'Use a member’s virtual IP in a compatible game or service’s direct-connect field. The host must have that game or service running. Kryvex shows the address; it does not create the network, route it or admit anyone.',
 ];
 
 describe('translation coverage', () => {
@@ -351,6 +372,8 @@ describe('Turkish', () => {
       'Restore',
       'INSTALLED SERVICES',
       'Allow more than one instance of this site',
+      'Virtual LAN',
+      'Share this address with the room',
     ];
     expect(required.filter(key => t(key) === key)).toEqual([]);
   });

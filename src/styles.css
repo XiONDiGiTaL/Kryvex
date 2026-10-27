@@ -8459,3 +8459,163 @@ select:hover {
   letter-spacing: 0.12em;
   color: var(--ink-faint);
 }
+
+/* Virtual LAN: the strip sits between the room header and the stage, and the
+   panel opens downward from it. The network itself belongs to an engine the
+   user installed, so nothing here is styled as a control Kryvex owns. */
+.vlan-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.vlan-strip.is-sharing {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+
+.vlan-strip-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.vlan-strip-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-sm);
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+.vlan-strip strong {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.vlan-strip-state {
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.vlan-strip.is-sharing .vlan-strip-state {
+  color: var(--accent);
+}
+
+.vlan-panel {
+  flex-basis: 100%;
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  margin-top: 2px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.vlan-caption {
+  margin: 0;
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+}
+
+.vlan-addresses {
+  display: grid;
+  gap: 4px;
+}
+
+.vlan-address {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.vlan-address.is-active {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-wash);
+}
+
+.vlan-address input {
+  accent-color: var(--accent);
+}
+
+.vlan-ip {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.vlan-adapter-name {
+  font-size: 9px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.vlan-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vlan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.vlan-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+}
+
+.vlan-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.vlan-name {
+  font-size: 10.5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vlan-self {
+  font-style: normal;
+  color: var(--ink-faint);
+}
+
+.vlan-engine {
+  font-size: 9px;
+  color: var(--muted);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.vlan-note {
+  margin: 0;
+  font-size: 9.5px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}

@@ -259,6 +259,33 @@ networks, phone → desktop notification mirroring (a web page cannot read
 Android's notification stream), and notification permission on a plain-http
 origin (browsers require a secure context, so notices show in-page there).
 
+## Virtual LAN is read-only
+
+Kryvex ships no VPN engine, creates no adapter and changes no route. The Virtual
+LAN strip in a room reads the addresses an engine **the user installed** has
+already put on the machine, and that is the whole of its privilege:
+
+- One IPC member, `kryvex:vlan:status`, validated by `isShellSender` like every
+  other handler. There is no handler that starts an engine, writes a route,
+  installs a driver or requests elevation, and `pnpm verify:vlan` asserts the
+  bridge exposes nothing else whose name contains `vlan`.
+- The address is read from `os.networkInterfaces()` in the main process and
+  filtered to private or carrier-grade ranges on adapters that belong to an
+  overlay network. Virtual machine and container adapters are excluded. Loopback
+  and link-local are never offered.
+- A published address is peer-supplied text: it is validated again in the
+  renderer (`isDisplayableAddress`) before it is painted, and **Kryvex never
+  connects to it**. A member copies it into a game or service themselves.
+- Publishing is an explicit click per room. Nothing is published by default, and
+  leaving the room clears every address it held.
+- The browser build shows the desktop-app notice instead of a switch that could
+  not do anything.
+
+If the project ever bundles an engine instead, that decision brings a driver, a
+privileged helper and an installer that elevates with it: all three are
+recorded as open in [VIRTUAL_LAN_EVAL.md](VIRTUAL_LAN_EVAL.md) §11 and would
+have to be designed before they are shipped.
+
 ## Not yet implemented
 
 - Per-module permission scopes and persisted site grants (media grants are

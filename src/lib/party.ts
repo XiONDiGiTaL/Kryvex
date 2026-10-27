@@ -7,6 +7,8 @@ import {
   sanitizeDisplayName,
   shortPeerId,
 } from './party-rules';
+import { sanitizeVlanShare } from './vlan-rules';
+import type { VlanEngine } from '../types';
 import { sanitizePad, type NetplayPad } from './netplay';
 
 /**
@@ -57,6 +59,14 @@ export interface PartyState {
    * a named peer, and granting never happens because a share started.
    */
   control: { peerId: string; name: string; state: 'requested' | 'granted' } | null;
+  /**
+   * Virtual LAN addresses members chose to publish, keyed by peer id. Kryvex
+   * does not create the network and never dials these: a member copies one into
+   * a compatible game or service by hand.
+   */
+  vlan: Record<string, { ip: string; engine: VlanEngine }>;
+  /** The address this client published, so the panel can offer to withdraw it. */
+  myVlan: { ip: string; engine: VlanEngine } | null;
   error: string | null;
 }
 
@@ -110,6 +120,13 @@ interface ShareMeta {
   label?: string;
 }
 
+/** One published virtual address. `ip` is empty when a member withdraws it. */
+interface VlanPayload {
+  [key: string]: string;
+  ip: string;
+  engine: string;
+}
+
 /**
  * Netplay rides the same room as chat and the share. One action carries every
  * frame kind so ordering is preserved and a late hello cannot overtake a ROM
@@ -158,6 +175,8 @@ const EMPTY: PartyState = {
   share: null,
   local: null,
   control: null,
+  vlan: {},
+  myVlan: null,
   error: null,
 };
 
@@ -175,6 +194,7 @@ export class PartySession {
   private sendControl: ((payload: ControlPayload) => Promise<void>) | null = null;
   private sendInput: ((payload: InputPayload) => Promise<void>) | null = null;
   private sendNetplayAction: ((payload: NetplayPayload) => Promise<void>) | null = null;
+  private sendVlan: ((payload: VlanPayload) => Promise<void>) | null = null;
   private names = new Map<string, HelloPayload>();
   private sharing = new Set<string>();
   private lastRoom: { id: string; settings: PartySettings; name: string } | null = null;
@@ -365,12 +385,26 @@ export class PartySession {
         },
       });
 
+      // Virtual LAN addresses. A member publishes one by hand; the action
+      // carries text only, so a peer can never hand this client something to
+      // dial, and the address is validated again on the way in.
+      const vlan = room.makeAction<VlanPayload>('vlan', {
+        onMessage: (payload, context) => {
+          const share = sanitizeVlanShare(payload);
+          const map = { ...this.state.vlan };
+          if (share) map[context.peerId] = share;
+          else delete map[context.peerId];
+          this.set({ vlan: map });
+        },
+      });
+
       this.sendHello = payload => hello.send(payload);
       this.sendChat = payload => chat.send(payload);
       this.sendPresence = payload => presence.send(payload);
       this.sendControl = payload => control.send(payload);
       this.sendInput = payload => input.send(payload);
       this.sendNetplayAction = payload => netplay.send(payload);
+      this.sendVlan = payload => vlan.send(payload);
 
       room.onPeerJoin = peerId => {
         this.names.set(peerId, {
@@ -379,6 +413,10 @@ export class PartySession {
         });
         this.refreshPeers();
         void this.sendHello?.({ name: display, color });
+        // A member who joins after an address was published never saw it; send
+        // it again for this one peer so the panel is complete for them too.
+        const mine = this.state.myVlan;
+        if (mine) void this.sendVlan?.({ ip: mine.ip, engine: mine.engine });
         // Late join: a peer that arrives after sharing began never received the
         // stream, because it was added before that peer existed. Re-add it for
         // this one peer, so the streamer does not have to restart the share.
@@ -395,10 +433,14 @@ export class PartySession {
       room.onPeerLeave = peerId => {
         this.names.delete(peerId);
         this.sharing.delete(peerId);
+        const vlan = { ...this.state.vlan };
+        delete vlan[peerId];
         this.set({
           share: this.state.share?.peerId === peerId ? null : this.state.share,
           // A peer that drops loses whatever control it had.
           control: this.state.control?.peerId === peerId ? null : this.state.control,
+          // ...and its address leaves with it.
+          vlan,
         });
         this.refreshPeers();
       };
@@ -492,6 +534,29 @@ export class PartySession {
 
   hasShareAudio(): boolean {
     return (this.state.local?.stream.getAudioTracks().length ?? 0) > 0;
+  }
+
+  /**
+   * Publish this machine's virtual address to the room.
+   *
+   * The caller passes what the main process already read off the adapter; no
+   * path here can invent one, and nothing is connected to. `false` means the
+   * address was not showable or the room is closed.
+   */
+  shareVlan(ip: string, engine: VlanEngine): boolean {
+    const share = sanitizeVlanShare({ ip, engine });
+    if (!share || !this.sendVlan) return false;
+    this.set({ myVlan: share });
+    void this.sendVlan({ ip: share.ip, engine: share.engine });
+    return true;
+  }
+
+  /** Withdraw it from everyone else without leaving the room. */
+  stopVlan(): boolean {
+    if (!this.state.myVlan) return false;
+    this.set({ myVlan: null });
+    void this.sendVlan?.({ ip: '', engine: '' });
+    return true;
   }
 
   requestControl(): boolean {
@@ -589,6 +654,7 @@ export class PartySession {
     this.sendControl = null;
     this.sendInput = null;
     this.sendNetplayAction = null;
+    this.sendVlan = null;
     this.names.clear();
     this.sharing.clear();
     this.lastRoom = null;
@@ -602,6 +668,9 @@ export class PartySession {
       share: null,
       local: null,
       control: null,
+      // A withdrawn room keeps no addresses: they belonged to the people in it.
+      vlan: {},
+      myVlan: null,
       error: null,
     });
   }

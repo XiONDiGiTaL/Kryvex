@@ -30,6 +30,11 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
 - [x] Browser pop-ups open as in-app tabs, so a page's sign-in window returns
   its result to the opener instead of leaving Kryvex (`pnpm verify:popups`).
 - [ ] Per-site zoom memory.
+- [x] Virtual LAN strip in Rooms: reads the tunnel address the user's own
+  engine already has, publishes it to the room by hand and lists the members'
+  addresses (`pnpm verify:vlan`, [VIRTUAL_LAN.md](VIRTUAL_LAN.md)). Open: a
+  bundled engine, a privileged helper and a membership/revocation model —
+  [VIRTUAL_LAN_EVAL.md](VIRTUAL_LAN_EVAL.md) §11.
 - [x] Torrent queue restore after restart: rows reload paused with no client or
   transfer, and resume only when the user asks (`pnpm verify:torrents`).
 - [ ] Per-site exceptions for HTTPS upgrades, tracking prevention and

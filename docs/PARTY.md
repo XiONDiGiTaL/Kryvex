@@ -145,3 +145,18 @@ needs a user-supplied relay; a self-hosted signaling relay is a later option.
 2. A self-hosted signaling relay, so rooms do not depend on public trackers.
 3. Co-watch with a host clock and drift correction.
 4. Room password, which derives the signaling key rather than encrypting media.
+
+## 10. Virtual LAN
+
+A room can also carry a member's virtual LAN address. The strip sits between
+the room header and the stage, reads the tunnel addresses the member's **own**
+ZeroTier, EasyTier, Tailscale, WireGuard, Hamachi or OpenVPN install has already
+put on their machine, publishes one to the room on request, and lists what the
+others published so they can be copied into a game or a service.
+
+Kryvex creates no tunnel, changes no route, admits nobody and asks for no
+elevation; a room still has no authenticated membership to hang access control
+on, so the panel does not pretend to grant or revoke access. The address travels
+as one more peer action (`vlan`), is validated on arrival, and is never dialled
+by Kryvex. Full contract: [VIRTUAL_LAN.md](VIRTUAL_LAN.md), evaluation and open
+decisions: [VIRTUAL_LAN_EVAL.md](VIRTUAL_LAN_EVAL.md).
