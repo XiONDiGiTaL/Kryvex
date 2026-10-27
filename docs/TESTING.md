@@ -3172,8 +3172,81 @@ running, so the local checks could not settle it either way.
   token from the previous build into this one.
 - **A downgrade.** A phone running the older page against a newer desktop is not
   a supported path; the old key is only ever read, never written.
-- **The Electron harnesses in CI.** `.github/workflows/ci.yml` installs,
-  typechecks, runs the unit suite, builds the web client and checks the
-  one-time-code relay; it does not run `verify:link`, `verify:inhouse` or
-  `verify:shell-batch`, which need a real Electron app. Their results above are
-  from this machine.
+- **The Electron harnesses in CI, for the run above.** That run predates the
+  workflow steps for `verify:inhouse`, `verify:shell-batch` and `verify:link`, so
+  its green covered install, advisories, typecheck, the unit suite, the web build
+  and the one-time-code relay, and the harness results above are from this
+  machine. They are steps from the next push; see the section below.
+
+## The Electron harnesses, in CI (`.github/workflows/ci.yml`)
+
+Run on 2026-10-27 in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3.
+
+The three harnesses that drive a real app — `verify:inhouse` (Arcade, File Forge
+and Canvas), `verify:shell-batch` (the shell changes) and `verify:link` (the phone
+companion over its own HTTP listener) — were local-only. They need a built
+desktop app and a window, and the workflow had neither. They are steps now, after
+the web build:
+
+| Step | Command |
+| --- | --- |
+| Build the desktop app | `pnpm build` (`vite build` + `tsc -p tsconfig.electron.json`) |
+| Verify the in-house services | `node scripts/verify-inhouse-services.cjs` |
+| Verify the shell batch | `node scripts/verify-shell-batch.cjs` |
+| Verify Kryvex Link | `node scripts/verify-link.cjs` |
+
+The web build above writes `dist-web/` and leaves `dist/` to this step, so the
+desktop build is made once and the harnesses run from its output. Calling the
+`pnpm` aliases would rebuild for each of the three; that is the only difference
+from `pnpm verify:inhouse`, `pnpm verify:shell-batch` and `pnpm verify:link`.
+
+### The Electron binary, on the runner
+
+The harnesses need a real `electron.exe`, and pnpm runs a dependency's build
+scripts only when the workspace allows it. `pnpm-workspace.yaml` allows
+`electron`, but `allowBuilds` is a pnpm 11 setting and the workflows pin
+`version: 10`, so it was checked rather than assumed. Against pnpm 10.34.8 — what
+`version: 10` resolves to — a throwaway workspace with `allowBuilds: esbuild:
+true` ran esbuild's postinstall, and the same workspace with `esbuild: false`
+skipped it. The allowlist is honoured on pnpm 10, so Electron's postinstall runs
+on the runner and the binary is there. No pin change was needed.
+
+### A checkout with no `runtime/`
+
+`runtime/` is gitignored and fetched at package time, so a runner has none of it.
+The built-in tools harness was re-run with that directory moved aside: the app
+booted, and all 29 checks passed in the same state a fresh checkout is in.
+
+### What a window does on a runner
+
+These harnesses measure layout with `getBoundingClientRect`, await
+`requestAnimationFrame` and dispatch real pointer events. A runner's window sits
+on a desktop nobody is looking at, and Chromium throttles a window it believes is
+occluded: timers slow to roughly one tick a second and animation frames can stop,
+which is enough for a `waitFor` to time out on a machine that is idle rather than
+broken. Each harness therefore launches the app with
+`--disable-background-timer-throttling`, `--disable-renderer-backgrounding` and
+`--disable-backgrounding-occluded-windows`. Those switches change how often the
+renderer wakes, not what a check measures, so the same checks run here.
+
+### The three on this machine, with those switches
+
+| Harness | Command | Result | Wall clock |
+| --- | --- | --- | --- |
+| Built-in tools | `node scripts/verify-inhouse-services.cjs` | **29/29 PASS** | 3.5 s |
+| Shell batch | `node scripts/verify-shell-batch.cjs` | **22/22 PASS** | 3.6 s |
+| Link | `node scripts/verify-link.cjs` | **35/35 PASS** | 10.3 s |
+
+The desktop build ahead of them took 2.5 s. No `electron.exe` was left running
+after the runs, and the report files (`.tmp-inhouse-report.txt`,
+`.tmp-shell-batch-report.txt`) are gitignored.
+
+### What is still not covered
+
+- **The runner's own result.** These steps have not yet run on GitHub: the first
+  push carrying them is where a driver, display or timing difference between this
+  machine and a runner would show up, as a harness failure there and not here.
+- **The rest of the Electron harnesses.** `package.json` also holds
+  `verify:browser`, `verify:services`, `verify:rooms`, `verify:capture-window`,
+  `verify:model` and the other CDP harnesses — around twenty of them. They stay
+  local for now; these three are the ones this batch added or changed.

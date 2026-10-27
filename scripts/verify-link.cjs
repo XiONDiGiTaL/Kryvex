@@ -25,6 +25,15 @@ const LINK_PORTS = Array.from({ length: 20 }, (_, index) => 43110 + index);
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const children = [];
+// A CI runner shows the app on a desktop nobody is looking at, and Chromium then
+// throttles timers and animation frames enough for a check that waits on
+// requestAnimationFrame to stall past its timeout. These switches keep the
+// renderer at full speed; none of them changes what a check measures.
+const LAUNCH_FLAGS = [
+  '--disable-background-timer-throttling',
+  '--disable-renderer-backgrounding',
+  '--disable-backgrounding-occluded-windows',
+];
 const failures = [];
 
 function record(name, ok, detail) {
@@ -59,7 +68,7 @@ function seedProfile(dir) {
 }
 
 function launch(profile, port) {
-  const child = spawn(electron, ['.', `--remote-debugging-port=${port}`], {
+  const child = spawn(electron, ['.', `--remote-debugging-port=${port}`, ...LAUNCH_FLAGS], {
     cwd: root,
     env: {
       ...process.env,

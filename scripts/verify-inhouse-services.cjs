@@ -35,6 +35,15 @@ const root = path.resolve(__dirname, '..');
 const PORT = Number(process.env.KRYVEX_CDP_PORT || 9391);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const children = [];
+// A CI runner shows the app on a desktop nobody is looking at, and Chromium then
+// throttles timers and animation frames enough for a check that waits on
+// requestAnimationFrame to stall past its timeout. These switches keep the
+// renderer at full speed; none of them changes what a check measures.
+const LAUNCH_FLAGS = [
+  '--disable-background-timer-throttling',
+  '--disable-renderer-backgrounding',
+  '--disable-backgrounding-occluded-windows',
+];
 
 async function target(port) {
   for (let attempt = 0; attempt < 200; attempt += 1) {
@@ -105,7 +114,7 @@ async function waitFor(evaluate, expression, timeout = 8000, label = expression)
 }
 
 function launch(profile) {
-  const child = spawn(electron, ['.', `--remote-debugging-port=${PORT}`], {
+  const child = spawn(electron, ['.', `--remote-debugging-port=${PORT}`, ...LAUNCH_FLAGS], {
     cwd: root,
     env: {
       ...process.env,

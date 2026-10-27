@@ -54,7 +54,9 @@ On top of that, this batch changed the shell itself:
 `pnpm verify:shell-batch` covers the shell changes with 22 checks and
 `pnpm verify:link` the phone page and its name with 35. CI is green on the push
 (run 40536740847: install, advisories, typecheck, the unit suite, the web build
-and the one-time-code relay). One repair went with it — the shell batch's slice
+and the one-time-code relay), and it now runs those three Electron harnesses too
+— one desktop build, then `verify:inhouse`, `verify:shell-batch` and
+`verify:link` — so their results no longer live only on this machine. One repair went with it — the shell batch's slice
 of `package.json` had dropped `pdf-lib` and the `verify:inhouse` script, and CI's
 install step is what caught it on that commit, since a local typecheck cannot: the
 package is installed here whatever the manifest says. Still open from the same

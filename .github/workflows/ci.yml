@@ -48,3 +48,24 @@ jobs:
 
       - name: Verify the one-time-code relay
         uses: ./.github/actions/verify-one-time-code
+
+      # The Electron harnesses cover what none of the steps above can: they launch
+      # the built app in a real window and drive it over the DevTools protocol, so
+      # they exercise the built-in tools through the DOM a user sees, the shell's
+      # own behaviours, and the phone companion over a live HTTP listener.
+      #
+      # They need the desktop build, which the web build above does not produce.
+      # It is made once here and the harnesses run from its output — the same
+      # commands `pnpm verify:inhouse`, `pnpm verify:shell-batch` and
+      # `pnpm verify:link` run, minus a rebuild each.
+      - name: Build the desktop app
+        run: pnpm build
+
+      - name: Verify the in-house services
+        run: node scripts/verify-inhouse-services.cjs
+
+      - name: Verify the shell batch
+        run: node scripts/verify-shell-batch.cjs
+
+      - name: Verify Kryvex Link
+        run: node scripts/verify-link.cjs
