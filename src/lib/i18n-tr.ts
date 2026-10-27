@@ -523,4 +523,58 @@ export const turkishCopy: Record<string, string> = {
   'The clipboard refused the address.': 'Pano adresi reddetti.',
   'Use a member’s virtual IP in a compatible game or service’s direct-connect field. The host must have that game or service running. Kryvex shows the address; it does not create the network, route it or admit anyone.':
     'Bir üyenin sanal IP adresini uyumlu bir oyunun veya servisin doğrudan bağlantı alanına yazın. Oyunu barındıran tarafta çalışıyor olması gerekir. Kryvex adresi gösterir; ağı kurmaz, yönlendirmez ve kimseyi kabul etmez.',
+
+  // The Whisper server Kryvex installs for Lexium with one click.
+  'Whisper on this machine': 'Bu makinede Whisper',
+  'Kryvex downloads the whisper.cpp server and one speech model once, runs it on this machine and stops it when you ask. Nothing is uploaded. This is the engine to use for accents, music and singing, where the PC dictation engine cannot follow.':
+    'Kryvex whisper.cpp sunucusunu ve bir konuşma modelini bir kez indirir, bu makinede çalıştırır ve istediğinizde durdurur. Hiçbir şey yüklenmez. Aksan, müzik ve şarkı için kullanılacak motor budur; Windows diktesi bunları takip edemez.',
+  'One-click Whisper needs the desktop app on 64-bit Windows. The three servers below work from any build.':
+    'Tek tıklamalı Whisper, 64 bit Windows’ta masaüstü uygulamasını gerektirir. Aşağıdaki üç sunucu her sürümde çalışır.',
+  'One-click Whisper needs the desktop app on 64-bit Windows.':
+    'Tek tıklamalı Whisper, 64 bit Windows’ta masaüstü uygulamasını gerektirir.',
+  'Speech model': 'Konuşma modeli',
+  downloaded: 'indirildi',
+  'Download and start': 'İndir ve başlat',
+  'Start the engine': 'Motoru başlat',
+  'Stop the engine': 'Motoru durdur',
+  'Use this engine': 'Bu motoru kullan',
+  'Working…': 'Çalışıyor…',
+  'Checking the download…': 'İndirme doğrulanıyor…',
+  'Unpacking the server…': 'Sunucu açılıyor…',
+  'Downloading the whisper.cpp server…': 'whisper.cpp sunucusu indiriliyor…',
+  'Downloading the speech model…': 'Konuşma modeli indiriliyor…',
+  'The download failed.': 'İndirme başarısız oldu.',
+  'The engine failed.': 'Motor başarısız oldu.',
+  'Running on {url}. Lexium uses it as soon as it is up.':
+    '{url} adresinde çalışıyor. Lexium hazır olur olmaz onu kullanacak.',
+  '{name} is downloaded and ready to start.': '{name} indirildi ve başlatılmaya hazır.',
+  'Nothing is installed yet. The download is a one-time {size} for the model you pick.':
+    'Henüz bir şey kurulmadı. İndirme tek seferlik: seçtiğiniz model için {size}.',
+  'The server is whisper.cpp (MIT). The models are OpenAI’s Whisper weights, converted by the same project and also MIT. Kryvex fetches them from their own release pages and checks the SHA-256 before unpacking.':
+    'Sunucu whisper.cpp (MIT). Modeller, aynı projenin dönüştürdüğü OpenAI Whisper ağırlıklarıdır ve onlar da MIT lisanslıdır. Kryvex dosyaları projelerin kendi yayın sayfalarından alır ve açmadan önce SHA-256 doğrulaması yapar.',
+  'What the server said': 'Sunucunun söyledikleri',
+  'Transcribing with the model on this machine.':
+    'Bu makinedeki modelle yazıya dökülüyor.',
+  'The pinned speech build failed its own review, so Kryvex will not install it.':
+    'Sabitlenmiş konuşma derlemesi kendi incelemesini geçemedi, Kryvex onu kurmuyor.',
+  'The download could not be reached. Check the connection and try again.':
+    'İndirmeye ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.',
+  'Not enough free space for that model. Free some space, or pick a smaller one.':
+    'O model için yeterli boş alan yok. Yer açın ya da daha küçük bir model seçin.',
+  'The download did not match its checksum, so it was discarded. Try again.':
+    'İndirme kendi sağlama toplamıyla eşleşmedi ve silindi. Tekrar deneyin.',
+  'The download was incomplete, so it was discarded. Try again.':
+    'İndirme eksik kaldı ve silindi. Tekrar deneyin.',
+  'The download was cancelled.': 'İndirme iptal edildi.',
+  'The files could not be written. Check that the folder is writable and try again.':
+    'Dosyalar yazılamadı. Klasörün yazılabilir olduğunu kontrol edip tekrar deneyin.',
+  'The server archive could not be unpacked, so it was discarded.':
+    'Sunucu arşivi açılamadı ve silindi.',
+  'The server could not be started.': 'Sunucu başlatılamadı.',
+  'The server did not answer in time. A larger model takes longer to load; try again.':
+    'Sunucu zamanında yanıt vermedi. Daha büyük bir model daha uzun yüklenir; tekrar deneyin.',
+  'The server stopped on its own. The lines below say why.':
+    'Sunucu kendi kendine durdu. Aşağıdaki satırlar nedenini söylüyor.',
+  'Download the server before starting it.': 'Başlatmadan önce sunucuyu indirin.',
+  'A download is already running.': 'Zaten bir indirme sürüyor.',
 };

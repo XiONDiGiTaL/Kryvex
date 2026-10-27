@@ -293,6 +293,22 @@ const api = {
     ipcRenderer.invoke('kryvex:lexium:transcribe', request),
   lexiumProbe: (request: unknown): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:lexium:probe', request),
+  // The local Whisper server Lexium can install: the id of a reviewed model is
+  // the only argument, and the status comes back with the address to use.
+  speechStatus: (): Promise<unknown> => ipcRenderer.invoke('kryvex:speech:status'),
+  speechInstall: (model: string): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:speech:install', model),
+  speechStart: (model: string): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:speech:start', model),
+  speechStop: (): Promise<unknown> => ipcRenderer.invoke('kryvex:speech:stop'),
+  speechRemove: (model: string): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:speech:remove', model),
+  speechCancel: (): Promise<boolean> => ipcRenderer.invoke('kryvex:speech:cancel'),
+  onSpeechProgress: (listener: (event: unknown) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, payload: unknown) => listener(payload);
+    ipcRenderer.on('kryvex:speech:progress', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:speech:progress', wrapped);
+  },
   resourcesSample: (services: Array<{ id: string; url: string }>): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:resources:sample', services),
   mediaList: (): Promise<unknown> => ipcRenderer.invoke('kryvex:media:list'),

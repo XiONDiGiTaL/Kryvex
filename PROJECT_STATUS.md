@@ -151,6 +151,51 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   release records are in place. Outstanding: engineering report and
   a signed public release.
 
+## Added (2026-10-26, one-click Whisper for Lexium)
+
+A Turkish voice note of a song came back from **Use this PC** as recognisable
+English that was nowhere in the recording, because the in-box engine is a
+dictation recogniser and not a Whisper model. The fix is not another warning: it
+is the shortest possible path to a real speech model.
+
+- Lexium's setup panel now opens on **Whisper on this machine**. One button,
+  **Download and start**, fetches the pinned `whisper-server` build
+  (`ggml-org/whisper.cpp` release `b5454`, 8,928,640 bytes,
+  `6ba69e34…d816ccb`) and one pinned multilingual model (default `ggml-base.bin`,
+  147,951,465 bytes, `60ed5bc3…5fba2efe`; `tiny` and `small` are also offered),
+  verifies both against their SHA-256, unpacks the archive with the app's own
+  hardened ZIP reader, starts the server on `127.0.0.1:8129` and points Lexium at
+  it. Nothing is uploaded, nothing is bundled, and the same panel keeps the
+  three manual server options for anyone who already runs one.
+- New main-process modules: `electron/speech-catalogue.ts` (the pins),
+  `electron/speech-runtime-rules.ts` (pure layout, validation, archive and argv
+  rules), `electron/artifact-download.ts` (one verified download, reusing the
+  host/redirect/hash policy in `model-rules.ts`),
+  `electron/speech-runtime.ts` (install, start, stop, remove, cleanup around a
+  child process). IPC is six narrow handlers, each validated with
+  `isShellSender`; the renderer names a catalogue id and nothing else. The runtime
+  imports no Electron, so it runs — and is tested — from a plain Node script.
+- The panel names its own failures (unreachable, disk space, checksum, archive,
+  server) and can show the server's last output lines. Downloads are cancellable,
+  a model in use cannot be deleted, a removed model cannot be started, and the
+  partial, archive and staging files are removed on both success and failure.
+- Copy was written for es/de/fr/tr in `src/lib/i18n-speech.ts` and `i18n-tr.ts`,
+  and the i18n ratchet stayed green (every new string translated in all three
+  required locales, Turkish backlog unchanged).
+- Verified: `pnpm verify:speech` — **PASS** on the real network and CPU (pinned
+  download verified, the model on disk re-hashed against the pin, a synthesised
+  phrase transcribed through the renderer's proxy with timed segments, `auto`
+  and `tr` accepted, listener gone after stop, model removed, restart refused).
+  `pnpm verify:speech-bridge` — **PASS** driving the built app: bridge exposed,
+  catalogue intact, an id outside it refused, the card rendered with its button,
+  and opening the panel installing nothing. Also green: `pnpm typecheck`,
+  `pnpm test` (913 tests), `pnpm audit:i18n`. Documented in `docs/LEXIUM.md`,
+  `docs/ATTRIBUTION.md` (whisper.cpp and Whisper are MIT and are not
+  redistributed) and `docs/TESTING.md` (including what is *not* covered).
+- Not covered: the button is not clicked inside the UI harness (that would
+  download 148 MB as a side effect of a UI test) and no platform other than
+  Windows x64 was run; both are recorded in `docs/TESTING.md`.
+
 ## Fixed (2026-10-24, services stay alive when you look away)
 
 Two testers reported the same class of bug in different services: switching to

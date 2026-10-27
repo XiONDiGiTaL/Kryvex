@@ -677,6 +677,16 @@ export interface EmulatorSettings {
  */
 export type LexiumEngine = 'windows-speech' | 'local-whisper' | 'whisper-cpp' | 'openai';
 
+/**
+ * The Whisper server Kryvex can install for Lexium. The shapes live in the main
+ * process (they describe what it actually wrote to disk and started), so they
+ * are re-exported here rather than restated for the renderer.
+ */
+export type SpeechRuntimeStatus = import('../electron/types').SpeechRuntimeStatus;
+export type SpeechInstallProgress = import('../electron/types').SpeechInstallProgress;
+export type SpeechFailure = import('../electron/types').SpeechFailure;
+export type SpeechModelEntry = import('../electron/types').SpeechModelEntry;
+
 /** Lexium: the in-house translator, transcriber and OCR reader. */
 export interface LexiumSettings {
   /** Which speech-to-text server the Transcribe tab talks to. */
@@ -1184,6 +1194,27 @@ export interface KryvexBridge {
   lexiumTranscribe: (request: LexiumProxyRequest) => Promise<LexiumProxyResult>;
   /** Ask the same server, from the main process, whether it is up. */
   lexiumProbe: (request: { engine: string; baseUrl: string }) => Promise<LexiumProbeResult>;
+  /**
+   * The local Whisper server Lexium can install and run on this machine.
+   * `null` comes back from an untrusted sender, which the panel treats as
+   * "not available here" rather than as a failure.
+   */
+  speechStatus: () => Promise<import('../electron/types').SpeechRuntimeStatus | null>;
+  speechInstall: (
+    model: string,
+  ) => Promise<import('../electron/types').SpeechRuntimeStatus | null>;
+  speechStart: (
+    model: string,
+  ) => Promise<import('../electron/types').SpeechRuntimeStatus | null>;
+  speechStop: () => Promise<import('../electron/types').SpeechRuntimeStatus | null>;
+  speechRemove: (
+    model: string,
+  ) => Promise<import('../electron/types').SpeechRuntimeStatus | null>;
+  /** Stops a download in flight; the partial file is removed with it. */
+  speechCancel: () => Promise<boolean>;
+  onSpeechProgress: (
+    listener: (event: import('../electron/types').SpeechInstallProgress) => void,
+  ) => () => void;
   resourcesSample: (
     services: Array<{ id: string; url: string }>,
   ) => Promise<ResourceSnapshot | null>;

@@ -8,6 +8,7 @@ import {
 } from '../lib/lexium';
 import type { LexiumEngine } from '../types';
 import { Icon } from './ui';
+import { LexiumLocalEngine } from './LexiumLocalEngine';
 
 /**
  * The setup path for a speech engine.
@@ -49,6 +50,9 @@ export function LexiumServerSetup({
   onCopy,
   onUseThisPc,
   usingThisPc = false,
+  onUseLocalEngine,
+  activeEngine,
+  activeUrl,
 }: {
   /** Applies one detected server to the settings. */
   onPick: (engine: LexiumEngine, baseUrl: string) => void;
@@ -56,6 +60,11 @@ export function LexiumServerSetup({
   /** Selects the speech engine the desktop build already has. */
   onUseThisPc?: () => void;
   usingThisPc?: boolean;
+  /** Selects the Whisper server Kryvex installed on this machine. */
+  onUseLocalEngine?: (baseUrl: string, model: string) => void;
+  /** The engine and address Lexium is pointed at, for the "in use" mark. */
+  activeEngine?: string;
+  activeUrl?: string;
 }) {
   const t = useT();
   // The in-box engine exists in the desktop app on Windows only; elsewhere the
@@ -101,6 +110,16 @@ export function LexiumServerSetup({
 
   return (
     <section className="lexium-setup" aria-label={t('Run a transcription server on this machine')}>
+      {/* The one-click path comes first: it is the answer for anyone who has
+          never run a speech server, and the rows below are for the rest. */}
+      {onUseLocalEngine ? (
+        <LexiumLocalEngine
+          activeEngine={activeEngine ?? ''}
+          activeUrl={activeUrl ?? ''}
+          onUse={onUseLocalEngine}
+        />
+      ) : null}
+
       <header className="lexium-setup-head">
         <div>
           <strong>{t('Run a transcription server on this machine')}</strong>

@@ -2909,3 +2909,56 @@ never falls back), the installed-language list, the culture parser, the verdict
 (empty, below the floor, at the floor, above it, a missing confidence), and a
 parity table asserting the main-process module and the renderer copy agree over
 every culture/language combination, so the two cannot drift.
+
+## The one-click Whisper engine (`pnpm verify:speech`)
+
+The report behind this harness: a Turkish voice note of a song was transcribed
+with **Use this PC** and came back as recognisable English that was not in the
+recording. The dictation engine cannot follow singing or an accent; a Whisper
+model can, but a first-time user had to find a build, find a model and run a
+command first. `Download and start` in Lexium now does that, and this harness
+tests the whole path on the real network, the real CPU and the real disk.
+
+| Check | Result |
+| --- | --- |
+| The reviewed catalogue passes its own validation | PASS (tiny, base, small) |
+| The pinned build downloads and is verified | PASS (8,928,640 bytes, `6ba69e34…`) |
+| The pinned model downloads and is verified | PASS (147,951,465 bytes, `60ed5bc3…`) |
+| The model on disk hashes to the pinned SHA-256 | PASS |
+| No partial, archive or staging file is left behind | PASS |
+| The server starts on loopback | PASS (`http://127.0.0.1:8129`, pid reported) |
+| The server answers its own page | PASS (HTTP 200) |
+| A real recording transcribes through the renderer's proxy | PASS ("The quick brown fox jumps over the lazy dog") |
+| The response carries timed segments, so `.srt` would export | PASS (1 segment, 0s → 2.72s) |
+| Language detection works | PASS (`english`) |
+| Turkish is accepted by the pinned build | PASS (`language: turkish`) |
+| An empty upload is refused | PASS (`invalid`) |
+| A model in use cannot be removed | PASS (`busy`) |
+| Stopping the engine kills the listener | PASS |
+| A removed model cannot be started again | PASS (`not-installed`) |
+
+Last run: **PASS** on the default `base` model. `--model=tiny` runs the same
+path with a 78 MB download, `--root=<dir>` reuses an existing profile and
+`--keep` leaves it in place for inspection.
+
+### The app half (`pnpm verify:speech-bridge`)
+
+`scripts/verify-speech-bridge.cjs` drives the built app in a disposable profile
+and downloads nothing: the shell window exposes the bridge, the handlers answer
+it, the catalogue arrives intact, a model id outside the catalogue is refused
+before anything is fetched, Lexium renders the card with the three models and
+the **Download and start** button, the failure line reads in the user's
+language, and merely opening the panel installs nothing. Last run: **PASS**.
+
+### What is not covered
+
+- **A download pressed in the app.** The card is rendered and its bridge is
+  exercised, but the button itself is not clicked in the harness, because that
+  would download 148 MB as a side effect of a UI test. The installer path is
+  covered directly by `pnpm verify:speech`, which uses the same main-process
+  calls the button makes.
+- **`small` and `tiny` through the app.** Both are pinned and validated, and
+  `tiny` is exercised by `--model=tiny`; `small` shares the same code path and
+  was only verified as a download-on-demand entry, not transcribed here.
+- **Other platforms.** The pinned build is Windows x64, measured from the
+  release asset. Nothing else was run.

@@ -58,6 +58,7 @@ import {
   type WindowSize,
 } from './window-rules';
 import { shield } from './shield';
+import { SpeechRuntime } from './speech-runtime';
 import {
   chooseDownloadLocation,
   downloadLocation,
@@ -120,6 +121,23 @@ let mainWindow: BrowserWindow | null = null;
 // this instead of reading `mainWindow.webContents`, which throws once the
 // window has been destroyed.
 let shellContents: WebContents | null = null;
+
+/**
+ * The Whisper server Lexium can install and run on this machine.
+ *
+ * The profile is settled by the two `setPath` calls above, so the root is read
+ * here rather than in the module: a test profile or a capture run must get its
+ * own `speech` folder, not the one belonging to the person using the app.
+ * Install progress is pushed to the shell as it happens; the renderer never
+ * polls a download.
+ */
+const speech = new SpeechRuntime(path.join(app.getPath('userData'), 'speech'), progress => {
+  try {
+    shellContents?.send('kryvex:speech:progress', progress);
+  } catch {
+    /* the shell may be closing */
+  }
+});
 
 function forwardMagnet(url: string): void {
   if (!isMagnetLink(url) || !mainWindow || mainWindow.isDestroyed()) return;
@@ -809,6 +827,23 @@ function registerIpc(): void {
   ipcMain.handle('kryvex:lexium:probe', (event, request: unknown) =>
     isShellSender(event) ? lexiumProxy.probe(request) : { ok: false, error: 'invalid' },
   );
+  // The local Whisper server. The renderer names a model id from the reviewed
+  // catalogue and nothing else: no URL, host or path crosses this boundary, and
+  // an untrusted sender only ever gets the status back.
+  ipcMain.handle('kryvex:speech:status', () => speech.status());
+  ipcMain.handle('kryvex:speech:install', (event, model: unknown) =>
+    isShellSender(event) ? speech.install(model) : speech.status(),
+  );
+  ipcMain.handle('kryvex:speech:start', (event, model: unknown) =>
+    isShellSender(event) ? speech.start(model) : speech.status(),
+  );
+  ipcMain.handle('kryvex:speech:stop', event =>
+    isShellSender(event) ? speech.stop() : speech.status(),
+  );
+  ipcMain.handle('kryvex:speech:remove', (event, model: unknown) =>
+    isShellSender(event) ? speech.remove(model) : speech.status(),
+  );
+  ipcMain.handle('kryvex:speech:cancel', event => (isShellSender(event) ? speech.cancel() : false));
   // Kyvex Link: the phone companion. The renderer owns the on/off setting and
   // asks for everything else; the pairing code, tokens and file names stay in
   // the main process, so the shell can never mint a device of its own.
@@ -1179,6 +1214,7 @@ if (!gotLock) {
     // Restore only the display rows here; WebTorrent is created on Resume.
     torrents.init();
     localModel.init();
+    speech.init();
     // Pairing tokens and the transfer log outlive a restart, so they load
     // before anything can ask for the link's status.
     link.init();
@@ -1247,6 +1283,7 @@ if (!gotLock) {
     link.dispose();
     void torrents.shutdown();
     void localModel.dispose();
+    void speech.dispose();
     if (flushed) return;
     event.preventDefault();
     flushed = true;

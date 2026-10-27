@@ -348,3 +348,15 @@ export interface LexiumProxyResult {
   detail?: string;
   payload?: unknown;
 }
+
+/**
+ * The local Whisper server Kryvex can install and run for Lexium.
+ *
+ * These are the main process's own types; the renderer reads them through the
+ * bridge so both sides describe the same status without re-declaring it.
+ */
+export type SpeechRuntimeStatus = import('./speech-runtime').SpeechRuntimeStatus;
+export type SpeechInstallProgress = import('./speech-runtime').SpeechInstallProgress;
+export type SpeechFailure = import('./speech-runtime').SpeechFailure;
+export type SpeechModelEntry = import('./speech-runtime-rules').SpeechModelEntry;
+

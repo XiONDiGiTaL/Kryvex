@@ -70,9 +70,51 @@ The panel also appears inside **Engines and languages**. Opening Lexium checks
 the configured engine once, so a server that is already running shows READY
 without looking for the button.
 
-The shortest path on Windows is whisper.cpp: download a release build, download
-`ggml-base.bin`, then run the command from the panel. Nothing is installed and
-nothing runs as a service; closing the terminal stops the engine.
+### One click: Whisper on this machine
+
+The first row of that panel is now the shortest path, and it needs no command.
+**Download and start** fetches the whisper.cpp server and one speech model into
+app data, checks both against their SHA-256, unpacks the archive and runs the
+server on `127.0.0.1`. Lexium is pointed at it as soon as it answers, so the
+next transcription works. Nothing is uploaded and no account is involved.
+
+| Model | Size | Notes |
+| --- | --- | --- |
+| Whisper tiny | 74 MB | The smallest multilingual conversion |
+| **Whisper base** (default) | 141 MB | The one worth spending |
+| Whisper small | 465 MB | Slower, more accurate |
+
+- The three are **multilingual conversions**, never the `*.en` files: an
+  English-only model answers a Turkish recording with confident English, which
+  is exactly the failure this feature exists to prevent.
+- This is the engine for **accents, music and singing**, where the PC dictation
+  engine cannot follow. It is a real Whisper model, not a dictation grammar.
+- The button is one action: download what is missing, then start. **Stop the
+  engine** stops it, **Start the engine** brings it back with the model selected,
+  and a downloaded model can be removed again to free its space.
+- Files live under `<userData>/speech`: `bin/whisper-server.exe` with its DLLs,
+  `models/<id>.bin`, and `kryvex-speech.json` recording what was installed and
+  verified. The archive, the staging folder and any partial download are removed
+  as soon as the install finishes or fails.
+- The server binds **loopback only**, on port 8129 (or an OS-assigned port if
+  that one is taken) and is killed when the app quits.
+- It is Windows x64 only, because that is the release build measured here. The
+  web client, and other platforms, keep the server options below.
+
+The versions are pinned, not followed: `whisper-bin-x64.zip` from the
+`ggml-org/whisper.cpp` release `b5454`
+(`6ba69e3482d7826214f90a6a9c84ca07782aec1e1d0c6a7c30c994fd5d816ccb`, 8,928,640
+bytes) and the GGML models from `ggerganov/whisper.cpp` on Hugging Face, each
+with its byte count and SHA-256 recorded in `electron/speech-catalogue.ts`. A
+changed upstream file fails the check instead of being installed.
+
+Licences: whisper.cpp is MIT, and the model files are OpenAI's Whisper weights
+(MIT), converted by the same project. Kryvex adds no licence text of its own to
+redistribute, because nothing is bundled: both are downloaded from their own
+release pages on request. See [ATTRIBUTION.md](ATTRIBUTION.md).
+
+Anything else on the page still works: the manual commands below are for anyone
+who already runs their own server.
 
 ### local-whisper
 
@@ -176,9 +218,14 @@ usually enough; a fully offline machine cannot run the reader.
 
 - **No answer / offline**: the engine is not running, the address is wrong, or
   a browser blocked the request. The failure now expands **Set up a server**
-  in the Transcribe tab, so the command to start one is one click away. A page served over **HTTPS cannot call a plain
+  in the Transcribe tab, so the engine Kryvex can install itself, and the command
+  to start one by hand, are both one click away. A page served over **HTTPS cannot call a plain
   `http://` engine on your LAN**; only `http://localhost` is exempt. Run the
   client locally, put the engine behind HTTPS, or use a tunnel.
+- **A download that did not work**: the panel names the cause rather than
+  guessing — unreachable, out of disk space, a checksum that did not match, an
+  archive that would not unpack, or a server that would not start (with its own
+  last lines of output behind **What the server said**).
 - **The PC engine**: four separate answers, because they need four different
   fixes — this build cannot run one (the web client), this machine has no
   recogniser installed (add a language with speech in Windows settings), the
@@ -211,6 +258,25 @@ WAV through the real file input, with Turkish selected on a machine whose only
 recogniser is English. The request is refused in milliseconds with the message
 above and no transcript; switching to English then transcribes the same file and
 labels the result as dictated on this PC. Last run: **12/12 PASS**.
+
+`pnpm verify:speech` exercises the one-click engine end to end on the real
+network and the real CPU: it downloads the pinned build and model with the real
+module, hashes the model that landed on disk against the pinned SHA-256, checks
+that no partial, archive or staging file survived, starts the server, synthesises
+a phrase with the Windows speech stack, transcribes it through the same proxy the
+renderer calls (`language=en`, `auto` and `tr`, plus timed segments for `.srt`),
+then stops the engine, proves the listener is gone, removes the model and proves
+it cannot be started again. `--model=base` selects the default model, `--root`
+reuses an install and `--keep` keeps the profile. Last run: **PASS** on `base`
+(147,951,465 bytes verified, `The quick brown fox jumps over the lazy dog.`, 1
+segment, Turkish accepted, listener gone after stop).
+
+`pnpm verify:speech-bridge` drives the built **app** and downloads nothing: it
+checks that the shell window exposes the bridge, that the reviewed catalogue
+arrives intact, that a model id outside it is refused before anything is
+downloaded, that opening Lexium renders the card with the three models and the
+**Download and start** button, and that merely opening the panel installs
+nothing. Last run: **PASS**.
 
 ## Privacy
 

@@ -136,6 +136,37 @@ Electron sessions; it does not audit, modify, or redistribute them. Firefox
   `LICENSE-llama.cpp` and `LICENSE-LLVM-OpenMP`. Kryvex does not modify the
   binaries, and no llama.cpp trademark or endorsement is claimed.
 
+## whisper.cpp and the Whisper models
+
+- **Project:** whisper.cpp, https://github.com/ggml-org/whisper.cpp (the
+  `ggerganov/whisper.cpp` URL redirects there)
+- **Authors:** Georgi Gerganov and the whisper.cpp contributors; the weights are
+  OpenAI's Whisper.
+- **License:** MIT for the program and for the converted model files.
+- **How Kryvex uses it:** Lexium's one-click engine downloads, at the user's
+  request, release `b5454`, asset `whisper-bin-x64.zip`, SHA-256
+  `6ba69e3482d7826214f90a6a9c84ca07782aec1e1d0c6a7c30c994fd5d816ccb`
+  (8,928,640 bytes), and one multilingual GGML model from
+  `huggingface.co/ggerganov/whisper.cpp` — `ggml-tiny.bin`
+  `be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21`,
+  `ggml-base.bin`
+  `60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe`,
+  `ggml-small.bin`
+  `1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b`.
+  Both the size and the SHA-256 are checked before anything is unpacked, and the
+  server is started on loopback only. `electron/speech-catalogue.ts` holds the
+  pins; `docs/LEXIUM.md` describes the flow.
+- **What is not bundled:** neither the binaries nor the weights. They are fetched
+  at run time from the projects' own release pages and live in the user's
+  application-data folder, so no whisper.cpp or Whisper file is redistributed
+  inside the installer or the web bundle. Because nothing is conveyed, no
+  licence text has to travel with it; Kryvex still names the licence in the
+  panel and records it here and in the catalogue.
+- Kryvex does not modify the binaries, and no whisper.cpp or OpenAI trademark or
+  endorsement is claimed. The MIT text is at
+  https://github.com/ggml-org/whisper.cpp/blob/master/LICENSE and
+  https://github.com/openai/whisper/blob/main/LICENSE.
+
 ## Runtime stack
 
 Electron, Chromium, Node.js, React, Vite, TypeScript and the transitive npm

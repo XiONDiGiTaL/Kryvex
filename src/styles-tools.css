@@ -764,6 +764,48 @@
   padding-top: 12px;
 }
 
+/*
+ * The one-click engine is framed inside the setup panel: it is the answer for a
+ * first-time user, and the commands below it are the alternative for someone
+ * who already runs their own server.
+ */
+.lexium-setup-local {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+}
+
+.lexium-setup-local .lexium-setup-head p {
+  max-width: 78ch;
+}
+
+.lexium-local-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.lexium-local-row .field {
+  flex: 1 1 220px;
+  margin: 0;
+}
+
+.lexium-local-log {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+  border-top: 1px solid var(--line-soft);
+}
+
 /* ---------------------------------------------------------- media player --- */
 
 .player-stage {

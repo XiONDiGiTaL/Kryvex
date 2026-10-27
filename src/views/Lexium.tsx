@@ -121,6 +121,22 @@ export function Lexium({
    * `migrated` is written here too, so this choice is never undone by the
    * one-time move off the old default.
    */
+  /**
+   * The Whisper server Kryvex installed on this machine came up: point Lexium
+   * at it. The address is the main process's, never one composed here, and the
+   * choice is written as a deliberate one (`migrated`) so the one-time move off
+   * the old default never undoes it.
+   */
+  function useLocalEngine(baseUrl: string) {
+    const same =
+      settings.engine === 'whisper-cpp' && normalizeBaseUrl(settings.baseUrl) === baseUrl;
+    onUpdate({ engine: 'whisper-cpp', baseUrl, migrated: true });
+    setEngineState('idle');
+    setEngineDetail('');
+    setTranscribeError(null);
+    if (!same) onToast(t('Transcribing with the model on this machine.'), 'success');
+  }
+
   function useThisPcEngine() {
     onUpdate({ engine: 'windows-speech', baseUrl: '', migrated: true });
     setEngineState('idle');
@@ -592,6 +608,9 @@ export function Lexium({
                 onCopy={(value, label) => void copy(value, label)}
                 onUseThisPc={useThisPcEngine}
                 usingThisPc={isLocalSpeechEngine(settings.engine)}
+                onUseLocalEngine={useLocalEngine}
+                activeEngine={settings.engine}
+                activeUrl={settings.baseUrl}
               />
             </details>
           ) : null}
@@ -1007,6 +1026,9 @@ export function Lexium({
           onPick={useDetectedServer}
           onCopy={(value, label) => void copy(value, label)}
           onUseThisPc={useThisPcEngine}
+          onUseLocalEngine={useLocalEngine}
+          activeEngine={settings.engine}
+          activeUrl={settings.baseUrl}
           usingThisPc={isLocalSpeechEngine(settings.engine)}
         />
 
