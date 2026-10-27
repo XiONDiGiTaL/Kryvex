@@ -205,27 +205,47 @@ a row.
   code signing and an interactive-wizard pass.
 - [x] **M10: Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
   secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.4 plus
-  0.9.4-hotfix.1, 0.9.4-hotfix.2 and 0.9.4-hotfix.3 published. Each release
-  carries the Setup and Portable EXEs plus `SHA256SUMS.txt`, whose entries match
+  0.9.4-hotfix.1, 0.9.4-hotfix.2, 0.9.4-hotfix.3 and 0.9.5 published. Each
+  release carries the Setup and Portable EXEs plus `SHA256SUMS.txt`, whose
+  entries match
   the uploaded asset digests, so the in-app updater accepts it; the published
   pair of each of the last three was re-downloaded and re-hashed on this machine
   (`sha256sum -c SHA256SUMS.txt` reports OK). The installable PWA is published
   from the `gh-pages` branch of the same repository and serves
   `https://xiondigital.net/Kryvex/`, rebuilt by the tag job from 0.9.4 on
-  (now worker cache `kryvex-web-0.9.4-hotfix.3-v1`, footer
-  **v0.9.4-hotfix.3**).
+  (now worker cache `kryvex-web-0.9.5-v1`, footer **v0.9.5**).
 - [ ] **M11: Final review.** README with real screenshots, banner,
   feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and
   a signed public release.
 
-## In progress (0.9.5, not tagged)
+## Released (2026-10-27, 0.9.5)
 
-The version line sits at **0.9.5** and stays there for a while: the batches below
-landed after `0.9.4-hotfix.3` was published, and they are committed on `main`
-without a tag or a published installer. The release record and its installer
-wizard capture are in place and pass the gate the Release workflow runs
-(`docs/RELEASE_0.9.5.md`, `pnpm release:check`), so the tag is what is left.
+`v0.9.5` was tagged on the commit that carries the record and its installer
+wizard capture (`323f7d8`), and both jobs of the tag's Release workflow run
+(`40568094601`) succeeded: **windows** built the pair and published the release,
+and **web** rebuilt and force-pushed `gh-pages`. The published pair was then
+re-downloaded here and re-hashed:
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.5-x64.exe` | 137,338,043 B | `09489a5e53220cb7ecf2cedbd2a70ca760988b7b8af0a7fe418b47e309f09300` |
+| `Kryvex-Portable-0.9.5-x64.exe` | 137,094,199 B | `83d8eaeb3723987b677670045471fb101e5b40dabf22f44e30fb6719e58abc28` |
+
+`sha256sum -c SHA256SUMS.txt` reports **OK** for both, and each reports
+`ProductVersion 0.9.5`, `FileVersion 0.9.5` and `ProductName Kryvex` — so the
+published pair really is the 0.9.5 build rather than a stale upload. The release
+page carries all three files the in-app updater looks for
+([the release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.9.5)), and
+`v0.9.5` is what the latest-release endpoint now answers with. `gh-pages` moved
+to `db4cac0` ("Publish Kryvex Web for 0.9.5", a forced update from `1595ffb`),
+the Pages deployment that followed reports `built`, the live site serves the same
+hashed chunk the branch carries (`assets/main-DpWihKeL.js`, 200 at 1.42 MB) and
+its worker names `kryvex-web-0.9.5-v1`. Full record:
+`docs/RELEASE_0.9.5.md`; capture:
+`docs/media/releases/0.9.5-wizard/capture.md`.
+
+The line stays at 0.9.5 for a while yet. What it carries over `0.9.4-hotfix.3`:
 
 - **Startup switches.** Lexium's local Whisper engine can start with Kryvex and
   stop on quit (stored in the runtime's own config, read before the renderer
