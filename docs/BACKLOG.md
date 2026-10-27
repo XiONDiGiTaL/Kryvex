@@ -71,6 +71,10 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
   made through a canvas (`pnpm verify:capture-window`, 37 checks). Open: an area
   saved against one target size is dropped rather than adjusted when the frame
   comes back unable to hold it.
+- [ ] **Android companion.** A standalone APK that talks to Kryvex Link over the
+  local network, so a phone does not have to load the desktop's own page first.
+  Needs its own client bundle, a project that can produce the APK, and a release
+  path for the artifact.
 - [ ] **File Forge, deeper groups.** Audio conversion (WAV is written by hand;
   MP3/FLAC/OGG have no encoder in Chromium and must stay refused rather than
   faked) and PDF pages back to images, which needs a page renderer (pdfjs-dist

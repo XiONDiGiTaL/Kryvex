@@ -297,7 +297,7 @@ export interface PlaylistImportResult {
 }
 
 /**
- * One phone paired with Kyvex Link. The token never crosses to the shell: the
+ * One phone paired with Kryvex Link. The token never crosses to the shell: the
  * shell revokes by `id`, a hash of the token that cannot be replayed.
  */
 export interface LinkDeviceInfo {

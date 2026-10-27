@@ -906,8 +906,8 @@ export default function App() {
     setState(current => updateSettings(current, { link: { enabled } }));
     pushToast(
       enabled
-        ? t('Kyvex Link is listening. Open its page on the phone.')
-        : t('Kyvex Link stopped listening.'),
+        ? t('Kryvex Link is listening. Open its page on the phone.')
+        : t('Kryvex Link stopped listening.'),
       'info',
     );
   }, [pushToast, t]);
@@ -1175,7 +1175,7 @@ export default function App() {
       .catch(() => undefined);
   }, [isElectron, state.settings.serviceNotifications]);
 
-  // Kyvex Link: the saved switch is the intent, so a profile that left it on
+  // Kryvex Link: the saved switch is the intent, so a profile that left it on
   // starts listening again without the user opening the Link page.
   useEffect(() => {
     if (!isElectron || !window.kryvex?.linkConfigure) return;
@@ -1377,7 +1377,7 @@ export default function App() {
         return t('Disk pulse');
       case 'link':
         // A product name, identical in every language.
-        return 'Kyvex Link';
+        return 'Kryvex Link';
       case 'arcade':
         return 'Arcade';
       case 'forge':

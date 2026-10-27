@@ -1,6 +1,6 @@
-# Kyvex Link
+# Kryvex Link
 
-Kyvex Link is the phone half of Kryvex. The desktop serves one small page on the
+Kryvex Link is the phone half of Kryvex. The desktop serves one small page on the
 local network; a phone opens it, types a six-digit code once, and from then on
 has the desktop's clipboard, both directions of file transfer, a place to send a
 link straight into the Kryvex browser, and a remote for the media player.
@@ -8,7 +8,7 @@ link straight into the Kryvex browser, and a remote for the media player.
 There is no account, no cloud service and no companion app to install from a
 store. Nothing leaves the two devices, and the link is off until it is started.
 
-Open it from **Services → Secret services → Kyvex Link** (`#/link`, element
+Open it from **Services → Secret services → Kryvex Link** (`#/link`, element
 x534). Its switch is the only thing that opens a socket.
 
 ## Pairing
@@ -118,7 +118,7 @@ door, not an account.
 | `electron/link-server.ts` | HTTP transport: routes, size caps, pairing rate limit, the SSE event stream, static serving of the companion bundle. |
 | `electron/link.ts` | The service: pairing list, clipboard sampling, the transfer folder, remote commands, notifications. |
 | `src/views/Link.tsx` | The desktop page: switch, code, addresses, devices, transfers. |
-| `src/companion/` | The phone page: pairing, clipboard, files, send, remote, and its own four-language string table. |
+| `src/companion/` | The phone page: pairing, clipboard, files, send, remote, and its own four-language string table. Its token and phone name live in the page's `localStorage`; a value found under the older, misspelled key is moved to the current one on first read, so a phone that paired with an earlier build stays paired. |
 | `companion.html` | The second entry in the Vite build. `pnpm build` produces `dist/companion.html` plus its chunk, which is what the link server serves. |
 
 The main process registers `kryvex:link:*` handlers; the preload exposes one

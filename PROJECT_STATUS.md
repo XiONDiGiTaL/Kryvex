@@ -15,7 +15,7 @@ tracking-parameter stripping, per-site fingerprint farbling and a shared
 download location. Five in-house secret tools sit behind their own gated tab
 beside the modules: Lexium, the media player, the gated 8-bit emulator, Disk
 pulse, a local drive analyzer with a guarded cleaner that scans in its own
-worker thread, and Kyvex Link, the paired phone companion. Fictional
+worker thread, and Kryvex Link, the paired phone companion. Fictional
 element `x529`, symbol `Kx`, tagline
 “Precision in Every Connection.”
 
@@ -47,10 +47,14 @@ On top of that, this batch changed the shell itself:
 - the calculator shows a caret only while it holds the keyboard;
 - Rooms pops out into a window over the app and comes back with *Bring it back*;
 - the Home view's four blocks are reorderable from the board's own controls;
+- the product name is spelled correctly everywhere (it read "Kyvex Link"), and a
+  phone that paired under the old `localStorage` keys keeps its pairing rather
+  than being asked for a new code.
 
-`pnpm verify:shell-batch` covers the shell changes with 22 checks. Still open
-from the same request: an Android companion app for Kyvex Link and the deeper
-File Forge groups (audio conversion, PDF pages to images). See `docs/BACKLOG.md`.
+`pnpm verify:shell-batch` covers the shell changes with 22 checks and
+`pnpm verify:link` the phone page and its name with 35. Still open from the same
+request: an Android companion app for Kryvex Link and the deeper File Forge
+groups (audio conversion, PDF pages to images). See `docs/BACKLOG.md`.
 
 The dragged crop region followed in the same 0.9.5 line, and the screen capture
 card now offers **Whole target** (the default, unchanged) or **An area**. The area
@@ -921,11 +925,11 @@ the client, so `https://xiondigital.net/Kryvex/` serves this machine's bundle
 (`assets/main-DEX2m-Ju.js`, `assets/main-BKKSMrRQ.css`), reports
 **v0.9.4-hotfix.1** and caches `kryvex-web-0.9.4-hotfix.1-v1`. Next: a real
 capture and a recorded clip saved through the dialog on an installed hotfix
-build, and the phone pass Kyvex Link still owes.
+build, and the phone pass Kryvex Link still owes.
 
 0.9.4 is a feature release, so it moves the version line rather than wearing a
 `-hotfix.N`. It is cut from the `v0.9.4` tag with the Setup, Portable and
-checksum assets, and it carries **Kyvex Link**: the desktop serves one small page
+checksum assets, and it carries **Kryvex Link**: the desktop serves one small page
 on the local network, a phone pairs with a six-digit code, and from then on it
 has the clipboard in both directions, file transfer in both directions, a link
 that opens a Kryvex tab, and a remote for the player. The link is off until its

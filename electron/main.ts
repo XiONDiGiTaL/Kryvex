@@ -875,7 +875,7 @@ function registerIpc(): void {
   ipcMain.handle('kryvex:speech:autostart', (event, enabled: unknown) =>
     isShellSender(event) ? speech.setAutostart(enabled) : speech.status(),
   );
-  // Kyvex Link: the phone companion. The renderer owns the on/off setting and
+  // Kryvex Link: the phone companion. The renderer owns the on/off setting and
   // asks for everything else; the pairing code, tokens and file names stay in
   // the main process, so the shell can never mint a device of its own.
   ipcMain.handle('kryvex:link:status', (event) => (isShellSender(event) ? link.status() : null));

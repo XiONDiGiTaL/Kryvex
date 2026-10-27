@@ -38,7 +38,7 @@ const MARKS: Record<ToolMark, Mark> = {
   // shorter word the emulator is known by; the accessible name keeps the noun.
   emulator: { number: 'x532', symbol: '8-bit', name: 'Emulator', caption: 'Retro' },
   disk: { number: 'x533', symbol: 'Dx', name: 'Disk pulse', caption: 'Disk' },
-  link: { number: 'x534', symbol: 'Lk', name: 'Kyvex Link', caption: 'Link' },
+  link: { number: 'x534', symbol: 'Lk', name: 'Kryvex Link', caption: 'Link' },
   arcade: { number: 'x535', symbol: 'Ar', name: 'Arcade' },
   forge: { number: 'x536', symbol: 'Ff', name: 'File Forge', caption: 'Files' },
   canvas: { number: 'x537', symbol: 'Cv', name: 'Canvas' },

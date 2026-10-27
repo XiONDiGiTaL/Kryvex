@@ -2,7 +2,7 @@
 
 Prepared 2026-10-26 for the `v0.9.4` tag. This one adds features, so the version
 line moves rather than wearing a `-hotfix.N` ([UPDATES.md](UPDATES.md)). The
-headline is **Kyvex Link**: the desktop serves one small page on the local
+headline is **Kryvex Link**: the desktop serves one small page on the local
 network, a phone pairs with a six-digit code, and from then on the phone has the
 clipboard in both directions, file transfer in both directions, a link that
 opens a Kryvex tab, and a remote for the player. The batch also gives Lexium a
@@ -18,7 +18,7 @@ before the tag, so the workflow had both to check (`pnpm release:check`).
 
 ## What changed
 
-- **Kyvex Link, a fifth secret tool (`#/link`, element x534).** The main process
+- **Kryvex Link, a fifth secret tool (`#/link`, element x534).** The main process
   serves the phone page and one JSON API on the first free port in
   43110–43129 (`electron/link-server.ts`, whose every decision about who may
   pair, what a file is called and what a command may do lives in
@@ -109,7 +109,7 @@ the local pair only by the build environment. Both EXEs are **unsigned**.
 2. The wizard offers the existing per-user installation in `C:\Kryvex` and
    upgrades it in place; shortcuts stay and the profile in `%APPDATA%\Kryvex` is
    untouched, so services stay signed in.
-3. Open **Services → Secret services → Kyvex Link** on the desktop, turn it on,
+3. Open **Services → Secret services → Kryvex Link** on the desktop, turn it on,
    and open the address it shows on the phone. Type the six-digit code once.
 4. The Portable EXE runs without installing.
 

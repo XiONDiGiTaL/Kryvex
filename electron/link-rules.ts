@@ -1,5 +1,5 @@
 /**
- * Rules for Kyvex Link, the phone companion.
+ * Rules for Kryvex Link, the phone companion.
  *
  * Kryvex serves one small page on the local network so a phone can pair with it
  * and exchange clipboard text, files and remote-control commands. Everything in

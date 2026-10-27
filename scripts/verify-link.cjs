@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /**
- * Kyvex Link harness.
+ * Kryvex Link harness.
  *
  * The phone companion is a real HTTP server on the local network, so it is
  * tested the way a phone would use it: pair with the code the app is showing,
@@ -152,7 +152,7 @@ async function findPort(cdp) {
     if (!port) continue;
     try {
       const answer = await fetch(`http://127.0.0.1:${port}/api/hello`).then(response => response.json());
-      if (answer && answer.link === 'Kyvex Link') return { port, status };
+      if (answer && answer.link === 'Kryvex Link') return { port, status };
     } catch {
       /* try the next one */
     }
@@ -200,7 +200,7 @@ async function main() {
 
   // The page a phone opens, and the bundle behind it.
   const html = await fetch(`${base}/`).then(response => response.text());
-  record('the companion page is served', html.includes('Kyvex Link') && html.includes('<div id="companion">'));
+  record('the companion page is served', html.includes('Kryvex Link') && html.includes('<div id="companion">'));
   const assetPath = (html.match(/src="\.?\/?(assets\/[^"]+\.js)"/) ?? [])[1];
   record('the page references its bundle', Boolean(assetPath), assetPath ?? 'no script tag');
   if (assetPath) {

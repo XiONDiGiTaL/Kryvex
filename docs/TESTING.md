@@ -2403,7 +2403,7 @@ window mechanics above are the same either way — the guest is an OOPIF inside 
 same frame — but a two-service drag over real Google and GitHub sessions has to
 be confirmed in the desktop build.
 
-## Kyvex Link: the phone companion (0.9.4, 2026-10-26)
+## Kryvex Link: the phone companion (0.9.4, 2026-10-26)
 
 Run on 2026-10-26 in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3, on
 the working tree that became this commit.
@@ -3112,3 +3112,42 @@ that was asked for, and the card reports a dropped area from that.
   the whole-target run.
 - **The browser build.** The picker is renderer-only and shares the path, but no
   browser run was made.
+
+## The product name, spelled correctly (`pnpm verify:link`)
+
+Run on 2026-10-27 in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3.
+
+The phone companion shipped as **Kyvex Link** — one letter short — and the name
+had spread into the desktop copy, the phone page, the served page's own title,
+the catalogue labels, the docs and the `localStorage` keys the phone keeps its
+pairing under. The spelling is now `Kryvex Link` everywhere, and a phone that
+paired under the old keys is not asked for a new code: the older value is read
+once and moved onto the current key.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer and main typecheck | `pnpm typecheck` (`tsc --noEmit` ×2) | exit 0 |
+| Full suite | `npx vitest run` | **1005/1005** across 89 files |
+| Companion storage | `npx vitest run tests/link-companion.test.ts` | 9/9 — a token under the old key is moved forward and the old key removed, the current key wins when both hold a value, unpairing clears both spellings, the phone name moves the same way, a blank name falls back, and storage that throws reads empty instead of breaking the page |
+| Renderer copy audit | `node scripts/audit-i18n.cjs` | PASS — no hardcoded UI strings |
+| End-to-end harness | `pnpm verify:link` (`scripts/verify-link.cjs`) | **35/35 PASS** |
+
+### The page check that failed before this fix
+
+The harness asserts *the companion page is served* by looking for "Kryvex Link"
+in the HTML the link server returns, and that HTML **is** `companion.html`: the
+page's `<title>` and its `noscript` line were the two places the old spelling
+survived the rename. Read straight out of the file, `git show
+HEAD:companion.html` contains "Kryvex Link" **false**; `dist/companion.html`
+after the fix, **true**. The harness row above is that check passing, on the page
+the real server serves.
+
+### What is not covered
+
+- **A real phone.** The page is driven over HTTP and in Chromium on this machine;
+  no Android or iOS device was on the network during the run.
+- **An old token arriving from a real phone.** The move from the older key is
+  covered by unit tests against a stubbed `localStorage`; no phone carried a
+  token from the previous build into this one.
+- **A downgrade.** A phone running the older page against a newer desktop is not
+  a supported path; the old key is only ever read, never written.

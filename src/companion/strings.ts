@@ -22,10 +22,10 @@ export const COMPANION_STRINGS = {
     fr: 'Associer à Kryvex',
   },
   pairHint: {
-    en: 'Type the six-digit code shown in Kryvex, on the Kyvex Link card.',
-    es: 'Escribe el código de seis dígitos que aparece en Kryvex, en la tarjeta Kyvex Link.',
-    de: 'Gib den sechsstelligen Code ein, der in Kryvex auf der Kyvex-Link-Karte steht.',
-    fr: 'Saisissez le code à six chiffres affiché dans Kryvex, sur la carte Kyvex Link.',
+    en: 'Type the six-digit code shown in Kryvex, on the Kryvex Link card.',
+    es: 'Escribe el código de seis dígitos que aparece en Kryvex, en la tarjeta Kryvex Link.',
+    de: 'Gib den sechsstelligen Code ein, der in Kryvex auf der Kryvex-Link-Karte steht.',
+    fr: 'Saisissez le code à six chiffres affiché dans Kryvex, sur la carte Kryvex Link.',
   },
   pairingCode: {
     en: 'Pairing code',
@@ -53,10 +53,10 @@ export const COMPANION_STRINGS = {
     fr: 'Trop de tentatives. Attendez une minute puis saisissez à nouveau le code.',
   },
   pairOffline: {
-    en: 'Kryvex is not serving the link. Turn it on in Kryvex under Services → Kyvex Link.',
-    es: 'Kryvex no está sirviendo el enlace. Actívalo en Kryvex, en Servicios → Kyvex Link.',
-    de: 'Kryvex stellt den Link nicht bereit. Schalte ihn in Kryvex unter Dienste → Kyvex Link ein.',
-    fr: 'Kryvex ne diffuse pas le lien. Activez-le dans Kryvex, sous Services → Kyvex Link.',
+    en: 'Kryvex is not serving the link. Turn it on in Kryvex under Services → Kryvex Link.',
+    es: 'Kryvex no está sirviendo el enlace. Actívalo en Kryvex, en Servicios → Kryvex Link.',
+    de: 'Kryvex stellt den Link nicht bereit. Schalte ihn in Kryvex unter Dienste → Kryvex Link ein.',
+    fr: 'Kryvex ne diffuse pas le lien. Activez-le dans Kryvex, sous Services → Kryvex Link.',
   },
   clipboard: {
     en: 'Clipboard',

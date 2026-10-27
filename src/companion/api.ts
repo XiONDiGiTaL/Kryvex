@@ -1,5 +1,5 @@
 /**
- * The phone's half of the Kyvex Link protocol.
+ * The phone's half of the Kryvex Link protocol.
  *
  * Every call is same-origin: this page is served by Kryvex itself, so there is
  * no CORS dance and no third party in the path. The pairing token is kept in
@@ -8,8 +8,15 @@
  * query string because the browser builds those requests for us).
  */
 
-const TOKEN_KEY = 'kyvex-link-token';
-const NAME_KEY = 'kyvex-link-name';
+const TOKEN_KEY = 'kryvex-link-token';
+const NAME_KEY = 'kryvex-link-name';
+/**
+ * Where a paired phone used to keep its token, before the product name was
+ * spelled correctly. It is read once and moved rather than dropped, so a phone
+ * that paired with the older build stays paired.
+ */
+const LEGACY_TOKEN_KEY = 'kyvex-link-token';
+const LEGACY_NAME_KEY = 'kyvex-link-name';
 
 export interface CompanionFile {
   id: string;
@@ -68,12 +75,27 @@ export interface Events {
   remote?: (payload: { state: CompanionState; ok: boolean }) => void;
 }
 
-export function readToken(): string {
+/**
+ * Reads a stored value, moving it forward from the older key if that is where
+ * it lives. A phone that paired before the product name was spelled correctly
+ * therefore stays paired instead of asking for the code again.
+ */
+function readStored(key: string, legacy: string): string {
   try {
-    return localStorage.getItem(TOKEN_KEY) ?? '';
+    const current = localStorage.getItem(key);
+    if (current !== null) return current;
+    const older = localStorage.getItem(legacy);
+    if (older === null) return '';
+    localStorage.setItem(key, older);
+    localStorage.removeItem(legacy);
+    return older;
   } catch {
     return '';
   }
+}
+
+export function readToken(): string {
+  return readStored(TOKEN_KEY, LEGACY_TOKEN_KEY);
 }
 
 export function writeToken(token: string): void {
@@ -87,17 +109,16 @@ export function writeToken(token: string): void {
 export function clearToken(): void {
   try {
     localStorage.removeItem(TOKEN_KEY);
+    // Unpairing clears both spellings, so an old key cannot resurrect a token
+    // that was already retired on this phone.
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
   } catch {
     /* nothing to clear */
   }
 }
 
 export function readName(fallback: string): string {
-  try {
-    return localStorage.getItem(NAME_KEY)?.trim() || fallback;
-  } catch {
-    return fallback;
-  }
+  return readStored(NAME_KEY, LEGACY_NAME_KEY).trim() || fallback;
 }
 
 export function writeName(name: string): void {

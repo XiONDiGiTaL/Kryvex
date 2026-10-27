@@ -376,7 +376,7 @@ const api = {
   wallpaperSave: (dataUrl: string): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:wallpaper:save', dataUrl),
   wallpaperClear: (): Promise<boolean> => ipcRenderer.invoke('kryvex:wallpaper:clear'),
-  // Kyvex Link. A token is minted in the main process against the pairing code
+  // Kryvex Link. A token is minted in the main process against the pairing code
   // the desktop shows; the shell only ever reads status or asks for an action.
   linkStatus: (): Promise<LinkStatus | null> => ipcRenderer.invoke('kryvex:link:status'),
   linkConfigure: (patch: { enabled?: boolean }): Promise<LinkStatus | null> =>

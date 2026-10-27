@@ -359,7 +359,7 @@ describe('built-in tools consent', () => {
   });
 });
 
-describe('Kyvex Link switch', () => {
+describe('Kryvex Link switch', () => {
   it('starts off and only an explicit true turns it on', () => {
     expect(sanitizeState(null).settings.link.enabled).toBe(false);
     expect(sanitizeState({ settings: { link: {} } }).settings.link.enabled).toBe(false);

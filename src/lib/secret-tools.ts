@@ -24,7 +24,7 @@ export const SECRET_TOOL_LABELS: Record<SecretToolId, string> = {
   player: 'Media player',
   emulator: 'Secret emulator',
   disk: 'Disk pulse',
-  link: 'Kyvex Link',
+  link: 'Kryvex Link',
   arcade: 'Arcade',
   forge: 'File Forge',
   canvas: 'Canvas',

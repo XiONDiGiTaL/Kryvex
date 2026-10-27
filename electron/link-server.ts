@@ -24,7 +24,7 @@ import {
 } from './link-rules';
 
 /**
- * The HTTP half of Kyvex Link.
+ * The HTTP half of Kryvex Link.
  *
  * It owns sockets, routes, size caps and the event stream, and nothing else:
  * every decision about who may pair, what a file is called and what a command
@@ -133,7 +133,7 @@ export class LinkServer {
       this.heartbeat.unref?.();
       return;
     }
-    throw new Error('no free port for Kyvex Link');
+    throw new Error('no free port for Kryvex Link');
   }
 
   stop(): void {
@@ -361,7 +361,7 @@ export class LinkServer {
       const token = this.tokenOf(request, url);
       const paired = Boolean(token) && this.backend.authorize(token);
       if (paired) this.backend.seen(token, address);
-      this.json(response, 200, { ok: true, app: 'Kryvex', link: 'Kyvex Link', version: this.backend.version(), paired });
+      this.json(response, 200, { ok: true, app: 'Kryvex', link: 'Kryvex Link', version: this.backend.version(), paired });
       return;
     }
 

@@ -201,7 +201,7 @@ fallback and the full feature-parity table.
 
 Services → **Secret services** holds the tools built into Kryvex rather than
 embedded from the web: Lexium, the media player, the emulator, Disk pulse and
-Kyvex Link.
+Kryvex Link.
 
 **Lexium (Lx · x530)** transcribes imported recordings, translates text in both
 directions and reads text out of images. Audio is decoded in the renderer to
@@ -225,9 +225,9 @@ The catalogue also gained Twitch, TikTok, Facebook, SoundCloud and Vimeo
 presets. TikTok, Twitch and Facebook default to **Start muted**, so an
 autoplaying feed cannot make noise until you unmute the module.
 
-## Kyvex Link: the phone companion
+## Kryvex Link: the phone companion
 
-**Kyvex Link (Lk · x534)** is Kryvex's own phone companion, and it needs no app
+**Kryvex Link (Lk · x534)** is Kryvex's own phone companion, and it needs no app
 store: Kryvex serves one page on your local network, you open it on the phone and
 type a six-digit code once. From then on the phone has the desktop clipboard in
 both directions, file transfer in both directions (phone → `Downloads\Kryvex

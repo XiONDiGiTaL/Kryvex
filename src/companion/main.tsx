@@ -22,7 +22,7 @@ import {
 import { companionLanguage, makeCompanionStrings, type CompanionKey } from './strings';
 
 /**
- * Kyvex Link on the phone.
+ * Kryvex Link on the phone.
  *
  * The page is served by the desktop over the local network, so it knows its own
  * address and needs no configuration: the only thing the user does is type the
@@ -42,7 +42,7 @@ type Health = 'checking' | 'paired' | 'unpaired' | 'offline';
 function ElementTile() {
   const caption = '[ Link ]';
   return (
-    <span className="mark" role="img" aria-label="Kyvex Link · element x534 · Lk">
+    <span className="mark" role="img" aria-label="Kryvex Link · element x534 · Lk">
       <span className="mark-top">
         <span className="mono">x534</span>
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -453,7 +453,7 @@ export function Companion() {
   const notifyPhone = useCallback((title: string, body: string) => {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     try {
-      new Notification(title || 'Kyvex Link', { body });
+      new Notification(title || 'Kryvex Link', { body });
     } catch {
       /* a page without notification support keeps the in-page banner */
     }
@@ -520,7 +520,7 @@ export function Companion() {
       <main className="shell">
         <header className="brand">
           <ElementTile />
-          <span className="mono">Kyvex Link</span>
+          <span className="mono">Kryvex Link</span>
         </header>
         <div className="card">
           <p className="error" role="alert">{msg('pairOffline')}</p>
@@ -537,7 +537,7 @@ export function Companion() {
       <main className="shell">
         <header className="brand">
           <ElementTile />
-          <span className="mono">Kyvex Link</span>
+          <span className="mono">Kryvex Link</span>
         </header>
         <PairingScreen msg={msg} onPaired={() => void connect()} />
       </main>
@@ -548,7 +548,7 @@ export function Companion() {
     <main className="shell">
       <header className="brand">
         <ElementTile />
-        <span className="mono">Kyvex Link</span>
+        <span className="mono">Kryvex Link</span>
         <span className={`pill ${live ? 'on' : ''}`}>{live ? msg('live') : msg('offline')}</span>
       </header>
 
@@ -620,7 +620,7 @@ export function Companion() {
 
       {toast ? <div className="toast" role="status">{toast}</div> : null}
 
-      <nav className="tabs" aria-label="Kyvex Link">
+      <nav className="tabs" aria-label="Kryvex Link">
         {(
           [
             ['clipboard', msg('clipboard')],

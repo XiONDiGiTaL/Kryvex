@@ -43,7 +43,7 @@ const TECHNICAL = [
   /^--[a-z0-9-]+(\s+\S+)*$/i,
   /^(https?|magnet|file|kryvex|data):/i,
   // Product names are identical in every locale, including the companion app's.
-  /^(Kryvex|Kyvex|Vexium|Veyra|Vex|XiONDiGiTaL|GitHub|Google|Discord|YouTube|Wikipedia|DuckDuckGo|Bing|Electron|Chromium|Torrent|WebTorrent|GGUF|Llama|uBlock|Ghostery|AdGuard|Arcade|Canvas)\b/,
+  /^(Kryvex|Vexium|Veyra|Vex|XiONDiGiTaL|GitHub|Google|Discord|YouTube|Wikipedia|DuckDuckGo|Bing|Electron|Chromium|Torrent|WebTorrent|GGUF|Llama|uBlock|Ghostery|AdGuard|Arcade|Canvas)\b/,
   // File Forge is one product name of two words; the module name is not copy.
   /^File Forge\b/,
   /^[#./][\w./-]+$/,

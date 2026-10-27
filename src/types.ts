@@ -873,7 +873,7 @@ export interface Settings {
   player: PlayerSettings;
   /** Secret storage tool: the disclaimer is accepted once, not per visit. */
   disk: DiskSettings;
-  /** Kyvex Link: the phone companion served on this machine's network. */
+  /** Kryvex Link: the phone companion served on this machine's network. */
   link: LinkSettings;
   /**
    * Built-in tools pinned beside services in the sidebar rail, in the order
@@ -892,7 +892,7 @@ export interface DiskSettings {
 }
 
 /**
- * Kyvex Link is off until it is started on its own page: it opens a socket the
+ * Kryvex Link is off until it is started on its own page: it opens a socket the
  * rest of the local network can reach, so it is never a default.
  */
 export interface LinkSettings {
@@ -1081,7 +1081,7 @@ export interface UpdateStatus {
 }
 
 /**
- * Kyvex Link's state as the shell sees it. The types live here rather than
+ * Kryvex Link's state as the shell sees it. The types live here rather than
  * being imported from the Electron tree, because the renderer is built without
  * it; the main process keeps the token out of this shape on purpose.
  */
@@ -1231,7 +1231,7 @@ export interface KryvexBridge {
   serviceClearSession: (partition: string) => Promise<boolean>;
   serviceStop: (partition: string) => Promise<number>;
   serviceSetNotifications: (enabled: boolean) => Promise<boolean>;
-  // Kyvex Link. The status the view reads carries device handles, never tokens:
+  // Kryvex Link. The status the view reads carries device handles, never tokens:
   // the shell can ask the main process to unpair, not to impersonate a phone.
   linkStatus: () => Promise<LinkStatusView | null>;
   linkConfigure: (patch: { enabled?: boolean }) => Promise<LinkStatusView | null>;

@@ -24,7 +24,7 @@ import {
 } from './link-rules';
 
 /**
- * Kyvex Link: the desktop half of the phone companion.
+ * Kryvex Link: the desktop half of the phone companion.
  *
  * It keeps the pairing list, the clipboard relay, the transfer folder and the
  * remote-control mapping, and it starts the LAN server that serves the phone's
@@ -470,7 +470,7 @@ class LinkService {
       const expected = Buffer.from(this.code);
       if (given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) return null;
       if (this.devices.length >= LINK_MAX_DEVICES) {
-        this.notify('Kyvex Link is full', `Unpair a device first: ${LINK_MAX_DEVICES} phones can stay paired.`);
+        this.notify('Kryvex Link is full', `Unpair a device first: ${LINK_MAX_DEVICES} phones can stay paired.`);
         return null;
       }
       const token = crypto.randomBytes(24).toString('hex');
@@ -488,7 +488,7 @@ class LinkService {
       this.save();
       this.announceDevices();
       this.notify(`${device.label} paired`, 'Clipboard and file transfer are live on this phone.');
-      this.toShell(`${device.label} paired with Kyvex Link.`, 'success');
+      this.toShell(`${device.label} paired with Kryvex Link.`, 'success');
       return { token, label: device.label };
     },
     authorize: (token: string) => this.devices.some(device => device.token === token),

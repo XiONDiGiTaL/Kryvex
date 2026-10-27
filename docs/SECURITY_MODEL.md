@@ -220,9 +220,9 @@ user chose. BMI and the calorie target are estimates computed from the values
 entered, shown beside a not-medical-advice note rather than presented as
 measurements or guidance.
 
-## Kyvex Link: the one listener Kryvex opens
+## Kryvex Link: the one listener Kryvex opens
 
-Everything else in this document is about Kryvex as a client. Kyvex Link is the
+Everything else in this document is about Kryvex as a client. Kryvex Link is the
 single feature that accepts a connection, so its rules are stated here rather
 than only in its own guide ([LINK.md](LINK.md)).
 

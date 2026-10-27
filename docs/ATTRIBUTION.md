@@ -73,7 +73,7 @@ project's filter data natively instead.
 - **Attribution:** shown in the Emulator view ("Emulation by EmulatorJS,
   GPL-3.0, loaded from its official CDN"), with a link to the source.
 
-## Kyvex Link and its prior art
+## Kryvex Link and its prior art
 
 - **What it is:** the Link service, its HTTP/SSE listener (`electron/link-server.ts`,
   `electron/link.ts`) and the phone page (`src/companion/`) are original Kryvex

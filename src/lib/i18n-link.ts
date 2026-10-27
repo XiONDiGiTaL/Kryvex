@@ -1,5 +1,5 @@
 /**
- * Copy for Kyvex Link, the phone companion.
+ * Copy for Kryvex Link, the phone companion.
  *
  * English is the catalogue key, as everywhere else in the renderer. The phone
  * page itself is a separate bundle with its own table (`src/companion/strings.ts`)
@@ -41,7 +41,7 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
     '{name} was unpaired.': '{name} se ha desemparejado.',
     'Unpair all': 'Desemparejar todos',
     'Every phone was unpaired.': 'Se han desemparejado todos los teléfonos.',
-    'Kyvex Link is live': 'Kyvex Link está activo',
+    'Kryvex Link is live': 'Kryvex Link está activo',
     'The phone relay works.': 'El aviso al teléfono funciona.',
     'Sent.': 'Enviado.',
     'Test the phone relay': 'Probar el aviso al teléfono',
@@ -66,9 +66,9 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
       'La página solo se sirve en las direcciones privadas de esta máquina y se rechaza cualquier petición de fuera de ellas. Un teléfono entra escribiendo el código de seis dígitos una vez; puedes desemparejarlo aquí cuando quieras.',
     'Pair a phone over your own network for clipboard, files and a remote; nothing leaves the two devices.':
       'Empareja un teléfono por tu propia red para el portapapeles, los archivos y un mando; nada sale de los dos dispositivos.',
-      'Kyvex Link is listening. Open its page on the phone.':
-      'Kyvex Link está a la escucha. Abre su página en el teléfono.',
-    'Kyvex Link stopped listening.': 'Kyvex Link ha dejado de escuchar.',
+      'Kryvex Link is listening. Open its page on the phone.':
+      'Kryvex Link está a la escucha. Abre su página en el teléfono.',
+    'Kryvex Link stopped listening.': 'Kryvex Link ha dejado de escuchar.',
   },
   de: {
     'x534 / LINK': 'x534 / VERBINDUNG',
@@ -105,7 +105,7 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
     '{name} was unpaired.': '{name} wurde entkoppelt.',
     'Unpair all': 'Alle entkoppeln',
     'Every phone was unpaired.': 'Alle Telefone wurden entkoppelt.',
-    'Kyvex Link is live': 'Kyvex Link ist aktiv',
+    'Kryvex Link is live': 'Kryvex Link ist aktiv',
     'The phone relay works.': 'Der Hinweis ans Telefon funktioniert.',
     'Sent.': 'Gesendet.',
     'Test the phone relay': 'Hinweis ans Telefon testen',
@@ -130,9 +130,9 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
       'Die Seite wird nur auf den privaten Adressen dieses Rechners bereitgestellt, und jede Anfrage von außerhalb wird abgelehnt. Ein Telefon erhält Zugang, indem es den sechsstelligen Code einmal eingibt; du kannst es hier jederzeit entkoppeln.',
     'Pair a phone over your own network for clipboard, files and a remote; nothing leaves the two devices.':
       'Koppele ein Telefon über dein eigenes Netz für Zwischenablage, Dateien und Fernbedienung; nichts verlässt die beiden Geräte.',
-      'Kyvex Link is listening. Open its page on the phone.':
-      'Kyvex Link wartet auf Verbindungen. Öffne die Seite am Telefon.',
-    'Kyvex Link stopped listening.': 'Kyvex Link wartet nicht mehr auf Verbindungen.',
+      'Kryvex Link is listening. Open its page on the phone.':
+      'Kryvex Link wartet auf Verbindungen. Öffne die Seite am Telefon.',
+    'Kryvex Link stopped listening.': 'Kryvex Link wartet nicht mehr auf Verbindungen.',
   },
   fr: {
     'x534 / LINK': 'x534 / LIEN',
@@ -169,7 +169,7 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
     '{name} was unpaired.': '{name} a été dissocié.',
     'Unpair all': 'Tout dissocier',
     'Every phone was unpaired.': 'Tous les téléphones ont été dissociés.',
-    'Kyvex Link is live': 'Kyvex Link est actif',
+    'Kryvex Link is live': 'Kryvex Link est actif',
     'The phone relay works.': 'Le relais vers le téléphone fonctionne.',
     'Sent.': 'Envoyé.',
     'Test the phone relay': 'Tester le relais vers le téléphone',
@@ -194,8 +194,8 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
       'La page n’est servie que sur les adresses privées de cette machine, et toute requête venant d’ailleurs est refusée. Un téléphone y accède en saisissant une fois le code à six chiffres ; vous pouvez le dissocier ici à tout moment.',
     'Pair a phone over your own network for clipboard, files and a remote; nothing leaves the two devices.':
       'Associez un téléphone sur votre propre réseau pour le presse-papiers, les fichiers et une télécommande ; rien ne quitte les deux appareils.',
-      'Kyvex Link is listening. Open its page on the phone.':
-      'Kyvex Link est à l’écoute. Ouvrez sa page sur le téléphone.',
-    'Kyvex Link stopped listening.': 'Kyvex Link n’est plus à l’écoute.',
+      'Kryvex Link is listening. Open its page on the phone.':
+      'Kryvex Link est à l’écoute. Ouvrez sa page sur le téléphone.',
+    'Kryvex Link stopped listening.': 'Kryvex Link n’est plus à l’écoute.',
   },
 };

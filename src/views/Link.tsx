@@ -5,7 +5,7 @@ import { Icon } from '../components/ui';
 import { useT } from '../lib/i18n';
 
 /**
- * Kyvex Link: the phone companion, controlled from the desktop.
+ * Kryvex Link: the phone companion, controlled from the desktop.
  *
  * The page a phone opens is served by the main process; this view is where the
  * user starts the link, reads the address and the six-digit code to the phone,
@@ -120,7 +120,7 @@ export function Link({
         <header className="view-head">
           <div>
             <p className="eyebrow mono">{t('x534 / LINK')}</p>
-            <h1>Kyvex Link</h1>
+            <h1>Kryvex Link</h1>
           </div>
           <button className="btn ghost" onClick={onBack}>
             <Icon name="back" size={15} />
@@ -147,7 +147,7 @@ export function Link({
       <header className="view-head">
         <div>
           <p className="eyebrow mono">{t('x534 / LINK')}</p>
-          <h1>Kyvex Link</h1>
+          <h1>Kryvex Link</h1>
           <p className="lede">
             {t(
               'Pair a phone with this computer over your own network: clipboard both ways, files both ways, and a remote for the player. Nothing is uploaded to a service.',
@@ -301,7 +301,7 @@ export function Link({
               disabled={busy}
               onClick={() =>
                 void act(
-                  () => bridge.linkNotify(t('Kyvex Link is live'), t('The phone relay works.')),
+                  () => bridge.linkNotify(t('Kryvex Link is live'), t('The phone relay works.')),
                   t('Sent.'),
                 )
               }

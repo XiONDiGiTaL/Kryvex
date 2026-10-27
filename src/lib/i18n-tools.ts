@@ -15,8 +15,8 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
     'Enable secret services': 'Activar servicios secretos',
     'Secret services enabled.': 'Servicios secretos activados.',
     'Not now': 'Ahora no',
-    'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kyvex Link. They need no account and no server, and their files stay local.':
-      'Los servicios secretos son las herramientas integradas en Kryvex que funcionan en este equipo: Lexium, el reproductor multimedia, el emulador, Disk pulse y Kyvex Link. No necesitan cuenta ni servidor, y sus archivos se quedan aquí.',
+    'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kryvex Link. They need no account and no server, and their files stay local.':
+      'Los servicios secretos son las herramientas integradas en Kryvex que funcionan en este equipo: Lexium, el reproductor multimedia, el emulador, Disk pulse y Kryvex Link. No necesitan cuenta ni servidor, y sus archivos se quedan aquí.',
     'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.':
       'Transcribe grabaciones, traduce conversaciones en ambos sentidos y lee texto de fotos, en los servidores que elijas.',
     'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.':
@@ -198,8 +198,8 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
     'Enable secret services': 'Geheime Dienste aktivieren',
     'Secret services enabled.': 'Geheime Dienste aktiviert.',
     'Not now': 'Jetzt nicht',
-    'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kyvex Link. They need no account and no server, and their files stay local.':
-      'Geheime Dienste sind die in Kryvex eingebauten Werkzeuge, die auf diesem Rechner laufen: Lexium, der Mediaplayer, der Emulator, Disk pulse und Kyvex Link. Sie brauchen kein Konto und keinen Server, und ihre Dateien bleiben lokal.',
+    'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kryvex Link. They need no account and no server, and their files stay local.':
+      'Geheime Dienste sind die in Kryvex eingebauten Werkzeuge, die auf diesem Rechner laufen: Lexium, der Mediaplayer, der Emulator, Disk pulse und Kryvex Link. Sie brauchen kein Konto und keinen Server, und ihre Dateien bleiben lokal.',
     'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.':
       'Aufnahmen transkribieren, Chats in beide Richtungen übersetzen und Text aus Fotos lesen: auf Servern deiner Wahl.',
     'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.':
@@ -381,8 +381,8 @@ export const toolsCopy: Record<ToolLanguage, Record<string, string>> = {
     'Enable secret services': 'Activer les services secrets',
     'Secret services enabled.': 'Services secrets activés.',
     'Not now': 'Pas maintenant',
-    'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kyvex Link. They need no account and no server, and their files stay local.':
-      'Les services secrets sont les outils intégrés à Kryvex qui tournent sur cet ordinateur : Lexium, le lecteur multimédia, l’émulateur, Disk pulse et Kyvex Link. Ils ne demandent ni compte ni serveur, et leurs fichiers restent en local.',
+    'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse and Kryvex Link. They need no account and no server, and their files stay local.':
+      'Les services secrets sont les outils intégrés à Kryvex qui tournent sur cet ordinateur : Lexium, le lecteur multimédia, l’émulateur, Disk pulse et Kryvex Link. Ils ne demandent ni compte ni serveur, et leurs fichiers restent en local.',
     'Transcribe recordings, translate chats both ways and read text out of photos: on servers you choose.':
       'Transcrivez des enregistrements, traduisez les conversations dans les deux sens et lisez le texte des photos: sur les serveurs de votre choix.',
     'A queue for local audio, video and direct links, with repeat and shuffle docked along the bottom.':
