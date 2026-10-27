@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.4-hotfix.1, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.4-hotfix.3, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -139,17 +139,41 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   code signing and an interactive-wizard pass.
 - [x] **M10: Publication.** `XiONDiGiTaL/Kryvex` created, MIT licensed,
   secret-scanned, main pushed and verified remotely; 0.3.0 through 0.9.4 plus
-  0.9.4-hotfix.1 published. Each release carries the Setup and Portable EXEs plus
-  `SHA256SUMS.txt`, whose entries match the uploaded asset digests, so the
-  in-app updater accepts it. The installable PWA is published from the
-  `gh-pages` branch of the same repository and serves
+  0.9.4-hotfix.1, 0.9.4-hotfix.2 and 0.9.4-hotfix.3 published. Each release
+  carries the Setup and Portable EXEs plus `SHA256SUMS.txt`, whose entries match
+  the uploaded asset digests, so the in-app updater accepts it; the published
+  pair of each of the last three was re-downloaded and re-hashed on this machine
+  (`sha256sum -c SHA256SUMS.txt` reports OK). The installable PWA is published
+  from the `gh-pages` branch of the same repository and serves
   `https://xiondigital.net/Kryvex/`, rebuilt by the tag job from 0.9.4 on
-  (now worker cache `kryvex-web-0.9.4-hotfix.1-v1`, footer
-  **v0.9.4-hotfix.1**).
+  (now worker cache `kryvex-web-0.9.4-hotfix.3-v1`, footer
+  **v0.9.4-hotfix.3**).
 - [ ] **M11: Final review.** README with real screenshots, banner,
   feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and
   a signed public release.
+
+## Released (2026-10-27, 0.9.4-hotfix.3)
+
+`v0.9.4-hotfix.3` was tagged on the commit that carries the record and the
+installer wizard capture (`eeb0a0e`), and both runs on it succeeded: **CI** on
+`main` and the **Release** workflow (run `40433494364`), which built the pair and
+published
+[the release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.9.4-hotfix.3).
+Both artifacts were then re-downloaded and re-hashed here:
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.4-hotfix.3-x64.exe` | 134,397,450 B | `5c016cf47d0c26934d8d7da6ecb04d70d9305f1eb08f89ed1d670109d3d3f16a` |
+| `Kryvex-Portable-0.9.4-hotfix.3-x64.exe` | 134,160,199 B | `e43826b0d664325b0d249c8e2cfd8e9745f5732358f3dda7706c9e128e290ea6` |
+
+`sha256sum -c SHA256SUMS.txt` reports **OK** for both, and the installer was run
+locally during the capture: the per-user installation in `C:\Kryvex` now reports
+0.9.4-hotfix.3. The same tag force-pushed `gh-pages`, the Pages deployment that
+followed succeeded, and the published worker at
+`https://xiondigital.net/Kryvex/sw.js` names
+`kryvex-web-0.9.4-hotfix.3-v1`. Full record:
+`docs/RELEASE_0.9.4-hotfix.3.md`.
 
 ## Added (2026-10-26, one-click Whisper for Lexium)
 

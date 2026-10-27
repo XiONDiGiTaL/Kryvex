@@ -89,22 +89,26 @@ One reported failure is addressed, and the wall it ran into.
 
 Built by the Release workflow on the `v0.9.4-hotfix.3` tag (`windows-latest`,
 Node 22, pnpm 10) and attached to
-[the release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.9.4-hotfix.3):
-
-| File | Size | SHA-256 |
+[the release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.9.4-hotfix.3):| File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.9.4-hotfix.3-x64.exe` | see the follow-up commit | recorded after the run |
-| `Kryvex-Portable-0.9.4-hotfix.3-x64.exe` | see the follow-up commit | recorded after the run |
+| `Kryvex-Setup-0.9.4-hotfix.3-x64.exe` | 134,397,450 B (128.17 MiB) | `5c016cf47d0c26934d8d7da6ecb04d70d9305f1eb08f89ed1d670109d3d3f16a` |
+| `Kryvex-Portable-0.9.4-hotfix.3-x64.exe` | 134,160,199 B (127.94 MiB) | `e43826b0d664325b0d249c8e2cfd8e9745f5732358f3dda7706c9e128e290ea6` |
 
-The pair was built from this working tree with `pnpm package:win` (Electron
-44.9.3, x64) and the wizard capture below was taken from that local installer; the digest table is filled in by the follow-up commit once the
-tag run has uploaded its own files, because the workflow builds the artifacts it
-publishes. `SHA256SUMS.txt` carries the published pair and matches the uploaded
-binaries. No model weights are bundled. Both EXEs are **unsigned**.
+Both were re-downloaded from the published release and re-hashed on this
+machine: the digests above are GitHub's own asset digests and
+`sha256sum -c SHA256SUMS.txt` reports **OK** for both, so the in-app updater
+accepts this release. No model weights are bundled. Both EXEs are **unsigned**.
 
-**Web client.** The same tag rebuilds and force-pushes `gh-pages`, so the
-published worker names `kryvex-web-0.9.4-hotfix.3-v1` and the site reports the
-version of this release.
+The wizard capture below was taken from a locally built installer of this
+working tree (`pnpm package:win`, Electron 44.9.3, x64), which is not one of the
+published files: it measured 134,397,182 B (`9de46096…d48016860ca` Setup) and
+134,160,033 B (`b6dd06cd…4d1af58a7b84d` Portable). The workflow builds what it
+publishes, so the table above is the one to check a download against.
+
+**Web client.** The same tag rebuilt and force-pushed `gh-pages`, and the Pages
+deployment that followed it succeeded: the published worker at
+`https://xiondigital.net/Kryvex/sw.js` names `kryvex-web-0.9.4-hotfix.3-v1`, so
+the site reports the version of this release (`index` answers HTTP 200).
 
 ## Install
 
