@@ -301,6 +301,18 @@ servers[1].listen(FRESH_PORT, '127.0.0.1');
     await cdp.evaluate(`window.location.hash = '#/settings'; true`);
     await waitFor(cdp.evaluate, `Boolean(document.querySelector('#chromium'))`, 'engine panel');
 
+    // The graphics cell is filled by an IPC that answers after the panel mounts,
+    // so it reads 'n/a' for a moment — longer on a cold runner, where this check
+    // used to read the placeholder and call the panel wrong. Wait for the panel's
+    // own answer, which is what the check is about.
+    await waitFor(
+      cdp.evaluate,
+      `(() => {
+        const cell = document.querySelector('#chromium .engine-report strong');
+        return Boolean(cell) && cell.textContent !== 'n/a';
+      })()`,
+      'the engine report',
+    );
     const report = await cdp.evaluate(
       `Array.from(document.querySelectorAll('#chromium .engine-report strong')).map(node => node.textContent)`,
     );
