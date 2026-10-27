@@ -679,15 +679,17 @@ pnpm art:installer   # redraw build/installerSidebar.bmp from the brand tokens
 
 ### Installer artwork
 
-NSIS shows one image beside the finish page, and it is the only surface the app
-never draws. `scripts/installer-art.ps1` paints `build/installerSidebar.bmp`
-(164×314, 24-bit, which is what NSIS reads) with `System.Drawing`: the plate
-colour, the two signal squares, the `Kx` mark redrawn from the same stroke
-geometry as `brand/logo.svg`, the divider, the wordmark with its tracking, and
-the tagline. Nothing is scaled down from the 512px tile, so the type stays
-sharp at this size, and `-Preview <png>` writes a copy for review because a
-bitmap is awkward to look at. `nsis.installerSidebar` in `package.json` points
-at the file; regenerate it when the palette or the lockup changes.
+NSIS shows two images the app never draws, and `scripts/installer-art.ps1`
+paints both from the brand tokens: `build/installerSidebar.bmp` (164×314) beside
+the finish page, and `build/installerHeader.bmp` (150×57) in the header of every
+other page. Both are 24-bit, the format NSIS reads, and both are drawn at their
+own size rather than scaled down from the 512px tile: the plate colour, the
+signal squares, the `Kx` mark redrawn from `brand/logo.svg`'s stroke geometry,
+the divider, and the wordmark with its tracking. The header keeps only the mark
+and the wordmark, because a second line crowds it against the page rule.
+`-Preview <dir>` writes PNG copies for review, since a bitmap is awkward to look
+at. `nsis.installerSidebar` and `nsis.installerHeader` in `package.json` point at
+the files; regenerate them when the palette or the lockup changes.
 
 The capture routine drives real routes (`#/home`, `#/home?help=1`,
 `#/services`, `#/services?dialog=new`, `#/service/<id>`, `#/browser?newtab=1`,

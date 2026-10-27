@@ -1,7 +1,7 @@
 {
   "name": "kryvex",
   "productName": "Kryvex",
-  "version": "0.9.4-hotfix.3",
+  "version": "0.9.5",
   "description": "A modular desktop workspace that brings independent web services, a browser and shared tools into one engineered surface.",
   "license": "MIT",
   "author": {
@@ -116,6 +116,7 @@
       "shortcutName": "Kryvex",
       "include": "build/installer.nsh",
       "installerSidebar": "build/installerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp",
       "uninstallDisplayName": "Kryvex ${version}",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false

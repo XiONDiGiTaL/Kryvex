@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.4-hotfix.3, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.5, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -152,6 +152,24 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
   feature/security/limitation sections, honest testing docs and 0.3.0–0.9.0
   release records are in place. Outstanding: engineering report and
   a signed public release.
+
+## In progress (0.9.5, not tagged)
+
+The version line sits at **0.9.5** and stays there for a while: the batches below
+landed after `0.9.4-hotfix.3` was published, and they are committed on `main`
+without a tag, a release record or a published installer.
+
+- **Startup switches.** Lexium's local Whisper engine can start with Kryvex and
+  stop on quit (stored in the runtime's own config, read before the renderer
+exists, with Lexium adopting the address it did not have to start), and Settings
+  has **Start with Windows**, which writes and reads back the per-user `Run`
+  entry. `scripts/verify-packaged-startup.cjs` proves both in the packaged build.
+- **Installer artwork.** `scripts/installer-art.ps1` draws the finish-page panel
+  (164×314) and the header banner (150×57) from the brand tokens, both wired
+  through `nsis.installerSidebar` and `nsis.installerHeader`.
+
+The web worker cache moved to `kryvex-web-0.9.5-v1`; if 0.9.5 is republished
+without a version change, its trailing `-vN` is what moves.
 
 ## Released (2026-10-27, 0.9.4-hotfix.3)
 

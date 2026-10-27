@@ -5,7 +5,9 @@
  * load; a navigation goes to the network first so a new release is picked up,
  * and falls back to the cached shell when the device is offline.
  */
-const CACHE = 'kryvex-web-0.9.4-hotfix.3-v1';
+// The suffix is what moves when the web client is republished without a version
+// change, which is the case while 0.9.5 stays the working line.
+const CACHE = 'kryvex-web-0.9.5-v1';
 const SHELL = ['./', './index.html', './manifest.webmanifest'];
 
 /**
