@@ -71,6 +71,7 @@
     "verify:canvas": "node scripts/verify-workspace-placement.cjs",
     "verify:inhouse": "pnpm build && node scripts/verify-inhouse-services.cjs",
     "verify:shell-batch": "pnpm build && node scripts/verify-shell-batch.cjs",
+    "verify:batch": "pnpm build && node scripts/verify-batch.cjs",
     "verify:vlan": "node scripts/verify-vlan.cjs"
   },
   "build": {

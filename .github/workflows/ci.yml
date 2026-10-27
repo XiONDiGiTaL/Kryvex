@@ -69,3 +69,47 @@ jobs:
 
       - name: Verify Kryvex Link
         run: node scripts/verify-link.cjs
+
+  # The rest of the Electron harnesses, in batches.
+  #
+  # They all boot the built app in a disposable profile and take the same ports
+  # and `.tmp-*` paths, so they cannot run beside each other; a matrix is what
+  # keeps a failure in one batch from skipping the batches behind it, and every
+  # batch is sized well inside the timeout. `node scripts/verify-batch.cjs
+  # --list` prints the batches and, with its reasons, the harnesses held back:
+  # the ones needing an installed build, a live Google page, a real screen, a
+  # display, OS speech voices, a torrent peer, or a published release to update
+  # from. Those keep their own aliases and stay local.
+  #
+  # `needs: windows` is deliberate: when the install, typecheck or unit suite is
+  # the thing that broke, five more jobs would fail the same way for no new
+  # information — and each failure is another notification.
+  harnesses:
+    name: Harnesses (${{ matrix.batch }})
+    needs: windows
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: [browser, services, shell, rooms, tools]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the desktop app
+        run: pnpm build
+
+      - name: Run the ${{ matrix.batch }} batch
+        run: node scripts/verify-batch.cjs ${{ matrix.batch }}
