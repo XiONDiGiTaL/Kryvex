@@ -59,7 +59,11 @@ const popupPage = `<!doctype html>
       window.kxError = String(error);
     }
   }, 500);
-  setTimeout(() => window.close(), 6000);
+  // The harness closes this popup the way the page would, by asking the page for
+  // its own window.close(). This timer is only a backstop so a stuck popup
+  // cannot outlive the run, and it has to sit well past the checks: at 6 s it
+  // fired mid-check on a cold runner and the desktop read came back empty.
+  setTimeout(() => window.close(), 60000);
 </script>`;
 
 const server = http.createServer((request, response) => {
@@ -280,13 +284,26 @@ server.listen(httpPort, '127.0.0.1');
     if (message !== 'kx-popup-ok') throw new Error(`Unexpected opener message: ${message}`);
 
     // Placement: the popup window must cover the canvas of the shell window.
-    await sleep(400);
-    const rects = windowRects();
+    // `windowRects()` reads the real desktop, and the window has to be shown and
+    // placed before it can be seen there, so this waits for it rather than
+    // sleeping a fixed 400 ms that a cold runner can outlast.
+    let rects = [];
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline) {
+      rects = windowRects();
+      if (
+        rects.some(rect => rect.title === 'Kryvex') &&
+        rects.some(rect => rect.title.includes('Fixture sign-in'))
+      ) {
+        break;
+      }
+      await sleep(250);
+    }
     const shellRect = rects.find(rect => rect.title === 'Kryvex');
+    // Some pages set the title after the first paint; fall back to the window
+    // that is neither the shell nor a system surface.
     const popupRect =
       rects.find(rect => rect.title.includes('Fixture sign-in')) ||
-      // Some pages set the title after the first paint; fall back to the window
-      // that is neither the shell nor a system surface.
       rects.find(
         rect =>
           rect.title !== 'Kryvex' &&
@@ -294,8 +311,15 @@ server.listen(httpPort, '127.0.0.1');
           Math.abs(rect.width - canvas.width) <= 6 &&
           Math.abs(rect.height - canvas.height) <= 6,
       );
-    if (!shellRect) throw new Error('The shell window was not found on the desktop.');
-    if (!popupRect) throw new Error('The popup window was not found on the desktop, so it left Kryvex.');
+    if (!shellRect) {
+      throw new Error(`The shell window was not found on the desktop: ${JSON.stringify(rects)}`);
+    }
+    if (!popupRect) {
+      throw new Error(
+        `The popup window was not found on the desktop, so it left Kryvex. ` +
+          `Desktop: ${JSON.stringify(rects)} · canvas: ${JSON.stringify(canvas)}`,
+      );
+    }
     const expected = {
       x: shellRect.x + canvas.x,
       y: shellRect.y + canvas.y,
