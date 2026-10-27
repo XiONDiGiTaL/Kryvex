@@ -3031,7 +3031,9 @@ clicked, or a room that is popped out and cannot be dragged.
 | *Bring it back* returns the room to its own view | PASS |
 | No renderer exception | PASS |
 
-Last run: **22/22 PASS**.
+Last run: **22/22 PASS** of the 22 checks the harness held then. It holds 23 since
+its caret check was split into the two motion branches — the check, not the app,
+had assumed the host allows motion. See the CI section at the end of this file.
 
 ### The clock's outline on a theme that has no `--fg`
 
@@ -3234,19 +3236,63 @@ renderer wakes, not what a check measures, so the same checks run here.
 | Harness | Command | Result | Wall clock |
 | --- | --- | --- | --- |
 | Built-in tools | `node scripts/verify-inhouse-services.cjs` | **29/29 PASS** | 3.5 s |
-| Shell batch | `node scripts/verify-shell-batch.cjs` | **22/22 PASS** | 3.6 s |
+| Shell batch | `node scripts/verify-shell-batch.cjs` | **23/23 PASS** | 3.6 s |
 | Link | `node scripts/verify-link.cjs` | **35/35 PASS** | 10.3 s |
 
 The desktop build ahead of them took 2.5 s. No `electron.exe` was left running
 after the runs, and the report files (`.tmp-inhouse-report.txt`,
 `.tmp-shell-batch-report.txt`) are gitignored.
 
+### The first two runs on a runner
+
+The steps first ran in CI run 40550101369, the push that added them, and the
+runner found a difference at once — which is the whole reason they were moved:
+
+| Step | On the runner | Result |
+| --- | --- | --- |
+| Build the desktop app | 3 s | success |
+| Verify the in-house services | 5 s | **29/29 PASS** |
+| Verify the shell batch | 5 s | **FAILED**, at the caret |
+| Verify Kryvex Link | — | **skipped** |
+
+The failure was the caret, and the check was wrong rather than the app:
+
+```
+FAILED: the caret blinks while the calculator has focus (none 0.001s)
+```
+
+`styles-board.css` stops the caret blinking for a reader who asked motion to
+stop — the media query sits directly above that rule and says as much — and a
+Windows runner ships with the system's animations off, which Chromium reports as
+`prefers-reduced-motion: reduce`. The app was right; the check had taken the
+host's preference for granted. It now emulates both branches over the DevTools
+protocol — `reduce`, where the caret must show no animation, then
+`no-preference`, where it must blink — and prints the host's own answer with the
+first of them. On this machine, which asks for `no-preference`, it is the
+`reduce` branch that proves the emulation reaches the renderer.
+
+Run 40551244453, on that fix, is **success** on every step, and the runner's own
+log carries both halves of the caret and all three harnesses:
+
+```
+PASS the caret holds still for a reader who asked motion to stop (this host asks for: reduce)
+PASS the caret blinks while the calculator has focus (kx-calc-caret 1.06s)
+All checks passed (29).
+All checks passed (23).
+link harness: PASS
+```
+
+All three pass on a runner as well as here: there 5 s, 9 s and 10 s against 3.5 s,
+3.6 s and 10.3 s here. The 29 in-house checks and the Link harness were untouched
+by this fix and passed on the runner at their first attempt.
+
 ### What is still not covered
 
-- **The runner's own result.** These steps have not yet run on GitHub: the first
-  push carrying them is where a driver, display or timing difference between this
-  machine and a runner would show up, as a harness failure there and not here.
 - **The rest of the Electron harnesses.** `package.json` also holds
   `verify:browser`, `verify:services`, `verify:rooms`, `verify:capture-window`,
   `verify:model` and the other CDP harnesses — around twenty of them. They stay
-  local for now; these three are the ones this batch added or changed.
+  local for now; these three are the ones this batch added or changed, and the
+  only ones whose behaviour on a runner is known.
+- **Any runner but `windows-latest`.** Both runs used one image
+  (`windows-2025-vs2026`, 20261021.278). A macOS or Linux runner would need a
+  display server before any of this applies.

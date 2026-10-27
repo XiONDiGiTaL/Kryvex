@@ -51,12 +51,16 @@ On top of that, this batch changed the shell itself:
   phone that paired under the old `localStorage` keys keeps its pairing rather
   than being asked for a new code.
 
-`pnpm verify:shell-batch` covers the shell changes with 22 checks and
+`pnpm verify:shell-batch` covers the shell changes with 23 checks and
 `pnpm verify:link` the phone page and its name with 35. CI is green on the push
 (run 40536740847: install, advisories, typecheck, the unit suite, the web build
 and the one-time-code relay), and it now runs those three Electron harnesses too
 — one desktop build, then `verify:inhouse`, `verify:shell-batch` and
-`verify:link` — so their results no longer live only on this machine. One repair went with it — the shell batch's slice
+`verify:link` — so their results no longer live only on this machine. The first
+run of them (40550101369) found what a runner differs on: the caret check had
+assumed the host allows motion, and a Windows runner asks for
+`prefers-reduced-motion: reduce`, where the app correctly holds the caret still.
+The check emulates both branches now, and run 40551244453 is green on all three. One repair went with it — the shell batch's slice
 of `package.json` had dropped `pdf-lib` and the `verify:inhouse` script, and CI's
 install step is what caught it on that commit, since a local typecheck cannot: the
 package is installed here whatever the manifest says. Still open from the same
