@@ -16,6 +16,13 @@ export const MAX_RECORD_MS = 3 * 60 * 1000;
 export const MAX_CAPTURE_BYTES = 128 * 1024 * 1024;
 /** Frames a still is allowed to skip before it gives up on a stream. */
 export const SHOT_READY_TIMEOUT_MS = 6000;
+/**
+ * Frame rate of the canvas a cropped recording is drawn through.
+ *
+ * The canvas is redrawn on every animation frame; the recorder samples it at
+ * this rate, which is what a screen recording of a window wants.
+ */
+export const RECORD_FPS = 30;
 
 /** What the recorder asks for, best first. Chromium supports the first two. */
 export const RECORDING_TYPES: readonly string[] = [

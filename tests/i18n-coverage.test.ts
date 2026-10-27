@@ -362,6 +362,20 @@ const ADDED = [
   'Kryvex will open when you sign in to Windows.',
   'Kryvex will not open with Windows.',
   'The Windows startup entry could not be changed.',
+  'How much to capture',
+  'Whole target',
+  'An area',
+  'The next capture asks you to drag the area.',
+  'Area {size} — every capture takes this part.',
+  'Choose another area',
+  'That area no longer fits the target, so the whole target was captured.',
+  'Choose the area to capture',
+  'The target, frozen for selection',
+  'Drag across the part you want to capture, then confirm.',
+  'The area is too small. Drag a larger box.',
+  '{size} selected.',
+  'Capture this area',
+  'Record this area',
 ];
 
 describe('translation coverage', () => {

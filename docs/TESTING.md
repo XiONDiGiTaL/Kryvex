@@ -2997,3 +2997,64 @@ harness deliberately cannot:
   no run signed out of Windows and signed back in to watch it start.
 - **Other platforms.** The pinned build is Windows x64, measured from the
   release asset. Nothing else was run.
+
+## The dragged capture area (`pnpm verify:capture-window`)
+
+The capture window's own harness gained the area path, because the crop is the
+part that can be quietly wrong: a box that produces a picture of the wrong size is
+worse than no area feature at all. Every size below is read back out of the app's
+own pixels — the preview window's `naturalWidth`/`videoWidth` — rather than from
+the picker's claim about itself.
+
+| Check | Result |
+| --- | --- |
+| The card starts on the whole target and offers an area | PASS |
+| An area capture says it will ask for the area | PASS |
+| The picker opens on a frozen frame of the target | PASS (`1440×900` in 746 ms) |
+| A drag marks a box and offers to capture it | PASS (`719 × 450` of `1440×900`) |
+| The box is smaller than the target it was drawn on | PASS |
+| The picker confirms the area | PASS |
+| The cropped still opened in the preview window | PASS |
+| The still is the area, not the whole target | PASS (`719×450`, picker said `719 × 450`) |
+| The chosen area is reused without asking again | PASS |
+| The cropped recording arms and runs | PASS (389 ms to start) |
+| The cropped recording can be stopped | PASS |
+| The cropped recording opened in the preview window | PASS |
+| The clip is the size of the area | PASS (`718×450` from a `719 × 450` area, even-rounded for VP8/VP9) |
+| No page exception | PASS |
+
+Last run: **37/37 PASS**, twice in a row, together with the whole-target checks
+that were already there — the same run still takes a full-size still, saves it
+through the real Windows dialog into `Downloads\Kryvex Captures`, and records a
+three-second clip.
+
+### The wait that made every capture stall
+
+The first frozen frame took the full `SHOT_READY_TIMEOUT_MS` cap — 6 seconds —
+because `firstFrame()` waited on `requestVideoFrameCallback`, and these `<video>`
+elements are deliberately detached: they exist to be drawn from, never displayed,
+so a callback that waits for a paint went unanswered until it timed out. The wait
+is now a poll on `videoWidth`/`readyState`, and the picker opens in ~740 ms while
+the cropped recorder starts in ~390 ms.
+
+### The bug this harness caught
+
+The still path reported "the area no longer fits" whenever the crop came back
+smaller than the frame — which is every successful crop — so confirming an area
+captured it once and then forgot it, and the next capture asked for the box
+again. `cropBox()` now returns `exact`, true only when the box *is* the region
+that was asked for, and the card reports a dropped area from that.
+
+### What is not covered
+
+- **An area that goes stale on a resized target.** `cropBox()` returning
+  `exact: false` and the card dropping the area is covered by
+  `tests/capture-region.test.ts`; the harness never resizes the target between
+  saving an area and capturing with it.
+- **A drag that starts outside the frame.** Held at the frame's edge by
+  `regionFromDrag()` and covered by unit tests; the harness drags inside it.
+- **A cropped recording longer than three seconds.** The same clip is recorded
+  for 3.5 s; the three-minute cap and the stop path are unchanged and covered by
+  the whole-target run.
+- **The browser build.** The picker is renderer-only and shares the path, but no
+  browser run was made.

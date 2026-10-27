@@ -8,6 +8,10 @@
  * three-second clip and checks the window reopens on a video. Finally it presses
  * **New capture** and checks the shell came back with the card showing.
  *
+ * Then the area path: the card is switched to *An area*, the picker has to open
+ * on a frozen frame, a real pointer drag marks a box, and both a still and a
+ * recording have to come back at the box's own size rather than the target's.
+ *
  * Usage:
  *   pnpm build && pnpm verify:capture-window
  *
@@ -376,6 +380,220 @@ async function main() {
     const returned = await open(() => shell.eval('location.hash.includes("#/home")'), 20);
     const stillOpen = (await targets()).some(item => /dist\/capture\.html/.test(item.url));
     check('New capture returns to the board with the card showing', returned && !stillOpen);
+    clip.close();
+  }
+
+  /* ------------------------------------------------- a dragged capture area --- */
+
+  // Whole target stays the default; an area is the opt-in.
+  const scope = await shell.eval(`(() => {
+    const group = document.querySelector('.home-capture-scope');
+    if (!group) return 'no control';
+    const buttons = [...group.querySelectorAll('button')];
+    const whole = buttons.find(item => /whole target/i.test(item.textContent));
+    const area = buttons.find(item => /an area/i.test(item.textContent));
+    if (!whole || !area) return 'no buttons';
+    if (whole.getAttribute('aria-pressed') !== 'true' || area.getAttribute('aria-pressed') !== 'false') {
+      return 'not on the whole target';
+    }
+    area.click();
+    return 'area';
+  })()`);
+  check('the card starts on the whole target and offers an area', scope === 'area', scope);
+  await sleep(400);
+
+  const askedForArea = await shell.eval(`(() => {
+    const hint = document.querySelector('.home-capture-area')?.textContent ?? '';
+    const button = [...document.querySelectorAll('button')].find(item => item.textContent.includes('Capture still'));
+    if (!button) return 'no button';
+    if (button.disabled) return 'disabled';
+    window.__areaAt = performance.now();
+    button.click();
+    return /drag the area/i.test(hint) ? 'clicked' : 'no hint: ' + hint;
+  })()`);
+  check('an area capture says it will ask for the area', askedForArea === 'clicked', askedForArea);
+
+  const pickerUp = await open(() =>
+    shell.eval(`(() => {
+      const image = document.querySelector('.capture-region-stage img');
+      return Boolean(image) && image.complete && image.naturalWidth > 0;
+    })()`),
+  );
+  const frame = await shell.eval(`(() => {
+    const image = document.querySelector('.capture-region-stage img');
+    return image ? { width: image.naturalWidth, height: image.naturalHeight } : null;
+  })()`);
+  const frozenMs = pickerUp ? await shell.eval('Math.round(performance.now() - window.__areaAt)') : -1;
+  check(
+    'the picker opens on a frozen frame of the target',
+    pickerUp && Boolean(frame),
+    frame ? `${frame.width}×${frame.height} in ${frozenMs}ms` : 'no image',
+  );
+
+  // A real drag, the way the browser delivers one.
+  const dragged = await shell.eval(`(async () => {
+    const stage = document.querySelector('.capture-region-stage');
+    const layer = document.querySelector('.capture-region-drag');
+    if (!stage || !layer) return { error: 'no picker' };
+    const box = stage.getBoundingClientRect();
+    const at = (x, y) => ({
+      clientX: Math.round(box.left + x), clientY: Math.round(box.top + y),
+      pointerId: 11, pointerType: 'mouse', buttons: 1, bubbles: true, cancelable: true, isPrimary: true,
+    });
+    const from = { x: Math.round(box.width / 4), y: Math.round(box.height / 4) };
+    const to = { x: Math.round((box.width * 3) / 4), y: Math.round((box.height * 3) / 4) };
+    layer.dispatchEvent(new PointerEvent('pointerdown', at(from.x, from.y)));
+    layer.dispatchEvent(new PointerEvent('pointermove', at(to.x, to.y)));
+    await new Promise(resolve => setTimeout(resolve, 60));
+    layer.dispatchEvent(new PointerEvent('pointerup', at(to.x, to.y)));
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    const confirm = [...document.querySelectorAll('.capture-region-actions button')]
+      .find(item => /capture this area/i.test(item.textContent));
+    const image = document.querySelector('.capture-region-stage img');
+    return {
+      drawn: Boolean(document.querySelector('.capture-region-box')),
+      label: (document.querySelector('.capture-region-size')?.textContent ?? '').trim(),
+      hint: (document.querySelector('.capture-region-hint')?.textContent ?? '').trim(),
+      confirm: Boolean(confirm) && !confirm.disabled,
+      stage: { width: Math.round(box.width), height: Math.round(box.height) },
+      frame: { width: image.naturalWidth, height: image.naturalHeight },
+    };
+  })()`);
+  check(
+    'a drag marks a box and offers to capture it',
+    Boolean(dragged.drawn) && dragged.confirm === true,
+    `${dragged.label ?? dragged.error ?? 'nothing'} (${dragged.hint ?? ''})`,
+  );
+  const areaSize = String(dragged.label ?? '')
+    .split('×')
+    .map(part => Number(part.trim()));
+  check(
+    'the box is smaller than the target it was drawn on',
+    areaSize.length === 2 && areaSize.every(value => value > 0) && areaSize[0] < (dragged.frame?.width ?? 0),
+    `${dragged.label} of ${dragged.frame?.width}×${dragged.frame?.height}`,
+  );
+
+  const confirmed = await shell.eval(`(() => {
+    const button = [...document.querySelectorAll('.capture-region-actions button')]
+      .find(item => /capture this area/i.test(item.textContent));
+    if (!button) return 'no confirm';
+    if (button.disabled) return 'disabled';
+    button.click();
+    return 'confirmed';
+  })()`);
+  check('the picker confirms the area', confirmed === 'confirmed', confirmed);
+
+  const findPreview = async (attempts = 40) => {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      await sleep(500);
+      try {
+        const list = await targets();
+        const found = list.find(item => item.type === 'page' && /dist\/capture\.html/.test(item.url));
+        if (found) return found;
+      } catch {
+        /* keep waiting */
+      }
+    }
+    return null;
+  };
+
+  const areaTarget = await findPreview();
+  check('the cropped still opened in the preview window', Boolean(areaTarget));
+  if (areaTarget) {
+    const cropped = new Cdp(areaTarget.webSocketDebuggerUrl);
+    await cropped.ready();
+    await cropped.send('Runtime.enable');
+    const shown = await open(() =>
+      cropped.eval(`(() => {
+        const image = document.querySelector('.cap-stage img');
+        return Boolean(image) && image.complete && image.naturalWidth > 0;
+      })()`),
+    );
+    const picture = await cropped.eval(`(() => {
+      const image = document.querySelector('.cap-stage img');
+      return image ? { width: image.naturalWidth, height: image.naturalHeight } : null;
+    })()`);
+    check(
+      'the still is the area, not the whole target',
+      shown && Boolean(picture) && `${picture.width} × ${picture.height}` === dragged.label,
+      picture ? `${picture.width}×${picture.height}, picker said ${dragged.label}` : 'no image',
+    );
+    await cropped.eval('window.kryvexCapture.close()');
+    await sleep(1200);
+    cropped.close();
+  }
+
+  // The remembered area drives a recording too, and that is the path that draws
+  // through a canvas: the clip's own width has to be the area's width.
+  const recordArea = await shell.eval(`(() => {
+    const button = [...document.querySelectorAll('button')].find(item => item.textContent.trim() === 'Record');
+    if (!button) return 'no record button';
+    if (button.disabled) return 'disabled';
+    window.__areaRecordAt = performance.now();
+    button.click();
+    return 'recording';
+  })()`);
+  check('the chosen area is reused without asking again', recordArea === 'recording', recordArea);
+
+  // Arming is the part that can be slow: the cropped recorder waits for the
+  // first decoded frame before it starts, so this waits for the button and
+  // reports how long it took rather than assuming a fixed delay.
+  let areaArmed = '';
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    areaArmed = await shell.eval(`(() => {
+      const button = [...document.querySelectorAll('button')].find(item => item.textContent.includes('Stop recording'));
+      if (!button) return '';
+      const spent = Math.round(performance.now() - window.__areaRecordAt);
+      window.__areaRecordAt = performance.now();
+      return String(spent);
+    })()`);
+    if (areaArmed) break;
+    await sleep(150);
+  }
+  check('the cropped recording arms and runs', Boolean(areaArmed), areaArmed ? `${areaArmed}ms to start` : 'never started');
+  await sleep(3500);
+  const stopArea = await shell.eval(`(() => {
+    const button = [...document.querySelectorAll('button')].find(item => item.textContent.includes('Stop recording'));
+    if (!button) {
+      // The card's own words, so a failed start says why rather than just not stopping.
+      const card = document.querySelector('.home-capture-tool');
+      const notes = [...(card?.querySelectorAll('.home-capture-note') ?? [])].map(node => node.textContent.trim());
+      const labels = [...(card?.querySelectorAll('button') ?? [])].map(node => node.textContent.trim());
+      return (
+        'no stop button; notes ' + JSON.stringify(notes) +
+        '; buttons ' + JSON.stringify(labels) +
+        '; preview ' + Boolean(card?.querySelector('.home-capture-preview'))
+      );
+    }
+    button.click();
+    return 'stopped';
+  })()`);
+  check('the cropped recording can be stopped', stopArea === 'stopped', stopArea);
+
+  const clipTargetArea = await findPreview();
+  check('the cropped recording opened in the preview window', Boolean(clipTargetArea));
+  if (clipTargetArea) {
+    const clip = new Cdp(clipTargetArea.webSocketDebuggerUrl);
+    await clip.ready();
+    await clip.send('Runtime.enable');
+    const plays = await open(() =>
+      clip.eval(`(() => {
+        const video = document.querySelector('.cap-stage video');
+        return Boolean(video) && video.videoWidth > 0 && video.duration > 0;
+      })()`),
+      40,
+    );
+    const meta = await clip.eval(`(() => {
+      const video = document.querySelector('.cap-stage video');
+      return video ? { width: video.videoWidth, height: video.videoHeight, duration: Math.round(video.duration * 10) / 10 } : null;
+    })()`);
+    check(
+      'the clip is the size of the area',
+      plays && Boolean(meta) && Math.abs(meta.width - areaSize[0]) <= 2 && Math.abs(meta.height - areaSize[1]) <= 2,
+      meta ? `${meta.width}×${meta.height} · ${meta.duration}s, area was ${dragged.label}` : 'no video',
+    );
+    await clip.eval('window.kryvexCapture.close()');
+    await sleep(800);
     clip.close();
   }
 

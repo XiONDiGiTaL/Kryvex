@@ -187,6 +187,30 @@ navigates Home and bumps a pulse the card answers by scrolling itself into view,
 ringing once and focusing its target picker. The card stays the place for the
 target list, the still/record buttons and the recent captures.
 
+**The whole target, or a dragged area.** The card's scope control starts on
+*Whole target*, which is what every capture did before; *An area* asks for a box
+the first time and then remembers it. The box is drawn on a **frozen frame**: the
+target is armed, one frame is grabbed, and the picker shows that still rather than
+the live target (`src/components/CaptureRegionPicker.tsx`). That is what keeps the
+result honest — the overlay cannot land inside the picture, because the picture
+is the frame taken before the overlay existed. The drag is read back in the
+frame's own pixels (`src/lib/capture-region.ts`), so the region survives a
+resized window or a different monitor scale; a drag under 24 source pixels is a
+click, not a selection.
+
+A still is that frame with the region copied out of it. A **recording** cannot be
+cropped after the fact without re-encoding, so it is cropped as it is made: the
+target's frames are drawn one by one into a canvas the size of the area, the
+canvas is what `MediaRecorder` records, and the target's own audio tracks are
+carried across (`cropPipeline()` in `ScreenCaptureWidget.tsx`). Sizes are rounded
+to even numbers because VP8/VP9 encode even dimensions; a 719×450 area therefore
+records as 718×450. The frame rate is `RECORD_FPS` in `src/lib/screen-capture.ts`.
+
+An area belongs to the target it was drawn on, so picking another target drops
+it. If the frame comes back unable to hold a remembered area, the whole target is
+captured and the card says the area was dropped (`cropBox()` returns `exact:
+false`) instead of quietly cutting a strip out of the picture.
+
 ## Capture preview window
 
 A finished capture opens in a native window of its own, the way a snipping tool

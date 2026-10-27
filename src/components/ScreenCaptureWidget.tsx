@@ -10,9 +10,12 @@ import {
   durationLabel,
   groupSources,
   pickMimeType,
+  RECORD_FPS,
   removeScreenCapture,
   SHOT_READY_TIMEOUT_MS,
 } from '../lib/screen-capture';
+import { cropBox, even, regionLabel, type CaptureRegion } from '../lib/capture-region';
+import { CaptureRegionPicker } from './CaptureRegionPicker';
 import { Icon } from './ui';
 
 interface Preview {
@@ -51,6 +54,137 @@ function download(blob: Blob, name: string): void {
   link.remove();
   // The browser needs the URL alive while the download starts, not after.
   window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/**
+ * The first decoded frame.
+ *
+ * A stream with nothing decoded yet would hand back a black rectangle, so every
+ * path that reads pixels waits for one first. The wait is a poll on the video's
+ * own state rather than `requestVideoFrameCallback`, because these elements are
+ * deliberately detached — they exist to be drawn from, never displayed — and a
+ * callback that waits for a paint can go unanswered until its timeout, which
+ * would make every capture sit still for six seconds.
+ */
+function firstFrame(video: HTMLVideoElement): Promise<void> {
+  return new Promise<void>(resolve => {
+    const started = Date.now();
+    let seen = 0;
+    const tick = () => {
+      if (video.videoWidth > 0 && video.readyState >= 2) {
+        // Two ticks apart: one decoded frame is enough to draw, and the second
+        // sighting is what rules out a half-attached stream.
+        seen += 1;
+        if (seen >= 2) {
+          resolve();
+          return;
+        }
+      }
+      if (Date.now() - started >= SHOT_READY_TIMEOUT_MS) {
+        resolve();
+        return;
+      }
+      window.setTimeout(tick, 30);
+    };
+    tick();
+  });
+}
+
+/** One frame of a stream, at the stream's own resolution. */
+async function grabFrame(live: MediaStream): Promise<{ canvas: HTMLCanvasElement; video: HTMLVideoElement } | null> {
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.srcObject = live;
+  await video.play();
+  await firstFrame(video);
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  if (!width || !height) return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+  context.drawImage(video, 0, 0, width, height);
+  return { canvas, video };
+}
+
+function toBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
+  return new Promise<Blob | null>(resolve => canvas.toBlob(result => resolve(result), 'image/png'));
+}
+
+/** A box copied out of one canvas into a canvas of its own. */
+function cropCanvas(
+  source: HTMLCanvasElement,
+  box: { sx: number; sy: number; sw: number; sh: number },
+): HTMLCanvasElement | null {
+  const output = document.createElement('canvas');
+  output.width = box.sw;
+  output.height = box.sh;
+  const context = output.getContext('2d');
+  if (!context) return null;
+  context.drawImage(source, box.sx, box.sy, box.sw, box.sh, 0, 0, box.sw, box.sh);
+  return output;
+}
+
+/**
+ * The crop pipeline for a recording.
+ *
+ * The target's frames are drawn one by one into a canvas the size of the area,
+ * and the recorder records that canvas. The file is cropped as it is made, so
+ * nothing has to be re-encoded afterwards — and the target's own audio is
+ * carried across, because the crop is pixels, not sound.
+ */
+async function cropPipeline(
+  live: MediaStream,
+  area: CaptureRegion,
+): Promise<{ stream: MediaStream; stop: () => void; exact: boolean } | null> {
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.srcObject = live;
+  await video.play();
+  await firstFrame(video);
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  if (!width || !height) return null;
+  const box = cropBox(area, { width, height });
+  const canvas = document.createElement('canvas');
+  canvas.width = even(box.sw);
+  canvas.height = even(box.sh);
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+  let running = true;
+  let timer = 0;
+  const draw = () => {
+    if (!running) return;
+    context.drawImage(video, box.sx, box.sy, box.sw, box.sh, 0, 0, canvas.width, canvas.height);
+    timer = window.requestAnimationFrame(draw);
+  };
+  timer = window.requestAnimationFrame(draw);
+  const out = canvas.captureStream(RECORD_FPS);
+  for (const track of live.getAudioTracks()) {
+    try {
+      out.addTrack(track);
+    } catch {
+      /* a track that cannot be added leaves a silent recording, not a failure */
+    }
+  }
+  return {
+    stream: out,
+    exact: box.exact,
+    stop: () => {
+      running = false;
+      window.cancelAnimationFrame(timer);
+      try {
+        video.pause();
+      } catch {
+        /* already stopped */
+      }
+      video.srcObject = null;
+    },
+  };
 }
 
 /**
@@ -95,10 +229,26 @@ export function ScreenCaptureWidget({
   const root = useRef<HTMLDivElement | null>(null);
   const picker = useRef<HTMLSelectElement | null>(null);
   const [prompted, setPrompted] = useState(false);
+  /** Whole target is the default; an area is the opt-in. */
+  const [scope, setScope] = useState<'target' | 'region'>('target');
+  const [region, setRegion] = useState<CaptureRegion | null>(null);
+  /** The remembered area did not fit the last frame, so it was dropped. */
+  const [areaGone, setAreaGone] = useState(false);
+  /** Which action the picker is asking for, if it is open. */
+  const [pick, setPick] = useState<'idle' | 'shot' | 'clip'>('idle');
+  const [frozen, setFrozen] = useState<{
+    url: string;
+    canvas: HTMLCanvasElement;
+    target: string;
+  } | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const chunks = useRef<Blob[]>([]);
   const startedAt = useRef(0);
+  /** The stream the picker opened; a recording that follows keeps it. */
+  const armed = useRef<MediaStream | null>(null);
+  /** Stops the cropped recorder's draw loop and its hidden video element. */
+  const cropStop = useRef<(() => void) | null>(null);
 
   /**
    * The targets, with one retry.
@@ -165,6 +315,21 @@ export function ScreenCaptureWidget({
     };
   }, [preview]);
 
+  // The frozen frame's URL goes with the frame: one picker, one picture.
+  useEffect(() => {
+    const url = frozen?.url;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [frozen]);
+
+  // An area belongs to the target it was drawn on, so another target starts
+  // clean rather than cropping the new one to the old one's box.
+  useEffect(() => {
+    setRegion(null);
+    setAreaGone(false);
+  }, [target]);
+
   useEffect(
     () => () => {
       try {
@@ -172,7 +337,17 @@ export function ScreenCaptureWidget({
       } catch {
         /* nothing was recording */
       }
+      cropStop.current?.();
+      cropStop.current = null;
       stopStream();
+      for (const track of armed.current?.getTracks() ?? []) {
+        try {
+          track.stop();
+        } catch {
+          /* already gone */
+        }
+      }
+      armed.current = null;
     },
     [stopStream],
   );
@@ -250,8 +425,18 @@ export function ScreenCaptureWidget({
     [bridge, locale, t],
   );
 
-  async function takeShot() {
-    if (phase !== 'idle') return;
+  /**
+   * One still, cropped to the area when there is one.
+   *
+   * A frozen frame is preferred over a fresh grab: the picker's own overlay is
+   * painted over the target, so a fresh frame of a Kryvex window would carry the
+   * selection box into the picture.
+   */
+  async function takeShot(
+    area: CaptureRegion | null,
+    provided?: MediaStream | null,
+    frame?: HTMLCanvasElement,
+  ) {
     setError(null);
     setNotice(null);
     setPreview(current => {
@@ -260,52 +445,41 @@ export function ScreenCaptureWidget({
     });
     setPhase('arming');
     const label = labelFor(target);
-    let live: MediaStream | null = null;
+    let live: MediaStream | null = provided ?? null;
     try {
-      live = await openStream(target, false);
-      const video = document.createElement('video');
-      video.muted = true;
-      video.playsInline = true;
-      video.srcObject = live;
-      await video.play();
-      // The first painted frame is what a screenshot wants; a stream that never
-      // paints would otherwise hand back a black rectangle.
-      await new Promise<void>(resolve => {
-        const anyVideo = video as HTMLVideoElement & {
-          requestVideoFrameCallback?: (callback: () => void) => number;
-        };
-        if (typeof anyVideo.requestVideoFrameCallback === 'function') {
-          anyVideo.requestVideoFrameCallback(() => resolve());
-        }
-        window.setTimeout(resolve, SHOT_READY_TIMEOUT_MS);
-      });
-      const width = video.videoWidth;
-      const height = video.videoHeight;
-      if (!width || !height) throw new Error('The stream produced no frame');
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('No canvas context');
-      context.drawImage(video, 0, 0, width, height);
-      const blob = await new Promise<Blob | null>(resolve =>
-        canvas.toBlob(result => resolve(result), 'image/png'),
-      );
+      let source = frame ?? null;
+      if (!source) {
+        live = live ?? (await openStream(target, false));
+        const grabbed = await grabFrame(live);
+        if (!grabbed) throw new Error('The stream produced no frame');
+        source = grabbed.canvas;
+      }
+      const width = source.width;
+      const height = source.height;
+      const box = cropBox(area, { width, height });
+      const output = cropCanvas(source, box);
+      if (!output) throw new Error('No canvas context');
+      const blob = await toBlob(output);
       if (!blob) throw new Error('The frame could not be encoded');
       const shot: Preview = {
         url: URL.createObjectURL(blob),
         blob,
         kind: 'shot',
-        width,
-        height,
+        width: box.sw,
+        height: box.sh,
         name: captureFileName('shot', label),
         target: label,
       };
       setPreview(shot);
       void openInWindow(shot);
-    } catch (failure) {
+      // A remembered area the frame cannot hold is reported and dropped, rather
+      // than quietly capturing something the card does not claim to have.
+      if (!box.exact) {
+        setRegion(null);
+        setAreaGone(true);
+      }
+    } catch {
       setError(t('That target could not be captured. Choose another and try again.'));
-      void failure;
     } finally {
       for (const track of live?.getTracks() ?? []) {
         try {
@@ -318,8 +492,7 @@ export function ScreenCaptureWidget({
     }
   }
 
-  async function startRecording() {
-    if (phase !== 'idle') return;
+  async function startRecording(area: CaptureRegion | null, provided?: MediaStream | null) {
     setError(null);
     setNotice(null);
     setPreview(current => {
@@ -329,11 +502,29 @@ export function ScreenCaptureWidget({
     const label = labelFor(target);
     setPhase('arming');
     try {
-      const live = await openStream(target, true);
+      const live = provided ?? (await openStream(target, true));
       stream.current = live;
+      // The area is a real crop of the recording, not a note about it: the
+      // frames go through a canvas of the area's size and the recorder records
+      // that, so the file is cropped as it is written.
+      let recorded: MediaStream = live;
+      if (area) {
+        const pipeline = await cropPipeline(live, area);
+        if (!pipeline) throw new Error('The area could not be cropped');
+        if (pipeline.exact) {
+          recorded = pipeline.stream;
+          cropStop.current = pipeline.stop;
+        } else {
+          // The frame cannot hold the area any more: record the whole target
+          // and drop the area, rather than a strip of it nobody asked for.
+          pipeline.stop();
+          setRegion(null);
+          setAreaGone(true);
+        }
+      }
       const mime = pickMimeType(type => MediaRecorder.isTypeSupported(type));
       const recorderInstance = new MediaRecorder(
-        live,
+        recorded,
         mime ? { mimeType: mime, videoBitsPerSecond: 2_500_000 } : undefined,
       );
       chunks.current = [];
@@ -345,6 +536,8 @@ export function ScreenCaptureWidget({
         const blob = new Blob(chunks.current, { type });
         chunks.current = [];
         recorder.current = null;
+        cropStop.current?.();
+        cropStop.current = null;
         stopStream();
         setPhase('idle');
         setElapsed(0);
@@ -356,8 +549,8 @@ export function ScreenCaptureWidget({
           url: URL.createObjectURL(blob),
           blob,
           kind: 'clip',
-          width: 0,
-          height: 0,
+          width: area?.width ?? 0,
+          height: area?.height ?? 0,
           name: captureFileName('clip', label),
           target: label,
         };
@@ -365,7 +558,8 @@ export function ScreenCaptureWidget({
         void openInWindow(clip);
       };
       // The OS "stop sharing" bar ends the track, not the recorder: stop both so
-      // the clip is kept instead of hanging.
+      // the clip is kept instead of hanging. With a crop, the canvas would go on
+      // recording a frozen frame, which is why this watches the source stream.
       const [video] = live.getVideoTracks();
       if (video) {
         video.addEventListener('ended', () => {
@@ -382,6 +576,8 @@ export function ScreenCaptureWidget({
       setElapsed(0);
       setPhase('recording');
     } catch {
+      cropStop.current?.();
+      cropStop.current = null;
       stopStream();
       setPhase('idle');
       setError(t('That target could not be recorded. Choose another and try again.'));
@@ -394,6 +590,98 @@ export function ScreenCaptureWidget({
     } catch {
       setPhase('idle');
     }
+  }
+
+  /**
+   * Opens the picker: the target is armed and one frame of it is frozen.
+   *
+   * The stream stays armed while the picker is up, because the answer may be a
+   * recording — which then continues on the stream that is already live.
+   */
+  async function openPicker(kind: 'shot' | 'clip') {
+    setError(null);
+    setNotice(null);
+    setAreaGone(false);
+    setPhase('arming');
+    const label = labelFor(target);
+    let live: MediaStream | null = null;
+    try {
+      live = await openStream(target, kind === 'clip');
+      const grabbed = await grabFrame(live);
+      if (!grabbed) throw new Error('The stream produced no frame');
+      const blob = await toBlob(grabbed.canvas);
+      if (!blob) throw new Error('The frame could not be encoded');
+      armed.current = live;
+      live = null;
+      setFrozen({ url: URL.createObjectURL(blob), canvas: grabbed.canvas, target: label });
+      setPick(kind);
+    } catch {
+      setError(t('That target could not be captured. Choose another and try again.'));
+    } finally {
+      // Only the stream the picker kept is left open; a failure stops its own.
+      for (const track of live?.getTracks() ?? []) {
+        try {
+          track.stop();
+        } catch {
+          /* already stopped */
+        }
+      }
+      setPhase('idle');
+    }
+  }
+
+  function cancelPick() {
+    setPick('idle');
+    setFrozen(null);
+    const live = armed.current;
+    armed.current = null;
+    for (const track of live?.getTracks() ?? []) {
+      try {
+        track.stop();
+      } catch {
+        /* already stopped */
+      }
+    }
+  }
+
+  /** Confirming keeps the stream: a still stops it, a recording goes on using it. */
+  function confirmPick(chosen: CaptureRegion) {
+    const kind = pick;
+    const live = armed.current;
+    const frame = frozen;
+    armed.current = null;
+    setRegion(chosen);
+    setAreaGone(false);
+    setPick('idle');
+    setFrozen(null);
+    if (kind === 'shot') {
+      void takeShot(chosen, live, frame?.canvas);
+      return;
+    }
+    if (kind === 'clip') {
+      void startRecording(chosen, live);
+      return;
+    }
+    for (const track of live?.getTracks() ?? []) {
+      try {
+        track.stop();
+      } catch {
+        /* already stopped */
+      }
+    }
+  }
+
+  /** The one entry point the card's two buttons use. */
+  async function capture(kind: 'shot' | 'clip') {
+    if (phase !== 'idle' || pick !== 'idle') return;
+    const area = scope === 'region' ? region : null;
+    // No area drawn yet: ask for one, and the picker's answer runs the capture.
+    if (scope === 'region' && !area) {
+      await openPicker(kind);
+      return;
+    }
+    if (kind === 'shot') await takeShot(area);
+    else await startRecording(area);
   }
 
   async function save() {
@@ -542,11 +830,52 @@ export function ScreenCaptureWidget({
         ) : null}
       </div>
 
+      <div className="home-capture-scope" role="group" aria-label={t('How much to capture')}>
+        <button
+          type="button"
+          className={scope === 'target' ? 'is-on' : ''}
+          aria-pressed={scope === 'target'}
+          onClick={() => setScope('target')}
+          disabled={phase !== 'idle'}
+        >
+          {t('Whole target')}
+        </button>
+        <button
+          type="button"
+          className={scope === 'region' ? 'is-on' : ''}
+          aria-pressed={scope === 'region'}
+          onClick={() => setScope('region')}
+          disabled={phase !== 'idle'}
+        >
+          {t('An area')}
+        </button>
+      </div>
+
+      {scope === 'region' ? (
+        <div className="home-capture-area">
+          <span className="home-capture-note">
+            {region
+              ? t('Area {size} — every capture takes this part.', { size: regionLabel(region) })
+              : t('The next capture asks you to drag the area.')}
+          </span>
+          {region ? (
+            <button type="button" className="btn ghost small" onClick={() => setRegion(null)}>
+              {t('Choose another area')}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {scope === 'region' && areaGone ? (
+        <span className="home-capture-note">
+          {t('That area no longer fits the target, so the whole target was captured.')}
+        </span>
+      ) : null}
+
       <div className="home-capture-actions">
         <button
           type="button"
           className="btn primary small"
-          onClick={() => void takeShot()}
+          onClick={() => void capture('shot')}
           disabled={!canShoot}
         >
           <Icon name="camera" size={13} /> {t('Capture still')}
@@ -559,7 +888,7 @@ export function ScreenCaptureWidget({
           <button
             type="button"
             className="btn secondary small"
-            onClick={() => void startRecording()}
+            onClick={() => void capture('clip')}
             disabled={!canRecord}
           >
             <Icon name="record" size={13} /> {t('Record')}
@@ -657,6 +986,17 @@ export function ScreenCaptureWidget({
             ))}
           </ul>
         </>
+      ) : null}
+
+      {pick !== 'idle' && frozen ? (
+        <CaptureRegionPicker
+          imageUrl={frozen.url}
+          source={{ width: frozen.canvas.width, height: frozen.canvas.height }}
+          target={frozen.target}
+          kind={pick}
+          onConfirm={confirmPick}
+          onCancel={cancelPick}
+        />
       ) : null}
     </div>
   );

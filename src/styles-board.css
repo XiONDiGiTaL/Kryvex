@@ -2592,6 +2592,142 @@ body[data-player-bar='1'] .media-dock.is-floating {
   gap: 6px;
 }
 
+/* Whole target or a dragged area. Two segments, the default one held down. */
+.home-capture-scope {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.home-capture-scope button {
+  flex: 1;
+  padding: 5px 8px;
+  border: 0;
+  border-right: 1px solid var(--line-soft);
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 10.5px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.home-capture-scope button:last-child {
+  border-right: 0;
+}
+
+.home-capture-scope button:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.home-capture-scope button.is-on {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--ink);
+}
+
+.home-capture-scope button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.home-capture-area {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* --- the area picker ---------------------------------------------------- */
+
+/*
+ * The modal band: above service windows (30–45) and the Workspace board (25),
+ * below the palette (60) and toasts (70). The card is the only way in, so no
+ * Kryvex dialog is ever open underneath it.
+ */
+.capture-region-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.capture-region-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.capture-region-bar strong {
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 40vw;
+}
+
+.capture-region-size {
+  color: var(--ink-faint);
+  font-size: 10.5px;
+}
+
+/* The frozen frame. Its box is the frame's own size, so a drag maps straight
+   from screen pixels to source pixels through one scale factor. */
+.capture-region-stage {
+  position: relative;
+  line-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #000;
+  box-shadow: 0 18px 60px rgb(0 0 0 / 55%);
+}
+
+.capture-region-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+.capture-region-drag {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* The dimmed band outside the box is the box's own shadow, so the selection is
+   the one bright part of the frame. */
+.capture-region-box {
+  position: absolute;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: 0 0 0 9999px color-mix(in srgb, #000 58%, transparent);
+  pointer-events: none;
+}
+
+.capture-region-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.capture-region-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .home-capture-preview {
   display: flex;
   flex-direction: column;

@@ -28,6 +28,24 @@ mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
+## Latest batch (27 Oct 2026, inside the 0.9.5 line)
+
+The dragged crop region followed in the same 0.9.5 line, and the screen capture
+card now offers **Whole target** (the default, unchanged) or **An area**. The area
+is drawn on a frozen frame — the target is armed, one frame is grabbed, and the
+picker shows that still — so the selection overlay cannot end up inside the
+picture. A still copies the region out of the frozen frame; a recording is
+cropped as it is written, by drawing the target's frames through a canvas the size
+of the area and recording that, with the target's audio carried across. The drag
+is read back in the frame's own pixels, so the region survives a resized window or
+a different monitor scale, and an area the frame cannot hold is reported and
+dropped rather than quietly trimmed. Two bugs surfaced on the way: the first
+frozen frame waited on `requestVideoFrameCallback` for a detached `<video>` and so
+stalled every capture for the full six-second cap, and the still path mistook
+every successful crop for a stale area and forgot it immediately.
+`pnpm verify:capture-window` grew the path and covers it with 37 checks, twice in
+a row.
+
 ## Milestones
 
 - [x] **M0: Environment & safety audit.** Verified storage, git, Node 24.19.0,

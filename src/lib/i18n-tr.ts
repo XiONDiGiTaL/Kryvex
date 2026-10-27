@@ -361,6 +361,23 @@ export const turkishCopy: Record<string, string> = {
   'Recording preview': 'Kayıt önizlemesi',
   'Choose a target…': 'Hedef seç…',
   Screens: 'Ekranlar',
+  // The dragged capture area
+  'How much to capture': 'Ne kadar yakalanacak',
+  'Whole target': 'Tüm hedef',
+  'An area': 'Bir alan',
+  'The next capture asks you to drag the area.': 'Sonraki yakalama alanı sürüklemenizi ister.',
+  'Area {size} — every capture takes this part.': 'Alan {size} — her yakalama bu bölümü alır.',
+  'Choose another area': 'Başka bir alan seç',
+  'That area no longer fits the target, so the whole target was captured.':
+    'Bu alan artık hedefe sığmıyor, bu yüzden hedefin tamamı yakalandı.',
+  'Choose the area to capture': 'Yakalanacak alanı seç',
+  'The target, frozen for selection': 'Hedef, seçim için donduruldu',
+  'Drag across the part you want to capture, then confirm.':
+    'Yakalamak istediğiniz bölümde sürükleyin, sonra onaylayın.',
+  'The area is too small. Drag a larger box.': 'Alan çok küçük. Daha büyük bir kutu sürükleyin.',
+  '{size} selected.': '{size} seçildi.',
+  'Capture this area': 'Bu alanı yakala',
+  'Record this area': 'Bu alanı kaydet',
   'Screen size': 'Ekran boyutu',
   'Countdown date': 'Geri sayım tarihi',
   'Countdown label': 'Geri sayım etiketi',

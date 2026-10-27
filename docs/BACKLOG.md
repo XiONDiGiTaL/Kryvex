@@ -62,3 +62,12 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
   + tests pass. No force-push, no history destruction.
 - No C: writes beyond documented tool caches; keep build artifacts out of git.
 - Never claim an integration, test pass, or measurement without proof.
+
+## Next (asked for, not built yet)
+
+- [x] **Region capture.** A dragged crop rectangle (snipping-tool style) for both
+  stills and recordings, whole target by default: the picker draws on a frozen
+  frame, a still copies the region out of it, and a recording is cropped as it is
+  made through a canvas (`pnpm verify:capture-window`, 37 checks). Open: an area
+  saved against one target size is dropped rather than adjusted when the frame
+  comes back unable to hold it.
