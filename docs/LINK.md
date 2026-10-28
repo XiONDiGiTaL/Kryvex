@@ -118,7 +118,7 @@ door, not an account.
 | `electron/link-server.ts` | HTTP transport: routes, size caps, pairing rate limit, the SSE event stream, static serving of the companion bundle. |
 | `electron/link.ts` | The service: pairing list, clipboard sampling, the transfer folder, remote commands, notifications. |
 | `src/views/Link.tsx` | The desktop page: switch, code, addresses, devices, transfers. |
-| `src/companion/` | The phone page: pairing, clipboard, files, send, remote, and its own four-language string table. Its token and phone name live in the page's `localStorage`; a value found under the older, misspelled key is moved to the current one on first read, so a phone that paired with an earlier build stays paired. |
+| `src/companion/` | The phone page: pairing, clipboard, files, send, remote, and its own five-language string table. Its token and phone name live in the page's `localStorage`; a value found under the older, misspelled key is moved to the current one on first read, so a phone that paired with an earlier build stays paired. |
 | `companion.html` | The second entry in the Vite build. `pnpm build` produces `dist/companion.html` plus its chunk, which is what the link server serves. |
 
 The main process registers `kryvex:link:*` handlers; the preload exposes one

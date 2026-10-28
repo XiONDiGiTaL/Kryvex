@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { clearToken, readName, readToken, writeName, writeToken } from '../src/companion/api';
+import {
+  COMPANION_STRINGS,
+  makeCompanionStrings,
+  pickCompanionLanguage,
+} from '../src/companion/strings';
 
 /**
  * The phone page keeps its pairing token and phone name in `localStorage`,
@@ -114,5 +119,43 @@ describe('the companion keeps a pairing across the corrected key names', () => {
     expect(readName('Phone')).toBe('Phone');
     expect(() => writeToken('x')).not.toThrow();
     expect(() => clearToken()).not.toThrow();
+  });
+});
+
+/**
+ * The phone page has no language setting: it takes the phone's own locale once.
+ * Turkish joins that table, and a language Kryvex does not ship must still land
+ * on English rather than on the nearest prefix.
+ */
+describe('companion languages', () => {
+  it.each([
+    ['tr', 'tr'],
+    ['tr-TR', 'tr'],
+    ['TR-tr', 'tr'],
+    ['es-419', 'es'],
+    ['de-AT', 'de'],
+    ['fr-CA', 'fr'],
+    ['az-Latn', 'en'],
+    ['en-GB', 'en'],
+    ['', 'en'],
+    [undefined, 'en'],
+  ])('maps %s to %s', (tag, expected) => {
+    expect(pickCompanionLanguage(tag as string | undefined)).toBe(expected);
+  });
+
+  it('carries a Turkish string for every key', () => {
+    const missing = Object.entries(COMPANION_STRINGS)
+      .filter(([, byLanguage]) => !(byLanguage as Record<string, string>).tr)
+      .map(([key]) => key);
+    expect(missing).toEqual([]);
+  });
+
+  it('reads as Turkish rather than English fallbacks', () => {
+    const msg = makeCompanionStrings('tr');
+    expect(msg('clipboard')).toBe('Pano');
+    expect(msg('pairingCode')).toBe('Eşleştirme kodu');
+    expect(msg('sendToDesktop')).toBe('Masaüstüne gönder');
+    // A key the table does not carry still renders itself, never blank.
+    expect(makeCompanionStrings('tr')('not a key' as never)).toBe('not a key');
   });
 });
