@@ -7,6 +7,7 @@ import {
   letterFor,
   makeId,
   installedForUrl,
+  openModuleIds,
   partitionFor,
   resolveServicePlacement,
   serviceHost,
@@ -79,6 +80,23 @@ describe('helpers', () => {
     expect(letterFor('Notion')).toBe('N');
     expect(letterFor(' 42 answers ')).toBe('4');
     expect(letterFor('***')).toBe('K');
+  });
+
+  /**
+   * The live module set has no size limit. A cap here is not a memory detail:
+   * the renderer unmounts the frame that left the set, which destroys its
+   * guest, so dropping an id behind the user's back ends a running module.
+   */
+  it('keeps every open module when another one is opened', () => {
+    const eight = Array.from({ length: 8 }, (_, index) => `s-${index + 1}`);
+    const nine = openModuleIds(eight, 's-9');
+    expect(nine).toHaveLength(9);
+    expect(nine[0]).toBe('s-9');
+    expect(nine).toEqual(expect.arrayContaining(eight));
+  });
+
+  it('brings a module that is already open to the front without duplicating it', () => {
+    expect(openModuleIds(['s-1', 's-2', 's-3'], 's-2')).toEqual(['s-2', 's-1', 's-3']);
   });
 
   it('creates unique ids with the requested prefix', () => {

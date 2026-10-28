@@ -48,7 +48,7 @@ import { loadState, saveState, saveStateNow } from './lib/storage';
 import { shouldAutoStartCore } from './lib/vexium-core';
 import { clearWallpaper, importWallpaper, loadWallpaper } from './lib/wallpaper';
 import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
-import { makeId, partitionFor, resolveServicePlacement } from './lib/services';
+import { makeId, openModuleIds, partitionFor, resolveServicePlacement } from './lib/services';
 import { addScreenCapture } from './lib/screen-capture';
 import { SECRET_TOOL_LABELS, isEmbeddableTool } from './lib/secret-tools';
 import { totalUnread, unreadFromTitle, windowTitle } from './lib/unread';
@@ -484,12 +484,22 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [navigate]);
 
+  /**
+   * Opens a module and keeps it mounted for the rest of the session.
+   *
+   * The live set used to be capped at eight, and the ninth open module silently
+   * unmounted the oldest frame. That destroyed its guest behind the user's back:
+   * a chat client keeps its session in page memory and writes it while the page
+   * is being unloaded, so an eviction it never asked for came back as a fresh
+   * visit — and, for a client whose stored token had already been refreshed in
+   * memory, as "please log in again". Modules are no longer evicted to make
+   * room. Only the user's own close and the lifecycle policy end a guest, and
+   * the main process flushes a partition before either happens.
+   */
   const openService = useCallback(
     (service: Service) => {
       setState(current => markOpened(current, service.id));
-      setOpenIds(current =>
-        [service.id, ...current.filter(id => id !== service.id)].slice(0, 8),
-      );
+      setOpenIds(current => openModuleIds(current, service.id));
       navigate(`#/service/${service.id}`);
     },
     [navigate],
@@ -501,7 +511,7 @@ export default function App() {
     setOpenIds(current =>
       current.includes(route.serviceId as string)
         ? current
-        : [route.serviceId as string, ...current].slice(0, 8),
+        : openModuleIds(current, route.serviceId as string),
     );
   }, [route.serviceId]);
 
@@ -531,9 +541,7 @@ export default function App() {
   const openInWorkspace = useCallback(
     (service: Service, at?: { x: number; y: number }) => {
       setState(current => markOpened(current, service.id));
-      setOpenIds(current =>
-        [service.id, ...current.filter(id => id !== service.id)].slice(0, 8),
-      );
+      setOpenIds(current => openModuleIds(current, service.id));
       // Placed, not merely opened: a module the user is already looking at as a
       // float, or has minimized, is brought onto the canvas where it was asked
       // for instead of being left where it was.

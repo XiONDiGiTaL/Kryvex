@@ -67,8 +67,9 @@ function clampFor(kind: WindowKind, rect: FloatRect, bounds: FloatViewport): Flo
  *
  * This is what makes "bring to front" safe: the raised window is put above the
  * others first, then every window is rewritten as 30, 31, 32… so the total can
- * never drift past the modals. `openIds` caps the live set at eight, so the band
- * is never exhausted in practice.
+ * never drift past the modals. The live module set has no cap, but only the
+ * windows a user actually placed on the board take a slot in the band, so it
+ * stays well inside its range.
  */
 function renumber(map: WindowMap): WindowMap {
   const ordered = Object.entries(map).sort((a, b) => a[1].z - b[1].z);

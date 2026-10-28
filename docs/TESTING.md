@@ -296,6 +296,13 @@ verified on Windows with Node 24.19.0, Electron 44.2.0 and pnpm 12.3.4 from
 - **Keep-alive:** after opening the fixture service, switching to Services,
   waiting 1.5 s and returning, the guest's `window.__marker` is identical, its
   interval advanced from 1 to 16 ticks while hidden, and its cookie is intact.
+- **No eviction:** the profile seeds nine fixture modules and visits all nine.
+  The stage must hold nine frames, and the first module's `window.__marker` and
+  its `localStorage` token must be unchanged afterwards. With the old
+  `.slice(0, 8)` cap restored, this step reports `open modules: 8` and fails, so
+  the check cannot pass while a module is being dropped behind the user's back.
+- **Page storage:** the fixture writes a token to `localStorage` on load; it is
+  read back after the view change, after the nine opens, and after the restart.
 - **Exact layout:** `.service-frame` equals `.app-main` (1192×824 at 1440×900),
   the toolbar is 53 px, the guest is 1192×770, and `.app-main` reports
   `overflow: hidden`.

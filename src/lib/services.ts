@@ -59,6 +59,22 @@ export function letterFor(name: string): string {
   return (cleaned.charAt(0) || 'K').toUpperCase();
 }
 
+/**
+ * The live module set after opening `id`.
+ *
+ * Opening a module brings it to the front and keeps every module already in
+ * the set. There used to be a hard cap of eight here, and the ninth open
+ * module silently unmounted the oldest frame — which ends its guest without
+ * anyone asking. A chat client keeps its session in page memory and writes it
+ * while the page unloads, so that eviction came back as a fresh visit and, once
+ * the in-memory token had been refreshed, as "please log in again". A module
+ * now leaves the set only when the user closes it or a lifecycle policy stops
+ * it; both of those flush the partition first.
+ */
+export function openModuleIds(current: readonly string[], id: string): string[] {
+  return [id, ...current.filter(openId => openId !== id)];
+}
+
 export interface ServiceInput {
   name: string;
   url: string;

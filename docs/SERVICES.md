@@ -277,8 +277,24 @@ being bypassed.
 
 ## Discord specifically
 
-Kryvex can fix the client-side reasons a chat session ends, and it does. If
-Discord still asks to log in again:
+Kryvex can fix the client-side reasons a chat session ends, and it does. Two of
+those reasons were Kryvex's own and are now gone.
+
+**The live set was capped at eight.** Opening a ninth module dropped the oldest
+id from `openIds`, the renderer unmounted that frame and the guest behind it was
+destroyed without anyone asking. Discord keeps its session in page memory and
+writes it while the page unloads, so an eviction it never requested came back as
+a fresh visit — and once the in-memory token had been refreshed, as *Please log
+in again*. Opening a module now keeps every module already open, through one
+rule for all three entry points (`openModuleIds` in `src/lib/services.ts`); only
+the user's own close and a lifecycle policy end a guest.
+
+**Nothing wrote page storage to disk on teardown.** Only cookies were flushed,
+and only at quit. `session.flushStorageData()` now runs before any guest is
+closed and again for every service partition on quit, so a token the page saved
+seconds earlier is on disk rather than lost with its renderer.
+
+If Discord still asks to log in again after that:
 
 - sign in once inside the module, using its own **Log in** button, and complete
   any popup/2FA step there;
@@ -297,8 +313,12 @@ not shipped.
 `scripts/verify-service-engine.cjs` drives the built app against a loopback web
 app and asserts:
 
-- the guest keeps its marker, cookie and running timer across a view change;
-- the persistent partition still holds its cookie after a full restart;
+- the guest keeps its marker, cookie, page storage and running timer across a
+  view change;
+- nine modules opened in a row all stay mounted, and the first one's guest is
+  still the same guest afterwards;
+- the persistent partition still holds its cookie and its page storage after a
+  full restart;
 - a service gets `granted` notification permission and a browser tab gets
   `denied`;
 - an auth popup opens on the same session and sees the same cookie;

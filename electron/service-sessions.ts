@@ -187,12 +187,41 @@ class ServiceSessionManager {
     }
   }
 
+  /** The session behind a partition, or null when it cannot be resolved. */
+  private sessionFor(partition: string): Session | null {
+    try {
+      return session.fromPartition(partition);
+    } catch {
+      return null;
+    }
+  }
+
   /**
-   * Chromium only writes partition cookie stores on its own schedule, and an
-   * Electron app that quits does not always get the final flush. Without this,
-   * every module the user signed into during the last minute of a session asks
-   * for a fresh sign-in on the next launch. Called once from before-quit, with
-   * a timeout so a wedged store can never hold the app open.
+   * Writes one partition's pending page storage and cookies to disk.
+   *
+   * Both stores are written by Chromium on its own schedule, so anything a page
+   * saved in the last few seconds is still only in the browser process when the
+   * guest goes away. That matters most for a chat client: its auth token lives
+   * in page storage, and a token refreshed in memory but never written is the
+   * difference between reopening the module and being asked to sign in again.
+   * Called before every orderly teardown and once more on quit.
+   */
+  private flushPartition(target: Session): Promise<void> {
+    try {
+      // Page storage (localStorage) is written synchronously by this call.
+      target.flushStorageData();
+    } catch {
+      /* a store that is already closed has nothing left to write */
+    }
+    return target.cookies.flushStore().catch(() => undefined);
+  }
+
+  /**
+   * Chromium only writes partition cookie and page stores on its own schedule,
+   * and an Electron app that quits does not always get the final flush. Without
+   * this, every module the user signed into during the last minute of a session
+   * asks for a fresh sign-in on the next launch. Called once from before-quit,
+   * with a timeout so a wedged store can never hold the app open.
    */
   async flush(): Promise<void> {
     const targets: Session[] = [session.defaultSession];
@@ -203,9 +232,7 @@ class ServiceSessionManager {
         /* a partition that vanished has nothing left to write */
       }
     }
-    await Promise.all(
-      targets.map(target => target.cookies.flushStore().catch(() => undefined)),
-    );
+    await Promise.all(targets.map(target => this.flushPartition(target)));
   }
 
   isServiceSession(ses: Session | null | undefined): boolean {
@@ -241,6 +268,11 @@ class ServiceSessionManager {
    */
   stop(partition: unknown): number {
     if (!isServicePartition(partition)) return 0;
+    // Flush before the guests go: a page that never got its unload handlers has
+    // still handed everything it saved to the browser process, and this is what
+    // puts it on disk instead of losing it with the renderer.
+    const target = this.sessionFor(partition);
+    if (target) void this.flushPartition(target);
     let stopped = 0;
     for (const contents of webContents.getAllWebContents()) {
       try {

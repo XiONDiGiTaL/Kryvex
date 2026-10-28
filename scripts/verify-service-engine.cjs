@@ -3,9 +3,11 @@
  * End-to-end check for the persistent service engine.
  *
  * Proves, against the real Electron app and a loopback web app, that:
- *  - a service keeps the same guest, cookies and running timers while the user
- *    works in another view;
- *  - the persistent partition survives an app restart;
+ *  - a service keeps the same guest, cookies, page storage and running timers
+ *    while the user works in another view;
+ *  - opening more modules never evicts one that is already running;
+ *  - the persistent partition survives an app restart, cookies and storage
+ *    alike;
  *  - installed services receive desktop-notification permission, browser tabs
  *    do not;
  *  - auth popups open on the same service session;
@@ -36,6 +38,13 @@ const PAGE = `<!doctype html>
   window.__ticks = 0;
   window.__marker = Math.random().toString(36).slice(2);
   setInterval(() => { window.__ticks += 1; }, 100);
+  // A chat client keeps its session token in page storage, not only in a
+  // cookie. The harness reads this back after a view change, after eight more
+  // modules open, and after a restart: any of those losing it is the same
+  // failure a user sees as "please log in again".
+  try {
+    if (!localStorage.getItem('kx-token')) localStorage.setItem('kx-token', window.__marker);
+  } catch (error) { /* storage is unavailable on this profile */ }
   window.__notify = async () => {
     const permission = await Notification.requestPermission();
     try { new Notification('Kryvex service test', { body: 'hello' }); } catch (error) { return permission + ':' + error.name; }
@@ -77,22 +86,25 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 function seedState() {
   const dir = path.join(profile, 'Kryvex');
   fs.mkdirSync(dir, { recursive: true });
+  // Nine modules, because the live set used to be capped at eight: opening the
+  // ninth silently unmounted the oldest frame and destroyed its guest. The
+  // fixture is cheap enough to keep all nine loaded at once.
+  const ids = ['s-verify'];
+  for (let index = 2; index <= 9; index += 1) ids.push(`s-v${index}`);
   fs.writeFileSync(
     path.join(dir, 'kryvex-state.json'),
     JSON.stringify({
       version: 1,
-      services: [
-        {
-          id: 's-verify',
-          name: 'Fixture',
-          url: `${origin}/`,
-          category: 'communication',
-          color: '#38BDF8',
-          letter: 'F',
-          pinned: true,
-          createdAt: 1,
-        },
-      ],
+      services: ids.map((id, index) => ({
+        id,
+        name: index === 0 ? 'Fixture' : `Fixture ${index + 1}`,
+        url: `${origin}/`,
+        category: 'communication',
+        color: '#38BDF8',
+        letter: index === 0 ? 'F' : String(index + 1),
+        pinned: index === 0,
+        createdAt: index + 1,
+      })),
       bookmarks: [],
       history: [],
       settings: { themeId: 'kryvex-dark' },
@@ -296,6 +308,12 @@ seedState();
     assert(laterTicks > hiddenTicks + 5, 'the hidden service stopped running.');
     assert(after.ticks >= laterTicks, 'the service counter went backwards after switching views.');
     assert(after.cookie.includes('kx=session-ok'), 'the cookie was lost while switching views.');
+    const storedToken = await cdp.evaluate(guest(`localStorage.getItem('kx-token')`));
+    console.log('page storage after view change:', JSON.stringify(storedToken));
+    assert(
+      storedToken === first.marker,
+      'the page storage a module saved was lost while switching views.',
+    );
 
     await cdp.evaluate(guest(`document.title = '(7) Fixture'`));
     const badge = await waitFor(
@@ -345,6 +363,39 @@ seedState();
     assert(browserPermission === 'denied', 'a throwaway browser tab received notification permission.');
 
     popupCdp.close();
+
+    // Nine modules used to be one too many. The live set was capped at eight and
+    // the ninth open module unmounted the oldest frame behind the user's back,
+    // which ends its guest: for a chat client that writes its session while the
+    // page unloads, that is a sign-in lost without anyone asking for one.
+    for (const id of ['s-v2', 's-v3', 's-v4', 's-v5', 's-v6', 's-v7', 's-v8', 's-v9']) {
+      await cdp.evaluate(`location.hash = '#/service/${id}'; true`);
+      await waitFor(
+        cdp.evaluate,
+        `Boolean(document.querySelector('.service-frame[data-service="${id}"].is-active webview'))`,
+        `${id} frame`,
+      );
+    }
+    await sleep(800);
+    const frames = await cdp.evaluate(`document.querySelectorAll('.service-frame').length`);
+    console.log('open modules:', frames);
+    assert(frames === 9, `the stage held ${frames} frames after nine modules were opened, not 9.`);
+    await cdp.evaluate(`location.hash = '#/service/s-verify'; true`);
+    const firstStill = await waitFor(
+      cdp.evaluate,
+      guest(`({ marker: window.__marker, token: localStorage.getItem('kx-token') })`),
+      'first module after nine opens',
+    );
+    console.log('first module after nine opens:', JSON.stringify(firstStill));
+    assert(
+      firstStill.marker === first.marker,
+      'opening later modules destroyed the guest of one that was already open.',
+    );
+    assert(
+      firstStill.token === first.marker,
+      'page storage was lost when more modules were opened.',
+    );
+
     await closeWindow(cdp);
 
     // The partition must survive a full process restart, not just a view change.
@@ -356,6 +407,12 @@ seedState();
     const restored = await waitFor(cdp.evaluate, guest('document.cookie'), 'restored cookie');
     console.log('cookie after restart:', JSON.stringify(restored));
     assert(String(restored).includes('kx=session-ok'), 'the session did not survive an app restart.');
+    const restoredToken = await cdp.evaluate(guest(`localStorage.getItem('kx-token')`));
+    console.log('page storage after restart:', JSON.stringify(restoredToken));
+    assert(
+      restoredToken === first.marker,
+      'the page storage a module saved did not survive an app restart.',
+    );
 
     const openedDialog = await cdp.evaluate(
       `(() => { const button = document.querySelector('.service-frame.is-active [aria-label="Clear this session"]'); if (!button) return false; button.click(); return true; })()`,
