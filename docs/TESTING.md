@@ -3327,6 +3327,13 @@ Run 40778782880 is **success** on every job — the Windows build and the shell,
 rooms, tools, services and browser harness batches — against 44 in-house checks
 and 35 placement checks on this machine.
 
+Run 40779375317, a docs-only push, then went red in a different batch:
+`verify:restart` looked for the state file after a fixed 700 ms pause and found
+none on the runner. The save is debounced, so the step waits for the file that
+carries the chosen theme and start view now — 50 polls of 200 ms — rather than
+for a duration; it still fails if the write never happens. That is a race the
+harness had, not the app: the same push changed no code.
+
 ### What is still not covered
 
 - **The rest of the Electron harnesses.** `package.json` also holds

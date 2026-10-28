@@ -170,10 +170,26 @@ fixture.listen(8123, '127.0.0.1');
       select.dispatchEvent(new Event('change', { bubbles: true }));
       return true;
     })()`);
-    await sleep(700);
-
-    const stateFile = findState(path.join(profile, 'Kryvex'));
-    if (!stateFile) throw new Error('State file was not written.');
+    // The save is debounced, so a fixed pause is a race against the disk on a
+    // slow runner: wait for the file that carries the choice rather than for a
+    // duration, which is what the check actually needs.
+    let stateFile = null;
+    let pending = null;
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      stateFile = findState(path.join(profile, 'Kryvex'));
+      if (stateFile) {
+        try {
+          pending = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+          if (pending.settings?.themeId === 'kryvex-light' && pending.settings?.startView === 'services') {
+            break;
+          }
+        } catch {
+          /* the write may be mid-flight */
+        }
+      }
+      await sleep(200);
+    }
+    if (!stateFile || !pending) throw new Error('State file was not written.');
     const saved = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
     console.log(
       'state before restart:',
