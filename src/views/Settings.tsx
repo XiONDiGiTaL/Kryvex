@@ -1544,6 +1544,7 @@ export function Settings({
             runtimeReady={Boolean(model?.binaryFound)}
             runtimeBundled={Boolean(model?.bundled)}
             runningPath={model?.phase === 'running' ? model.path : ''}
+            selectedPath={model?.path ?? ''}
             onUse={path => void configureModel({ path })}
             onStartCore={path => startModel(path, true)}
           />

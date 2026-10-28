@@ -32,7 +32,13 @@ import {
   flycastCoreZip,
   flycastFailureKey,
 } from '../lib/flycast';
-import type { FlycastStatus, RetroarchStatus } from '../types';
+import { biosFiles, gameFiles } from '../lib/emulator-folders';
+import type {
+  EmulatorLibraryFile,
+  EmulatorLibraryListing,
+  FlycastStatus,
+  RetroarchStatus,
+} from '../types';
 import { retroarchFailureKey } from '../lib/retroarch';
 
 /** The desktop bridge, resolved once: the web build has no engine installer. */
@@ -148,6 +154,12 @@ export function Emulator({
   const biosInput = useRef<HTMLInputElement | null>(null);
   const stateInput = useRef<HTMLInputElement | null>(null);
   const [rom, setRom] = useState<LoadedRom | null>(null);
+  // The two folders the desktop app can list. A folder is remembered by the
+  // main process, so this holds only what the panel shows.
+  const [romFolder, setRomFolder] = useState<EmulatorLibraryListing | null>(null);
+  const [biosFolder, setBiosFolder] = useState<EmulatorLibraryListing | null>(null);
+  const [libraryBusy, setLibraryBusy] = useState(false);
+  const [gamesOpen, setGamesOpen] = useState(false);
   const [bios, setBios] = useState<BiosFile | null>(null);
   const [hostReady, setHostReady] = useState(false);
   const [hostKey, setHostKey] = useState(0);
@@ -171,6 +183,18 @@ export function Emulator({
   const experimental = settings.experimentalEngine;
   const engineOptions = useMemo(() => ({ flycast: experimental }), [experimental]);
   const systems = useMemo(() => offeredSystems(engineOptions), [engineOptions]);
+  // A picked folder is listed once and classified here, so scrolling the list
+  // does not touch the disk again.
+  const folderGames = useMemo(
+    () => (romFolder?.ok ? gameFiles(romFolder.files, engineOptions) : []),
+    [romFolder, engineOptions],
+  );
+  const folderBios = useMemo(
+    () => (biosFolder?.ok ? biosFiles(biosFolder.files, settings.system) : []),
+    [biosFolder, settings.system],
+  );
+  // The browser build has no bridge, and says so instead of a dead button.
+  const pickableFolders = Boolean(bridge?.emulatorPickFolder);
   const [engine, setEngine] = useState<FlycastStatus | null>(null);
   const [engineBusy, setEngineBusy] = useState(false);
   // The packed core, once its files have been verified and read: 10.4 MB that
@@ -939,6 +963,69 @@ export function Emulator({
     });
   }
 
+  /** Opens the native folder picker, then lists what the folder holds. */
+  async function pickFolder(kind: 'roms' | 'bios') {
+    const api = bridge?.emulatorPickFolder;
+    if (!api) {
+      onToast(t('Folders are available in the desktop app.'), 'warning');
+      return;
+    }
+    setLibraryBusy(true);
+    try {
+      const listing = await api(kind);
+      if (!listing) return;
+      if (!listing.ok && listing.code === 'cancelled') return;
+      if (kind === 'roms') {
+        setRomFolder(listing);
+        setGamesOpen(true);
+      } else {
+        setBiosFolder(listing);
+      }
+    } catch {
+      onToast(t('That folder could not be read.'), 'danger');
+    } finally {
+      setLibraryBusy(false);
+    }
+  }
+
+  /**
+   * Loads one listed file.
+   *
+   * The bytes come back through the bridge, which only reads inside a folder
+   * that was picked; the resulting `File` then goes through exactly the same
+   * validation, header sniffing and choice as a file dropped on the slot.
+   */
+  async function loadListedFile(file: EmulatorLibraryFile, kind: 'roms' | 'bios') {
+    const api = bridge?.emulatorReadFile;
+    if (!api) return;
+    setLibraryBusy(true);
+    try {
+      const read = await api(file.path);
+      if (!read?.ok || !read.bytes) {
+        onToast(
+          t(
+            read?.code === 'too-large'
+              ? 'That file is too large to open here.'
+              : 'That file could not be read.',
+          ),
+          'danger',
+        );
+        return;
+      }
+      // A copy, so the `File` owns an `ArrayBuffer` rather than a view over one
+      // the IPC layer may reuse.
+      const copy = new Uint8Array(read.bytes.byteLength);
+      copy.set(read.bytes);
+      const blob = new File([copy], file.name);
+      if (kind === 'roms') await acceptRom(blob);
+      else await acceptBios(blob);
+    } catch {
+      onToast(t('That file could not be read.'), 'danger');
+    } finally {
+      setLibraryBusy(false);
+    }
+  }
+
   async function acceptBios(file: File | undefined) {
     if (!file) return;
     if (file.size > 8 * 1024 * 1024) {
@@ -1281,6 +1368,100 @@ export function Emulator({
               }}
               aria-label={t('Choose a BIOS file')}
             />
+          </div>
+
+          {/*
+            A folder is the workflow a collection actually has: the emulator
+            lists what is there and loads it, instead of opening a file dialog
+            for every game. The main process only ever lists and reads inside a
+            folder the user picked in a native dialog.
+          */}
+          <div className="emulator-library">
+            <span className="mono emulator-side-label">{t('FOLDERS')}</span>
+            <div className="emulator-folder-row">
+              <button
+                className="btn ghost small"
+                disabled={libraryBusy || !pickableFolders}
+                onClick={() => void pickFolder('roms')}
+                title={pickableFolders ? undefined : t('Folders are available in the desktop app.')}
+              >
+                <Icon name="folder" size={13} />
+                {romFolder?.folder ? romFolder.folder : t('Games folder')}
+              </button>
+              {folderGames.length > 0 ? (
+                <button
+                  className="link mono emulator-folder-count"
+                  onClick={() => setGamesOpen(value => !value)}
+                  aria-expanded={gamesOpen}
+                >
+                  {t('{count} games', { count: folderGames.length })}
+                </button>
+              ) : null}
+            </div>
+            {gamesOpen && folderGames.length > 0 ? (
+              <ul className="emulator-folder-list" aria-label={t('Games in this folder')}>
+                {folderGames.slice(0, 60).map(item => (
+                  <li key={item.file.path}>
+                    <button
+                      className="emulator-folder-item"
+                      disabled={libraryBusy}
+                      onClick={() => void loadListedFile(item.file, 'roms')}
+                      title={item.file.name}
+                    >
+                      <span className="emulator-folder-name">{item.file.name}</span>
+                      <span className="mono emulator-folder-system">{systemLabel(item.system)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {romFolder?.truncated ? (
+              <p className="mono emulator-folder-note">
+                {t('The list stops at {count} files; the rest are still on disk.', {
+                  count: 4000,
+                })}
+              </p>
+            ) : null}
+
+            <div className="emulator-folder-row">
+              <button
+                className="btn ghost small"
+                disabled={libraryBusy || !pickableFolders}
+                onClick={() => void pickFolder('bios')}
+              >
+                <Icon name="folder" size={13} />
+                {biosFolder?.folder ? biosFolder.folder : t('BIOS folder')}
+              </button>
+            </div>
+            {folderBios.length > 0 ? (
+              <ul className="emulator-folder-list" aria-label={t('BIOS files in this folder')}>
+                {folderBios.map(file => (
+                  <li key={file.path}>
+                    <button
+                      className="emulator-folder-item"
+                      disabled={libraryBusy}
+                      onClick={() => void loadListedFile(file, 'bios')}
+                      title={file.name}
+                    >
+                      {/* The panel is already labelled, and "BIOS" is the same
+                          word in every locale. The size is what helps: it is
+                          how a truncated dump is spotted before loading it. */}
+                      <span className="emulator-folder-name">{file.name}</span>
+                      <span className="mono emulator-folder-system">
+                        {Math.max(1, Math.round(file.size / 1024))} KB
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : biosFolder?.ok ? (
+              <p className="mono emulator-folder-note">
+                {t('No BIOS file this console reads was found in that folder.')}
+              </p>
+            ) : null}
+            <p className="mono emulator-folder-note">
+              {t('Kryvex lists what is in the folder; nothing is copied or uploaded.')}
+            </p>
           </div>
 
           {/* The second engine is opt-in and visibly separate: its formats are

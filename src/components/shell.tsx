@@ -12,8 +12,11 @@ import { SECRET_TOOL_LABELS } from '../lib/secret-tools';
 import {
   SERVICE_DRAG_TYPE,
   TOOL_DRAG_TYPE,
+  VIEW_DRAG_TYPE,
   isServiceDrag,
   readServiceDrag,
+  readToolDrag,
+  readViewDrag,
   requestServiceDropEffect,
 } from '../lib/service-drag';
 import { dropAnchor } from '../lib/store';
@@ -199,6 +202,7 @@ export function Sidebar({
   onServiceMenu,
   onReorderPinned,
   onPinService,
+  onDropWindow,
 }: {
   state: PersistedState;
   routeView: ViewId;
@@ -219,6 +223,15 @@ export function Sidebar({
   onReorderPinned?: (id: string, beforeId: string | null) => void;
   /** A service card dragged in from the Services page. */
   onPinService?: (id: string) => void;
+  /**
+   * A built-in tool or a view dropped on the Workspace entry.
+   *
+   * The canvas only exists on the Workspace route, so a card on another page
+   * had nowhere to land: the drag started and the drop never happened. The
+   * sidebar is on screen everywhere, so the Workspace entry is the reachable
+   * target — dropping there opens the window and goes to the canvas.
+   */
+  onDropWindow?: (payload: { kind: 'tool' | 'view'; id: string }) => void;
 }) {
   const t = useT();
   const pinned = state.services.filter(service => service.pinned);
@@ -249,8 +262,48 @@ export function Sidebar({
             key={item.id}
             className={`nav-item ${routeView === item.id ? 'is-active' : ''}`}
             onClick={() => onNavigate(item.id)}
+            data-nav={item.id}
             aria-current={routeView === item.id ? 'page' : undefined}
             title={collapsed ? t(item.label) : undefined}
+            // Rooms is the one destination that can also be a window, so it is
+            // the one nav entry that carries a payload: drag it onto the
+            // Workspace canvas and the room opens in a frame there. The sidebar
+            // is on screen from the canvas, which is what makes the gesture
+            // possible at all — the Rooms route is not.
+            onDragOver={
+              item.id === 'workspace' && onDropWindow
+                ? event => {
+                    const transfer = event.dataTransfer;
+                    const isTool = Array.from(transfer.types).includes(TOOL_DRAG_TYPE);
+                    const isView = Array.from(transfer.types).includes(VIEW_DRAG_TYPE);
+                    if (!isTool && !isView) return;
+                    event.preventDefault();
+                    requestServiceDropEffect(transfer);
+                  }
+                : undefined
+            }
+            onDrop={
+              item.id === 'workspace' && onDropWindow
+                ? event => {
+                    const transfer = event.dataTransfer;
+                    const tool = readToolDrag(transfer);
+                    const view = tool ? null : readViewDrag(transfer);
+                    if (!tool && !view) return;
+                    event.preventDefault();
+                    onDropWindow(tool ? { kind: 'tool', id: tool } : { kind: 'view', id: view! });
+                  }
+                : undefined
+            }
+            draggable={item.id === 'rooms'}
+            onDragStart={
+              item.id === 'rooms'
+                ? event => {
+                    event.dataTransfer.effectAllowed = 'copy';
+                    event.dataTransfer.setData('text/plain', 'rooms');
+                    event.dataTransfer.setData(VIEW_DRAG_TYPE, 'rooms');
+                  }
+                : undefined
+            }
           >
             <span className="nav-icon">
               <Icon name={item.icon} size={17} />

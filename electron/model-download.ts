@@ -132,8 +132,16 @@ class ModelManager {
     }
   }
 
+  /**
+   * The catalogue as the panel sees it: each entry carries the URL it will
+   * actually be fetched from, so the card can name the right host (two of the
+   * three artifacts are GitHub release assets, not Hugging Face files).
+   */
   catalogue(): CatalogueEntry[] {
-    return MODEL_CATALOGUE.filter(entry => validateCatalogueEntry(entry).length === 0);
+    return MODEL_CATALOGUE.filter(entry => validateCatalogueEntry(entry).length === 0).map(entry => ({
+      ...entry,
+      sourceUrl: catalogueUrl(entry),
+    }));
   }
 
   installed(): InstalledRow[] {

@@ -184,6 +184,100 @@
 }
 
 /*
+ * The picked folders.
+ *
+ * A collection is a list, so the list is what the sidebar shows: two folder
+ * buttons and, under them, the games the folder actually holds. It scrolls on
+ * its own rather than pushing the console list off the panel.
+ */
+.emulator-library {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.emulator-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.emulator-folder-row .btn {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emulator-folder-count {
+  color: var(--accent);
+  font-size: 9.5px;
+}
+
+.emulator-folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  max-height: 190px;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.emulator-folder-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  color: var(--ink);
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.emulator-folder-item:hover,
+.emulator-folder-item:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.emulator-folder-item:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.emulator-folder-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emulator-folder-system {
+  flex: none;
+  color: var(--ink-faint);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+}
+
+.emulator-folder-note {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+/*
  * The second engine's panel.
  *
  * It sits under the BIOS block and reads as an opt-in, not as another console:

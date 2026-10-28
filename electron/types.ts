@@ -398,3 +398,8 @@ export type RetroarchCoreState = import('./retroarch').RetroarchCoreState;
 export type RetroarchSession = import('./retroarch').RetroarchSession;
 export type RetroarchStartInput = import('./retroarch').RetroarchStartInput;
 
+/** The emulator's picked folders: what is listed, and one file's bytes. */
+export type EmulatorLibraryListing = import('./emulator-library').LibraryListing;
+export type EmulatorLibraryRead = import('./emulator-library').LibraryRead;
+export type EmulatorLibraryFile = import('./emulator-library').LibraryFile;
+

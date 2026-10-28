@@ -7,6 +7,7 @@
  * reads the id only on drop.
  */
 import { isSecretToolId } from './secret-tools';
+import { isViewWindowId, type ViewWindowId } from './tool-windows';
 import type { SecretToolId } from '../types';
 
 export const SERVICE_DRAG_TYPE = 'application/x-kryvex-service';
@@ -31,6 +32,27 @@ export function readToolDrag(transfer: DataTransfer | null): SecretToolId | null
   if (!transfer) return null;
   const tool = transfer.getData(TOOL_DRAG_TYPE);
   return isSecretToolId(tool) ? tool : null;
+}
+
+/**
+ * A built-in view (today: Rooms) dragged out of its own route.
+ *
+ * A view is neither a service nor a tool: it has no URL, no partition and no
+ * card on the Services page. It needed its own type because the canvas has to
+ * tell a room dropped from the Rooms header apart from a pinned service.
+ */
+export const VIEW_DRAG_TYPE = 'application/x-kryvex-view';
+
+export function isViewDrag(transfer: DataTransfer | null): boolean {
+  if (!transfer) return false;
+  return Array.from(transfer.types).includes(VIEW_DRAG_TYPE);
+}
+
+/** The view a drag carries, or null when this build does not know it. */
+export function readViewDrag(transfer: DataTransfer | null): ViewWindowId | null {
+  if (!transfer) return null;
+  const view = transfer.getData(VIEW_DRAG_TYPE);
+  return isViewWindowId(view) ? view : null;
 }
 
 export function isServiceDrag(transfer: DataTransfer | null): boolean {

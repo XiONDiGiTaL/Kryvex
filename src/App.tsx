@@ -1509,6 +1509,29 @@ export default function App() {
           setState(current => moveService(current, id, beforeId))
         }
         onPinService={pinServiceById}
+        onDropWindow={payload => {
+          // A tool with a single session still opens in its own view, exactly
+          // as the canvas drop does; the note explains it there.
+          if (payload.kind === 'view') {
+            setWindows(current =>
+              placeOnCanvas(current, viewWindowId(ROOMS_VIEW), windowSpace()),
+            );
+            navigate('workspace');
+            return;
+          }
+          const tool = payload.id as SecretToolId;
+          if (isEmbeddableTool(tool)) {
+            openToolInWorkspace(tool);
+            return;
+          }
+          pushToast(
+            t('{name} keeps one session, so it opens in its own view instead of a second copy.', {
+              name: t(SECRET_TOOL_LABELS[tool]),
+            }),
+            'info',
+          );
+          openSecretTool(tool);
+        }}
       />
 
       <main className={`app-main ${activeService ? 'is-service' : ''}`}>
@@ -1554,6 +1577,15 @@ export default function App() {
           onClose={closeToolWindow}
           onMinimize={minimizeServiceWindow}
           onMaximize={maximizeServiceWindow}
+          onDockView={view => {
+            // Docking from the window itself also goes to the view it returns
+            // to: the window can be closed from any route, and dropping the
+            // reader on a blank Workspace would look like the room was lost.
+            if (view === ROOMS_VIEW) {
+              dockRooms();
+              navigate('rooms');
+            }
+          }}
           renderView={() => (
             <Rooms
               settings={state.settings.party}
@@ -1709,6 +1741,11 @@ export default function App() {
             onDropService={(id, at) => {
               const service = state.services.find(item => item.id === id);
               if (service) openInWorkspace(service, at);
+            }}
+            onDropView={(view, at) => {
+              // A view dropped from its own header lands as a window on this
+              // canvas, which is the same record a click-to-pop-out creates.
+              setWindows(current => placeOnCanvas(current, viewWindowId(view), windowSpace(), at));
             }}
             onDropTool={(tool, at) => {
               // The three tools that are a plain view open in a window. The rest

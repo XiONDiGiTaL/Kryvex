@@ -10,6 +10,7 @@ import {
   formatInvite,
   initials,
   isRoomId,
+  monitorShareByDefault,
   newRoomId,
   normalizeRoomId,
   parseInvite,
@@ -215,5 +216,22 @@ describe('persisted Rooms settings', () => {
     expect(makeI18n('de').t('Start a room')).toBe('Raum erstellen');
     expect(makeI18n('fr').t('Share something')).toBe('Partager quelque chose');
     expect(makeI18n('fr').t('WebRTC')).toBe('WebRTC');
+  });
+});
+
+describe('hearing your own share', () => {
+  it('monitors an app capture, because Chromium mutes the captured app', () => {
+    expect(monitorShareByDefault(true, true)).toBe(true);
+  });
+
+  it('leaves a screen capture alone, because the sharer already hears it', () => {
+    // Monitoring a system mix plays every sound twice, a few hundred
+    // milliseconds apart: the doubling that was reported.
+    expect(monitorShareByDefault(false, true)).toBe(false);
+  });
+
+  it('never monitors a capture with no audio track', () => {
+    expect(monitorShareByDefault(true, false)).toBe(false);
+    expect(monitorShareByDefault(false, false)).toBe(false);
   });
 });

@@ -339,6 +339,8 @@ export interface ModelCatalogueEntry {
   repository: string;
   revision: string;
   filename: string;
+  /** The URL the artifact is fetched from; the card names its host from this. */
+  sourceUrl?: string;
   bytes: number;
   sha256: string;
   licence: string;
@@ -352,6 +354,7 @@ export interface ModelCatalogueEntry {
   memory: ModelMemoryEstimate;
   commercialUse: boolean;
 }
+
 
 export interface ModelInstalledRow {
   id: string;
@@ -779,6 +782,11 @@ export type RetroarchFailure = import('../electron/types').RetroarchFailure;
 export type RetroarchCoreState = import('../electron/types').RetroarchCoreState;
 export type RetroarchSession = import('../electron/types').RetroarchSession;
 export type RetroarchStartInput = import('../electron/types').RetroarchStartInput;
+
+/** The emulator's picked folders: what is listed, and one file's bytes. */
+export type EmulatorLibraryListing = import('../electron/types').EmulatorLibraryListing;
+export type EmulatorLibraryRead = import('../electron/types').EmulatorLibraryRead;
+export type EmulatorLibraryFile = import('../electron/types').EmulatorLibraryFile;
 
 /** Lexium: the in-house translator, transcriber and OCR reader. */
 export interface LexiumSettings {
@@ -1364,6 +1372,23 @@ export interface KryvexBridge {
     input: import('../electron/types').RetroarchStartInput,
   ) => Promise<import('../electron/types').RetroarchStatus | null>;
   retroarchStop: () => Promise<import('../electron/types').RetroarchStatus | null>;
+  /**
+   * The emulator's cartridge and BIOS folders.
+   *
+   * A folder is remembered in the main process after a native dialog; the
+   * renderer sees file names and sizes, and reads one back by path only through
+   * `emulatorReadFile`, which refuses anything outside a folder that was picked.
+   * The web build has none of these, which the panel reads as "desktop only".
+   */
+  emulatorFolder: (
+    kind: 'roms' | 'bios',
+  ) => Promise<import('../electron/types').EmulatorLibraryListing | null>;
+  emulatorPickFolder: (
+    kind: 'roms' | 'bios',
+  ) => Promise<import('../electron/types').EmulatorLibraryListing | null>;
+  emulatorReadFile: (
+    path: string,
+  ) => Promise<import('../electron/types').EmulatorLibraryRead | null>;
   resourcesSample: (
     services: Array<{ id: string; url: string }>,
   ) => Promise<ResourceSnapshot | null>;

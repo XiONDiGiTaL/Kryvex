@@ -1702,6 +1702,27 @@ body[data-player-bar='1'] .app-main {
   padding: 12px 14px;
 }
 
+/* The one the runtime is handed leads the panel and says so twice: the card
+   carries an accent edge, the state line replaces "installed". */
+.model-card.is-in-use {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.model-state.is-in-use {
+  color: var(--accent);
+}
+
+.model-source-kind {
+  opacity: 0.7;
+}
+
+/* The folded stack sits inside the panel, so it keeps the panel's rhythm
+   rather than the settings page's larger spacing. */
+.model-others.settings-subblock {
+  margin: 0;
+}
+
 .model-card-head {
   display: flex;
   align-items: flex-start;
@@ -1727,6 +1748,7 @@ body[data-player-bar='1'] .app-main {
   white-space: nowrap;
   color: var(--accent-soft);
 }
+
 
 .model-facts {
   display: grid;

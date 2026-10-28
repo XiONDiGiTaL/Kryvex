@@ -337,6 +337,12 @@ const api = {
   retroarchStart: (input: unknown): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:retroarch:start', input),
   retroarchStop: (): Promise<unknown> => ipcRenderer.invoke('kryvex:retroarch:stop'),
+  emulatorFolder: (kind: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:emulator:folder', kind),
+  emulatorPickFolder: (kind: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:emulator:pick', kind),
+  emulatorReadFile: (file: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:emulator:read', file),
   resourcesSample: (services: Array<{ id: string; url: string }>): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:resources:sample', services),
   mediaList: (): Promise<unknown> => ipcRenderer.invoke('kryvex:media:list'),

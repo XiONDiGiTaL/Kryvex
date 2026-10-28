@@ -8,7 +8,7 @@ import { EmptyState, Icon, ServiceIcon } from '../components/ui';
 import { ServiceQuickMenu } from '../components/ServiceQuickMenu';
 import { ToolQuickMenu } from '../components/ToolQuickMenu';
 import { ElementMark } from '../components/ElementMark';
-import { SERVICE_DRAG_TYPE } from '../lib/service-drag';
+import { SERVICE_DRAG_TYPE, TOOL_DRAG_TYPE } from '../lib/service-drag';
 
 /**
  * The pin control for a built-in tool.
@@ -78,6 +78,19 @@ export function Services({
   // deliberate step away, never in the way of the installed services.
   const [secretOpen, setSecretOpen] = useState(false);
   const secretEnabled = state.settings.secretServices;
+
+  /**
+   * A built-in tool is dragged from its card onto the Workspace canvas.
+   *
+   * The card was click-only, so a tool could only reach the canvas if it had
+   * already been pinned to the rail — which is why the drag looked broken. The
+   * payload is the same one the pinned row sends, so the canvas accepts both.
+   */
+  const dragTool = (tool: SecretToolId) => (event: React.DragEvent) => {
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData('text/plain', tool);
+    event.dataTransfer.setData(TOOL_DRAG_TYPE, tool);
+  };
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -313,7 +326,13 @@ export function Services({
 
         <div className="secret-grid" id="secret-services-body" hidden={!secretOpen || !secretEnabled}>
           <div className="secret-slot">
-            <button className="secret-card is-tool" onClick={() => onSecretTool('lexium')}>
+            <button
+              className="secret-card is-tool"
+              data-tool="lexium"
+              draggable
+              onDragStart={dragTool('lexium')}
+              onClick={() => onSecretTool('lexium')}
+            >
               <ElementMark tool="lexium" size={58} />
               <span className="secret-card-copy">
                 <span className="mono secret-card-kicker">{t('x530 / LANGUAGE')}</span>
@@ -344,7 +363,13 @@ export function Services({
           </div>
 
           <div className="secret-slot">
-            <button className="secret-card is-tool" onClick={() => onSecretTool('player')}>
+            <button
+              className="secret-card is-tool"
+              data-tool="player"
+              draggable
+              onDragStart={dragTool('player')}
+              onClick={() => onSecretTool('player')}
+            >
               <ElementMark tool="player" size={58} />
               <span className="secret-card-copy">
                 <span className="mono secret-card-kicker">{t('x531 / MEDIA')}</span>
@@ -375,7 +400,13 @@ export function Services({
           </div>
 
           <div className="secret-slot">
-            <button className="secret-card is-tool" onClick={() => onSecretTool('emulator')}>
+            <button
+              className="secret-card is-tool"
+              data-tool="emulator"
+              draggable
+              onDragStart={dragTool('emulator')}
+              onClick={() => onSecretTool('emulator')}
+            >
               <ElementMark tool="emulator" size={58} />
               <span className="secret-card-copy">
                 <span className="mono secret-card-kicker">{t('8-BIT MODE')}</span>
@@ -406,7 +437,13 @@ export function Services({
           </div>
 
           <div className="secret-slot">
-            <button className="secret-card is-tool" onClick={() => onSecretTool('disk')}>
+            <button
+              className="secret-card is-tool"
+              data-tool="disk"
+              draggable
+              onDragStart={dragTool('disk')}
+              onClick={() => onSecretTool('disk')}
+            >
               <ElementMark tool="disk" size={58} />
               <span className="secret-card-copy">
                 <span className="mono secret-card-kicker">{t('x533 / STORAGE')}</span>
@@ -437,7 +474,13 @@ export function Services({
           </div>
 
           <div className="secret-slot">
-            <button className="secret-card is-tool" onClick={() => onSecretTool('link')}>
+            <button
+              className="secret-card is-tool"
+              data-tool="link"
+              draggable
+              onDragStart={dragTool('link')}
+              onClick={() => onSecretTool('link')}
+            >
               <ElementMark tool="link" size={58} />
               <span className="secret-card-copy">
                 <span className="mono secret-card-kicker">{t('x534 / LINK')}</span>
@@ -468,7 +511,13 @@ export function Services({
           </div>
 
           <div className="secret-slot">
-            <button className="secret-card is-tool" onClick={() => onSecretTool('arcade')}>
+            <button
+              className="secret-card is-tool"
+              data-tool="arcade"
+              draggable
+              onDragStart={dragTool('arcade')}
+              onClick={() => onSecretTool('arcade')}
+            >
               <ElementMark tool="arcade" size={58} />
               <span className="secret-card-copy">
                 <span className="mono secret-card-kicker">{t('x535 / ARCADE')}</span>
@@ -499,7 +548,13 @@ export function Services({
           </div>
 
           <div className="secret-slot">
-            <button className="secret-card is-tool" onClick={() => onSecretTool('forge')}>
+            <button
+              className="secret-card is-tool"
+              data-tool="forge"
+              draggable
+              onDragStart={dragTool('forge')}
+              onClick={() => onSecretTool('forge')}
+            >
               <ElementMark tool="forge" size={58} />
               <span className="secret-card-copy">
                 <span className="mono secret-card-kicker">{t('x536 / FILES')}</span>
@@ -530,7 +585,13 @@ export function Services({
           </div>
 
           <div className="secret-slot">
-            <button className="secret-card is-tool" onClick={() => onSecretTool('canvas')}>
+            <button
+              className="secret-card is-tool"
+              data-tool="canvas"
+              draggable
+              onDragStart={dragTool('canvas')}
+              onClick={() => onSecretTool('canvas')}
+            >
               <ElementMark tool="canvas" size={58} />
               <span className="secret-card-copy">
                 <span className="mono secret-card-kicker">{t('x537 / CANVAS')}</span>

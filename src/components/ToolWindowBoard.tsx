@@ -49,6 +49,7 @@ export function ToolWindowBoard({
   onClose,
   onMinimize,
   onMaximize,
+  onDockView,
   renderTool,
   renderView,
 }: {
@@ -62,6 +63,8 @@ export function ToolWindowBoard({
   onClose: (id: string) => void;
   onMinimize: (id: string) => void;
   onMaximize: (id: string) => void;
+  /** Puts a popped-out view back on its own route. */
+  onDockView: (view: ViewWindowId) => void;
   /** The guest for one tool, rendered inside the frame. */
   renderTool: (tool: SecretToolId) => ReactNode;
   /** The guest for one popped-out view, rendered inside the frame. */
@@ -117,6 +120,7 @@ export function ToolWindowBoard({
             onClose={onClose}
             onMinimize={onMinimize}
             onMaximize={onMaximize}
+            onDock={builtIn.kind === 'view' ? () => onDockView(builtIn.view) : undefined}
           >
             {builtIn.kind === 'tool' ? renderTool(builtIn.tool) : renderView(builtIn.view)}
           </ToolFrame>
@@ -161,6 +165,7 @@ function ToolFrame({
   onClose,
   onMinimize,
   onMaximize,
+  onDock,
   children,
 }: {
   id: string;
@@ -176,6 +181,8 @@ function ToolFrame({
   onClose: (id: string) => void;
   onMinimize: (id: string) => void;
   onMaximize: (id: string) => void;
+  /** Only a view window carries this: its route is where it came from. */
+  onDock?: () => void;
   children: ReactNode;
 }) {
   const t = useT();
@@ -311,6 +318,19 @@ function ToolFrame({
           <span className="mono service-url">{tool ? t('Kryvex tool') : t('Kryvex view')}</span>
         </div>
         <div className="service-actions">
+          {/* A popped-out room is a window over the app, and the control that
+              brings it back used to live only on the route behind it — which a
+              maximized window covers. It belongs on the window. */}
+          {onDock ? (
+            <button
+              className="btn ghost small window-dock"
+              onClick={onDock}
+              title={t('Bring it back')}
+            >
+              <Icon name="monitor" size={13} />
+              {t('Bring it back')}
+            </button>
+          ) : null}
           <span className="window-controls">
             <button
               className="icon-btn"

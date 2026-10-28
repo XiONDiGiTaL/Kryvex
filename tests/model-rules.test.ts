@@ -7,6 +7,9 @@ import {
   formatModelSize,
   isActivePhase,
   modelFileLabel,
+  modelSource,
+  modelSourceLabel,
+  orderCatalogue,
 } from '../src/lib/local-models';
 import {
   FLAGSHIP_MODEL_ID,
@@ -269,5 +272,50 @@ describe('panel formatting', () => {
   it('labels capabilities from stable ids, not model-card prose', () => {
     expect(capabilityLabel('conversation')).toBe('Ordinary conversation');
     expect(capabilityLabel('unknown-id')).toBe('unknown-id');
+  });
+
+  it('names the host each artifact really comes from', () => {
+    // Two of the three are GitHub release assets; the old card printed
+    // huggingface.co for all of them, which sent readers to a page that does
+    // not hold the file.
+    const starter = catalogueEntry(STARTER_MODEL_ID);
+    const light = catalogueEntry(LIGHT_MODEL_ID);
+    const flagship = catalogueEntry(FLAGSHIP_MODEL_ID);
+    expect(starter).toBeDefined();
+    expect(modelSourceLabel(catalogueUrl(starter!), '')).toBe('github.com/XiONDiGiTaL/Vexium-Core');
+    expect(modelSourceLabel(catalogueUrl(light!), '')).toBe(
+      'huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF',
+    );
+    expect(modelSourceLabel(catalogueUrl(flagship!), '')).toBe(
+      'huggingface.co/XiONDiGiTaL/Vexium-1',
+    );
+
+    // Every label must agree with the URL the downloader would fetch.
+    for (const entry of MODEL_CATALOGUE) {
+      const url = catalogueUrl(entry);
+      const source = modelSource(url);
+      expect(source?.host).toBe(new URL(url).hostname);
+      expect(url.startsWith(`https://${source?.host}/${source?.repository}/`)).toBe(true);
+    }
+
+    // Anything unparsable falls back to the bare repository name.
+    expect(modelSourceLabel(undefined, 'XiONDiGiTaL/Vexium-Core')).toBe('XiONDiGiTaL/Vexium-Core');
+    expect(modelSourceLabel('not a url', 'fallback/repo')).toBe('fallback/repo');
+  });
+
+  it('leads the hub with the model in use and keeps the rest in order', () => {
+    const ids = MODEL_CATALOGUE.map(entry => entry.id);
+    // Nothing selected: the default core leads, the catalogue order survives.
+    expect(orderCatalogue(MODEL_CATALOGUE, null, STARTER_MODEL_ID).map(entry => entry.id)).toEqual([
+      STARTER_MODEL_ID,
+      ...ids.filter(id => id !== STARTER_MODEL_ID),
+    ]);
+    // A chosen model takes the top slot and the others keep their relative order.
+    const flagged = orderCatalogue(MODEL_CATALOGUE, FLAGSHIP_MODEL_ID, STARTER_MODEL_ID);
+    expect(flagged[0]?.id).toBe(FLAGSHIP_MODEL_ID);
+    expect(flagged.slice(1).map(entry => entry.id)).toEqual(ids.filter(id => id !== FLAGSHIP_MODEL_ID));
+    // An id that is not in the list changes nothing.
+    expect(orderCatalogue(MODEL_CATALOGUE, 'gone', STARTER_MODEL_ID)[0]?.id).toBe(STARTER_MODEL_ID);
+    expect(orderCatalogue([], 'x', STARTER_MODEL_ID)).toEqual([]);
   });
 });

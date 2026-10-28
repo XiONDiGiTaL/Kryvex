@@ -7,6 +7,7 @@ import {
   PEER_COLORS,
   formatInvite,
   initials,
+  monitorShareByDefault,
   newRoomId,
   parseInvite,
   sanitizeDisplayName,
@@ -379,7 +380,9 @@ export function Rooms({
       const appMatch = /^app:(\d+)$/.exec(selected);
       sharedAppId.current = appMatch ? Number(appMatch[1]) : null;
       setShareMuted(false);
-      setMonitor(stream.getAudioTracks().length > 0);
+      // An app capture is muted by Chromium; a screen capture is the system
+      // mix the sharer already hears. Monitoring the second one doubled it.
+      setMonitor(monitorShareByDefault(Boolean(appMatch), stream.getAudioTracks().length > 0));
       await session.startShare(stream, source?.name ?? t('Screen'));
       setPickerOpen(false);
     } catch {

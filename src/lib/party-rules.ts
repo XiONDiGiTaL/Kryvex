@@ -202,3 +202,19 @@ export function initials(name: string): string {
 export function shortPeerId(id: string): string {
   return id.replace(/[^a-z0-9]/gi, '').slice(-5).toUpperCase() || 'PEER';
 }
+
+/**
+ * Whether the sharer should hear their own capture by default.
+ *
+ * Chromium mutes the media of a `<webview>` that is captured, so an app share
+ * would otherwise go silent for the person sharing it: playing the captured
+ * track back to them is the fix. A screen or window share captures the system
+ * mix instead, which the sharer is already hearing from the app that produces
+ * it. Monitoring that plays every sound twice, a few hundred milliseconds
+ * apart — the doubling this rule exists to avoid. The control stays in the
+ * panel, so monitoring a screen share is still one click away when someone
+ * wants it (a muted output device, for instance).
+ */
+export function monitorShareByDefault(isAppShare: boolean, hasAudio: boolean): boolean {
+  return isAppShare && hasAudio;
+}

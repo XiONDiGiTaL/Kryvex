@@ -59,6 +59,12 @@ export interface CatalogueEntry {
    * itself. Absent means "resolve it from the Hugging Face repository above".
    */
   url?: string;
+  /**
+   * The URL the entry resolves to, filled in by the downloader so the panel can
+   * name the host the bytes really come from. Never authored in the catalogue
+   * and never trusted on the way back in.
+   */
+  sourceUrl?: string;
   filename: string;
   bytes: number;
   sha256: string;

@@ -3,10 +3,13 @@ import { useT } from '../lib/i18n';
 import {
   isServiceDrag,
   isToolDrag,
+  isViewDrag,
+  readViewDrag,
   readServiceDrag,
   readToolDrag,
   requestServiceDropEffect,
 } from '../lib/service-drag';
+import type { ViewWindowId } from '../lib/tool-windows';
 import type { SecretToolId } from '../types';
 import { Icon } from '../components/ui';
 import type { WindowMap } from '../lib/workspace';
@@ -48,6 +51,7 @@ export function Workspace({
   onAdd,
   onDropService,
   onDropTool,
+  onDropView,
   onMotion,
 }: {
   windows: WindowMap;
@@ -57,6 +61,7 @@ export function Workspace({
   onDropService: (id: string, at: { x: number; y: number }) => void;
   /** A pinned built-in tool dragged in from the rail. */
   onDropTool: (tool: SecretToolId, at: { x: number; y: number }) => void;
+  onDropView: (view: ViewWindowId, at: { x: number; y: number }) => void;
   onMotion: (patch: Partial<WorkspaceSettings>) => void;
 }) {
   const t = useT();
@@ -161,7 +166,13 @@ export function Workspace({
         ref={canvas}
         className={`workspace-canvas ${dropping ? 'is-drop' : ''} ${empty ? 'is-empty' : ''}`}
         onDragOver={event => {
-          if (!isServiceDrag(event.dataTransfer) && !isToolDrag(event.dataTransfer)) return;
+          if (
+            !isServiceDrag(event.dataTransfer) &&
+            !isToolDrag(event.dataTransfer) &&
+            !isViewDrag(event.dataTransfer)
+          ) {
+            return;
+          }
           event.preventDefault();
           // Never demand an effect the source refuses: that cancels the drop
           // outright. The request follows the source instead, which is what lets
@@ -174,14 +185,16 @@ export function Workspace({
           setDropping(false);
         }}
         onDrop={event => {
-          const tool = readToolDrag(event.dataTransfer);
-          const id = tool ? null : readServiceDrag(event.dataTransfer);
+          const view = readViewDrag(event.dataTransfer);
+          const tool = view ? null : readToolDrag(event.dataTransfer);
+          const id = view || tool ? null : readServiceDrag(event.dataTransfer);
           setDropping(false);
-          if (!tool && !id) return;
+          if (!view && !tool && !id) return;
           event.preventDefault();
           const box = event.currentTarget.getBoundingClientRect();
           const at = { x: event.clientX - box.left, y: event.clientY - box.top };
-          if (tool) onDropTool(tool, at);
+          if (view) onDropView(view, at);
+          else if (tool) onDropTool(tool, at);
           else if (id) onDropService(id, at);
         }}
       >

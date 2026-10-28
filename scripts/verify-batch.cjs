@@ -47,6 +47,7 @@ const BATCHES = {
     'verify:wallpaper',
     'verify:guards',
     'verify:canvas',
+    'verify:room-window',
   ],
   rooms: ['verify:vlan', 'verify:party-close', 'verify:torrent-restore-ui'],
   tools: ['verify:disk', 'verify:model', 'verify:speech-bridge'],

@@ -16,6 +16,15 @@ calls, without asking you to trust a browser policy.
 [![Platform](https://img.shields.io/badge/platform-Windows-9AA6B5?style=flat-square)](#known-limitations)
 [![Shield](https://img.shields.io/badge/shield-uBO%20lists-F2C94C?style=flat-square)](#kryvex-shield)
 
+[![Stars](https://img.shields.io/github/stars/XiONDiGiTaL/Kryvex?style=flat-square&label=stars&color=F2C94C)](https://github.com/XiONDiGiTaL/Kryvex/stargazers)
+[![Forks](https://img.shields.io/github/forks/XiONDiGiTaL/Kryvex?style=flat-square&label=forks&color=38BDF8)](https://github.com/XiONDiGiTaL/Kryvex/forks)
+[![Downloads](https://img.shields.io/github/downloads/XiONDiGiTaL/Kryvex/total?style=flat-square&label=downloads&color=2DD4BF)](https://github.com/XiONDiGiTaL/Kryvex/releases)
+[![Release](https://img.shields.io/github/v/release/XiONDiGiTaL/Kryvex?style=flat-square&label=release&color=38BDF8)](https://github.com/XiONDiGiTaL/Kryvex/releases/latest)
+[![Last commit](https://img.shields.io/github/last-commit/XiONDiGiTaL/Kryvex?style=flat-square&label=last%20commit&color=9AA6B5)](https://github.com/XiONDiGiTaL/Kryvex/commits/main)
+[![Contributors](https://img.shields.io/github/contributors/XiONDiGiTaL/Kryvex?style=flat-square&label=contributors&color=2DD4BF)](https://github.com/XiONDiGiTaL/Kryvex/graphs/contributors)
+[![Open issues](https://img.shields.io/github/issues/XiONDiGiTaL/Kryvex?style=flat-square&label=open%20issues&color=F2C94C)](https://github.com/XiONDiGiTaL/Kryvex/issues)
+[![Size](https://img.shields.io/github/repo-size/XiONDiGiTaL/Kryvex?style=flat-square&label=size&color=9AA6B5)](https://github.com/XiONDiGiTaL/Kryvex)
+
 **[Demo reel](#demo-reel) · [Install on Windows](#install-on-windows) · [Pointer first](#pointer-first) · [Features](#features) · [Screenshots](#screenshots) · [Adding services](#adding-services) · [Shield](#kryvex-shield) · [Extensions](#extensions) · [Themes](#themes) · [Third-party work](#third-party-work) · [Limitations](#known-limitations)**
 
 </div>

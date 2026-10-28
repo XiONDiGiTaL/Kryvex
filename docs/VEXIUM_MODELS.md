@@ -681,3 +681,24 @@ bracketed citations for sources that were actually supplied.
 - On a machine without a discrete GPU it will run mostly on system RAM and be
   slow; Vexium Core 3B remains the default for that reason, and nothing selects
   the 12B unless the user downloads it.
+
+## 18. The panel names the host the bytes come from (2026-10-28)
+
+Every card used to print `huggingface.co/<repository>`, but only two of the
+three artifacts are on Hugging Face. **Vexium Core 3B is a GitHub release
+asset** — `github.com/XiONDiGiTaL/Vexium-Core/releases/download/v2/…` — so the
+line sent readers to a page that does not hold the file. The repository name
+was right; the host was not.
+
+The label is now derived, not written:
+
+- `catalogueUrl()` is the one place that resolves an entry to a URL.
+- `ModelDownloader.catalogue()` attaches that URL as `sourceUrl`.
+- `modelSource()` / `modelSourceLabel()` in `src/lib/local-models.ts` read the
+  host and `owner/name` out of it, so the card cannot disagree with the
+  downloader.
+- A GitHub artifact is marked `· release asset` to explain why a repository
+  page and a download are different addresses.
+
+`tests/model-rules.test.ts` asserts all three labels and, for every catalogue
+entry, that the printed host equals the host of the URL that would be fetched.

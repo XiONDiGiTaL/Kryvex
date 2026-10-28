@@ -160,3 +160,24 @@ on, so the panel does not pretend to grant or revoke access. The address travels
 as one more peer action (`vlan`), is validated on arrival, and is never dialled
 by Kryvex. Full contract: [VIRTUAL_LAN.md](VIRTUAL_LAN.md), evaluation and open
 decisions: [VIRTUAL_LAN_EVAL.md](VIRTUAL_LAN_EVAL.md).
+
+## Share audio, and why it doubled
+
+A share can carry the system mix (a screen or window source) or one app's audio
+(a Kryvex app source). Chromium mutes the media of a `<webview>` that is being
+captured, so an app share needs the captured track played back to the sharer —
+that is what "Play it here" is for, and it defaults on for an app share.
+
+A screen or window share captures the same mix the sharer is already hearing
+from the app producing it. Monitoring that plays every sound twice, a few
+hundred milliseconds apart, which is the doubling that was reported. The default
+now follows the source (`monitorShareByDefault` in `src/lib/party-rules.ts`),
+and the checkbox stays available for anyone who wants it.
+
+Where the audio goes silent instead: system audio is captured through the OS's
+own loopback path, so a device held in exclusive mode by another application —
+ASIO/ASIO4ALL drivers do this — yields a silent track. Kryvex installs no
+driver, no virtual device and no Stereo Mix requirement; it captures, encodes
+with Opus and sends over the room's peer connection. When a platform refuses
+system audio, the panel says "Shared without system audio." rather than
+pretending.

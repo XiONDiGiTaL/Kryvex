@@ -61,6 +61,7 @@ import {
 } from './window-rules';
 import { shield } from './shield';
 import { SpeechRuntime } from './speech-runtime';
+import { EmulatorLibrary } from './emulator-library';
 import { FlycastCore } from './flycast-core';
 import { RetroArchSidecar, normalizeRetroarchStart } from './retroarch';
 import {
@@ -166,6 +167,16 @@ const flycast = new FlycastCore(path.join(app.getPath('userData'), 'flycast'), p
  * or capture profile gets its own remembered path instead of the real one's.
  */
 const retroarch = new RetroArchSidecar(path.join(app.getPath('userData'), 'retroarch'));
+
+/**
+ * The emulator's folders.
+ *
+ * Kryvex ships no cartridges and no BIOS images: this only lists what is in a
+ * folder the user picked through a native dialog, and reads a file back from
+ * inside that folder. Nothing is copied, indexed or uploaded, and nothing is
+ * fetched.
+ */
+const emulatorLibrary = new EmulatorLibrary(() => mainWindow);
 
 function forwardMagnet(url: string): void {
   if (!isMagnetLink(url) || !mainWindow || mainWindow.isDestroyed()) return;
@@ -928,6 +939,15 @@ function registerIpc(): void {
     const file = picked.canceled ? undefined : picked.filePaths[0];
     return file ? retroarch.useExecutable(file) : retroarch.status();
   });
+  ipcMain.handle('kryvex:emulator:folder', (_event, kind: unknown) => emulatorLibrary.read(kind));
+  ipcMain.handle('kryvex:emulator:pick', async (event, kind: unknown) =>
+    isShellSender(event) ? emulatorLibrary.pick(kind) : emulatorLibrary.read(kind),
+  );
+  ipcMain.handle('kryvex:emulator:read', (event, file: unknown) =>
+    // The renderer names the file; the library refuses anything outside a
+    // folder that was picked.
+    isShellSender(event) ? emulatorLibrary.readFile(file) : { ok: false, name: '', code: 'not-picked' },
+  );
   ipcMain.handle('kryvex:retroarch:forget', event =>
     isShellSender(event) ? retroarch.forget() : retroarch.status(),
   );

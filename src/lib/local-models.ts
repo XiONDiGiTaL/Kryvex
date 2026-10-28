@@ -42,6 +42,22 @@ export function isActivePhase(phase: ModelDownloadPhase | undefined): boolean {
   return phase === 'downloading' || phase === 'verifying';
 }
 
+/**
+ * The card that leads the panel: the model in use, else the default core, else
+ * the catalogue order. The rest are shown behind the fold, so the one the
+ * runtime was handed is always the one on screen.
+ */
+export function orderCatalogue<T extends { id: string }>(
+  entries: T[],
+  inUseId: string | null,
+  starterId: string,
+): T[] {
+  if (entries.length < 2) return entries;
+  const lead = entries.find(entry => entry.id === inUseId) ?? entries.find(entry => entry.id === starterId);
+  if (!lead) return entries;
+  return [lead, ...entries.filter(entry => entry.id !== lead.id)];
+}
+
 /** A stable English key for `t()`; the failure itself is a code, not prose. */
 export function failureMessage(error: string | undefined): string {
   switch (error) {
@@ -94,6 +110,38 @@ export function limitationLabel(id: string): string {
     default:
       return id;
   }
+}
+
+/**
+ * Where a card's artifact actually comes from, read from the URL the downloader
+ * will fetch.
+ *
+ * The panel used to print `huggingface.co/<repository>` for every entry, which
+ * was wrong for anything Kryvex redistributes as a GitHub release asset: the
+ * repository name is real, but it lives on a different host. The host is taken
+ * from the resolved URL so the label cannot drift from the download.
+ */
+export function modelSource(url: string | undefined): { host: string; repository: string } | null {
+  if (!url) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== 'https:') return null;
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  if (segments.length < 2) return null;
+  return {
+    host: parsed.hostname.toLowerCase().replace(/^www\./, ''),
+    repository: `${segments[0]}/${segments[1]}`,
+  };
+}
+
+/** `github.com/XiONDiGiTaL/Vexium-Core`, or the bare repository if unparsable. */
+export function modelSourceLabel(url: string | undefined, fallback: string): string {
+  const source = modelSource(url);
+  return source ? `${source.host}/${source.repository}` : fallback;
 }
 
 export function languageLabel(code: string): string {

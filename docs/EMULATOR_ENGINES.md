@@ -233,3 +233,43 @@ shipped by Kryvex. That is shape D used for the one thing it does better than
 either embedded engine, and [NETPLAY.md](NETPLAY.md) is its document. The two
 features are deliberately separate: the room stays the peer-to-peer path, and
 netplay stays the engine's own protocol over TCP.
+
+## Why RetroArch is not drawn inside Kryvex
+
+The emulator page shows the EmulatorJS core *inside* the app, and RetroArch in
+its own window. That asymmetry is not an oversight, and it is not something a
+stylesheet or a `<webview>` can close.
+
+RetroArch is a native SDL window. Putting it inside Kryvex's window tree means
+OS-level reparenting — on Windows, `SetParent` plus the `WS_CHILD` style, and
+cross-process input, focus and resize forwarding — which needs a native addon
+(N-API, built per architecture and per Electron ABI). Kryvex currently has no
+native module of its own, and adding one changes packaging, signing and the
+update path for every user. A `<webview>` pointed at RetroArch is not an option
+either: it is not a page.
+
+So the honest arrangement is the one shipped:
+
+- Formats with an EmulatorJS core run inside Kryvex, with the panel's own
+  controls around them.
+- RetroArch, which the user installs, is started by Kryvex as a session with
+  its own config, saves and states, and stopped when the session or the app
+  ends ([NETPLAY.md](NETPLAY.md)).
+
+A real in-app RetroArch is a packaging project — a signed native helper, one
+per architecture, with its own review — not a UI change. It is not claimed here.
+
+## Cartridge and BIOS folders
+
+`EmulatorLibrary` (main process) lists a folder the user picked in a native
+dialog and reads one file back from inside it. Nothing is copied, indexed or
+uploaded, and `isInsideFolder` refuses any path that resolves outside a folder
+that was picked, so the renderer cannot turn the feature into a file reader.
+
+`src/lib/emulator-folders.ts` decides what the listing means: only extensions
+an offered core claims are games, and only the BIOS names that specific core
+reads are offered for a console. A renamed BIOS dump is refused rather than
+loaded into the wrong slot.
+
+The web build has no bridge, so the panel says folders are a desktop feature
+instead of showing a button that cannot work.
