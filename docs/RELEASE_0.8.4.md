@@ -108,7 +108,7 @@ The Portable EXE runs without installation. Its state still lives in
 - `node scripts/check-release-record.cjs`: PASS for 0.8.4.
 - `pnpm package:win`, produced the Setup and Portable EXEs, both reporting
   `ProductVersion 0.8.4`.
-- The wizard harness captured 5 pages from the 0.8.4 installer and the
+- The wizard harness captured four pages from the 0.8.4 installer and the
   installer exited 0.
 - The tag workflow (run 39735862979, commit `caa16a0`) passed every step and
   published a stable, non-draft release with the Setup, Portable and
@@ -124,16 +124,20 @@ them with this record:
 
 | # | Page | What it said |
 | --- | --- | --- |
-| 1 | [Choose Installation Options](media/releases/0.8.4-wizard/pages/01-Choose%20Installation%20Options.png) | "Who should this application be installed for?"; "There is already a per-user installation.(C:\\Kryvex) Will reinstall/upgrade." |
-| 2 | [Choose Install Location](media/releases/0.8.4-wizard/pages/02-Choose%20Install%20Location.png) | Destination `C:\\Kryvex`; "Space required: 367.7 MB" |
+| 1 | [Choose Installation Options](media/releases/0.8.4-wizard/pages/01-Choose%20Installation%20Options.png) | "Who should this application be installed for?"; "There is already a per-user installation.(C:\Kryvex) Will reinstall/upgrade." |
+| 2 | [Choose Install Location](media/releases/0.8.4-wizard/pages/02-Choose%20Install%20Location.png) | Destination `C:\Kryvex`; "Space required: 367.7 MB" |
 | 3 | [Installing](media/releases/0.8.4-wizard/pages/03-Installing.png) | "Please wait while Kryvex is being installed." |
-| 4 | [Installation Complete](media/releases/0.8.4-wizard/pages/04-Installation%20Complete.png) | "Setup was completed successfully." |
-| 5 | [Completing Kryvex Setup](media/releases/0.8.4-wizard/pages/05-Completing%20Kryvex%20Setup.png) | "Kryvex has been installed on your computer. Click Finish to close Setup."; **Run Kryvex** checked |
+| 4 | [Completing Kryvex Setup](media/releases/0.8.4-wizard/pages/04-Completing%20Kryvex%20Setup.png) | "Kryvex has been installed on your computer. Click Finish to close Setup."; **Run Kryvex** checked |
 
 The capture was made from the locally built 0.8.4 installer before the tag, so
 it records the real wizard the published build is made from. The install page
-ran for 19,836 ms between "Installing" and "Installation Complete", and the
+ran for 13,500 ms between "Installing" and "Completing Kryvex Setup", and the
 installer exited 0.
+
+The capture was re-recorded on 2026-10-27 with two corrections to how it is
+taken: a page is no longer filed under a picture of the page that replaced it,
+so the installer's transient **Installation Complete** page is not listed, and a
+picture is kept only once the page has stopped painting.
 
 ## Known limitations
 

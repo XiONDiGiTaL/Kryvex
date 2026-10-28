@@ -99,6 +99,31 @@ build.
   `SHA256SUMS.txt` is regenerated from the uploaded files by the workflow.
 - **Authenticode:** both EXEs report `NotSigned`.
 
+## Wizard capture
+
+The installer is a native Windows dialog, so its pages appear in no screenshot
+of the app. `node scripts/verify-self-update.cjs --no-app --wizard --archive
+--installer <the published setup> --version 0.6.0` reads them from the
+dialog's own controls; the capture is committed with this record:
+[capture.md](media/releases/0.6.0-wizard/capture.md), 4 pages and exit code 0.
+
+| # | Page | What it said |
+| --- | --- | --- |
+| 1 | [Choose Installation Options](media/releases/0.6.0-wizard/pages/01-Choose%20Installation%20Options.png) | "Who should this application be installed for?"; "There is already a per-user installation.(C:\Kryvex) Will reinstall/upgrade."; "Kryvex 0.6.0" |
+| 2 | [Choose Install Location](media/releases/0.6.0-wizard/pages/02-Choose%20Install%20Location.png) | Destination `C:\Kryvex`; "Space required: 420.5 MB"; "Space available: 50.8 GB" |
+| 3 | [Installing](media/releases/0.6.0-wizard/pages/03-Installing.png) | "Please wait while Kryvex is being installed."; "Kryvex 0.6.0" |
+| 4 | [Completing Kryvex Setup](media/releases/0.6.0-wizard/pages/04-Completing%20Kryvex%20Setup.png) | "Kryvex has been installed on your computer. Click Finish to close Setup."; **Run Kryvex** checked |
+
+0.6.0 shipped before a wizard capture became part of a release cut, so this
+capture was recorded on 2026-10-27 from the installer that was actually
+published for this version (`Kryvex-Setup-0.6.0-x64.exe`, SHA-256
+`4d15f2aa6055ffd4284a36ebc0ff24b00cc19a86650248a57a3d21fdc9ffb247`) rather than
+at release time: it is a replay of what that installer displayed, not a note
+written then. The installer found the per-user copy already on the machine and
+reported it as a reinstall/upgrade. The install page ran for 28,678 ms between
+**Installing** and **Completing Kryvex Setup**, the whole capture took 41,380
+ms, and the installer exited 0.
+
 ## Known limitations
 
 - The artifacts are **unsigned**. Windows SmartScreen may warn about an

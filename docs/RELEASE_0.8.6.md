@@ -112,8 +112,8 @@ whose installer has no matching entry. Both EXEs are **unsigned**.
   chrome: "152.0.7977.76", node: "24.20.0", packaged: true}`, and `#/browser`
   rendered the start page with its four cards.
 - `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer
-  release/Kryvex-Setup-0.8.6-x64.exe --version 0.8.6`, PASS: five pages
-  captured, the install page ran for 19,601 ms, the installer exited 0, and the
+  release/Kryvex-Setup-0.8.6-x64.exe --version 0.8.6`, PASS: four pages
+  captured, the install page ran for 18,427 ms, the installer exited 0, and the
   capture was archived under `docs/media/releases/0.8.6-wizard/`.
 - The installed `C:\Kryvex\Kryvex.exe` reports `ProductVersion 0.8.6.0`. It was
   launched with an isolated profile: `window.kryvex.appInfo()` returned
@@ -132,15 +132,19 @@ tag, and is committed with this record:
 
 | # | Page | What it said |
 | --- | --- | --- |
-| 1 | [Choose Installation Options](media/releases/0.8.6-wizard/pages/01-Choose%20Installation%20Options.png) | “Who should this application be installed for?”; “There is already a per-user installation.(C:\\Kryvex) Will reinstall/upgrade.” |
-| 2 | [Choose Install Location](media/releases/0.8.6-wizard/pages/02-Choose%20Install%20Location.png) | Destination `C:\\Kryvex`; “Space required: 421.9 MB” |
+| 1 | [Choose Installation Options](media/releases/0.8.6-wizard/pages/01-Choose%20Installation%20Options.png) | “Who should this application be installed for?”; “There is already a per-user installation.(C:\Kryvex) Will reinstall/upgrade.” |
+| 2 | [Choose Install Location](media/releases/0.8.6-wizard/pages/02-Choose%20Install%20Location.png) | Destination `C:\Kryvex`; “Space required: 421.9 MB” |
 | 3 | [Installing](media/releases/0.8.6-wizard/pages/03-Installing.png) | “Please wait while Kryvex is being installed.”; “Kryvex 0.8.6” |
-| 4 | [Installation Complete](media/releases/0.8.6-wizard/pages/04-Installation%20Complete.png) | “Setup was completed successfully.”; “Kryvex 0.8.6” |
-| 5 | [Completing Kryvex Setup](media/releases/0.8.6-wizard/pages/05-Completing%20Kryvex%20Setup.png) | “Kryvex has been installed on your computer. Click Finish to close Setup.” |
+| 4 | [Completing Kryvex Setup](media/releases/0.8.6-wizard/pages/04-Completing%20Kryvex%20Setup.png) | “Kryvex has been installed on your computer. Click Finish to close Setup.” |
 
-The run took 29,669 ms end to end and the installer exited 0. Scripts that the
+The run took 32,912 ms end to end and the installer exited 0. Scripts that the
 installer relaunched were closed by the harness afterwards, so the capture left
 no stray instance.
+
+The capture was re-recorded on 2026-10-27 with two corrections to how it is
+taken: a page is no longer filed under a picture of the page that replaced it,
+so the installer's transient **Installation Complete** page is not listed, and a
+picture is kept only once the page has stopped painting.
 
 ## Mobile / APK
 

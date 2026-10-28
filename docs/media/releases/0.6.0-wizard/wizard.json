@@ -1,0 +1,88 @@
+{
+  "version": "0.6.0",
+  "installerVersion": "0.6.0",
+  "installer": "Kryvex-Setup-0.6.0-x64.exe",
+  "recordedAt": "2026-10-27T23:09:39.340Z",
+  "startedHere": true,
+  "exitCode": 0,
+  "pageCount": 4,
+  "durationMs": 41380,
+  "pages": [
+    {
+      "index": 1,
+      "title": "Choose Installation Options",
+      "windowTitle": "Kryvex Setup",
+      "texts": [
+        "Choose Installation Options",
+        "Who should this application be installed for?",
+        "Please select whether you wish to make this software available to all users or just yourself",
+        "There is already a per-user installation.(C:\\Kryvex) Will reinstall/upgrade.",
+        "Kryvex 0.6.0"
+      ],
+      "buttons": [
+        "Anyone who uses this computer (&all users)",
+        "Only for &me (XiØN)",
+        "&Next >",
+        "Cancel"
+      ],
+      "image": "pages/01-Choose Installation Options.png",
+      "at": "2026-10-27T23:08:59.6962955Z"
+    },
+    {
+      "index": 2,
+      "title": "Choose Install Location",
+      "windowTitle": "Kryvex Setup",
+      "texts": [
+        "Choose Install Location",
+        "Choose the folder in which to install Kryvex.",
+        "Setup will install Kryvex in the following folder. To install in a different folder, click Browse and select another folder. Click Install to start the installation.",
+        "Space required: 420.5 MB",
+        "Space available: 50.8 GB",
+        "Kryvex 0.6.0"
+      ],
+      "buttons": [
+        "Destination Folder",
+        "B&rowse...",
+        "< &Back",
+        "&Install",
+        "Cancel"
+      ],
+      "image": "pages/02-Choose Install Location.png",
+      "at": "2026-10-27T23:09:02.6389213Z"
+    },
+    {
+      "index": 3,
+      "title": "Installing",
+      "windowTitle": "Kryvex Setup",
+      "texts": [
+        "Installing",
+        "Please wait while Kryvex is being installed.",
+        "Kryvex 0.6.0"
+      ],
+      "buttons": [
+        "< &Back",
+        "&Next >",
+        "Cancel"
+      ],
+      "image": "pages/03-Installing.png",
+      "at": "2026-10-27T23:09:06.7905249Z"
+    },
+    {
+      "index": 4,
+      "title": "Completing Kryvex Setup",
+      "windowTitle": "Kryvex Setup",
+      "texts": [
+        "Completing Kryvex Setup",
+        "Kryvex has been installed on your computer. Click Finish to close Setup."
+      ],
+      "buttons": [
+        "&Run Kryvex",
+        "< &Back",
+        "&Finish",
+        "Cancel"
+      ],
+      "image": "pages/04-Completing Kryvex Setup.png",
+      "at": "2026-10-27T23:09:35.4682606Z"
+    }
+  ]
+}

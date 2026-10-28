@@ -2,11 +2,11 @@
   "version": "0.9.4-hotfix.2",
   "installerVersion": "0.9.4-hotfix.2",
   "installer": "Kryvex-Setup-0.9.4-hotfix.2-x64.exe",
-  "recordedAt": "2026-10-26T16:20:51.081Z",
+  "recordedAt": "2026-10-27T23:20:57.720Z",
   "startedHere": true,
   "exitCode": 0,
   "pageCount": 4,
-  "durationMs": 43029,
+  "durationMs": 31807,
   "pages": [
     {
       "index": 1,
@@ -26,7 +26,7 @@
         "Cancel"
       ],
       "image": "pages/01-Choose Installation Options.png",
-      "at": "2026-10-26T16:20:08.8188538Z"
+      "at": "2026-10-27T23:20:27.6911962Z"
     },
     {
       "index": 2,
@@ -37,7 +37,7 @@
         "Choose the folder in which to install Kryvex.",
         "Setup will install Kryvex in the following folder. To install in a different folder, click Browse and select another folder. Click Install to start the installation.",
         "Space required: 466.1 MB",
-        "Space available: 46.4 GB",
+        "Space available: 50.1 GB",
         "Kryvex 0.9.4-hotfix.2"
       ],
       "buttons": [
@@ -48,7 +48,7 @@
         "Cancel"
       ],
       "image": "pages/02-Choose Install Location.png",
-      "at": "2026-10-26T16:20:10.8917872Z"
+      "at": "2026-10-27T23:20:30.6866886Z"
     },
     {
       "index": 3,
@@ -65,7 +65,7 @@
         "Cancel"
       ],
       "image": "pages/03-Installing.png",
-      "at": "2026-10-26T16:20:12.9750976Z"
+      "at": "2026-10-27T23:20:34.9074438Z"
     },
     {
       "index": 4,
@@ -82,7 +82,7 @@
         "Cancel"
       ],
       "image": "pages/04-Completing Kryvex Setup.png",
-      "at": "2026-10-26T16:20:39.6594769Z"
+      "at": "2026-10-27T23:20:53.9615519Z"
     }
   ]
 }

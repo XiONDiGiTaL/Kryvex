@@ -96,8 +96,8 @@ release.
 - `pnpm package:win`: exit 0, producing the pair above with no EPERM on
   `release/win-unpacked`; `release/win-unpacked/Kryvex.exe` reads `0.9.3.0`.
 - `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer
-  release/Kryvex-Setup-0.9.3-x64.exe --version 0.9.3`: PASS — five pages
-  captured, the install page ran for 19,685 ms, the installer exited 0, the
+  release/Kryvex-Setup-0.9.3-x64.exe --version 0.9.3`: PASS — four pages
+  captured, the install page ran for 17,950 ms, the installer exited 0, the
   capture was archived under `docs/media/releases/0.9.3-wizard/`, and the
   installed `C:\Kryvex\Kryvex.exe` now reports `ProductVersion 0.9.3.0`.
 - `pnpm build:web`: PASS (1.6 MiB), `scripts/check-web-build.cjs` PASS, bundle
@@ -129,11 +129,15 @@ and is committed with this record:
 | 1 | [Choose Installation Options](media/releases/0.9.3-wizard/pages/01-Choose%20Installation%20Options.png) | "Who should this application be installed for?"; "There is already a per-user installation.(C:\Kryvex) Will reinstall/upgrade."; "Kryvex 0.9.3" |
 | 2 | [Choose Install Location](media/releases/0.9.3-wizard/pages/02-Choose%20Install%20Location.png) | Destination `C:\Kryvex`; "Space required: 465.8 MB" |
 | 3 | [Installing](media/releases/0.9.3-wizard/pages/03-Installing.png) | "Please wait while Kryvex is being installed."; "Kryvex 0.9.3" |
-| 4 | [Installation Complete](media/releases/0.9.3-wizard/pages/04-Installation%20Complete.png) | "Setup was completed successfully."; "Kryvex 0.9.3" |
-| 5 | [Completing Kryvex Setup](media/releases/0.9.3-wizard/pages/05-Completing%20Kryvex%20Setup.png) | "Kryvex has been installed on your computer. Click Finish to close Setup." |
+| 4 | [Completing Kryvex Setup](media/releases/0.9.3-wizard/pages/04-Completing%20Kryvex%20Setup.png) | "Kryvex has been installed on your computer. Click Finish to close Setup." |
 
-The install page ran for 19,685 ms between **Installing** and **Installation
-Complete**, and the installer exited 0.
+The install page ran for 17,950 ms between **Installing** and **Completing
+Kryvex Setup**, and the installer exited 0.
+
+The capture was re-recorded on 2026-10-27 with two corrections to how it is
+taken: a page is no longer filed under a picture of the page that replaced it,
+so the installer's transient **Installation Complete** page is not listed, and a
+picture is kept only once the page has stopped painting.
 
 ## Known limitations
 

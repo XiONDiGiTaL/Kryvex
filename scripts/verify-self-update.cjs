@@ -329,8 +329,10 @@ function assertWizardCapture(wizard) {
   );
   check('the installer exited 0', wizard.exitCode === 0, `exit code ${wizard.exitCode}`);
 
-  // "Choose Installation Options" and "Installation Complete" also contain
-  // "install", so match the progress page by its own heading or its copy.
+  // "Choose Installation Options" also contains "install", so match the progress
+  // page by its own heading or its copy. (The installer's transient
+  // "Installation Complete" page is not captured at all: it advances itself
+  // before its own controls could be photographed.)
   const installing = list.find(
     page =>
       /^install(ing)?$/i.test(page.title) ||

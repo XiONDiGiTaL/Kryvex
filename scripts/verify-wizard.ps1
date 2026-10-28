@@ -48,6 +48,7 @@ public class KryvexWizard {
   [DllImport("user32.dll")] public static extern int GetDlgCtrlID(IntPtr hWnd);
   [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr hWnd, uint message, IntPtr wParam, IntPtr lParam);
   [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hWnd, IntPtr hdc, uint flags);
+  [DllImport("user32.dll")] public static extern bool RedrawWindow(IntPtr hWnd, IntPtr updateRect, IntPtr updateRegion, uint flags);
   [DllImport("kernel32.dll", SetLastError = true)] public static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
   [DllImport("kernel32.dll", SetLastError = true)] public static extern bool CloseHandle(IntPtr handle);
   [DllImport("kernel32.dll", SetLastError = true)] public static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
@@ -132,6 +133,12 @@ function Get-Page {
 
 function Save-WindowImage {
   param([IntPtr]$Root, [string]$Path)
+  # A page's controls exist before every one of them has been drawn, and a page
+  # that is not being touched does not necessarily redraw itself: the dialog is
+  # therefore redrawn in full first (RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW |
+  # RDW_ALLCHILDREN), so the picture holds the whole page and not the part of it
+  # that happened to be painted already.
+  [void][KryvexWizard]::RedrawWindow($Root, [IntPtr]::Zero, [IntPtr]::Zero, 0x0185)
   $rect = New-Object KryvexWizard+RECT
   if (-not [KryvexWizard]::GetWindowRect($Root, [ref]$rect)) { return $false }
   $width = $rect.Right - $rect.Left
@@ -154,6 +161,33 @@ function Save-WindowImage {
   $bitmap.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
   $bitmap.Dispose()
   return $true
+}
+
+# NSIS paints a page a moment after its controls exist, so a single capture can
+# catch a half-drawn dialog. The picture is kept only once two captures of the
+# page agree byte for byte, which also keeps an animated page (the install
+# progress bar) from being recorded mid-frame.
+function Save-SettledImage {
+  param([IntPtr]$Root, [string]$Path, [int]$Attempts = 10, [int]$WaitMilliseconds = 250)
+  if (-not (Save-WindowImage $Root $Path)) { return $false }
+  $candidate = "$Path.settling"
+  # Two captures can agree before the page is finished: a static control's text
+  # lands a moment after the page appears, so the picture is also given a minimum
+  # dwell before agreement is taken as "done".
+  $settleStarted = Get-Date
+  try {
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+      Start-Sleep -Milliseconds $WaitMilliseconds
+      if (-not (Save-WindowImage $Root $candidate)) { break }
+      $unchanged = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash
+      Move-Item -LiteralPath $candidate -Destination $Path -Force
+      $dwelled = ((Get-Date) - $settleStarted).TotalMilliseconds -ge 1200
+      if ($unchanged -and $dwelled) { break }
+    }
+  } finally {
+    Remove-Item -LiteralPath $candidate -ErrorAction SilentlyContinue
+  }
+  return (Test-Path -LiteralPath $Path)
 }
 
 function Get-SafeName {
@@ -231,6 +265,8 @@ if ($Installer) {
 Write-Output ("wizard: watching '" + $process.ProcessName + "' pid " + $process.Id + " (" + $(if ($startedHere) { 'started by this script' } else { 'attached' }) + ")")
 
 $lastSignature = ''
+# A page that has been seen once but not yet photographed; see the capture block.
+$pendingSignature = ''
 $advanceAttempts = 0
 $nextAdvance = Get-Date
 $deadline = $startedAt.AddSeconds($TimeoutSeconds)
@@ -259,25 +295,62 @@ while ((Get-Date) -lt $deadline) {
 
     $hasContent = ($page.texts.Count + $page.buttons.Count) -gt 0
     if ($hasContent -and $page.signature -and $page.signature -ne $lastSignature) {
-      $index = $script:pages.Count + 1
-      $image = Join-Path $pagesDir ("{0:d2}-{1}.png" -f $index, (Get-SafeName $page.title))
-      $saved = Save-WindowImage $window $image
-      [void]$script:pages.Add([pscustomobject]@{
-        index       = $index
-        windowTitle = $page.windowTitle
-        title       = $page.title
-        texts       = $page.texts
-        buttons     = $page.buttons
-        image       = $(if ($saved) { $image } else { $null })
-        at          = (Get-Date).ToUniversalTime().ToString('o')
-      })
-      $lastSignature = $page.signature
-      $advanceAttempts = 0
-      $nextAdvance = (Get-Date).AddSeconds(1.5)
-      Write-Output ("page " + $index + ": " + $page.title)
+      # A page is recorded only once it has been seen on two polls and its
+      # picture has been taken with the same controls still on screen. Controls
+      # exist before a page has finished painting, and a few pages advance
+      # themselves within a few hundred milliseconds -- the installer's own
+      # "Installation Complete" page is one. Without both halves the record files
+      # a half-painted page, or the page that replaced it, under text read from a
+      # different page.
+      if ($page.signature -ne $pendingSignature) {
+        $pendingSignature = $page.signature
+        Write-Output ("  saw '" + $page.title + "'")
+      } else {
+        $index = $script:pages.Count + 1
+        $image = Join-Path $pagesDir ("{0:d2}-{1}.png" -f $index, (Get-SafeName $page.title))
+        Start-Sleep -Milliseconds 250
+        $settled = Get-Page $window (Get-Controls $window)
+        $advanced = $settled.signature -ne $page.signature
+        $saved = $false
+        if (-not $advanced) {
+          $page = $settled
+          $saved = Save-SettledImage $window $image
+          $after = Get-Page $window (Get-Controls $window)
+          if ($after.signature -ne $page.signature) {
+            $advanced = $true
+            Remove-Item -LiteralPath $image -ErrorAction SilentlyContinue
+          }
+        }
+        $pendingSignature = ''
+        if ($advanced) {
+          # The page was gone before it could be photographed, so it is not a page
+          # this capture can account for. The buttons read from it are stale too,
+          # so the next advance waits for the page that replaced it.
+          $nextAdvance = (Get-Date).AddSeconds(1.5)
+          Write-Output ("  skipped '" + $page.title + "': the dialog advanced before its picture was taken")
+        } else {
+          [void]$script:pages.Add([pscustomobject]@{
+            index       = $index
+            windowTitle = $page.windowTitle
+            title       = $page.title
+            texts       = $page.texts
+            buttons     = $page.buttons
+            # A page whose picture could not be taken stays listed with no image,
+            # which is what 'every page was photographed' then reports.
+            image       = $(if ($saved) { $image } else { $null })
+            at          = (Get-Date).ToUniversalTime().ToString('o')
+          })
+          $lastSignature = $page.signature
+          $advanceAttempts = 0
+          $nextAdvance = (Get-Date).AddSeconds(1.5)
+          Write-Output ("page " + $index + ": " + $page.title)
+        }
+      }
     }
 
-    if (-not $NoAdvance -and $lastSignature -and (Get-Date) -ge $nextAdvance -and $advanceAttempts -lt 25) {
+    # Never advance past a page that is still waiting to be photographed, or the
+    # next page would be detected before this one was recorded.
+    if (-not $NoAdvance -and -not $pendingSignature -and $lastSignature -and (Get-Date) -ge $nextAdvance -and $advanceAttempts -lt 25) {
       $label = Invoke-Forward $window $controls
       if ($label) {
         $advanceAttempts += 1

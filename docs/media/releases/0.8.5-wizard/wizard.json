@@ -2,11 +2,11 @@
   "version": "0.8.5",
   "installerVersion": "0.8.5",
   "installer": "Kryvex-Setup-0.8.5-x64.exe",
-  "recordedAt": "2026-10-22T09:46:26.558Z",
+  "recordedAt": "2026-10-27T23:22:29.657Z",
   "startedHere": true,
   "exitCode": 0,
-  "pageCount": 5,
-  "durationMs": 31907,
+  "pageCount": 4,
+  "durationMs": 32663,
   "pages": [
     {
       "index": 1,
@@ -26,7 +26,7 @@
         "Cancel"
       ],
       "image": "pages/01-Choose Installation Options.png",
-      "at": "2026-10-22T09:45:56.1015010Z"
+      "at": "2026-10-27T23:21:59.6817259Z"
     },
     {
       "index": 2,
@@ -37,7 +37,7 @@
         "Choose the folder in which to install Kryvex.",
         "Setup will install Kryvex in the following folder. To install in a different folder, click Browse and select another folder. Click Install to start the installation.",
         "Space required: 421.8 MB",
-        "Space available: 37.9 GB",
+        "Space available: 50.0 GB",
         "Kryvex 0.8.5"
       ],
       "buttons": [
@@ -48,7 +48,7 @@
         "Cancel"
       ],
       "image": "pages/02-Choose Install Location.png",
-      "at": "2026-10-22T09:45:58.1616060Z"
+      "at": "2026-10-27T23:22:03.6766898Z"
     },
     {
       "index": 3,
@@ -65,27 +65,10 @@
         "Cancel"
       ],
       "image": "pages/03-Installing.png",
-      "at": "2026-10-22T09:46:00.2509299Z"
+      "at": "2026-10-27T23:22:07.8172612Z"
     },
     {
       "index": 4,
-      "title": "Installation Complete",
-      "windowTitle": "Kryvex Setup",
-      "texts": [
-        "Installation Complete",
-        "Setup was completed successfully.",
-        "Kryvex 0.8.5"
-      ],
-      "buttons": [
-        "< &Back",
-        "&Next >",
-        "Cancel"
-      ],
-      "image": "pages/04-Installation Complete.png",
-      "at": "2026-10-22T09:46:21.9186770Z"
-    },
-    {
-      "index": 5,
       "title": "Completing Kryvex Setup",
       "windowTitle": "Kryvex Setup",
       "texts": [
@@ -98,8 +81,8 @@
         "&Finish",
         "Cancel"
       ],
-      "image": "pages/05-Completing Kryvex Setup.png",
-      "at": "2026-10-22T09:46:22.2630606Z"
+      "image": "pages/04-Completing Kryvex Setup.png",
+      "at": "2026-10-27T23:22:25.9352899Z"
     }
   ]
 }

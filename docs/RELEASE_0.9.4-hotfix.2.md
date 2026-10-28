@@ -173,7 +173,7 @@ reports the version of this release.
   written to the state file; switching the clock off removes it from the board.
 - `node scripts/verify-self-update.cjs --no-app --wizard --archive --installer
   release/Kryvex-Setup-0.9.4-hotfix.2-x64.exe`: **PASS** — four pages captured,
-  the install page ran for 26,684 ms, the installer exited 0, and the capture was
+  the install page ran for 19,054 ms, the installer exited 0, and the capture was
   archived under `docs/media/releases/0.9.4-hotfix.2-wizard/`.
 - `pnpm release:check`: PASS for 0.9.4-hotfix.2.
 
@@ -190,11 +190,15 @@ this record: [capture.md](media/releases/0.9.4-hotfix.2-wizard/capture.md).
 | 3 | [Installing](media/releases/0.9.4-hotfix.2-wizard/pages/03-Installing.png) | "Please wait while Kryvex is being installed." |
 | 4 | [Completing Kryvex Setup](media/releases/0.9.4-hotfix.2-wizard/pages/04-Completing%20Kryvex%20Setup.png) | "Kryvex has been installed on your computer. Click Finish to close Setup." |
 
-The install page ran for 26,684 ms between **Installing** and **Completing Kryvex
+The install page ran for 19,054 ms between **Installing** and **Completing Kryvex
 Setup**, and the installer exited 0. The first attempt stalled on the "Kryvex is
 running. Click OK to close it." prompt from an open copy of the app; the app was
 closed and the capture re-run, which is why this record has four pages rather than
 the five a previously stopped install produced.
+
+The capture was re-recorded on 2026-10-27 so that a page is no longer filed
+under a picture of the page that replaced it, and so that its picture is kept
+only once the page has stopped painting.
 
 ## Known limitations
 
