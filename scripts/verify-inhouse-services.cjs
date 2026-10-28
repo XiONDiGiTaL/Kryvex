@@ -17,9 +17,12 @@
  *     export — each as a code, with no dialog and no file;
  *   - Canvas draws a stroke, undoes and redoes it, places typed text, and hands
  *     that text to the Home board, which persists it to the profile on disk;
- *   - Add service offers the three built-ins, and placing Canvas makes a tool
+ *   - Add service offers all eight built-ins, and placing Canvas makes a tool
  *     window that drags, resizes, keeps its z-index inside the window band and
- *     closes without adding anything to the service list.
+ *     closes without adding anything to the service list;
+ *   - a tool that owns a session (Lexium) opens in a window too, and its route
+ *     then shows where it went instead of mounting a second copy, with the card
+ *     putting it back on the route.
  *
  * Run after `pnpm build`:
  *
@@ -440,7 +443,24 @@ async function main() {
     const builtIn = await client.evaluate(
       `Array.from(document.querySelectorAll('.preset-chip.is-tool')).map(chip => chip.textContent.trim())`,
     );
-    check(builtIn.length === 3, `Add service offers the three built-ins (${builtIn.join(', ')})`);
+    // Every built-in can live in a window now, so the group offers all eight
+    // rather than the three that used to draw themselves.
+    check(builtIn.length === 8, `Add service offers every built-in (${builtIn.join(', ')})`);
+    for (const name of [
+      'Lexium',
+      'Media player',
+      'Secret emulator',
+      'Disk pulse',
+      'Kryvex Link',
+      'Arcade',
+      'File Forge',
+      'Canvas',
+    ]) {
+      check(
+        builtIn.some(label => label.includes(name)),
+        `Add service offers ${name} (${builtIn.join(', ')})`,
+      );
+    }
     await client.evaluate(`(() => {
       const chip = Array.from(document.querySelectorAll('.preset-chip.is-tool'))
         .find(item => item.textContent.includes('Canvas'));
@@ -557,6 +577,64 @@ async function main() {
     check(
       (state.services ?? []).length === 0,
       'placing a built-in window adds nothing to the service list',
+    );
+
+    /* --------------------------- a single-instance tool docks back --- */
+    // Lexium owns a server session, so its route must never mount a second one
+    // behind the window. The window is the copy; the route says where it went
+    // and offers it back.
+    await client.evaluate(`(() => {
+      const add = Array.from(document.querySelectorAll('.workspace-bar button'))
+        .find(button => /add service|servicio|Dienst|service/i.test(button.textContent));
+      add.click();
+      return true;
+    })()`);
+    await waitFor(client.evaluate, `Boolean(document.querySelector('.preset-chip.is-tool'))`, 5000, 'the built-in group');
+    await client.evaluate(`(() => {
+      const chip = Array.from(document.querySelectorAll('.preset-chip.is-tool'))
+        .find(item => item.textContent.includes('Lexium'));
+      chip.click();
+      return true;
+    })()`);
+    await waitFor(
+      client.evaluate,
+      `Boolean(document.querySelector('.service-frame.is-tool-window .lexium-view'))`,
+      8000,
+      'Lexium in a window',
+    );
+
+    await client.evaluate(`(() => { window.location.hash = '#/lexium'; return true; })()`);
+    await waitFor(
+      client.evaluate,
+      `Array.from(document.querySelectorAll('.empty-state')).some(card =>
+        (card.querySelector('h3')?.textContent ?? '').includes('Lexium') &&
+        Array.from(card.querySelectorAll('button')).some(button => /bring it back/i.test(button.textContent)))`,
+      8000,
+      'the docking card on the Lexium route',
+    );
+    check(
+      !(await client.evaluate(`Boolean(document.querySelector('.view.lexium-view'))`)),
+      'the Lexium route does not mount a second copy beside the window',
+    );
+    await client.evaluate(`(() => {
+      const card = Array.from(document.querySelectorAll('.empty-state'))
+        .find(node => Array.from(node.querySelectorAll('button')).some(button => /bring it back/i.test(button.textContent)));
+      Array.from(card.querySelectorAll('button')).find(button => /bring it back/i.test(button.textContent)).click();
+      return true;
+    })()`);
+    await waitFor(
+      client.evaluate,
+      `Boolean(document.querySelector('.view.lexium-view'))`,
+      8000,
+      'Lexium back on its route',
+    );
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      if (!(await client.evaluate(`Boolean(document.querySelector('.service-frame.is-tool-window'))`))) break;
+      await sleep(200);
+    }
+    check(
+      !(await client.evaluate(`Boolean(document.querySelector('.service-frame.is-tool-window'))`)),
+      'bringing it back closes the window',
     );
 
     check(client.exceptions.length === 0, `no renderer exceptions (${client.exceptions.slice(0, 2).join(' | ')})`);

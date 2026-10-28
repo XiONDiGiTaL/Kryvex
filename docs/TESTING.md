@@ -3198,9 +3198,10 @@ running, so the local checks could not settle it either way.
 
 Run on 2026-10-27 in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3.
 
-The three harnesses that drive a real app — `verify:inhouse` (Arcade, File Forge
-and Canvas), `verify:shell-batch` (the shell changes) and `verify:link` (the phone
-companion over its own HTTP listener) — were local-only. They need a built
+The three harnesses that drive a real app — `verify:inhouse` (the in-house tools,
+and every built-in placed in a Workspace window), `verify:shell-batch` (the shell
+changes) and `verify:link` (the phone companion over its own HTTP listener) —
+were local-only. They need a built
 desktop app and a window, and the workflow had neither. They are steps now, after
 the web build:
 
@@ -3249,7 +3250,7 @@ renderer wakes, not what a check measures, so the same checks run here.
 
 | Harness | Command | Result | Wall clock |
 | --- | --- | --- | --- |
-| Built-in tools | `node scripts/verify-inhouse-services.cjs` | **29/29 PASS** | 3.5 s |
+| Built-in tools | `node scripts/verify-inhouse-services.cjs` | **44/44 PASS** | 4.2 s |
 | Shell batch | `node scripts/verify-shell-batch.cjs` | **23/23 PASS** | 3.6 s |
 | Link | `node scripts/verify-link.cjs` | **35/35 PASS** | 10.3 s |
 

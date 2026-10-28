@@ -158,6 +158,19 @@ of this site* switch on the form: each record has its own id and therefore its
 own partition, so two copies hold two independent sign-ins. Host equality is
 deliberate — `mail.example.com` and `example.com` are different sites.
 
+**Built-in tools, and the ones that must stay single.** *Add service* frames any
+of Kryvex's own tools — Lexium, the media player, the secret emulator, Disk
+pulse, Kryvex Link, Arcade, File Forge and Canvas — drawn by the same board,
+with the same chrome, tray and motion as a service window. Five of them own
+something a second copy would duplicate: a server session, an audio graph, a
+running core, a polling service or a listening socket. Those are single-instance
+(`SINGLETON_TOOL_IDS` in `src/lib/secret-tools.ts`): while a window holds one,
+its route shows a card naming the window and offering **Bring it back**, and the
+tool's rail entry docks that window rather than opening a second. A tool inside a
+window drops its own page header — the window already names it, and a Back button
+there would offer a route the window cannot take — and the emulator stacks its
+panel under the screen when the window is narrow.
+
 **Close and minimize differ.** Closing removes the module from the live set, so
 the frame unmounts and the partition's guests are stopped; cookies stay on disk,
 so reopening is a visit rather than a sign-in. Minimizing keeps the guest mounted
