@@ -28,6 +28,22 @@ mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
+## Released (2026-10-28, 0.9.5-hotfix.4)
+
+The `v0.9.5-hotfix.4` tag ran the Release workflow to completion — both jobs
+(`windows`, `web`) succeeded — and published a stable release, not a draft or a
+prerelease, at 2026-10-28T11:13:55Z. `releases/latest` answers `v0.9.5-hotfix.4`.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.5-hotfix.4-x64.exe` | 137,362,872 B | `05a3910c14453623e256f7c121947951930def8ec2b1a021c77c3f74856676c9` |
+| `Kryvex-Portable-0.9.5-hotfix.4-x64.exe` | 137,118,994 B | `cd57edec9073f68972ba1e487e850fd139fa1e8d419c493ab275a813b93ce4b5` |
+
+`gh-pages` was force-pushed from the same tag and the published worker names
+`kryvex-web-0.9.5-hotfix.4-v1`; `index` answers HTTP 200 at
+`https://xiondigital.net/Kryvex/`. Both installers are unsigned. Full record:
+[RELEASE_0.9.5-hotfix.4.md](docs/RELEASE_0.9.5-hotfix.4.md).
+
 ## Netplay, run against a real RetroArch (28 Oct 2026, after 0.9.5-hotfix.4)
 
 **RetroArch was never installed here, so this was the first time the sidecar met

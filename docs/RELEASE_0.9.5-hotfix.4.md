@@ -110,19 +110,26 @@ turned up.
 
 ## Artifacts
 
-The `v0.9.5-hotfix.4` tag runs the Release workflow (`windows-latest`, Node 22,
-pnpm 10), which builds and attaches:
+Built by the Release workflow on the `v0.9.5-hotfix.4` tag (`windows-latest`,
+Node 22, pnpm 10), published stable at 2026-10-28T11:13:55Z, and attached to
+[the release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.9.5-hotfix.4):
 
-- `Kryvex-Setup-0.9.5-hotfix.4-x64.exe`
-- `Kryvex-Portable-0.9.5-hotfix.4-x64.exe`
-- `SHA256SUMS.txt`
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.5-hotfix.4-x64.exe` | 137,362,872 B (131.00 MiB) | `05a3910c14453623e256f7c121947951930def8ec2b1a021c77c3f74856676c9` |
+| `Kryvex-Portable-0.9.5-hotfix.4-x64.exe` | 137,118,994 B (130.77 MiB) | `cd57edec9073f68972ba1e487e850fd139fa1e8d419c493ab275a813b93ce4b5` |
 
-The workflow builds what it publishes, so those files — not the locally built
-pair used for the wizard capture below — are the ones to check a download
-against. Both EXEs are **unsigned**.
+`SHA256SUMS.txt` (207 B) travels with them, and the digests above are GitHub's
+own asset digests, so the in-app updater accepts this release. It is not a draft
+and not a prerelease, and `releases/latest` answers `v0.9.5-hotfix.4`. The
+workflow builds what it publishes, so these files — not the locally built pair
+used for the wizard capture below — are the ones to check a download against.
+Both EXEs are **unsigned**.
 
-**Web client.** The same tag rebuilds and force-pushes `gh-pages`; the published
-worker names `kryvex-web-0.9.5-hotfix.4-v1`, so the site reports this version.
+**Web client.** The same tag rebuilt and force-pushed `gh-pages`: the published
+worker at `https://xiondigital.net/Kryvex/sw.js` names
+`kryvex-web-0.9.5-hotfix.4-v1` and `index` answers HTTP 200, so the site reports
+this version.
 
 ## Install
 
