@@ -113,6 +113,47 @@ away.
 > can install it on restart, says **UP TO DATE** in green when nothing newer
 > exists; portable and git builds download or point at the release instead.
 
+## Languages
+
+Kryvex ships five UI languages. **Settings → Appearance → Language** takes
+*System language* or one of them by name, and a system locale that is not one of
+these falls back to English rather than to a half-translated screen.
+
+| Language | Code | Chrome, dialogs and settings | Notes |
+| --- | --- | --- | --- |
+| English | `en` | 1,951 of 1,951 strings | The source catalogue: every key is a complete English sentence, so an untranslated string shows English rather than a blank. |
+| Español | `es` | 1,910 of 1,951 | The 41 that stay English are protocol and product tokens (`SHA-256`, `VEXIUM CORE`), units (`{value} kcal`) and words already correct in Spanish (`Color`, `Hardware`). |
+| Deutsch | `de` | 1,884 of 1,951 | The 67 that stay English are tokens, units and words already correct in German (`Browser`, `Desktop`, `Downloads`, `Name`, `Update`). |
+| Français | `fr` | 1,895 of 1,951 | The 56 that stay English are tokens and words already correct in French (`Accent`, `Architecture`). |
+| Türkçe | `tr` | 669 of 1,951 | **Knowingly partial, and labelled as such.** The shell, Home board, Workspace, browser, player, Rooms, capture and clock are translated; the long explanatory paragraphs still fall back to English. |
+
+What the catalogue covers: the shell and navigation, every dialog, Settings,
+per-service controls and menus, status and error messages, the browser library,
+the Home widgets, Rooms presence and capture copy, and Lexium's own panel. What
+it deliberately does not cover: the web apps themselves (Discord's or Slack's
+interface is theirs, not Kryvex's), service and product names, protocol tokens,
+units and numbers, and this README and the docs — those are English.
+
+Coverage is measured, not claimed. `tests/i18n-coverage.test.ts` walks every
+literal handed to `t(...)` in `src/` and counts the ones a language does not
+translate, with a ratchet that lets a number fall but never rise, so adding an
+English string without its translations fails the build. The numbers above are
+what that audit measured at this release; the Turkish ratchet sits just above
+them at 1,291, so the remaining backlog can be worked off but not grown.
+[docs/I18N.md](docs/I18N.md) explains the rules — named
+placeholders instead of concatenation, explicit singular/plural pairs — and why
+`t('')` falling back to the key is what keeps a partial language usable.
+
+Language also matters beyond the interface, and there Lexium goes further than
+the UI does: its own list offers 34 languages, Turkish included, for
+transcription, translation and OCR. Two rules keep that honest rather than
+hopeful. The Windows dictation engine matches a language exactly and never
+substitutes, so a language this machine has no recogniser for is refused before
+anything runs ("This PC has a dictation engine for en-US only, so it cannot hear
+Turkish…") instead of writing confident English over Turkish audio. And the
+Whisper models Kryvex offers are the multilingual conversions, never the
+`*.en` files, for the same reason. See [docs/LEXIUM.md](docs/LEXIUM.md).
+
 ## Install on Windows
 
 Kryvex targets Windows 10/11 x64. `pnpm run package:win` writes two artifacts
@@ -654,7 +695,7 @@ faster; the same actions remain available on screen.
 | **URL privacy** | Top-level HTTP navigations are upgraded to HTTPS and retried over HTTP once if HTTPS fails. Known `utm_*`, `fbclid`, `gclid`, `msclkid` and similar click/campaign identifiers are removed before the request. Loopback, `.local` and private-network hosts are exempt. |
 | **Fingerprint farbling** | A sandboxed frame preload perturbs canvas `getImageData`/`toDataURL`/`toBlob`, WebGL `readPixels` and `AnalyserNode` frequency data with stable per-site, per-launch noise. The trusted shell is never patched. |
 | **Extensions** | Install Chrome-compatible extensions from a Chrome Web Store detail page in one click, or from `.zip`, `.crx` or a folder; enable, disable, remove. Loaded into services and browser sessions. |
-| **Languages** | System language or English, Spanish, German and French across the shell, browser library, dialogs, themes and extension messages. |
+| **Languages** | System language or English, Spanish, German, French and Turkish across the shell, browser library, dialogs, themes and extension messages, with a measured coverage ratchet rather than a claim. Spanish, German and French are complete apart from tokens and words already correct in the target language; Turkish is knowingly partial and documented as such in [Languages](#languages). |
 | **Themes** | 78 catalogue themes in eight periodic-table families (core, spectrum (reds and pinks included), elements, metals, **gems/birthstones**, **planets**, lights and terminal) plus the **Special Donkey Edition** and **Special XiØN Edition** plugins, and a **Custom** tile you build from five RGB/HSV colour pickers. XiØN is the creator skin: near-black glass, one electric blue, the blade mark and liquid progress fills. All token-driven from `brand/themes.json` and `src/plugins/`. |
 | **Theme gallery** | A preview-first route to the same catalogue: every family rendered on a miniature Kryvex workspace, opened once on a fresh install and kept below the periodic table in Settings. Picking a family previews its hero, clicking a theme applies it, and the skip button keeps the current look. |
 | **Layout** | Collapsible sidebar (rail ↔ expanded), comfortable/compact density, toggleable status bar, adjustable start view. |
