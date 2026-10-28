@@ -28,6 +28,52 @@ mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
+## Netplay, run against a real RetroArch (28 Oct 2026, after 0.9.5-hotfix.4)
+
+**RetroArch was never installed here, so this was the first time the sidecar met
+one.** A throwaway `RetroArch 1.22.2` build plus `fceumm` and a synthetic NES
+image (an iNES header and `JMP $8000` — this repository ships no game) turned
+`pnpm verify:netplay`'s assumptions into measurements, and four of them were
+wrong.
+
+- **The panel's log was always empty.** RetroArch is a GUI-subsystem program:
+  given pipes *or* a file handle it writes nothing, and `--log-file` on its own
+  still writes nothing. Only `-v --log-file=<path>` produces a log, which is now
+  what the session runs with. Without it, a failed session was a window that
+  never connected and said nothing.
+- **A join always dialled 55435.** `parseJoinAddress` returned the port and
+  `start()` threw it away. `10.0.0.4:55535` now dials 55535, and the session keeps
+  `host:port` for the panel.
+- **Kryvex was writing into the user's RetroArch configuration.** RetroArch
+  saves the config it ran with, so a session left its netplay state in the
+  user's `retroarch.cfg` — measured by reading the file afterwards. Each session
+  now runs on `userData/retroarch/retroarch.cfg`, rewritten from the user's copy
+  with the netplay and save-directory keys stripped, `config_save_on_exit` off,
+  its own `saves/` and `states/`, no lobby announce, and NAT traversal only for
+  the host.
+- **The advertised address could be a virtual adapter.** `localAddress()` took
+  the first non-loopback IPv4, which on a desktop is often a VPN or a Hyper-V
+  switch. APIPA addresses are skipped and private LAN ranges are preferred.
+
+**Measured.** Kryvex hosted and a second real RetroArch joined it, three runs,
+with the guest logging `Connected to: "KryvexHost"`,
+`You have joined as player 2 (ping: …)` and `Loaded the host's state at frame …`.
+Kryvex joined a real host on a non-default port, once, and that host logged
+`KryvexGuest has joined as player 2`.
+
+**Not measured, and why there is no live harness in the repository:** every
+session was two processes on this one desktop, so no frame crossed a network;
+and repeat runs were inconsistent — a second session sometimes sat in netplay
+without connecting, and two *raw* RetroArch instances behaved the same way. A
+guest that dials before the host's socket exists never retries, which is the race
+that made an earlier version of the harness pass about half the time. Shipping
+that as a green check would have been a lie; the manual two-machine plan in
+[NETPLAY.md](docs/NETPLAY.md) is what covers it.
+
+`pnpm verify:netplay` (fake executable) passes again with the session config and
+log checks, 13 unit tests cover the arguments and the isolation, typecheck is
+clean and `pnpm test` passes **1040/1040 across 91 files**.
+
 ## Release batch (28 Oct 2026, 0.9.5-hotfix.4)
 
 This batch is the one that closes the run the earlier sections describe: the

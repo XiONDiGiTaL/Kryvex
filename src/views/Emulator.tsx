@@ -1769,6 +1769,18 @@ export function Emulator({
                   </>
                 )}
                 {retroNote ? <p className="mono">{retroNote}</p> : null}
+                {retro?.log?.length && (retro.phase === 'exited' || retro.error) ? (
+                  // A session that ends on its own says why in its own log, and
+                  // that log is the only place a netplay refusal appears.
+                  <details className="emulator-netplay-log">
+                    <summary className="mono">{t('RetroArch said')}</summary>
+                    {retro.log.slice(-6).map((line, index) => (
+                      <p className="mono" key={`${index}-${line.slice(0, 16)}`}>
+                        {line}
+                      </p>
+                    ))}
+                  </details>
+                ) : null}
                 <p className="mono emulator-netplay-hint">
                   {t(
                     'The host may have to allow TCP {port} through the firewall, and forward it on the router for a player outside the network. RetroArch opens in its own window; Kryvex stops it when you quit.',

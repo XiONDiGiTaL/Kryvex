@@ -857,6 +857,7 @@ export const turkishCopy: Record<string, string> = {
   'Choose another copy': 'Başka bir kopya seç',
   'Locate RetroArch': 'RetroArch’ı bul',
   'Stop netplay': 'Ağ oyununu durdur',
+  'RetroArch said': 'RetroArch şunu dedi',
   'The core for {system} is missing: add {file} from RetroArch’s own core updater.':
     '{system} için çekirdek eksik: RetroArch’ın kendi çekirdek güncelleyicisinden {file} ekleyin.',
   'Hosting. The other player enters {address}.': 'Sunucu açık. Diğer oyuncu {address} adresini girer.',

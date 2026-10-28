@@ -127,15 +127,29 @@ export function retroarchArgs(input: {
   host?: string;
   port?: number;
   nick?: string;
+  /** Where RetroArch should write its own log. See the note in `retroarch.ts`. */
+  logPath?: string;
+  /**
+   * Kryvex's own copy of the configuration, so a session never writes back into
+   * the one the user owns. See `prepareConfig` in `retroarch.ts`.
+   */
+  configPath?: string;
 }): string[] {
   const port = input.port && input.port > 0 ? Math.floor(input.port) : RETROARCH_NETPLAY_PORT;
-  const args = ['-L', input.corePath];
+  const args: string[] = [];
+  if (input.configPath) args.push('-c', input.configPath);
+  args.push('-L', input.corePath);
   if (input.role === 'host') {
     args.push('-H');
   } else {
     args.push('-C', input.host ?? '');
   }
   args.push('--port', String(port), '--nick', cleanNick(input.nick));
+  // Without this pair, a GUI-subsystem RetroArch writes its log nowhere a parent
+  // can read: pipes and file handles both came back empty, and `--log-file` on
+  // its own still writes nothing — measured on 1.22.2. `--log-file` plus `-v`
+  // produces the file. One argument keeps the path's spaces safe.
+  if (input.logPath) args.push('-v', `--log-file=${input.logPath}`);
   args.push(input.romPath);
   return args;
 }

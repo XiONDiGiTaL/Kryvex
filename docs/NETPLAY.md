@@ -77,9 +77,10 @@ runs what is already there. Nothing in the app knows a RetroArch URL.
 - It shows the host's own LAN address with the port, so it can be read out.
 - It refuses a join address it cannot dial: schemes, paths, spaces and out-of-range
   ports are a sentence in the panel, not a process that exits quietly.
-- It never claims a session is up beyond "RetroArch was started": there is no
-  machine-readable "connected" line in RetroArch's output, so the two players
-  confirm each other by nickname inside RetroArch.
+- It never claims a session is up beyond "RetroArch was started". RetroArch does
+  print `[Netplay] … has joined as player 2`, and those lines are now captured and
+  shown in the panel, but the panel does not turn them into a state it asserts:
+  the two players confirm each other by nickname inside RetroArch.
 
 ## Requirements the user has to meet
 
@@ -102,13 +103,41 @@ runs what is already there. Nothing in the app knows a RetroArch URL.
 - Cores: each has its own licence. Kryvex downloads none and names none as its own.
 - Kryvex's own code for this feature is MIT, like the rest of the repository.
 
+## What the session runs on
+
+A session is not just an argument list; it also decides which files RetroArch
+reads and writes. Five things were changed after running one against a real
+RetroArch 1.22.2 install:
+
+- **Kryvex's own configuration (`-c`).** RetroArch writes the configuration it ran
+  with when a session ends, so a session Kryvex started was leaving its netplay
+  state in the user's `retroarch.cfg`. Kryvex now writes its own copy under
+  `userData/retroarch/retroarch.cfg` from the user's file on every start, with the
+  netplay and save-directory keys removed and `config_save_on_exit = "false"`,
+  so the user's settings are read but never rewritten.
+- **Its own saves and states.** Netplay redirects saves into a `.netplay` folder;
+  both directories now point at Kryvex's profile instead of the RetroArch install.
+- **No lobby announce.** `netplay_public_announce = "false"`: a room's session is
+  private, and the announce makes RetroArch talk to the lobby while it starts.
+- **NAT traversal only for the host.** A guest has nothing to map, and a guest
+  that tried blocked on the handshake.
+- **The log (`-v --log-file`).** RetroArch is a GUI-subsystem program: given a
+  pipe or a file handle it writes nothing, and `--log-file` on its own still
+  writes nothing. Both switches together are what put `[Netplay] …` lines in the
+  panel, and that is also how a failed session becomes a sentence instead of a
+  window that never connects.
+- **The port typed into the panel.** A join used to always dial 55435 because the
+  parsed port was dropped on the way to the argument list; `10.0.0.4:55535` now
+  dials 55535.
+
 ## What is measured, and what is not
 
 Measured on this machine:
 
 - The rules: argument lists, nickname and address validation, cartridge file
-  naming, install-path discovery, and the sidecar's refusal cases (`not-found`,
-  `no-core`, `rom`, `address`) with a fake install — 11 unit tests.
+  naming, install-path discovery, the session configuration above, and the
+  sidecar's refusal cases (`not-found`, `no-core`, `rom`, `address`) with a fake
+  install — 13 unit tests.
 - The sidecar's own half, end to end, with `pnpm verify:netplay`: a fake
   `retroarch.exe` (a copy of `cmd.exe`) plus a `cores/` folder. It found the
   install, listed its Flycast and FCEUmm cores, refused a console with no core
@@ -116,17 +145,31 @@ Measured on this machine:
   cartridge byte-for-byte into `roms/`, spawned the process with the documented
   flags, captured its exit and its stderr, parsed `10.0.0.4:55535`, and returned
   to idle on stop. Ten checks, exit 0.
+- **A real session, with a real RetroArch 1.22.2 and its `fceumm` core**, using a
+  synthetic NES image (an iNES header and `JMP $8000`; this repository ships no
+  game). Kryvex hosted, a second RetroArch joined it, and the guest's own log said
+  `Connected to: "KryvexHost"`, `You have joined as player 2 (ping: …)` and
+  `Loaded the host's state at frame …` — three runs. Kryvex joined a real host on
+  a non-default port once, and that host logged
+  `KryvexGuest has joined as player 2 (ping: …)`.
 - The panel and the bridge compile in both TypeScript projects, and the copy is
   translated into all five languages (the coverage audit counts zero new
   untranslated strings).
 
-**Not measured, because this machine has one desktop and no RetroArch install:**
+**Not measured, or not repeatable here:**
 
-- A real two-machine session. `-H`/`-C` are documented RetroArch flags, but no
-  host has ever waited for a guest here and no frame has crossed a network.
-- Stop against a *live* RetroArch process: the fake executable exits by itself,
-  so only the state transition is proven.
-- Frame rate and input latency under netplay.
+- **A session across two machines.** Every session above was two processes on
+  this one desktop, loopback. No frame has crossed a network.
+- **Repeat runs were inconsistent on this machine.** A second session minutes
+  after the first sometimes sat in netplay without connecting and without an
+  error, and the same pair of raw RetroArch instances behaved the same way, which
+  points at how this desktop's partners race rather than at Kryvex's arguments.
+  A guest that dials before the host's socket exists never retries. That is why
+  there is no `verify:netplay-live` harness in the repository: it failed often
+  enough here that shipping it as a green check would have been a lie.
+- **Stop against a *live* RetroArch process**: the fake executable exits by
+  itself, so only the state transition is proven there.
+- **Frame rate and input latency** under netplay.
 
 ### Manual two-machine test plan
 

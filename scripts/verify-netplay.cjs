@@ -124,7 +124,10 @@ async function main() {
   if (Buffer.compare(written, Buffer.from(romBytes)) !== 0) return fail('the cartridge bytes differ');
   log(`cartridge written to ${path.relative(profile, romPath)} (${written.length} bytes)`);
 
-  // `cmd.exe` rejects `-L`, so it exits; its message proves the flags arrived.
+  // `cmd.exe` rejects `-L`, so it exits. Its output is no longer captured — the
+  // sidecar drives RetroArch's own `--log-file`, which a stand-in executable
+  // knows nothing about — so this checks the spawn and the exit, and the exact
+  // argument list is asserted by the unit tests in `tests/retroarch.test.ts`.
   let errored = null;
   for (let attempt = 0; attempt < 40 && hosting.phase === 'hosting'; attempt += 1) {
     await sleep(50);
@@ -134,8 +137,16 @@ async function main() {
   }
   const after = sidecar.status();
   if (after.phase !== 'exited') return fail(`the spawned process did not report its exit (${after.phase})`);
-  if (after.log.length === 0) return fail('nothing the spawned process printed was captured');
-  log(`spawned, then exited; captured ${after.log.length} line(s): "${after.log.join(' / ').slice(0, 90)}"`);
+  // The session's log is RetroArch's `--log-file`, so the sidecar points it at
+  // its own profile and reads it back; a stand-in executable writes nothing.
+  if (!fs.existsSync(path.join(profile, 'session.log'))) {
+    return fail('the session log was not prepared before the spawn');
+  }
+  const sessionConfig = fs.readFileSync(path.join(profile, 'retroarch.cfg'), 'utf8');
+  if (!sessionConfig.includes('config_save_on_exit = "false"')) {
+    return fail('the session ran without its own isolated config');
+  }
+  log(`spawned with the session config and log, then exited (${after.phase})`);
 
   const joining = await sidecar.start({
     role: 'join',
@@ -144,7 +155,9 @@ async function main() {
     rom: { bytes: romBytes, extension: 'cdi', name: 'Sonic Adventure.cdi' },
   });
   if (joining.phase !== 'joining') return fail(`unexpected join phase ${joining.phase}`);
-  if (joining.session?.address !== '10.0.0.4') {
+  // The session keeps the port so the panel can report what was dialled; `-C`
+  // itself gets the host alone and the port travels in `--port`.
+  if (joining.session?.address !== '10.0.0.4:55535') {
     return fail(`join session address was ${String(joining.session?.address)}`);
   }
   log('host address and port were parsed before the spawn');

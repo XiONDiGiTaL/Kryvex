@@ -74,6 +74,25 @@ describe('RetroArch netplay arguments', () => {
     ]);
   });
 
+  it('runs on Kryvex’s own config and log, in that order', () => {
+    const args = retroarchArgs({
+      corePath: 'C:\\RA\\cores\\fceumm_libretro.dll',
+      romPath: 'C:\\RA-roms\\Mega Man 2.nes',
+      role: 'host',
+      nick: 'XiØN',
+      configPath: 'C:\\Users\\x\\AppData\\Roaming\\Kryvex\\retroarch\\retroarch.cfg',
+      logPath: 'C:\\Users\\x\\AppData\\Roaming\\Kryvex\\retroarch\\session.log',
+    });
+    expect(args.slice(0, 2)).toEqual([
+      '-c',
+      'C:\\Users\\x\\AppData\\Roaming\\Kryvex\\retroarch\\retroarch.cfg',
+    ]);
+    // The log needs both switches: `--log-file` alone writes nothing on 1.22.2.
+    expect(args).toContain('-v');
+    expect(args).toContain('--log-file=C:\\Users\\x\\AppData\\Roaming\\Kryvex\\retroarch\\session.log');
+    expect(args[args.length - 1]).toBe('C:\\RA-roms\\Mega Man 2.nes');
+  });
+
   it('keeps a nickname printable, short and never empty', () => {
     expect(cleanNick('  XiØN  ')).toBe('XiØN');
     expect(cleanNick('a\u0000b\u001fc\nd')).toBe('abcd');
@@ -190,6 +209,38 @@ describe('The netplay sidecar', () => {
     // A fresh sidecar on the same profile reads the remembered path back.
     const reopened = new RetroArchSidecar(home);
     expect(reopened.status().found).toBe(true);
+  });
+
+  it('runs on its own configuration instead of the user’s', async () => {
+    const { home, executable } = fakeInstall();
+    const install = path.dirname(executable);
+    // The user's own file, complete with the netplay state a previous session
+    // would have left in it.
+    fs.writeFileSync(
+      path.join(install, 'retroarch.cfg'),
+      'video_driver = "gl"\nnetplay_nickname = "Stale"\nnetplay_public_announce = "true"\nconfig_save_on_exit = "true"\n',
+    );
+    const sidecar = new RetroArchSidecar(home);
+    sidecar.useExecutable(executable);
+    // The fake executable is an empty file, so the spawn fails; the session
+    // configuration is still written before that, which is what this checks.
+    await sidecar.start({
+      role: 'join',
+      system: 'dreamcast',
+      address: '10.0.0.4:55535',
+      rom: { bytes: new Uint8Array([1, 2, 3]), extension: 'cdi' },
+    });
+    const session = fs.readFileSync(path.join(home, 'retroarch.cfg'), 'utf8');
+    expect(session).toContain('video_driver');
+    expect(session).not.toContain('netplay_nickname');
+    expect(session).toContain('config_save_on_exit = "false"');
+    expect(session).toContain('netplay_public_announce = "false"');
+    // Only a host maps a port through the router.
+    expect(session).toContain('netplay_nat_traversal = "false"');
+    // Saves and states belong to Kryvex's profile, not to the install.
+    expect(session).toContain('savefile_directory');
+    const user = fs.readFileSync(path.join(install, 'retroarch.cfg'), 'utf8');
+    expect(user).toContain('netplay_nickname = "Stale"');
   });
 
   it('refuses a session it cannot run, and says why', async () => {

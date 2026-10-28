@@ -107,16 +107,36 @@ interface InstallRecord {
   executable?: string;
 }
 
-/** The first IPv4 address this machine has that is not loopback. */
+/**
+ * The address this machine should read out to the other player.
+ *
+ * The first non-loopback IPv4 is not good enough on a desktop: a VPN, a
+ * Hyper-V switch, a Docker bridge or a VirtualBox host-only adapter all answer
+ * first on some machines, and the host then tells a friend an address that
+ * cannot be reached from the next room. Addresses a machine gives itself when
+ * nothing else worked (`169.254.*`) are never useful, and a private LAN address
+ * is what a local netplay partner needs, so those are preferred in order.
+ */
 export function localAddress(): string | null {
   const interfaces = os.networkInterfaces();
+  const candidates: string[] = [];
   for (const entries of Object.values(interfaces)) {
     for (const entry of entries ?? []) {
       if (entry.family !== 'IPv4' || entry.internal) continue;
-      return `${entry.address}:${RETROARCH_NETPLAY_PORT}`;
+      if (entry.address.startsWith('169.254.')) continue;
+      candidates.push(entry.address);
     }
   }
-  return null;
+  const rank = (address: string): number => {
+    if (address.startsWith('192.168.')) return 0;
+    if (address.startsWith('10.')) return 1;
+    const match = /^172\.(\d+)\./.exec(address);
+    if (match && Number(match[1]) >= 16 && Number(match[1]) <= 31) return 2;
+    return 3;
+  };
+  candidates.sort((left, right) => rank(left) - rank(right));
+  const first = candidates[0];
+  return first ? `${first}:${RETROARCH_NETPLAY_PORT}` : null;
 }
 
 /**
@@ -147,12 +167,23 @@ export class RetroArchSidecar {
   private executable: string | null = null;
   private phase: RetroarchPhase = 'idle';
   private session: RetroarchSession | null = null;
-  private log: string[] = [];
+  /**
+   * Where RetroArch's own log is written, through its `--log-file` switch.
+   *
+   * Not a pipe, deliberately. RetroArch is a GUI-subsystem program on Windows:
+   * given pipes — and even given a file handle — it writes nothing at all,
+   * which left the panel's log empty on every real install while the fake
+   * executable in the harness happily wrote to one. Its own `--log-file` is the
+   * only channel that actually carries the lines, and those lines are where a
+   * netplay session says it started.
+   */
+  private logPath: string;
   private error: RetroarchFailure | undefined;
   private missing: string[] | undefined;
   private child: ChildProcess | null = null;
 
   constructor(private readonly root: string) {
+    this.logPath = path.join(root, 'session.log');
     this.executable = this.loadChosen();
   }
 
@@ -171,7 +202,7 @@ export class RetroArchSidecar {
       localAddress: localAddress(),
       phase: this.phase,
       session: this.session,
-      log: [...this.log],
+      log: this.readLog(),
       error: this.error,
       missing: this.missing,
     };
@@ -216,7 +247,7 @@ export class RetroArchSidecar {
       this.error = 'busy';
       return this.status();
     }
-    this.log = [];
+    this.resetLog();
     this.missing = undefined;
     this.error = undefined;
 
@@ -259,6 +290,13 @@ export class RetroArchSidecar {
     }
 
     let address: string | null = null;
+    let shown: string | null = null;
+    // The guest dials the port it was given, not always the default: a host on
+    // `10.0.0.4:55535` is a normal setup, and sending the guest to 55435 because
+    // that is RetroArch's default turned a typed address into a silent timeout.
+    // `-C` takes the host alone, so the port travels in `--port` and the session
+    // keeps the full `host:port` for the panel to show.
+    let port = RETROARCH_NETPLAY_PORT;
     if (input.role === 'join') {
       const parsed = parseJoinAddress(input.address);
       if (!parsed) {
@@ -266,6 +304,15 @@ export class RetroArchSidecar {
         return this.status();
       }
       address = parsed.host;
+      shown = parsed.shown;
+      port = parsed.port;
+    }
+
+    let configPath: string | null = null;
+    try {
+      configPath = this.prepareConfig(directory, input.role);
+    } catch {
+      configPath = null;
     }
 
     const args = retroarchArgs({
@@ -273,23 +320,23 @@ export class RetroArchSidecar {
       romPath,
       role: input.role,
       host: address ?? undefined,
-      port: RETROARCH_NETPLAY_PORT,
+      port,
       nick: cleanNick(input.nick),
+      logPath: this.logPath,
+      configPath: configPath ?? undefined,
     });
 
     this.phase = 'starting';
-    this.session = { role: input.role, system: input.system, address: input.role === 'host' ? null : address };
+    this.session = { role: input.role, system: input.system, address: input.role === 'host' ? null : shown };
     try {
       const child = spawn(executable, args, {
         cwd: directory,
         windowsHide: false,
-        stdio: ['ignore', 'pipe', 'pipe'],
+        // The log travels through `--log-file`; these pipes carry nothing, so
+        // they are not left open.
+        stdio: 'ignore',
       });
       this.child = child;
-      child.stdout?.setEncoding('utf8');
-      child.stderr?.setEncoding('utf8');
-      child.stdout?.on('data', (chunk: string) => this.appendLog(chunk));
-      child.stderr?.on('data', (chunk: string) => this.appendLog(chunk));
       child.on('error', () => {
         this.error = 'spawn';
         this.phase = 'exited';
@@ -355,13 +402,93 @@ export class RetroArchSidecar {
     });
   }
 
-  private appendLog(chunk: string): void {
-    const lines = chunk
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
-    if (lines.length === 0) return;
-    this.log = [...this.log, ...lines].slice(-RETROARCH_LOG_LINES);
+  /**
+   * A fresh copy of the user's configuration for this session.
+   *
+   * RetroArch writes the configuration it ran with when a session ends, so a
+   * session Kryvex starts used to leave its netplay state in the user's own
+   * `retroarch.cfg` — and the *next* session then refused to join, which is how
+   * this was found: a second launch on the same install never connected. Kryvex
+   * therefore runs on its own copy, rewritten from the user's each time, with
+   * `config_save_on_exit` off so nothing is written back. Video, audio and pad
+   * settings still come from the copy, so the session looks like the user's.
+   */
+  private prepareConfig(directory: string, role: 'host' | 'join'): string {
+    const target = path.join(this.root, 'retroarch.cfg');
+    const sources = [
+      path.join(directory, 'retroarch.cfg'),
+      path.join(process.env.APPDATA ?? '', 'RetroArch', 'retroarch.cfg'),
+    ].filter(candidate => candidate.length > 0 && fs.existsSync(candidate));
+    let text = '';
+    for (const source of sources) {
+      try {
+        text = fs.readFileSync(source, 'utf8');
+        break;
+      } catch {
+        /* an unreadable config is the same as none */
+      }
+    }
+    // The netplay settings of whatever session ran last are exactly what made a
+    // second launch fail to join, so none of them are carried over: Kryvex sets
+    // its own below and passes the port and nickname on the command line. Public
+    // announce stays off because a room's session is private by design — the
+    // public lobby would list a game nobody outside the room can join.
+    const stripped = text
+      .replace(/^\s*config_save_on_exit\s*=.*$/gm, '')
+      .replace(/^\s*netplay_[A-Za-z0-9_]*\s*=.*$/gm, '');
+    fs.mkdirSync(this.root, { recursive: true });
+    // Only the host maps a port through the router. A guest that tries as well
+    // blocked for the whole handshake on this machine once a host had mapped
+    // the same port — measured: the guest sat in netplay with no connection and
+    // no error until the session was killed.
+    const traversal = role === 'host' ? 'true' : 'false';
+    // Netplay redirects saves into a `.netplay` folder inside the install; a
+    // session Kryvex starts has no business writing into the user's RetroArch
+    // directory, and a leftover from the last session is state the next one
+    // inherits. Both directories live under Kryvex's own root instead.
+    const saves = path.join(this.root, 'saves').split(path.sep).join('/');
+    const states = path.join(this.root, 'states').split(path.sep).join('/');
+    fs.mkdirSync(saves, { recursive: true });
+    fs.mkdirSync(states, { recursive: true });
+    fs.writeFileSync(
+      target,
+      `${stripped}\nconfig_save_on_exit = "false"\nnetplay_public_announce = "false"\nnetplay_nat_traversal = "${traversal}"\nsavefile_directory = "${saves}/"\nsavestate_directory = "${states}/"\n`,
+      'utf8',
+    );
+    return target;
+  }
+
+  /**
+   * The tail of RetroArch's own output, plus the netplay lines it pushed out.
+   *
+   * The log has to be verbose to exist at all, and a verbose RetroArch fills a
+   * dozen lines with playlist bookkeeping right after it starts a session. The
+   * one line a person opens this panel for is `[Netplay] … has joined as player
+   * 2`, so the last two of those are kept in front of the tail rather than
+   * being evicted by it.
+   */
+  private readLog(): string[] {
+    try {
+      const all = fs
+        .readFileSync(this.logPath, 'utf8')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+      const netplay = all.filter(line => /\[Netplay\]/i.test(line)).slice(-2);
+      const tail = all.slice(-Math.max(1, RETROARCH_LOG_LINES - netplay.length));
+      return [...netplay, ...tail];
+    } catch {
+      return [];
+    }
+  }
+
+  private resetLog(): void {
+    try {
+      fs.mkdirSync(this.root, { recursive: true });
+      fs.writeFileSync(this.logPath, '', 'utf8');
+    } catch {
+      /* a profile that cannot be written still runs a session */
+    }
   }
 
   private loadChosen(): string | null {

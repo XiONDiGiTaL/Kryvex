@@ -21,6 +21,7 @@ export const netplayCopy: Record<NetplayLanguage, Record<string, string>> = {
     'Choose another copy': 'Elegir otra copia',
     'Locate RetroArch': 'Ubicar RetroArch',
     'Stop netplay': 'Detener el juego en red',
+    'RetroArch said': 'Lo que dijo RetroArch',
     'The core for {system} is missing: add {file} from RetroArch’s own core updater.':
       'Falta el núcleo de {system}: añade {file} desde el actualizador de núcleos de RetroArch.',
     'Hosting. The other player enters {address}.': 'Alojando. El otro jugador introduce {address}.',
@@ -56,6 +57,7 @@ export const netplayCopy: Record<NetplayLanguage, Record<string, string>> = {
     'Choose another copy': 'Andere Kopie wählen',
     'Locate RetroArch': 'RetroArch suchen',
     'Stop netplay': 'Netplay beenden',
+    'RetroArch said': 'Was RetroArch gesagt hat',
     'The core for {system} is missing: add {file} from RetroArch’s own core updater.':
       'Der Core für {system} fehlt: füge {file} über den Core-Updater von RetroArch hinzu.',
     'Hosting. The other player enters {address}.': 'Host läuft. Der andere Spieler gibt {address} ein.',
@@ -89,6 +91,7 @@ export const netplayCopy: Record<NetplayLanguage, Record<string, string>> = {
     'Choose another copy': 'Choisir une autre copie',
     'Locate RetroArch': 'Localiser RetroArch',
     'Stop netplay': 'Arrêter le jeu en réseau',
+    'RetroArch said': 'Ce que RetroArch a dit',
     'The core for {system} is missing: add {file} from RetroArch’s own core updater.':
       'Le cœur de {system} est absent : ajoutez {file} depuis le gestionnaire de cœurs de RetroArch.',
     'Hosting. The other player enters {address}.': 'Hébergement en cours. L’autre joueur saisit {address}.',
