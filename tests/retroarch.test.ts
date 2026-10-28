@@ -272,6 +272,42 @@ describe('The netplay sidecar', () => {
     expect(sidecar.status().session).toBeNull();
   });
 
+  it('runs a PlayStation disc on the cores its own updater installs', async () => {
+    // Mednafen's PSX core is what RetroArch publishes for `psx`; the software
+    // build is the fallback when the hardware one is missing, and PCSX-ReARMed
+    // is the last resort for a machine that has neither.
+    expect(candidateCores('psx')).toEqual(['mednafen_psx_hw', 'mednafen_psx', 'pcsx_rearmed']);
+    expect(candidateCores('psx').map(retroarchCoreFile)[0]).toBe('mednafen_psx_hw_libretro.dll');
+
+    const home = profile();
+    const install = profile();
+    fs.writeFileSync(path.join(install, 'retroarch.exe'), '');
+    fs.mkdirSync(path.join(install, 'cores'));
+    fs.writeFileSync(path.join(install, 'cores', 'mednafen_psx_libretro.dll'), '');
+    const sidecar = new RetroArchSidecar(home);
+    expect(sidecar.useExecutable(path.join(install, 'retroarch.exe')).found).toBe(true);
+    const psx = sidecar.status().cores.find(core => core.system === 'psx');
+    // The hardware core is absent, so the software one is the one that runs.
+    expect(psx).toMatchObject({ core: 'mednafen_psx', present: true });
+
+    const started = await sidecar.start({
+      role: 'host',
+      system: 'psx',
+      nick: 'Host',
+      rom: { name: 'Final Fantasy VII (Disc 1).iso', extension: 'iso', bytes: new Uint8Array([1, 2, 3]) },
+    });
+    // The fake executable is an empty file, so the spawn itself fails here; what
+    // this checks is that the PlayStation path got as far as writing the disc —
+    // no missing core and no missing executable refused it first.
+    expect(started.error).not.toBe('no-core');
+    expect(started.error).not.toBe('not-found');
+    expect(started.error).not.toBe('rom');
+    const written = path.join(home, 'roms', 'Final Fantasy VII (Disc 1).iso');
+    expect(fs.existsSync(written)).toBe(true);
+    expect(fs.readFileSync(written).length).toBe(3);
+    sidecar.dispose();
+  });
+
   it('re-derives whatever the renderer sent', () => {
     expect(normalizeRetroarchStart({ role: 'join', system: 'snes' })).toMatchObject({
       role: 'join',

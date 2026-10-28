@@ -906,4 +906,40 @@ export const turkishCopy: Record<string, string> = {
   'That file could not be read.': 'Bu dosya okunamadı.',
   'Pop out, or drag onto the Workspace': 'Ayır veya çalışma alanına sürükle',
   'BIOS': 'BIOS',
+  'COUCH CO-OP': 'YEREL ÇOK OYUNCULU',
+  'One screen, one seat each. Claim a controller by pressing a button on it, or give a seat its own keys. Two players can share one keyboard: each keeps its own corner.' :
+    'Tek ekran, herkese bir koltuk. Koltuğu almak için kumandasında bir tuşa bas, ya da koltuğa kendi tuşlarını ver. İki oyuncu tek klavyeyi paylaşabilir: herkes kendi köşesini korur.',
+  'Player {number}': 'Oyuncu {number}',
+  'Controller {number}': 'Kumanda {number}',
+  'No device yet': 'Henüz cihaz yok',
+  'Use a controller': 'Kumanda kullan',
+  'Press a button…': 'Bir tuşa bas…',
+  'Keys for player {number}': 'Oyuncu {number} tuşları',
+  'Keyboard…': 'Klavye…',
+  'Free seat': 'Koltuğu boşalt',
+  'Press any button on the controller for player {number}.':
+    'Oyuncu {number} kumandasında herhangi bir tuşa bas.',
+  'Seats travel with link play: every machine sees all four players.':
+    'Koltuklar bağlantılı oyunla birlikte taşınır: her makine dört oyuncuyu da görür.',
+  'Link play carries the seats. A seat with no device stays free for another player.':
+    'Bağlantılı oyun koltukları taşır. Cihazı olmayan koltuk başka bir oyuncu için boş kalır.',
+  'A disc is too large for this link. Use NETPLAY (RETROARCH) below: both machines need the same image, and it synchronises the two cores frame by frame.':
+    'Bir disk bu bağlantı için çok büyük. Aşağıdaki AĞ OYUNU (RETROARCH) seçeneğini kullan: iki makinede de aynı imaj olmalı ve iki çekirdek kare kare eşitlenir.',
+  'A .cue needs the .bin track beside it. Select both files and Kryvex joins them into one disc image.':
+    'Bir .cue, yanındaki .bin izine ihtiyaç duyar. İki dosyayı da seç, Kryvex onları tek bir disk imajında birleştirir.',
+  'The disc was joined from its data track only. If the game’s music is missing, use a .chd of the whole disc.':
+    'Disk yalnızca veri izinden birleştirildi. Oyunun müziği eksikse tüm diskin .chd dosyasını kullan.',
+  'Most titles need a PlayStation BIOS. A .cue and its .bin work together: pick both files and Kryvex joins them into one disc image.':
+    'Çoğu oyun PlayStation BIOS’u ister. .cue ve .bin birlikte çalışır: iki dosyayı da seç, Kryvex onları tek bir disk imajında birleştirir.',
+  '{name} is open in a window.': '{name} bir pencerede açık.',
+  'It keeps running there while you use the rest of Kryvex.':
+    'Sen Kryvex’in kalanını kullanırken orada çalışmaya devam eder.',
+  '{name} put you in seat {number}.': '{name} seni {number}. koltuğa koydu.',
+  'The host': 'Sunucu',
+  'IN THE ROOM': 'ODADA',
+  '{name} has control of this screen and plays as player {number}.':
+    '{name} bu ekranı kontrol ediyor ve {number}. oyuncu olarak oynuyor.',
+  '{name} is asking to control this screen.': '{name} bu ekranı kontrol etmek istiyor.',
+  'Who plays in seat {number}': '{number}. koltukta kim oynuyor',
+  'This PC': 'Bu bilgisayar',
 };

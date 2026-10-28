@@ -75,7 +75,8 @@
     "verify:batch": "pnpm build && node scripts/verify-batch.cjs",
     "verify:vlan": "node scripts/verify-vlan.cjs",
     "verify:flycast": "electron scripts/verify-flycast.cjs",
-    "verify:netplay": "electron scripts/verify-netplay.cjs"
+    "verify:netplay": "electron scripts/verify-netplay.cjs",
+    "verify:couch": "pnpm build && node scripts/verify-couch-coop.cjs"
   },
   "build": {
     "appId": "net.xiondigital.kryvex",

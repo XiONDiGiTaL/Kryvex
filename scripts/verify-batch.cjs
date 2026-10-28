@@ -65,6 +65,8 @@ const HELD_BACK = {
   'verify:identity-matrix': 'asks live Google pages the same question, one partition per variant',
   'verify:rooms':
     'needs two instances sharing a real screen, which a runner with no display cannot do',
+  'verify:couch':
+    'needs two instances, a real screen to share and a cartridge supplied through KRYVEX_COUCH_ROM',
   'verify:capture-window':
     'captures through Windows Graphics Capture and saves through the real Save dialog',
   'verify:torrents': 'starts a real transfer and waits on peers',

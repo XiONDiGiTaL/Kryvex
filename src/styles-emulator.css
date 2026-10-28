@@ -663,6 +663,132 @@
   border-top: 1px solid var(--line-soft);
 }
 
+/* Couch co-op: four rows, one per seat. A bound seat carries the accent so the
+   players can see at a glance which seats the next person cannot take. */
+.emulator-couch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.emulator-couch p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.emulator-couch-seats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.emulator-couch-seats li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.emulator-couch-seats li.is-bound {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line-soft));
+}
+
+.emulator-couch-seat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.emulator-couch-seat strong {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.emulator-couch-seat em {
+  font-size: 8px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emulator-couch-seats li.is-bound .emulator-couch-seat em {
+  color: var(--accent);
+}
+
+.emulator-couch-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.emulator-couch-keys {
+  font-family: var(--mono, monospace);
+  font-size: 8px;
+  padding: 2px 4px;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.emulator-couch-armed {
+  color: var(--accent) !important;
+  letter-spacing: 0.06em;
+}
+
+/* The room's own seats: a claim from another machine, listed under ours. */
+.emulator-couch-remote {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 4px 7px;
+  border-left: 2px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.emulator-couch-remote li {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.emulator-couch-remote li:first-child {
+  color: var(--ink-soft, var(--ink-faint));
+  letter-spacing: 0.14em;
+}
+
+/* Who holds the keyboard for this screen, and how to take it back. */
+.emulator-couch-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent) !important;
+}
+
+.emulator-couch-note {
+  opacity: 0.85;
+}
+
 .emulator-netplay p {
   margin: 0;
   font-size: 9px;

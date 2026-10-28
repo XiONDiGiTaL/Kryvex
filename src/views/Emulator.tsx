@@ -18,6 +18,7 @@ import {
   emulatorStartMessage,
   engineFor,
   identifyRomSystem,
+  isDiscSystem,
   isEmulatorSystem,
   offeredSystems,
   romAccept,
@@ -33,6 +34,7 @@ import {
   flycastFailureKey,
 } from '../lib/flycast';
 import { biosFiles, gameFiles } from '../lib/emulator-folders';
+import { discSetFromSelection, joinDiscFiles } from '../lib/psx-disc';
 import type {
   EmulatorLibraryFile,
   EmulatorLibraryListing,
@@ -43,6 +45,25 @@ import { retroarchFailureKey } from '../lib/retroarch';
 
 /** The desktop bridge, resolved once: the web build has no engine installer. */
 const bridge = typeof window === 'undefined' ? undefined : window.kryvex;
+
+/** Four neutral seat frames: one per player the core can see. */
+function emptyPads(): NetplayPad[] {
+  return Array.from({ length: COUCH_SEATS }, () => ({ ...NEUTRAL_PAD }));
+}
+
+/**
+ * A keyset no seat is using yet.
+ *
+ * Handing a remote player a keyboard means picking one their neighbours are not
+ * already holding; taking one that is in use would move the other player's
+ * hands, which is worse than refusing.
+ */
+function freeLayout(seats: ReadonlyArray<CouchSeat>): KeyboardLayout | null {
+  const used = new Set(
+    seats.map(seat => (seat.device?.kind === 'keyboard' ? seat.device.layout : null)),
+  );
+  return keyboardLayouts().find(layout => !used.has(layout)) ?? null;
+}
 import {
   MAX_STATES_PER_GAME,
   type EmulatorStateRecord,
@@ -70,14 +91,32 @@ import {
   NETPLAY_PAD_HEARTBEAT_MS,
   NETPLAY_STATE_INTERVAL_MS,
   joinRom,
-  padFromGamepad,
-  pickLocalPad,
   romFitsNetplay,
   samePad,
   shouldSendCartridge,
   splitRom,
   type NetplayPad,
 } from '../lib/netplay';
+import {
+  COUCH_SEATS,
+  applyControlKey,
+  assignSeat,
+  claimFromPads,
+  claimSeat,
+  codesOfLayouts,
+  couchIsActive,
+  emptySeats,
+  firstFreeSeat,
+  keyboardLayouts,
+  layoutLabel,
+  releaseSeat,
+  seatDescriptor,
+  seatFrames,
+  seatOfOwner,
+  type CouchSeat,
+  type KeyboardLayout,
+} from '../lib/couch';
+import { setSeatInputSink } from '../lib/emulator-input';
 import { Icon } from '../components/ui';
 
 interface LoadedRom {
@@ -139,6 +178,7 @@ export function Emulator({
   onBack,
   onOpenRooms,
   onToast,
+  embedded = false,
 }: {
   settings: EmulatorSettings;
   /** What the shared service lifecycle wants this screen to do. */
@@ -147,6 +187,8 @@ export function Emulator({
   onBack: () => void;
   onOpenRooms: () => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  /** Rendered inside a Workspace window: the window owns the title bar. */
+  embedded?: boolean;
 }) {
   const t = useT();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -352,11 +394,39 @@ export function Emulator({
   const [netNote, setNetNote] = useState<string | null>(null);
   /** True once the two ends are actually playing the same cartridge. */
   const [netLinked, setNetLinked] = useState(false);
+  // Couch co-op: a seat owns a controller or a keyset, and seat 1 keeps its
+  // keyboard corner until its player changes it.
+  const [seats, setSeats] = useState<CouchSeat[]>(() =>
+    claimSeat(emptySeats(), 1, { kind: 'keyboard', layout: 'wasd' }, 'Player 1'),
+  );
+  /** The seat whose owner just pressed "use this controller". */
+  const [claiming, setClaiming] = useState<number | null>(null);
+  const seatsRef = useRef(seats);
+  seatsRef.current = seats;
+  // The loop is a closure over refs: a claim is read from the same animation
+  // frame that reads the pads, so it must not wait for a re-render.
+  const claimingRef = useRef<number | null>(null);
+  claimingRef.current = claiming;
+  const heldKeys = useRef(new Set<string>());
+  /** Keys a controlling peer is holding, per seat (room control, not a pad). */
+  const remoteHeld = useRef(new Map<number, Set<string>>());
+  /**
+   * Seats other machines have announced.
+   *
+   * A claim is advisory: the machine that owns a device is the only one that can
+   * read it, so the room is told which seat each player took and this host draws
+   * that next to its own seats instead of trying to allocate them for everybody.
+   */
+  const [remoteSeats, setRemoteSeats] = useState<
+    { peerId: string; name: string; seat: number; descriptor: string }[]
+  >([]);
+
   const net = useRef({
     role: null as 'host' | 'guest' | null,
     peer: null as string | null,
-    pads: [NEUTRAL_PAD, NEUTRAL_PAD] as [NetplayPad, NetplayPad],
-    sent: [NEUTRAL_PAD, NEUTRAL_PAD] as [NetplayPad, NetplayPad],
+    /** One frame per couch seat, merged from this machine and the room. */
+    pads: emptyPads(),
+    sent: emptyPads(),
     lastPadAt: 0,
     frame: 0,
     rom: null as (string | null)[] | null,
@@ -373,23 +443,64 @@ export function Emulator({
     post({ type: 'kryvex-netplay', active: true, pads: net.current.pads });
   }, [post]);
 
+  /**
+   * The one clock that turns four seats of input into pad frames.
+   *
+   * Only a seat this machine has bound is written and sent: an empty seat here
+   * must not overwrite the same seat on another machine with neutral, which
+   * would take a guest's controls away every frame. A seat that changed is
+   * sent at once, and every bound seat is repeated on a slow heartbeat so a
+   * lost frame does not leave a button held down.
+   */
   const startPadLoop = useCallback(() => {
     cancelAnimationFrame(net.current.frame);
+    let previous = Array.from(navigator.getGamepads?.() ?? []);
     const tick = () => {
-      const role = net.current.role;
-      if (!role) return;
-      const pad = padFromGamepad(pickLocalPad(navigator.getGamepads?.() ?? null));
-      const seat = role === 'host' ? 0 : 1;
+      if (!net.current.role) return;
+      const pads = Array.from(navigator.getGamepads?.() ?? []);
+      // A player who presses a button while a seat is armed claims that pad.
+      const armed = claimingRef.current;
+      if (armed !== null) {
+        const bound = seatsRef.current
+          .map(seat => (seat.device?.kind === 'pad' ? seat.device.index : -1))
+          .filter(index => index >= 0);
+        const index = claimFromPads(previous, pads, bound);
+        if (index !== null) {
+          const claimed = pads[index];
+          setSeats(current =>
+            claimSeat(
+              current,
+              armed,
+              { kind: 'pad', index, id: claimed?.id ?? `pad ${index}` },
+              claimed?.id?.slice(0, 24) || `Controller ${index + 1}`,
+            ),
+          );
+          setClaiming(null);
+          claimingRef.current = null;
+        }
+      }
+      previous = pads;
+      const frames = seatFrames(seatsRef.current, {
+        pads,
+        held: heldKeys.current,
+        remote: remoteHeld.current,
+      });
       const now = performance.now();
-      if (
-        !samePad(pad, net.current.sent[seat]) ||
-        now - net.current.lastPadAt >= NETPLAY_PAD_HEARTBEAT_MS
-      ) {
+      const heartbeat = now - net.current.lastPadAt >= NETPLAY_PAD_HEARTBEAT_MS;
+      let changed = false;
+      for (let index = 0; index < COUCH_SEATS; index += 1) {
+        if (!seatsRef.current[index]?.device) continue;
+        const frame = frames[index] ?? NEUTRAL_PAD;
+        net.current.pads[index] = frame;
+        if (!samePad(frame, net.current.sent[index] ?? NEUTRAL_PAD) || heartbeat) {
+          net.current.sent[index] = frame;
+          changed = true;
+          void partySession.sendNetplay({ kind: 'pad', pad: frame, seat: index + 1 });
+        }
+      }
+      if (changed) {
         net.current.lastPadAt = now;
-        net.current.sent[seat] = pad;
-        net.current.pads[seat] = pad;
         postPads();
-        void partySession.sendNetplay({ kind: 'pad', pad });
       }
       net.current.frame = requestAnimationFrame(tick);
     };
@@ -466,16 +577,18 @@ export function Emulator({
       cancelAnimationFrame(net.current.frame);
       net.current.role = null;
       net.current.peer = null;
-      net.current.pads = [NEUTRAL_PAD, NEUTRAL_PAD];
-      net.current.sent = [NEUTRAL_PAD, NEUTRAL_PAD];
+      net.current.pads = emptyPads();
+      net.current.sent = emptyPads();
       net.current.rom = null;
       net.current.state = null;
       net.current.romPeer = null;
       net.current.linked = false;
       net.current.asks = 0;
+      remoteHeld.current.clear();
       post({ type: 'kryvex-netplay', active: false });
       setNetRole(null);
       setNetLinked(false);
+      setRemoteSeats([]);
       setNetNote(note ?? null);
     },
     [post],
@@ -495,6 +608,46 @@ export function Emulator({
 
   const handleNetplay = useCallback(
     (message: NetplayMessage) => {
+      /**
+       * Seats are the one part of this channel that does not need a link.
+       *
+       * A host hands out seats from the couch panel before anybody has pressed
+       * Host, and the member who receives one has to be able to adopt it then —
+       * otherwise the assignment only lands if they happen to be linking already.
+       */
+      if (message.kind === 'seat') {
+        if (message.target && message.target === party.selfId) {
+          setSeats(current =>
+            assignSeat(
+              current,
+              message.seat,
+              message.descriptor,
+              'local',
+              message.name || `Player ${message.seat}`,
+            ),
+          );
+          setNetNote(
+            t('{name} put you in seat {number}.', {
+              name: message.name || t('The host'),
+              number: message.seat,
+            }),
+          );
+          return;
+        }
+        if (!message.target && message.seat > 0) {
+          const claim = {
+            peerId: message.peerId,
+            name: message.name || t('Player {number}', { number: message.seat }),
+            seat: message.seat,
+            descriptor: message.descriptor,
+          };
+          setRemoteSeats(current => [
+            ...current.filter(item => item.peerId !== message.peerId),
+            claim,
+          ]);
+        }
+        return;
+      }
       const role = net.current.role;
       if (!role) return;
       if (message.kind === 'hello' || message.kind === 'ask') {
@@ -540,7 +693,15 @@ export function Emulator({
       }
       if (message.kind === 'bye') {
         net.current.peer = null;
-        net.current.pads = role === 'host' ? [net.current.pads[0], NEUTRAL_PAD] : [NEUTRAL_PAD, net.current.pads[1]];
+        // The peer's own seats are released; this machine's stay where they are.
+        const mine = new Set(
+          seatsRef.current
+            .filter(seat => seat.device !== null)
+            .map(seat => seat.seat - 1),
+        );
+        net.current.pads = net.current.pads.map((pad, index) =>
+          mine.has(index) ? pad : { ...NEUTRAL_PAD },
+        );
         net.current.linked = false;
         setNetLinked(false);
         postPads();
@@ -583,22 +744,169 @@ export function Emulator({
         return;
       }
       if (message.kind === 'pad') {
-        const seat = message.role === 'host' ? 0 : 1;
-        if (seat === (role === 'host' ? 0 : 1)) return;
-        net.current.pads[seat] = message.pad;
+        // A seat number is the sender's own binding, so it is trusted only as
+        // far as which slot to write: the payload itself was sanitized on the
+        // way in. A frame from an older build has no seat and keeps the old
+        // host/guest mapping.
+        const index =
+          message.seat > 0
+            ? Math.min(COUCH_SEATS - 1, message.seat - 1)
+            : message.role === 'host'
+              ? 0
+              : 1;
+        if (seatsRef.current[index]?.device) return;
+        if (index === (role === 'host' ? 0 : 1) && message.seat === 0) return;
+        net.current.pads[index] = message.pad;
         postPads();
       }
     },
     [collectChunks, hostReady, post, postPads, rom, running, sendChunked, stopAsking, t],
   );
 
+  // Registered whenever a room is open, not only while linking: a seat handed
+  // to this machine has to land whether or not the game has started.
   useEffect(() => {
-    if (!netRole) return;
+    if (party.status !== 'joined') return;
     partySession.onNetplay = handleNetplay;
     return () => {
       if (partySession.onNetplay === handleNetplay) partySession.onNetplay = null;
     };
-  }, [handleNetplay, netRole]);
+  }, [handleNetplay, party.status]);
+
+  /**
+   * A seat's keyboard, while a link is running.
+   *
+   * Only the codes a bound keyset owns are read, so two players on one keyboard
+   * never see each other's keys and no other shortcut is swallowed. A field the
+   * user is typing in keeps every key it wants — the netplay address box is on
+   * this same page.
+   */
+  useEffect(() => {
+    if (!netRole) {
+      heldKeys.current.clear();
+      return;
+    }
+    const layouts = seats
+      .map(seat => (seat.device?.kind === 'keyboard' ? seat.device.layout : null))
+      .filter((layout): layout is KeyboardLayout => layout !== null);
+    if (layouts.length === 0) return;
+    const codes = codesOfLayouts(layouts);
+    const typing = (target: EventTarget | null): boolean => {
+      const element = target as HTMLElement | null;
+      if (!element) return false;
+      const tag = element.tagName;
+      return (
+        tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || element.isContentEditable === true
+      );
+    };
+    const down = (event: KeyboardEvent) => {
+      if (!codes.has(event.code) || event.repeat) return;
+      if (typing(event.target)) return;
+      heldKeys.current.add(event.code);
+      event.preventDefault();
+    };
+    const up = (event: KeyboardEvent) => {
+      if (!codes.has(event.code)) return;
+      heldKeys.current.delete(event.code);
+      if (!typing(event.target)) event.preventDefault();
+    };
+    const blur = () => heldKeys.current.clear();
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    window.addEventListener('blur', blur);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', blur);
+      heldKeys.current.clear();
+    };
+  }, [netRole, seats]);
+
+  /**
+   * Tells the room which seats this machine took.
+   *
+   * A claim, not an allocation: only the machine that owns a device can read it,
+   * so each side draws the other's claims and its own seats stay its own. A seat
+   * this machine handed to a guest is the guest's to announce, so it is skipped.
+   */
+  useEffect(() => {
+    if (!netRole) return;
+    for (const seat of seats) {
+      if (!seat.device || seat.owner !== 'local') continue;
+      void partySession.sendNetplay({
+        kind: 'seat',
+        role: netRole,
+        seat: seat.seat,
+        descriptor: seatDescriptor(seat.device),
+        name: seat.name || party.selfName || `Player ${seat.seat}`,
+      });
+    }
+  }, [netRole, party.selfName, seats]);
+
+  /**
+   * The granted peer's keyboard, as a seat.
+   *
+   * This is how room control reaches the emulator: Rooms offers every key of the
+   * one peer the host allowed here first, and it lands on that peer's seat. A
+   * viewer who has no emulator of their own, watching a shared game, therefore
+   * plays as player 2 (or 3, or 4) with their own keys, and the host's player 1
+   * is untouched. A peer with no seat yet is given the first free one with a
+   * keyset nobody else is using, and told about it so its own panel agrees.
+   */
+  useEffect(() => {
+    if (!hostReady || !rom) return;
+    return setSeatInputSink(event => {
+      const control = party.control;
+      if (!control || control.state !== 'granted') return false;
+      // The frame is built from this list, not from the ref: a seat handed out
+      // by the key being handled is only in the ref after the next render, and
+      // reading the stale one sent a neutral pad — so a viewer's very first
+      // press reached the emulator as nothing at all.
+      let seated = seatsRef.current;
+      let seat = seatOfOwner(seated, control.peerId);
+      if (!seat) {
+        const free = firstFreeSeat(seated);
+        const layout = freeLayout(seated);
+        // Four seats of keyboards and no room for a fifth: the host keeps the
+        // keys rather than taking somebody else's.
+        if (!free || !layout) return false;
+        const descriptor = `keyboard:${layout}`;
+        seated = assignSeat(seated, free.seat, descriptor, control.peerId, control.name);
+        setSeats(seated);
+        // Mirrored here so a second key of the same press sees the seat too.
+        seatsRef.current = seated;
+        void partySession.sendNetplay({
+          kind: 'seat',
+          seat: free.seat,
+          descriptor,
+          target: control.peerId,
+          name: control.name,
+        });
+        seat = { ...free, device: { kind: 'keyboard', layout }, owner: control.peerId };
+      }
+      // A seat bound to a physical pad cannot take keys from the room: the room
+      // does not carry that pad, and pretending it does would fight its owner.
+      if (seat.device?.kind !== 'keyboard') return false;
+      applyControlKey(remoteHeld.current, seat.seat, event.key, event.phase === 'down');
+      post({
+        type: 'kryvex-netplay',
+        active: true,
+        pads: seatFrames(seated, {
+          pads: Array.from(navigator.getGamepads?.() ?? []),
+          held: heldKeys.current,
+          remote: remoteHeld.current,
+        }),
+      });
+      return true;
+    });
+  }, [hostReady, post, party.control, rom]);
+
+  // A new holder starts from nothing, and a revoked one drops what it held: a
+  // key left down would otherwise stay down for the rest of the game.
+  useEffect(() => {
+    remoteHeld.current.clear();
+    if (hostReady) post({ type: 'kryvex-netplay', active: true, pads: net.current.pads });
+  }, [hostReady, party.control?.peerId, post]);
 
   // A room that closes takes the link with it; the pads must not stay frozen.
   useEffect(() => {
@@ -925,14 +1233,83 @@ export function Emulator({
     onToast(t('{name} loaded. The core starts on the canvas.', { name }), 'success');
   }
 
+  /**
+   * A PlayStation disc, joined from whatever was selected.
+   *
+   * A rip arrives as a `.cue` plus one or more `.bin` tracks, and the core can
+   * open neither on its own: the cue is a manifest and the track has no layout.
+   * The pair becomes one `.iso` here, before the slot decides anything, so the
+   * rest of the panel sees a normal single-file game.
+   */
+  async function acceptDiscSet(files: File[]): Promise<boolean> {
+    const set = discSetFromSelection(
+      await Promise.all(
+        files.map(async file => ({ name: file.name, bytes: new Uint8Array(await file.arrayBuffer()) })),
+      ),
+    );
+    const joined = joinDiscFiles(set);
+    if (!joined) {
+      onToast(
+        t('A .cue needs the .bin track beside it. Select both files and Kryvex joins them into one disc image.'),
+        'danger',
+      );
+      return true;
+    }
+    const error = romValidation(joined.name, joined.bytes.byteLength, engineOptions);
+    if (error) {
+      onToast(t(error), 'danger');
+      return true;
+    }
+    const buffer = joined.bytes.buffer.slice(
+      joined.bytes.byteOffset,
+      joined.bytes.byteOffset + joined.bytes.byteLength,
+    ) as ArrayBuffer;
+    loadRom(joined.name, buffer, 'psx');
+    if (joined.lostAudio) {
+      onToast(
+        t('The disc was joined from its data track only. If the game’s music is missing, use a .chd of the whole disc.'),
+        'info',
+      );
+    }
+    return true;
+  }
+
   async function acceptRom(file: File | undefined) {
-    if (!file) return;
+    await acceptRoms(file ? [file] : []);
+  }
+
+  /**
+   * Every file the picker returned.
+   *
+   * One file is the normal case. A `.cue` (or a bare disc track) is handed to
+   * `acceptDiscSet`, which is the only path that reads more than one file.
+   */
+  async function acceptRoms(list: File[]) {
+    if (list.length === 0) return;
+    const cue = list.find(file => /\.cue$/i.test(file.name));
+    const discish = list.filter(file => /\.(cue|bin|iso|img)$/i.test(file.name));
+    if (cue) {
+      await acceptDiscSet(list);
+      return;
+    }
+    // A single `.iso`/`.img` is a PlayStation image and nothing else; a bare
+    // `.bin` is only one when it is too large to be a cartridge.
+    if (discish.length === 1 && list.length === 1) {
+      const only = discish[0]!;
+      const candidates = systemsForFile(only.name, engineOptions, only.size);
+      if (candidates.length === 1 && candidates[0] === 'psx') {
+        await acceptDiscSet([only]);
+        return;
+      }
+    }
+    // Several files and no cue: the first file the picker named is the game.
+    const file = list[0]!;
     const error = romValidation(file.name, file.size, engineOptions);
     if (error) {
       onToast(t(error), 'danger');
       return;
     }
-    const candidates = systemsForFile(file.name, engineOptions);
+    const candidates = systemsForFile(file.name, engineOptions, file.size);
     const buffer = await file.arrayBuffer();
     const identified = identifyRomSystem(buffer);
     if (identified && candidates.includes(identified)) {
@@ -1037,9 +1414,9 @@ export function Emulator({
   }
 
   function pickRom(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
     event.target.value = '';
-    void acceptRom(file);
+    void acceptRoms(files);
   }
 
   function requestSave(mode: 'quick' | 'manual') {
@@ -1119,6 +1496,54 @@ export function Emulator({
     onToast(t('State deleted.'), 'info');
   }
 
+  /**
+   * P1 hands a seat to a room member, or takes it back.
+   *
+   * This is the settings hub the host asked for: pick the player, pick the keys,
+   * and that member's own emulator adopts the seat so their frames arrive on it.
+   * A member without an emulator still plays through room control — their keys
+   * land on this same seat.
+   */
+  function handSeat(seatNumber: number, owner: string, peerName: string) {
+    const seat = seats.find(item => item.seat === seatNumber);
+    const layout =
+      seat?.device?.kind === 'keyboard' ? seat.device.layout : (freeLayout(seats) ?? 'arrows');
+    const descriptor = `keyboard:${layout}`;
+    setSeats(current => assignSeat(current, seatNumber, descriptor, owner, seat?.name));
+    if (owner !== 'local' && party.status === 'joined') {
+      void partySession.sendNetplay({
+        kind: 'seat',
+        seat: seatNumber,
+        descriptor,
+        target: owner,
+        name: peerName,
+      });
+    }
+  }
+
+  /**
+   * A controller that is already plugged in belongs to seat 1.
+   *
+   * Without this a player with one pad would have to claim it by hand before
+   * their first game, and the old single-pad behaviour would look broken. It
+   * only ever claims seat 1, and only when no seat holds a pad yet.
+   */
+  function primeSeats() {
+    if (seatsRef.current.some(seat => seat.device?.kind === 'pad')) return;
+    const pads = Array.from(navigator.getGamepads?.() ?? []);
+    const index = pads.findIndex(pad => pad && pad.connected !== false);
+    if (index < 0) return;
+    const pad = pads[index] ?? null;
+    setSeats(current =>
+      claimSeat(
+        current,
+        1,
+        { kind: 'pad', index, id: pad?.id ?? `pad ${index}` },
+        pad?.id?.slice(0, 24) || 'Player 1',
+      ),
+    );
+  }
+
   function startHosting() {
     if (!rom) {
       onToast(t('Load a cartridge before hosting a link session.'), 'warning');
@@ -1141,6 +1566,7 @@ export function Emulator({
       onToast(t('Join a room first: Rooms is the link between the two machines.'), 'warning');
       return;
     }
+    primeSeats();
     net.current.role = 'host';
     net.current.peer = null;
     net.current.rom = null;
@@ -1166,6 +1592,7 @@ export function Emulator({
       onToast(t('Join a room first: Rooms is the link between the two machines.'), 'warning');
       return;
     }
+    primeSeats();
     net.current.role = 'guest';
     net.current.peer = null;
     net.current.rom = null;
@@ -1222,7 +1649,7 @@ export function Emulator({
           : t('Not installed');
 
   return (
-    <section className="view emulator-view">
+    <section className={`view emulator-view ${embedded ? 'is-embedded' : ''}`}>
       <header className="view-head emulator-head">
         <div>
           <p className="eyebrow mono">{t('SECRET SERVICE / 8-BIT MODE')}</p>
@@ -1280,7 +1707,9 @@ export function Emulator({
             onDrop={event => {
               event.preventDefault();
               setDragOver(false);
-              void acceptRom(event.dataTransfer.files[0]);
+              // A drop can carry a cue and its track together, which is the
+              // only way a raw PlayStation rip can be started.
+              void acceptRoms(Array.from(event.dataTransfer.files));
             }}
           >
             <span className="emulator-slot-mark" aria-hidden="true">
@@ -1302,6 +1731,7 @@ export function Emulator({
             ref={romInput}
             type="file"
             accept={romAccept(engineOptions)}
+            multiple
             hidden
             onChange={pickRom}
             aria-label={t('Choose a ROM')}
@@ -1820,6 +2250,164 @@ export function Emulator({
             <span className="mono">×{settings.scale}</span>
           </label>
 
+          {/* Couch co-op: one screen, one seat per player. A seat is claimed by
+              pressing a button on its controller, or by choosing a keyset, so a
+              second player never has to reach into player 1's settings. */}
+          <div className="emulator-couch">
+            <span className="mono emulator-side-label">{t('COUCH CO-OP')}</span>
+            <p>
+              {t(
+                'One screen, one seat each. Claim a controller by pressing a button on it, or give a seat its own keys. Two players can share one keyboard: each keeps its own corner.',
+              )}
+            </p>
+            <ul className="emulator-couch-seats">
+              {seats.map(seat => (
+                <li key={seat.seat} className={seat.device ? 'is-bound' : ''}>
+                  <span className="emulator-couch-seat">
+                    <strong>{t('Player {number}', { number: seat.seat })}</strong>
+                    <em className="mono">
+                      {seat.device
+                        ? seat.device.kind === 'pad'
+                          ? t('Controller {number}', { number: seat.device.index + 1 })
+                          : layoutLabel(seat.device.layout)
+                        : t('No device yet')}
+                    </em>
+                  </span>
+                  <span className="emulator-couch-actions">
+                    <button
+                      className="link"
+                      onClick={() => setClaiming(current => (current === seat.seat ? null : seat.seat))}
+                      aria-pressed={claiming === seat.seat}
+                    >
+                      {claiming === seat.seat ? t('Press a button…') : t('Use a controller')}
+                    </button>
+                    <select
+                      className="emulator-couch-keys"
+                      value={seat.device?.kind === 'keyboard' ? seat.device.layout : ''}
+                      aria-label={t('Keys for player {number}', { number: seat.seat })}
+                      onChange={event => {
+                        const layout = event.target.value as KeyboardLayout | '';
+                        setSeats(current =>
+                          layout
+                            ? claimSeat(
+                                current,
+                                seat.seat,
+                                { kind: 'keyboard', layout },
+                                `Player ${seat.seat}`,
+                                seat.owner,
+                              )
+                            : releaseSeat(current, seat.seat),
+                        );
+                        // A seat already handed to a member is re-sent, so their
+                        // own panel shows the keys the host just chose.
+                        if (layout && seat.owner !== 'local' && party.status === 'joined') {
+                          void partySession.sendNetplay({
+                            kind: 'seat',
+                            seat: seat.seat,
+                            descriptor: `keyboard:${layout}`,
+                            target: seat.owner,
+                            name: seat.name,
+                          });
+                        }
+                      }}
+                    >
+                      <option value="">{t('Keyboard…')}</option>
+                      {keyboardLayouts().map(layout => (
+                        <option key={layout} value={layout}>
+                          {layoutLabel(layout)}
+                        </option>
+                      ))}
+                    </select>
+                    {party.status === 'joined' ? (
+                      <select
+                        className="emulator-couch-keys"
+                        value={seat.owner === 'local' ? '' : seat.owner}
+                        aria-label={t('Who plays in seat {number}', { number: seat.seat })}
+                        onChange={event => {
+                          const owner = event.target.value;
+                          const peer = party.peers.find(item => item.id === owner);
+                          handSeat(seat.seat, owner || 'local', peer?.name ?? '');
+                        }}
+                      >
+                        <option value="">{t('This PC')}</option>
+                        {party.peers
+                          .filter(peer => !peer.self)
+                          .map(peer => (
+                            <option key={peer.id} value={peer.id}>
+                              {peer.name}
+                            </option>
+                          ))}
+                      </select>
+                    ) : null}
+                    {seat.device ? (
+                      <button
+                        className="link"
+                        onClick={() => setSeats(current => releaseSeat(current, seat.seat))}
+                      >
+                        {t('Free seat')}
+                      </button>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {remoteSeats.length > 0 ? (
+              <ul className="emulator-couch-remote">
+                <li className="mono">{t('IN THE ROOM')}</li>
+                {remoteSeats
+                  .slice()
+                  .sort((a, b) => a.seat - b.seat)
+                  .map(claim => (
+                    <li key={claim.peerId} className="mono">
+                      {t('Player {number}', { number: claim.seat })} · {claim.name}
+                      {claim.descriptor.startsWith('keyboard:')
+                        ? ` · ${layoutLabel(claim.descriptor.slice(9) as KeyboardLayout)}`
+                        : ''}
+                    </li>
+                  ))}
+              </ul>
+            ) : null}
+            {party.control ? (
+              <p className="mono emulator-couch-control">
+                {party.control.state === 'granted'
+                  ? t('{name} has control of this screen and plays as player {number}.', {
+                      name: party.control.name,
+                      // No seat yet means the first free one, which is where the
+                      // first keypress will land whenever a controller already
+                      // holds a seat — naming 2 unconditionally told a viewer
+                      // they were player 2 while player 2's pad sat beside her.
+                      number:
+                        seats.find(seat => seat.owner === party.control?.peerId)?.seat ??
+                        firstFreeSeat(seats)?.seat ??
+                        2,
+                    })
+                  : t('{name} is asking to control this screen.', { name: party.control.name })}
+                {party.control.state === 'requested' ? (
+                  <button className="link" onClick={() => partySession.grantControl()}>
+                    {t('Allow')}
+                  </button>
+                ) : null}
+                {party.control.state === 'granted' ? (
+                  <button className="link" onClick={() => partySession.revokeControl()}>
+                    {t('Take control back')}
+                  </button>
+                ) : null}
+              </p>
+            ) : null}
+            {claiming !== null ? (
+              <p className="mono emulator-couch-armed">
+                {t('Press any button on the controller for player {number}.', {
+                  number: claiming,
+                })}
+              </p>
+            ) : null}
+            <p className="mono emulator-couch-note">
+              {couchIsActive(seats)
+                ? t('Seats travel with link play: every machine sees all four players.')
+                : t('Link play carries the seats. A seat with no device stays free for another player.')}
+            </p>
+          </div>
+
           <div className="emulator-netplay">
             <span className="mono emulator-side-label">{t('LINK PLAY')}</span>
             {netRole ? (
@@ -1847,6 +2435,16 @@ export function Emulator({
                     'Two machines, one cartridge: the host sends the game, both seats play through the same room, and the host’s save state keeps the two cores together. Player 2 needs a controller; the host can use the keyboard.',
                   )}
                 </p>
+                {rom && isDiscSystem(rom.system) ? (
+                  // A disc image cannot cross the room link: the checkpoint
+                  // channel caps a cartridge at 16 MB, so the honest answer is
+                  // to point at the engine that synchronises input instead.
+                  <p className="mono emulator-netplay-hint">
+                    {t(
+                      'A disc is too large for this link. Use NETPLAY (RETROARCH) below: both machines need the same image, and it synchronises the two cores frame by frame.',
+                    )}
+                  </p>
+                ) : null}
                 {party.status === 'joined' ? (
                   <div className="emulator-netplay-actions">
                     <button

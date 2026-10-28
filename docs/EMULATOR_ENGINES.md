@@ -259,6 +259,41 @@ So the honest arrangement is the one shipped:
 A real in-app RetroArch is a packaging project — a signed native helper, one
 per architecture, with its own review — not a UI change. It is not claimed here.
 
+## PlayStation discs
+
+A PlayStation rip is the one format the cartridge slot cannot take as it arrives:
+it comes as a small `.cue` manifest plus one or more 600 MB `.bin` tracks, and the
+slot hands the core a single file under a single name.
+
+Two bugs made that look like a refusal:
+
+- `.bin` resolved to the Sega and Atari systems alone, so a CD track was measured
+  against the 64 MB cartridge cap and the panel said the ISO was too large.
+- `.cue`, `.iso` and `.img` were not offered at all, so the panel said the file
+  was unsupported and never opened it.
+
+What ships now:
+
+- The PlayStation formats are `.chd`, `.pbp`, `.iso`, `.img`, `.cue` and `.bin`.
+  A disc is measured against `MAX_DISC_BYTES` (768 MB), never the cartridge cap.
+- A shared extension is settled by its size: a 600 MB `.bin` resolves to the
+  PlayStation and nothing else, a 1 KB one stays a Sega/Atari cartridge, and only
+  an unknown size leaves both in the list to ask about.
+- `src/lib/psx-disc.ts` joins a `.cue` and its track into one 2048-byte-per-sector
+  `.iso` in memory before the core starts: MODE1/2352 keeps the 2048 user bytes at
+  offset 16, MODE2/2352 keeps them at offset 24, a 2048 image passes through, and
+  a pregap named by `INDEX 01` is skipped. The bin is looked up by the name the
+  sheet itself gives, not by being the second file selected — which is why the
+  slot now takes more than one file and the drop zone accepts a cue and track
+  together.
+- **Only the data track is joined.** A disc whose music lives in separate CD audio
+  tracks loses that audio, and the panel says so after loading and points at a
+  `.chd` of the whole disc. The tests pin both the sector arithmetic and the
+  refusal of a cue whose track is missing: half a disc is never started.
+
+A PlayStation BIOS goes in the BIOS slot as before; `scph5500.bin` and its
+siblings are what the folder listing offers for that console.
+
 ## Cartridge and BIOS folders
 
 `EmulatorLibrary` (main process) lists a folder the user picked in a native

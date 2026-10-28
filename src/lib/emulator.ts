@@ -107,12 +107,14 @@ export const ROM_SYSTEMS: ReadonlyArray<RomSystemDef> = [
     id: 'psx',
     label: 'PlayStation',
     // EmulatorJS maps `psx` to pcsx_rearmed or mednafen_psx_hw; both accept the
-    // same containers. Only the self-contained ones are offered, because the
-    // slot takes one file: a bare `.cue` is a manifest with no picture data.
+    // same containers. A `.cue` and the `.bin` beside it are offered as well:
+    // the panel merges the pair into one image before the core sees it (see
+    // `src/lib/psx-disc.ts`), because the slot hands the core a single file and
+    // a raw sector dump cannot be opened on its own.
     core: 'psx',
-    extensions: ['chd', 'pbp'],
+    extensions: ['chd', 'pbp', 'iso', 'img', 'cue', 'bin'],
     disc: true,
-    note: 'One disc image per slot: pack a .cue and .bin set into a .chd or a .pbp. Most titles need a PlayStation BIOS.',
+    note: 'Most titles need a PlayStation BIOS. A .cue and its .bin work together: pick both files and Kryvex joins them into one disc image.',
   },
 ];
 
@@ -149,9 +151,26 @@ export function isEmulatorSystem(value: unknown): value is EmulatorSystem {
   return typeof value === 'string' && ROM_SYSTEMS.some(system => system.id === value);
 }
 
+/**
+ * Formats that only ever carry a disc.
+ *
+ * Nothing here can be a cartridge, so the cartridge cap never applies to one:
+ * that rule is what turned a 600 MB PlayStation image into "larger than 64 MB",
+ * because a `.bin` used to resolve to the Sega systems alone.
+ */
+const DISC_EXTENSIONS = new Set(['chd', 'pbp', 'iso', 'img', 'cue', 'cdi', 'gdi']);
+
 /** `.bin` and `.rom` are shared by several Sega/Atari systems. */
 const SHARED_EXTENSIONS: Record<string, EmulatorSystem[]> = {
-  bin: ['genesis', 'sega32x', 'sms', 'gg', 'sg1000', 'atari2600', 'atari7800'],
+  // A `.bin` is either a Sega/Atari cartridge or the raw track of a CD. Which
+  // one it is follows from its size, not its name: `systemsForFile` asks for
+  // the byte count before it answers.
+  bin: ['genesis', 'sega32x', 'sms', 'gg', 'sg1000', 'atari2600', 'atari7800', 'psx'],
+  // Both consoles ship a `.iso` core; with the second engine off only the
+  // PlayStation candidate is left, so the file resolves without a prompt.
+  iso: ['psx', 'dreamcast'],
+  img: ['psx'],
+  cue: ['psx'],
   rom: ['sms', 'gg', 'sg1000', 'atari2600'],
   ws: ['ws', 'wsc'],
   pc2: ['ws', 'wsc'],
@@ -171,20 +190,54 @@ export function extensionOf(name: string): string {
  * once the second engine is on the chooser asks which console the file belongs
  * to instead of guessing from four letters.
  */
-export function systemsForFile(name: string, options?: EngineOptions): EmulatorSystem[] {
+export function systemsForFile(
+  name: string,
+  options?: EngineOptions,
+  bytes?: number,
+): EmulatorSystem[] {
   const extension = extensionOf(name);
-  if (SHARED_EXTENSIONS[extension]) {
-    const offered = new Set(offeredSystems(options).map(system => system.id));
-    return SHARED_EXTENSIONS[extension].filter(system => offered.has(system));
-  }
-  return offeredSystems(options)
+  const disc = DISC_EXTENSIONS.has(extension);
+  const known = typeof bytes === 'number' && bytes > 0;
+  const oversized = known && bytes! > MAX_ROM_BYTES;
+  const offered = offeredSystems(options);
+  // A file too large for a cartridge can only be a disc, so the cartridge
+  // systems drop out of the list before it becomes a question. Without a size
+  // every candidate stays, and the panel asks which console the file belongs
+  // to instead of guessing. This only disambiguates a *shared* extension: an
+  // oversized `.nes` is still an NES file, and `romValidation` says it is too
+  // large rather than pretending the format is unknown.
+  const shared = SHARED_EXTENSIONS[extension];
+  const keep = (system: EmulatorSystem): boolean => !oversized || isDiscSystem(system);
+  const candidates = shared ?? offered
     .filter(system => system.extensions.includes(extension))
     .map(system => system.id);
+  const offeredIds = new Set(offered.map(system => system.id));
+  const resolved = candidates.filter(system => offeredIds.has(system));
+  // A disc-only format never answers with the cartridge systems that happen to
+  // share its name; a size that fits a cartridge never answers with the disc.
+  if (disc) return resolved.filter(isDiscSystem).filter(keep);
+  if (shared) {
+    // A shared format with a known size is one or the other: a 1 KB `.bin` is
+    // not a CD track, and a 600 MB one is not a cartridge. Only an unknown
+    // size leaves both in the list and makes the panel ask.
+    if (!known) return resolved;
+    return resolved.filter(system => isDiscSystem(system) === oversized);
+  }
+  return resolved;
 }
 
-/** A unique extension gives one definite system; shared formats give null. */
-export function detectRomSystem(name: string, options?: EngineOptions): EmulatorSystem | null {
-  const systems = systemsForFile(name, options);
+/**
+ * A unique extension gives one definite system; shared formats give null.
+ *
+ * A size settles a shared format on its own: a `.bin` far too large for a
+ * cartridge is a PlayStation track, and nothing has to be asked.
+ */
+export function detectRomSystem(
+  name: string,
+  options?: EngineOptions,
+  bytes?: number,
+): EmulatorSystem | null {
+  const systems = systemsForFile(name, options, bytes);
   return systems.length === 1 ? systems[0]! : null;
 }
 
@@ -197,7 +250,7 @@ export function isDiscSystem(system: EmulatorSystem): boolean {
 }
 
 export function romValidation(name: string, bytes: number, options?: EngineOptions): string | null {
-  const systems = systemsForFile(name, options);
+  const systems = systemsForFile(name, options, bytes);
   if (systems.length === 0) {
     return 'That file is not a supported ROM. Use one of the cartridge formats listed beside the slot.';
   }
@@ -408,7 +461,10 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
     var previous = navigator.getGamepads;
     navigator.getGamepads = function () {
       if (!netplayPads) return previous ? previous.call(navigator) : [];
-      return [netplayPads[0], netplayPads[1]];
+      // One entry per couch seat, and null for an empty one, which is exactly
+      // what a browser returns for an unused slot. The core therefore sees four
+      // players without knowing any of them came from the shell.
+      return netplayPads;
     };
   }
 
@@ -749,10 +805,11 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
         return;
       }
       installNetplayInput();
-      netplayPads = [
-        netplayPad(0, data.pads && data.pads[0] ? data.pads[0] : null),
-        netplayPad(1, data.pads && data.pads[1] ? data.pads[1] : null),
-      ];
+      netplayPads = [];
+      for (var seat = 0; seat < 4; seat += 1) {
+        var frame = data.pads && data.pads[seat] ? data.pads[seat] : null;
+        netplayPads.push(frame ? netplayPad(seat, frame) : null);
+      }
       return;
     }
     if (data.type === 'kryvex-netplay-snapshot') {

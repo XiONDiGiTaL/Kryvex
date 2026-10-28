@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import type { PartySettings, PartySource } from '../types';
 import { useI18n } from '../lib/i18n';
 import { partySession, type InputEvent } from '../lib/party';
+import { routeSeatInput } from '../lib/emulator-input';
 import {
   DEFAULT_TRACKERS,
   PEER_COLORS,
@@ -136,7 +137,17 @@ function VideoTile({
           interactive && onInput
             ? event => {
                 event.preventDefault();
-                onInput({ kind: 'key', key: event.key });
+                // A shared page only needs the press; a game driven through a
+                // couch seat needs the release too, so both phases travel.
+                onInput({ kind: 'key', key: event.key, phase: 'down' });
+              }
+            : undefined
+        }
+        onKeyUp={
+          interactive && onInput
+            ? event => {
+                event.preventDefault();
+                onInput({ kind: 'key', key: event.key, phase: 'up' });
               }
             : undefined
         }
@@ -227,7 +238,7 @@ export function Rooms({
   // into the Kryvex app that is being shared. Screen and window captures cannot
   // be reached this way, so the UI never offers control for them.
   useEffect(() => {
-    session.onInput = (event: InputEvent) => {
+    const handler = (event: InputEvent) => {
       if (!state.local) return;
       const view = Array.from(document.querySelectorAll('webview')).find(candidate => {
         const id = (candidate as unknown as { getWebContentsId?: () => number })
@@ -237,7 +248,20 @@ export function Rooms({
         sendInputEvent?: (input: Record<string, unknown>) => void;
         getBoundingClientRect: () => DOMRect;
       }) | undefined;
-      if (!view?.sendInputEvent) return;
+      if (!view?.sendInputEvent) {
+        // No guest page is the shared source, so the emulator may be: it is a
+        // Kryvex view and cannot be addressed by webContents id. A keypress goes
+        // to the seat the controlling peer was given, and only the press and
+        // release of a key are useful to a game.
+        if (event.kind === 'key') {
+          routeSeatInput({
+            kind: 'key',
+            key: event.key ?? '',
+            phase: event.phase === 'up' ? 'up' : 'down',
+          });
+        }
+        return;
+      }
       const rect = view.getBoundingClientRect();
       const x = Math.round((event.x ?? 0) * rect.width);
       const y = Math.round((event.y ?? 0) * rect.height);
@@ -267,6 +291,8 @@ export function Rooms({
         return;
       }
       if (event.kind === 'key' && event.key) {
+        // A page only needs the press: the release would send a second char.
+        if (event.phase === 'up') return;
         // Single characters go as `char`, named keys as `keyDown`.
         if (event.key.length === 1) {
           view.sendInputEvent({ type: 'char', keyCode: event.key });
@@ -275,8 +301,13 @@ export function Rooms({
         }
       }
     };
+    session.onInput = handler;
+    // Identity-checked on the way out. A popped-out room is a second surface
+    // on the same session, and the route copy unmounting after the window copy
+    // mounted used to null the handler the window had just installed — which
+    // silently disconnected the host's remote control with no error anywhere.
     return () => {
-      session.onInput = null;
+      if (session.onInput === handler) session.onInput = null;
     };
   }, [session, state.local]);
 

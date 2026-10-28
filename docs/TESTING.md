@@ -3389,6 +3389,74 @@ Two are findings rather than environment, and both are red here today:
 ### What is still not covered
 
 - **The sixteen held back**, above.
+- **`verify:couch`**, added 2026-10-28: two instances, a real display to share
+  and a cartridge supplied from the machine, so it is held back for the same
+  reason `verify:rooms` is.
 - **Any runner but `windows-latest`.** Every run so far used the one image.
 - **Parallelism inside a batch.** The batches run beside each other; the
   harnesses within one run in order, since they share ports and profile paths.
+
+## Couch co-op over a real room: 2026-10-28
+
+Run in `X:\Veyra`, Node 24.19.0, Windows 11, Electron 44.9.3, `pnpm build` first.
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `pnpm typecheck` | exit 0 | renderer and `electron/`, strict |
+| `npx vitest run` | exit 0, 94 files / 1093 tests | the whole suite, unchanged by this work |
+| `pnpm verify:couch` | exit 0 | Two instances in one real room: A popped Rooms into its window, opened the room there and shared the screen, then loaded a SNES cartridge through the file input on the emulator route; B joined through the invite, asked for control, A allowed it from the emulator panel, B focused the stream and held ←. Read **inside the emulator frame** (`navigator.getGamepads()` in the frame's own devtools target — it is a sandboxed, out-of-process document), the core saw pad 2 with left pressed, pad 1 with left clear, and pad 2 released when B let go. Seat 2 took the arrows on its own; player 1 kept W A S D |
+
+```
+cartridge: Battletoads & Double Dragon - The Ultimate Team (U) [!].smc
+rooms: popped out
+screen share: live
+share at B: {"width":2560,"height":1440}
+control: Grace has control of this screen and plays as player 2.
+viewer control: granted
+seats: [["Keys for player 1","wasd"],["Keys for player 2","arrows"],["Keys for player 3",""],["Keys for player 4",""]]
+player 2 left: pressed
+player 1 left: clear
+player 2 left: released
+couch co-op harness: PASS
+```
+
+Three defects on the path it walks, all fixed in this tree:
+
+- **`party.ts` dropped the grant on the viewer.** The `control` action only
+  accepted `grant` on the host, which had already written its own copy, so the
+  allowed viewer stayed on "Ask to control" with an unfocusable tile. The host
+  said control had moved; the viewer's keys went nowhere, and nothing errored.
+- **The first key posted a neutral pad.** The emulator's seat sink seats the peer
+  and then built that frame from `seatsRef`, which only catches up on the next
+  render: a viewer's first press — a tap, in practice — reached the core as
+  nothing. It now builds from the list it just wrote.
+- **A popped-out Rooms could null `session.onInput`.** The route copy unmounting
+  after the window copy mounted cleared the handler the window had installed. The
+  cleanup is identity-checked, the same rule the seat sink follows.
+
+The cartridge is not committed. `verify:couch` reads `KRYVEX_COUCH_ROM` and stages
+a copy inside the workspace, because devtools file injection only resolves paths
+on the app's own volume; a `D:` path arrived as an empty `File` and was refused as
+"that ROM is empty". It is held back from CI for that and for the display.
+
+The run continues past that first seat: the host starts link play, a controller
+stub answering `navigator.getGamepads()` claims seat 2, and the granted viewer
+lands on seat 3 with the arrows. Both are then held together (controller Y and
+the viewer's arrow) and asserted through the core's own `navigator.getGamepads()`:
+seat 2 button 3, seat 3 button 14, player 1 clear. Releasing the remote key must
+leave the controller held, and releasing the controller must clear only its own
+button.
+
+A fourth defect came out of that second seat: the granted peer's line read
+"plays as player 2" from the moment control was allowed, even when seat 2 held
+the host's controller. The fallback is the first free seat now, which is where
+the viewer's first key actually goes.
+
+It then minimizes the host's window and presses the pad once more. The seat loop
+is a `requestAnimationFrame` clock, so a throttled renderer would stop reading
+the controller silently; the frame arrived anyway. The window is minimized
+through its OS handle because this Electron build exposes no window state to
+devtools, and the step is skipped, with a line saying so, if the handle is
+missing. The controller stub hands back a fresh `Gamepad` snapshot per call like
+the browser does: one shared mutable object lets the loop's "before" snapshot
+move with the press, which hides the edge a claim depends on.

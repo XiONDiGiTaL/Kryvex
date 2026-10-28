@@ -64,8 +64,7 @@ describe('emulator ROM rules', () => {
 
   it('measures a disc image against the disc cap, not the cartridge one', () => {
     // A CD is an order of magnitude larger than any cartridge, so the slot has
-    // to accept it before the core can open it; the formats offered are the
-    // self-contained ones, because a bare .cue carries no picture data.
+    // to accept it before the core can open it.
     expect(isDiscSystem('psx')).toBe(true);
     expect(isDiscSystem('snes')).toBe(false);
     expect(ROM_SYSTEMS.find(system => system.id === 'psx')?.core).toBe('psx');
@@ -74,8 +73,23 @@ describe('emulator ROM rules', () => {
     expect(romValidation('disc.chd', MAX_DISC_BYTES + 1)).toMatch(/disc image is larger/);
     // The cartridge cap is unchanged, so a 300 MB "cartridge" is still refused.
     expect(romValidation('game.nes', MAX_ROM_BYTES * 4)).toMatch(/larger than 64 MB/);
-    // A bare .cue would be a manifest with no data, so it is not accepted.
-    expect(romValidation('disc.cue', 2048)).toMatch(/not a supported ROM/);
+  });
+
+  it('treats a PlayStation rip as a disc, whatever container it arrived in', () => {
+    // The bug this covers: a `.bin` used to resolve to the Sega systems alone,
+    // so a 600 MB track hit the 64 MB cartridge cap and the panel said the ISO
+    // was too large instead of starting it.
+    expect(romValidation('game.bin', MAX_ROM_BYTES * 8)).toBeNull();
+    expect(romValidation('game.cue', 512)).toBeNull();
+    expect(romValidation('game.iso', MAX_ROM_BYTES * 8)).toBeNull();
+    expect(romValidation('game.img', MAX_ROM_BYTES * 8)).toBeNull();
+    // A large `.bin` has exactly one candidate, so nothing has to be asked.
+    expect(systemsForFile('game.bin', undefined, MAX_ROM_BYTES * 8)).toEqual(['psx']);
+    expect(detectRomSystem('game.bin', undefined, MAX_ROM_BYTES * 8)).toBe('psx');
+    // A small one is still a Sega/Atari cartridge, and still asks which one.
+    expect(systemsForFile('game.bin', undefined, 1024)).not.toContain('psx');
+    // A disc still has its own cap.
+    expect(romValidation('game.iso', MAX_DISC_BYTES + 1)).toMatch(/disc image is larger/);
   });
 
   it('offers N64 on the core the CDN actually ships', () => {
@@ -96,6 +110,9 @@ describe('emulator ROM rules', () => {
   });
 
   it('asks for a console when an extension is shared', () => {
+    // With no size, a `.bin` can be a cartridge or a PlayStation track, so both
+    // are offered; the panel passes the byte count and the list collapses to
+    // one or the other. See the disc test above.
     expect(systemsForFile('game.bin')).toEqual([
       'genesis',
       'sega32x',
@@ -104,6 +121,7 @@ describe('emulator ROM rules', () => {
       'sg1000',
       'atari2600',
       'atari7800',
+      'psx',
     ]);
     expect(systemsForFile('game.ws')).toEqual(['ws', 'wsc']);
     expect(systemsForFile('game.ngp')).toEqual(['ngp', 'ngpc']);

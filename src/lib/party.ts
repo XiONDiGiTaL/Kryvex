@@ -79,6 +79,14 @@ export interface InputEvent {
   button?: 'left' | 'right' | 'middle';
   key?: string;
   deltaY?: number;
+  /**
+   * A key's press or release.
+   *
+   * A shared page only needs the press — Chromium turns it into a `char` — but
+   * a game needs the release as well, or every key stays held down. Absent means
+   * `down`, so an older viewer keeps working.
+   */
+  phase?: 'down' | 'up';
 }
 
 // Actions are JSON payloads, so each shape carries an index signature.
@@ -113,6 +121,8 @@ interface InputPayload {
   button: string;
   key: string;
   deltaY: number;
+  /** `down` or `up`; `down` when the sender did not say. */
+  phase: string;
 }
 
 interface ShareMeta {
@@ -143,6 +153,12 @@ interface NetplayPayload {
   seq: number;
   total: number;
   data: string;
+  /** 1-based seat in a couch co-op session; 0 means "the sender's default". */
+  seat: number;
+  /** A seat's device, so an assignment can travel without a pad index. */
+  descriptor: string;
+  /** Who a seat assignment is for; empty broadcasts it. */
+  target: string;
   buttons: number;
   axesX: number;
   axesY: number;
@@ -153,7 +169,7 @@ export interface NetplayMessage {
    * `hello` announces a seat, `ask` asks the host to send the cartridge again,
    * and `rom`/`state`/`pad`/`bye` carry the session itself.
    */
-  kind: 'hello' | 'ask' | 'rom' | 'pad' | 'state' | 'bye';
+  kind: 'hello' | 'ask' | 'rom' | 'pad' | 'state' | 'bye' | 'seat';
   role: 'host' | 'guest' | '';
   name: string;
   gameKey: string;
@@ -163,6 +179,12 @@ export interface NetplayMessage {
   total: number;
   data: string;
   pad: NetplayPad;
+  /** Which couch seat the frame belongs to; 0 when the sender did not say. */
+  seat: number;
+  /** `keyboard:arrows`, `pad:0`, or empty for a free seat. */
+  descriptor: string;
+  /** The peer a `seat` frame is meant for; empty means everyone. */
+  target: string;
   peerId: string;
 }
 
@@ -326,8 +348,13 @@ export class PartySession {
             return;
           }
           if (payload?.action === 'grant') {
-            // Only the host grants; a grant from anyone else is ignored.
-            if (!this.state.local) return;
+            // A grant is for the viewer, and only the viewer takes it: the host
+            // wrote its own copy before sending, so a host that acted on one
+            // would be granting itself. This used to be the other way round,
+            // which left the allowed viewer still reading "Ask to control" and
+            // its tile unfocusable — the host believed control had moved, the
+            // viewer could not type, and the keys went nowhere.
+            if (this.state.local) return;
             this.set({ control: { peerId: context.peerId, name: who, state: 'granted' } });
             return;
           }
@@ -343,7 +370,8 @@ export class PartySession {
             kind !== 'rom' &&
             kind !== 'pad' &&
             kind !== 'state' &&
-            kind !== 'bye'
+            kind !== 'bye' &&
+            kind !== 'seat'
           ) {
             return;
           }
@@ -365,6 +393,15 @@ export class PartySession {
               // unbounded memory into a receiver that never asked for it.
               data: typeof payload?.data === 'string' ? payload.data.slice(0, 200_000) : '',
               pad: sanitizePad(payload),
+              seat:
+                Number.isFinite(payload?.seat)
+                  ? Math.max(0, Math.min(4, Math.floor(Number(payload.seat))))
+                  : 0,
+              descriptor:
+                typeof payload?.descriptor === 'string'
+                  ? payload.descriptor.slice(0, 32)
+                  : '',
+              target: typeof payload?.target === 'string' ? payload.target.slice(0, 64) : '',
               peerId: context.peerId,
             },
           );
@@ -386,6 +423,8 @@ export class PartySession {
             button: (payload?.button as InputEvent['button']) || 'left',
             key: typeof payload?.key === 'string' ? payload.key.slice(0, 40) : '',
             deltaY: Number(payload?.deltaY) || 0,
+            // A key press with no phase came from a build that never sent one.
+            phase: payload?.phase === 'up' ? 'up' : 'down',
           });
         },
       });
@@ -597,6 +636,7 @@ export class PartySession {
       button: event.button ?? 'left',
       key: event.key ?? '',
       deltaY: event.deltaY ?? 0,
+      phase: event.phase === 'up' ? 'up' : 'down',
     });
   }
 
@@ -621,6 +661,11 @@ export class PartySession {
       seq: payload.seq ?? 0,
       total: payload.total ?? 0,
       data: payload.data ?? '',
+      // A seat travels with every frame: two peers can each hold a pad, and the
+      // receiving core needs to know whose it is before it applies it.
+      seat: Math.max(0, Math.min(4, Math.floor(Number(payload.seat ?? 0)))),
+      descriptor: payload.descriptor ?? '',
+      target: payload.target ?? '',
       buttons: pad.buttons,
       axesX: pad.axesX,
       axesY: pad.axesY,

@@ -185,6 +185,37 @@ Measured on this machine:
 7. Repeat across the internet with TCP 55435 forwarded to the host, and note
    whether the router needed a UPnP rule.
 
+## Seats: who is player 2, 3 and 4
+
+Link play used to have exactly two seats — the host was seat 0 and the one guest
+was seat 1. A four-player game therefore meant three people taking turns at one
+controller. Seats are now a first-class idea, and the full model is in
+[COUCH_COOP.md](COUCH_COOP.md):
+
+- A seat is 1–4 and is claimed by pressing a button on your own controller, or by
+  choosing a keyset (one keyboard can be four players without interference).
+- The seat number travels on every pad frame, so a receiving machine knows whose
+  buttons arrived. A frame from an older build has no seat and keeps the old
+  host/guest mapping.
+- A seat this machine has not bound is never written from another machine's
+  frames, so an empty local seat cannot overwrite a guest's.
+- The emulator page presents four synthetic pads to the core, `null` for a free
+  seat. No core knows the difference between a seat and a physical pad.
+- A host hands a seat to a named member (**This PC** or a player in the seat row),
+  who adopts it, so their frames arrive on that seat.
+- Room control reaches the emulator too: a granted peer's keys (press **and**
+  release) land on their own seat, which is how a viewer watching a shared game
+  plays as player 2 without touching player 1's setup. See
+  [COUCH_COOP.md](COUCH_COOP.md).
+
+## A disc on the link
+
+The room link caps content at 16 MB, which is a cartridge many times over and a
+disc not at all. A PlayStation or Dreamcast image is therefore refused by link
+play, and the panel says so on the disc: **NETPLAY (RETROARCH)** is the path for
+those, and its own core list covers `psx` (`mednafen_psx_hw`, `mednafen_psx`,
+`pcsx_rearmed`) and Dreamcast (`flycast`) as well as every cartridge console.
+
 ## Not in this batch
 
 - Room-based netplay. The room carries chat, sharing and link play; carrying

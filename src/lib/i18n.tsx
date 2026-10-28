@@ -20,6 +20,7 @@ import { secretServicesCopy } from './i18n-secret';
 import { captureCopy } from './i18n-capture';
 import { flycastCopy } from './i18n-flycast';
 import { netplayCopy } from './i18n-netplay';
+import { couchCopy } from './i18n-couch';
 import { vexiumCopy } from './i18n-vexium';
 import { turkishCopy } from './i18n-tr';
 import { sweepEs } from './i18n-sweep-es';
@@ -2902,6 +2903,7 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           ...pick(captureCopy, language),
           ...pick(flycastCopy, language),
           ...pick(netplayCopy, language),
+          ...pick(couchCopy, language),
           ...pick(vexiumCopy, language),
           // Turkish is written as one catalogue, so it lands last and wins.
           ...(language === 'tr' ? turkishCopy : {}),
