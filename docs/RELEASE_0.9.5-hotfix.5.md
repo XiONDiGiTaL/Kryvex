@@ -101,19 +101,23 @@ missing.
 ## Artifacts
 
 Built by the Release workflow on the `v0.9.5-hotfix.5` tag (`windows-latest`,
-Node 22, pnpm 10) and attached to
+Node 22, pnpm 10), published stable at 2026-10-28T14:49:36Z, and attached to
 [the release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.9.5-hotfix.5):
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.9.5-hotfix.5-x64.exe` | recorded after the tag | recorded after the tag |
-| `Kryvex-Portable-0.9.5-hotfix.5-x64.exe` | recorded after the tag | recorded after the tag |
+| `Kryvex-Setup-0.9.5-hotfix.5-x64.exe` | 137,369,529 B (131.00 MiB) | `9b62213ba24b027e92f04fbf2042375c731cc19a5ae71b692bebede6b7168d74` |
+| `Kryvex-Portable-0.9.5-hotfix.5-x64.exe` | 137,125,637 B (130.77 MiB) | `20a6c3a3cab9152d50e8312e7ac18bd510972f23daa2ec81755c2cdda534ffa2` |
 
-`SHA256SUMS.txt` travels with them. **The digests above are filled in by the
-follow-up commit that records the published assets**, the way 0.9.5-hotfix.4's
-were: at the time this record was written the tag had not run, so the only
-installers that existed were the locally built pair below. Both EXEs are
-**unsigned**.
+`SHA256SUMS.txt` (207 B) travels with them, and the digests above are GitHub's
+own asset digests, so the in-app updater accepts this release. It is not a draft
+and not a prerelease. The workflow builds what it publishes, so these files — not
+the locally built pair below — are the ones to check a download against. Both
+EXEs are **unsigned**.
+
+The digests were recorded in a follow-up commit rather than with this record,
+which is why the table originally said "recorded after the tag"; nothing about
+the release changed when they were filled in.
 
 The locally built pair from this working tree (`pnpm package:win`, Electron
 44.9.3, x64), used for the wizard capture and **not** one of the published files:
@@ -123,9 +127,12 @@ The locally built pair from this working tree (`pnpm package:win`, Electron
 | `Kryvex-Setup-0.9.5-hotfix.5-x64.exe` | 137,369,465 B (131.01 MiB) |
 | `Kryvex-Portable-0.9.5-hotfix.5-x64.exe` | 137,125,571 B (130.78 MiB) |
 
-**Web client.** The same tag rebuilds and force-pushes `gh-pages`, so the
-published worker at `https://xiondigital.net/Kryvex/sw.js` names
-`kryvex-web-0.9.5-hotfix.5-v1` and the site reports this version.
+**Web client.** The same tag rebuilt and force-pushed `gh-pages`: the worker it
+published (`ae28b8c`, the web job of run 40709293578 at 14:50:32Z) names
+`kryvex-web-0.9.5-hotfix.5-v1`, so a device that loaded the site while this
+release was live reports this version. That commit is still readable through the
+contents API even though the next publish replaced the branch tip, which is how
+the cache name was confirmed while recording these numbers.
 
 ## Install
 

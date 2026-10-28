@@ -47,6 +47,22 @@ storage with cookies on teardown, which is the open *Discord asks me to log in
 again* report. Full record:
 [RELEASE_0.9.5-hotfix.6.md](docs/RELEASE_0.9.5-hotfix.6.md).
 
+## Released (2026-10-28, 0.9.5-hotfix.5)
+
+The `v0.9.5-hotfix.5` tag ran the Release workflow to completion — both jobs
+(`windows`, `web`) succeeded — and published a stable release, not a draft or a
+prerelease, at 2026-10-28T14:49:36Z. Its digests were recorded late, so they are
+backfilled here from the published assets.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.5-hotfix.5-x64.exe` | 137,369,529 B | `9b62213ba24b027e92f04fbf2042375c731cc19a5ae71b692bebede6b7168d74` |
+| `Kryvex-Portable-0.9.5-hotfix.5-x64.exe` | 137,125,637 B | `20a6c3a3cab9152d50e8312e7ac18bd510972f23daa2ec81755c2cdda534ffa2` |
+
+`gh-pages` was force-pushed from the same tag and the worker it published
+(`ae28b8c`) names `kryvex-web-0.9.5-hotfix.5-v1`. Both installers are unsigned.
+Full record: [RELEASE_0.9.5-hotfix.5.md](docs/RELEASE_0.9.5-hotfix.5.md).
+
 ## Released (2026-10-28, 0.9.5-hotfix.4)
 
 The `v0.9.5-hotfix.4` tag ran the Release workflow to completion — both jobs
