@@ -28,6 +28,25 @@ mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
+## Released (2026-10-28, 0.9.5-hotfix.6)
+
+The `v0.9.5-hotfix.6` tag ran the Release workflow to completion — both jobs
+(`windows`, `web`) succeeded — and published a stable release, not a draft or a
+prerelease, at 2026-10-28T16:04:24Z. `releases/latest` answers `v0.9.5-hotfix.6`.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.5-hotfix.6-x64.exe` | 137,368,424 B | `e46a2ab56d1ac74f63a51d9514e36243b25b9dfecf3f81d679afba541d79bf02` |
+| `Kryvex-Portable-0.9.5-hotfix.6-x64.exe` | 137,124,552 B | `28e52580f31a244e66ff00d6695d1ab0dd4c87d0c7597a85e77ab192225044b2` |
+
+`gh-pages` was force-pushed from the same tag and the published worker names
+`kryvex-web-0.9.5-hotfix.6-v1`; `index` answers HTTP 200 at
+`https://xiondigital.net/Kryvex/`. Both installers are unsigned. The batch itself
+removes the eight-module cap that killed a guest nobody closed and flushes page
+storage with cookies on teardown, which is the open *Discord asks me to log in
+again* report. Full record:
+[RELEASE_0.9.5-hotfix.6.md](docs/RELEASE_0.9.5-hotfix.6.md).
+
 ## Released (2026-10-28, 0.9.5-hotfix.4)
 
 The `v0.9.5-hotfix.4` tag ran the Release workflow to completion — both jobs

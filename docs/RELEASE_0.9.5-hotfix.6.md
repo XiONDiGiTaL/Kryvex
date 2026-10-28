@@ -49,19 +49,20 @@ same partition it has been signing in to all along.
 ## Artifacts
 
 Built by the Release workflow on the `v0.9.5-hotfix.6` tag (`windows-latest`,
-Node 22, pnpm 10) and attached to
+Node 22, pnpm 10), published stable at 2026-10-28T16:04:24Z, and attached to
 [the release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.9.5-hotfix.6):
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.9.5-hotfix.6-x64.exe` | recorded after the tag | recorded after the tag |
-| `Kryvex-Portable-0.9.5-hotfix.6-x64.exe` | recorded after the tag | recorded after the tag |
+| `Kryvex-Setup-0.9.5-hotfix.6-x64.exe` | 137,368,424 B (131.00 MiB) | `e46a2ab56d1ac74f63a51d9514e36243b25b9dfecf3f81d679afba541d79bf02` |
+| `Kryvex-Portable-0.9.5-hotfix.6-x64.exe` | 137,124,552 B (130.77 MiB) | `28e52580f31a244e66ff00d6695d1ab0dd4c87d0c7597a85e77ab192225044b2` |
 
-`SHA256SUMS.txt` travels with them. **The digests above are filled in by the
-follow-up commit that records the published assets**, the way 0.9.5-hotfix.5's
-were: at the time this record was written the tag had not run, so the only
-installers that existed were the locally built pair below. Both EXEs are
-**unsigned**.
+`SHA256SUMS.txt` (207 B) travels with them, and the digests above are GitHub's
+own asset digests, so the in-app updater accepts this release. It is not a draft
+and not a prerelease, and `releases/latest` answers `v0.9.5-hotfix.6`. The
+workflow builds what it publishes, so these files — not the locally built pair
+used for the wizard capture below — are the ones to check a download against.
+Both EXEs are **unsigned**.
 
 The locally built pair from this working tree (`pnpm package:win`, Electron
 44.9.3, x64), used for the wizard capture and **not** one of the published files:
@@ -71,9 +72,10 @@ The locally built pair from this working tree (`pnpm package:win`, Electron
 | `Kryvex-Setup-0.9.5-hotfix.6-x64.exe` | 137,368,311 B (131.00 MiB) |
 | `Kryvex-Portable-0.9.5-hotfix.6-x64.exe` | 137,124,409 B (130.77 MiB) |
 
-**Web client.** The same tag rebuilds and force-pushes `gh-pages`, so the
-published worker at `https://xiondigital.net/Kryvex/sw.js` names
-`kryvex-web-0.9.5-hotfix.6-v1` and the site reports this version.
+**Web client.** The same tag rebuilt and force-pushed `gh-pages`: the published
+worker at `https://xiondigital.net/Kryvex/sw.js` names
+`kryvex-web-0.9.5-hotfix.6-v1` and `https://xiondigital.net/Kryvex/` answers HTTP
+200, so the site reports this version.
 
 ## Install
 
