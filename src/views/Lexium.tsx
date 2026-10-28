@@ -53,11 +53,14 @@ export function Lexium({
   onUpdate,
   onBack,
   onToast,
+  embedded = false,
 }: {
   settings: LexiumSettings;
   onUpdate: (patch: Partial<LexiumSettings>) => void;
   onBack: () => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  /** Rendered inside a Workspace window: the window owns the title bar. */
+  embedded?: boolean;
 }) {
   const t = useT();
   const [tab, setTab] = useState<Tab>('transcribe');
@@ -488,7 +491,7 @@ export function Lexium({
   }
 
   return (
-    <section className="view lexium-view">
+    <section className={`view lexium-view ${embedded ? 'is-embedded' : ''}`}>
       <header className="view-head">
         <div className="tool-head">
           <ElementMark tool="lexium" size={62} />

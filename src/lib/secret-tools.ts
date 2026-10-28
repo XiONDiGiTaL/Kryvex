@@ -31,21 +31,39 @@ export const SECRET_TOOL_LABELS: Record<SecretToolId, string> = {
 };
 
 /**
- * The three tools that are a plain view rather than a page.
+ * Every built-in can be dropped into a Workspace window.
  *
- * They keep no session and no guest of their own, so they can be mounted twice
- * without fighting over one connection: that is what lets them be dropped into
- * a Workspace window while the tool is also open in the main area. The other
- * built-ins own a partition or a main-process server and stay single-instance.
+ * They used to be split in two: Arcade, File Forge and Canvas had no session of
+ * their own and could be mounted twice, while Lexium, the player, the emulator,
+ * Disk pulse and the link own a partition, a server or a running core and were
+ * kept out. The rule is now the same for all of them, and the difference is
+ * handled where it belongs — a single-instance tool shows a docking card on its
+ * route while its window holds the only copy, so the feature is reachable from
+ * the canvas without ever running two of it.
  */
-export const EMBEDDABLE_TOOL_IDS: readonly SecretToolId[] = [
-  'arcade',
-  'forge',
-  'canvas',
+export const EMBEDDABLE_TOOL_IDS: readonly SecretToolId[] = [...SECRET_TOOL_IDS];
+
+/**
+ * The tools that must exist once, in the route or in a window, never both.
+ *
+ * Each of these owns something a second copy would duplicate: Lexium a server
+ * session, the player a queue and an audio graph, the emulator a running core,
+ * Disk pulse a polling service and Kryvex Link a listening socket.
+ */
+export const SINGLETON_TOOL_IDS: readonly SecretToolId[] = [
+  'lexium',
+  'player',
+  'emulator',
+  'disk',
+  'link',
 ];
 
 export function isEmbeddableTool(value: unknown): value is SecretToolId {
   return isSecretToolId(value) && EMBEDDABLE_TOOL_IDS.includes(value);
+}
+
+export function isSingletonTool(value: unknown): value is SecretToolId {
+  return isSecretToolId(value) && SINGLETON_TOOL_IDS.includes(value);
 }
 
 export function isSecretToolId(value: unknown): value is SecretToolId {

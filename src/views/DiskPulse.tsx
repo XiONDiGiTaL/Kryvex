@@ -98,11 +98,14 @@ export function DiskPulse({
   onUpdate,
   onBack,
   onToast,
+  embedded = false,
 }: {
   settings: DiskSettings;
   onUpdate: (patch: Partial<DiskSettings>) => void;
   onBack: () => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  /** Rendered inside a Workspace window: the window owns the title bar. */
+  embedded?: boolean;
 }) {
   const t = useT();
   const api = useMemo(bridge, []);
@@ -236,7 +239,7 @@ export function DiskPulse({
 
   if (!api) {
     return (
-      <section className="view disk-view">
+      <section className={`view disk-view ${embedded ? 'is-embedded' : ''}`}>
         <header className="disk-head">
           <button className="btn ghost" onClick={onBack}>
             <Icon name="back" size={15} />
@@ -252,7 +255,7 @@ export function DiskPulse({
   }
 
   return (
-    <section className="view disk-view">
+    <section className={`view disk-view ${embedded ? 'is-embedded' : ''}`}>
       <header className="disk-head">
         <button className="btn ghost" onClick={onBack}>
           <Icon name="back" size={15} />

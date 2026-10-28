@@ -47,7 +47,7 @@ import {
 import { loadState, saveState, saveStateNow } from './lib/storage';
 import { shouldAutoStartCore } from './lib/vexium-core';
 import { clearWallpaper, importWallpaper, loadWallpaper } from './lib/wallpaper';
-import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
+import { I18nProvider, makeI18n, resolveLanguage, useT } from './lib/i18n';
 import { makeId, openModuleIds, partitionFor, resolveServicePlacement } from './lib/services';
 import { addScreenCapture } from './lib/screen-capture';
 import { SECRET_TOOL_LABELS, isEmbeddableTool } from './lib/secret-tools';
@@ -900,15 +900,37 @@ export default function App() {
   }, []);
 
   /**
+   * Whether a tool is currently living in a Workspace window.
+   *
+   * A single-instance tool must be in exactly one place, so its route asks this
+   * before it draws: a window over the app is the copy, and the route says where
+   * it went instead of mounting a second server, core or socket.
+   */
+  const toolPopped = useCallback(
+    (tool: SecretToolId) => Boolean(windows[toolWindowId(tool)]),
+    [windows],
+  );
+
+  /** Closes a tool's window, which puts that tool back on its own route. */
+  const dockToolWindow = useCallback((tool: SecretToolId) => {
+    setWindows(current => closeWindow(current, toolWindowId(tool)));
+  }, []);
+
+  /**
    * Kryvex's own tools sit beside services on the rail, so both entry points
    * open them the same way: the emulator asks for its disclaimer first.
+   *
+   * A tool that is open in a window is brought back rather than opened a second
+   * time: clicking the rail means "show me this", and two Lexium panels sharing
+   * one server is the failure this prevents.
    */
   const openSecretTool = useCallback(
     (tool: SecretToolId) => {
+      if (toolPopped(tool)) dockToolWindow(tool);
       if (tool === 'emulator') setEmulatorPrompt(true);
       else navigate(tool);
     },
-    [navigate],
+    [dockToolWindow, navigate, toolPopped],
   );
 
   /**
@@ -1604,50 +1626,131 @@ export default function App() {
               embedded
             />
           )}
-          renderTool={tool =>
-            tool === 'arcade' ? (
-              <Arcade isElectron={isElectron} onOpenLink={openExternalTab} onBack={() => navigate('services')} embedded />
-            ) : tool === 'forge' ? (
-              <FileForge
-                isElectron={isElectron}
-                onBack={() => navigate('services')}
-                onToast={pushToast}
-                embedded
-              />
-            ) : (
-              <Canvas
-                isElectron={isElectron}
-                onBack={() => navigate('services')}
-                onToast={pushToast}
-                onAddNote={addStickyNote}
-                embedded
-              />
-            )
-          }
+          renderTool={tool => {
+            switch (tool) {
+              case 'arcade':
+                return (
+                  <Arcade
+                    isElectron={isElectron}
+                    onOpenLink={openExternalTab}
+                    onBack={() => navigate('services')}
+                    embedded
+                  />
+                );
+              case 'forge':
+                return (
+                  <FileForge
+                    isElectron={isElectron}
+                    onBack={() => navigate('services')}
+                    onToast={pushToast}
+                    embedded
+                  />
+                );
+              case 'canvas':
+                return (
+                  <Canvas
+                    isElectron={isElectron}
+                    onBack={() => navigate('services')}
+                    onToast={pushToast}
+                    onAddNote={addStickyNote}
+                    embedded
+                  />
+                );
+              case 'lexium':
+                return (
+                  <Lexium
+                    settings={state.settings.lexium}
+                    onUpdate={updateLexium}
+                    onBack={() => navigate('services')}
+                    onToast={pushToast}
+                    embedded
+                  />
+                );
+              case 'player':
+                return (
+                  <Player
+                    onBack={() => navigate('services')}
+                    onOpenLink={openExternalTab}
+                    onToast={pushToast}
+                    embedded
+                  />
+                );
+              case 'emulator':
+                return (
+                  <Emulator
+                    settings={state.settings.emulator}
+                    lifecycle={emulatorLifecycle}
+                    onUpdate={updateEmulator}
+                    onBack={() => navigate('services')}
+                    onOpenRooms={() => navigate('rooms')}
+                    onToast={pushToast}
+                    embedded
+                  />
+                );
+              case 'disk':
+                return (
+                  <DiskPulse
+                    settings={state.settings.disk}
+                    onUpdate={updateDisk}
+                    onBack={() => navigate('services')}
+                    onToast={pushToast}
+                    embedded
+                  />
+                );
+              case 'link':
+                return (
+                  <Link
+                    settings={state.settings.link}
+                    onToggle={updateLink}
+                    onBack={() => navigate('services')}
+                    onToast={pushToast}
+                    embedded
+                  />
+                );
+              default:
+                return null;
+            }
+          }}
         />
 
         <KeepAlive
           id="emulator"
           active={route.view === 'emulator'}
-          keep={emulatorLifecycle.keepMounted}
+          // A parked pane stays mounted, which would be a second core beside the
+          // one in the window. While the tool is popped out, nothing is parked.
+          keep={emulatorLifecycle.keepMounted && !toolPopped('emulator')}
         >
-          <Emulator
-            settings={state.settings.emulator}
-            lifecycle={emulatorLifecycle}
-            onUpdate={updateEmulator}
-            onBack={() => navigate('services')}
-            onOpenRooms={() => navigate('rooms')}
-            onToast={pushToast}
-          />
+          {/* A running core is one thing: when the tool is in a window, the
+              route shows where it went rather than starting a second core. */}
+          {toolPopped('emulator') ? (
+            <PoppedToolCard name={t(SECRET_TOOL_LABELS.emulator)} onDock={() => dockToolWindow('emulator')} />
+          ) : (
+            <Emulator
+              settings={state.settings.emulator}
+              lifecycle={emulatorLifecycle}
+              onUpdate={updateEmulator}
+              onBack={() => navigate('services')}
+              onOpenRooms={() => navigate('rooms')}
+              onToast={pushToast}
+            />
+          )}
         </KeepAlive>
 
-        <KeepAlive id="disk" active={route.view === 'disk'} keep={diskLifecycle.keepMounted}>
-          <DiskPulse
-            settings={state.settings.disk}
-            onUpdate={updateDisk}
-            onBack={() => navigate('services')}
-            onToast={pushToast}
-          />
+        <KeepAlive
+          id="disk"
+          active={route.view === 'disk'}
+          keep={diskLifecycle.keepMounted && !toolPopped('disk')}
+        >
+          {toolPopped('disk') ? (
+            <PoppedToolCard name={t(SECRET_TOOL_LABELS.disk)} onDock={() => dockToolWindow('disk')} />
+          ) : (
+            <DiskPulse
+              settings={state.settings.disk}
+              onUpdate={updateDisk}
+              onBack={() => navigate('services')}
+              onToast={pushToast}
+            />
+          )}
         </KeepAlive>
 
 
@@ -1756,10 +1859,10 @@ export default function App() {
               setWindows(current => placeOnCanvas(current, viewWindowId(view), windowSpace(), at));
             }}
             onDropTool={(tool, at) => {
-              // The three tools that are a plain view open in a window. The rest
-              // own a partition, a server or an emulator core, so a second copy
-              // inside a window would be a second session wearing the first
-              // one's name: they open in their own view and say why.
+              // Every built-in opens in a window. A tool that owns a session is
+              // single-instance: its route shows a docking card while the window
+              // holds it, so the drop never results in two servers, cores or
+              // sockets wearing the same name.
               if (isEmbeddableTool(tool)) {
                 openToolInWorkspace(tool, at);
                 return;
@@ -1803,27 +1906,39 @@ export default function App() {
           // navigation instead of being destroyed with the route.
           null
         ) : route.view === 'lexium' ? (
-          <Lexium
-            settings={state.settings.lexium}
-            onUpdate={updateLexium}
-            onBack={() => navigate('services')}
-            onToast={pushToast}
-          />
+          toolPopped('lexium') ? (
+            <PoppedToolCard name={t(SECRET_TOOL_LABELS.lexium)} onDock={() => dockToolWindow('lexium')} />
+          ) : (
+            <Lexium
+              settings={state.settings.lexium}
+              onUpdate={updateLexium}
+              onBack={() => navigate('services')}
+              onToast={pushToast}
+            />
+          )
         ) : route.view === 'player' ? (
-          <Player
-            onBack={() => navigate('services')}
-            onOpenLink={openExternalTab}
-            onToast={pushToast}
-          />
+          toolPopped('player') ? (
+            <PoppedToolCard name={t(SECRET_TOOL_LABELS.player)} onDock={() => dockToolWindow('player')} />
+          ) : (
+            <Player
+              onBack={() => navigate('services')}
+              onOpenLink={openExternalTab}
+              onToast={pushToast}
+            />
+          )
         ) : route.view === 'link' ? (
           // The link keeps no renderer state: the server and every pairing live
           // in the main process, so this view can mount and unmount freely.
-          <Link
-            settings={state.settings.link}
-            onToggle={updateLink}
-            onBack={() => navigate('services')}
-            onToast={pushToast}
-          />
+          toolPopped('link') ? (
+            <PoppedToolCard name={t(SECRET_TOOL_LABELS.link)} onDock={() => dockToolWindow('link')} />
+          ) : (
+            <Link
+              settings={state.settings.link}
+              onToggle={updateLink}
+              onBack={() => navigate('services')}
+              onToast={pushToast}
+            />
+          )
         ) : route.view === 'arcade' ? (
           <Arcade
             isElectron={isElectron}
@@ -2133,5 +2248,30 @@ export default function App() {
     </div>
     </PlayerProvider>
     </I18nProvider>
+  );
+}
+
+/**
+ * The card a single-instance tool shows on its route while a window holds it.
+ *
+ * Lexium, the player, the emulator, Disk pulse and the link each own something
+ * that a second copy would duplicate — a server, an audio graph, a running core,
+ * a polling service, a listening socket. The window is the copy; the route says
+ * where it went and offers it back, the same way Rooms does.
+ */
+function PoppedToolCard({ name, onDock }: { name: string; onDock: () => void }) {
+  const t = useT();
+  return (
+    <div className="view">
+      <EmptyState
+        title={t('{name} is open in a window.', { name })}
+        body={t('It keeps running there while you use the rest of Kryvex.')}
+        action={
+          <button className="btn primary" onClick={onDock}>
+            {t('Bring it back')}
+          </button>
+        }
+      />
+    </div>
   );
 }

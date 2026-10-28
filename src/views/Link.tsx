@@ -43,11 +43,14 @@ export function Link({
   onToggle,
   onBack,
   onToast,
+  embedded = false,
 }: {
   settings: LinkSettings;
   onToggle: (enabled: boolean) => void;
   onBack: () => void;
   onToast: (message: string, tone: 'info' | 'success' | 'warning' | 'danger') => void;
+  /** Rendered inside a Workspace window: the window owns the title bar. */
+  embedded?: boolean;
 }) {
   const t = useT();
   const bridge = typeof window === 'undefined' ? undefined : window.kryvex;
@@ -116,7 +119,7 @@ export function Link({
 
   if (!bridge?.linkStatus) {
     return (
-      <section className="view link-view">
+      <section className={`view link-view ${embedded ? 'is-embedded' : ''}`}>
         <header className="view-head">
           <div>
             <p className="eyebrow mono">{t('x534 / LINK')}</p>

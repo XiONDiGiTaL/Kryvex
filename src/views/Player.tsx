@@ -13,11 +13,14 @@ export function Player({
   onBack,
   onOpenLink,
   onToast,
+  embedded = false,
 }: {
   onBack: () => void;
   /** Platform pages open in the browser module; they are not media files. */
   onOpenLink: (url: string) => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  /** Rendered inside a Workspace window: the window owns the title bar. */
+  embedded?: boolean;
 }) {
   const t = useT();
   const player = usePlayer();
@@ -148,7 +151,7 @@ export function Player({
   }
 
   return (
-    <section className="view player-view">
+    <section className={`view player-view ${embedded ? 'is-embedded' : ''}`}>
       <header className="view-head">
         <div className="tool-head">
           <ElementMark tool="player" size={62} />

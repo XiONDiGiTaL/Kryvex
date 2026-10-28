@@ -9,11 +9,10 @@ import type { SecretToolId } from '../types';
  * keeps one set of geometry, clamping, stacking and persistence rules for both
  * kinds of window rather than a second, drifting copy for tools.
  *
- * Only the tools that are a plain view are allowed here. Lexium, the player, the
- * emulator, Disk pulse and Kryvex Link each own a partition, a server or a page
- * state, and mounting a second copy inside a window would give the user two
- * things that look like one. They keep their existing routes and the pinned
- * rail; the arcade, File Forge and Canvas can be open twice without confusion.
+ * Every built-in is allowed here. The five that own a session — Lexium, the
+ * player, the emulator, Disk pulse and Kryvex Link — are single-instance
+ * instead: while one is in a window its route draws a docking card, so a second
+ * copy is never mounted behind it. See `isSingletonTool` in `secret-tools.ts`.
  */
 export const TOOL_WINDOW_PREFIX = 'tool:';
 
