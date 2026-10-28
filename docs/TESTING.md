@@ -3301,6 +3301,32 @@ All three pass on a runner as well as here: there 5 s, 9 s and 10 s against 3.5 
 3.6 s and 10.3 s here. The 29 in-house checks and the Link harness were untouched
 by this fix and passed on the runner at their first attempt.
 
+### The windowed pins on a runner
+
+Run 40777244840, the push that let every built-in tool into a Workspace window,
+failed on a check that was right about the old rule and wrong about the new one:
+
+```
+FAILED: Add service offers the three built-ins (…eight chips…)
+```
+
+`verify:inhouse` asserted the menu offered exactly three built-ins, which is what
+`EMBEDDABLE_TOOL_IDS` allowed while only the tools that draw themselves could be
+framed. The check reads all eight by name now, and follows a single-instance tool
+to its docking card, so a window that silently ran two copies would be red.
+
+Run 40777883108, on that fix, moved the failure to the shell batch by one step:
+`verify:canvas` waited for a toast saying Lexium "keeps one session", which was
+the old refusal. The tool opens a window instead, so the step drags it onto the
+canvas, reads the single copy inside the window, follows its route to the card,
+and takes **Bring it back**. It expects zero `.lexium-view` on the route rather
+than one: the window is canvas-bound, so a copy there is the failure, not a
+missing window.
+
+Run 40778782880 is **success** on every job — the Windows build and the shell,
+rooms, tools, services and browser harness batches — against 44 in-house checks
+and 35 placement checks on this machine.
+
 ### What is still not covered
 
 - **The rest of the Electron harnesses.** `package.json` also holds
