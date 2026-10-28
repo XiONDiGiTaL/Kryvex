@@ -503,8 +503,9 @@ async function main() {
   );
   await shot(client, 'verify-canvas-tool-drop');
 
-  // 7. A tool that owns one session is honest about it: no second copy in a
-  //    window, a sentence that says why, and the tool's own view.
+  // 7. A tool that owns one session opens in a window too — and stays one copy.
+  //    Its route names the window and offers it back rather than starting a
+  //    second server behind the first, which is what replaced the old refusal.
   const singleDragged = await dragPinnedToCanvas(
     client,
     '.pinned-list li[data-tool="lexium"]',
@@ -512,25 +513,50 @@ async function main() {
     'application/x-kryvex-tool',
   );
   check(singleDragged === 'dragged', `a single-session tool drags too (${singleDragged})`);
-  // Earlier steps left toasts on screen, so the note is looked for by its own
-  // sentence rather than by being the first `.toast` in the document.
   await waitFor(
     client.evaluate,
-    `[...document.querySelectorAll('.toast')].some(node => /keeps one session/i.test(node.innerText))`,
-    6000,
-    'the single-session note',
+    `Boolean(document.querySelector('.service-frame.is-tool-window[data-window="tool:lexium"] .lexium-view'))`,
+    8000,
+    'the single-session tool window',
   );
   const single = await client.evaluate(`(() => ({
-    toast: [...document.querySelectorAll('.toast')].map(node => node.innerText).join(' | '),
     window: Boolean(document.querySelector('.service-frame.is-tool-window[data-window="tool:lexium"]')),
-    hash: location.hash,
+    copies: document.querySelectorAll('.lexium-view').length,
   }))()`);
-  check(
-    /Lexium keeps one session/i.test(single.toast),
-    `the note explains the one-session rule (${single.toast})`,
+  check(single.window, 'the single-session tool opens in a window');
+  check(single.copies === 1, `only the window holds the tool (${single.copies} copies)`);
+
+  await client.evaluate(`(() => { window.location.hash = '#/lexium'; return true; })()`);
+  await waitFor(
+    client.evaluate,
+    `[...document.querySelectorAll('.empty-state')].some(card =>
+      (card.querySelector('h3')?.textContent ?? '').includes('Lexium') &&
+      [...card.querySelectorAll('button')].some(button => /bring it back/i.test(button.textContent)))`,
+    6000,
+    'the docking card on the Lexium route',
   );
-  check(!single.window, 'no second copy of a single-session tool is opened in a window');
-  check(/lexium/i.test(single.hash), `the tool opens in its own view instead (${single.hash})`);
+  // The window itself is canvas-bound, so nothing draws it on this route: what
+  // must not appear here is a *second* Lexium, and what must appear is the card.
+  check(
+    (await client.evaluate(`document.querySelectorAll('.lexium-view').length`)) === 0,
+    'the route draws no copy of the tool while a window holds it',
+  );
+  await client.evaluate(`(() => {
+    const card = [...document.querySelectorAll('.empty-state')].find(node =>
+      [...node.querySelectorAll('button')].some(button => /bring it back/i.test(button.textContent)));
+    [...card.querySelectorAll('button')].find(button => /bring it back/i.test(button.textContent)).click();
+    return true;
+  })()`);
+  await waitFor(
+    client.evaluate,
+    `!document.querySelector('.service-frame.is-tool-window[data-window="tool:lexium"]')`,
+    8000,
+    'the tool window to close',
+  );
+  check(
+    (await client.evaluate(`document.querySelectorAll('.lexium-view').length`)) === 1,
+    'bringing it back puts the tool on its route',
+  );
 
   check(
     client.exceptions.length === 0,

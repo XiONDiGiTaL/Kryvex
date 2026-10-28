@@ -166,7 +166,9 @@ something a second copy would duplicate: a server session, an audio graph, a
 running core, a polling service or a listening socket. Those are single-instance
 (`SINGLETON_TOOL_IDS` in `src/lib/secret-tools.ts`): while a window holds one,
 its route shows a card naming the window and offering **Bring it back**, and the
-tool's rail entry docks that window rather than opening a second. A tool inside a
+tool's rail entry docks that window rather than opening a second. The window
+itself is canvas-bound like any other, so the card is what its route draws while
+the tool is over the Workspace. A tool inside a
 window drops its own page header — the window already names it, and a Back button
 there would offer a route the window cannot take — and the emulator stacks its
 panel under the screen when the window is narrow.
