@@ -48,6 +48,18 @@ export const NETPLAY_ROM_CHUNK_BYTES = 12 * 1024;
 export const NETPLAY_PAD_HEARTBEAT_MS = 250;
 /** How often the host hands the guest a fresh state to restore. */
 export const NETPLAY_STATE_INTERVAL_MS = 1500;
+/**
+ * How often a guest repeats its hello while no cartridge has arrived.
+ *
+ * The two machines may open the link in either order, and a frame sent before
+ * the other side opened one is not replayed, so a single hello is not enough:
+ * the guest repeats it until the host answers. The host remembers the peer it
+ * already sent a cartridge to, so a repeat costs one small frame, not a second
+ * transfer.
+ */
+export const NETPLAY_ASK_INTERVAL_MS = 3000;
+/** Repeats before the guest stops and says what to check. */
+export const NETPLAY_ASK_ATTEMPTS = 6;
 
 function clampAxis(value: unknown): number {
   const number = typeof value === 'number' && Number.isFinite(value) ? value : 0;
@@ -185,8 +197,28 @@ export function romFitsNetplay(bytes: number): boolean {
   return bytes > 0 && bytes <= MAX_NETPLAY_ROM_BYTES;
 }
 
+/**
+ * Whether an incoming hello/ask means the cartridge has to be sent now.
+ *
+ * A guest announces itself while it waits, and both machines may open the link
+ * in either order, so the same announcement can arrive more than once. The host
+ * remembers the peer it already sent to: a repeat is a no-op, while an explicit
+ * `ask` is the guest saying the transfer never arrived and always resends. This
+ * is the difference between a working link and a second three-megabyte transfer
+ * every time the two sides' buttons meet.
+ */
+export function shouldSendCartridge(
+  kind: 'hello' | 'ask',
+  peerId: string,
+  sentTo: string | null,
+): boolean {
+  if (kind === 'ask') return true;
+  return sentTo !== peerId;
+}
+
 /** The pad that a client should show beside a seat, for the panel's own copy. */
 export function describePad(pad: NetplayPad): string {
   const held = NETPLAY_PAD_BUTTONS.filter((_, index) => (pad.buttons & (1 << index)) !== 0);
   return held.length > 0 ? held.join(' + ') : '—';
 }
+

@@ -80,6 +80,10 @@ export function buildServerArgs(input: ServerArgsInput): string[] {
     String(clampContext(input.ctxSize)),
     '--n-gpu-layers',
     String(clampGpuLayers(input.gpuLayers)),
+    // The shipped model carries its operating preamble in the GGUF's own chat
+    // template; without this flag llama.cpp cannot render that template and
+    // silently falls back to a generic one, losing the preamble.
+    '--jinja',
   ];
 }
 

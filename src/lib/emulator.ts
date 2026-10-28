@@ -1,13 +1,40 @@
 import type { EmulatorSystem } from '../types';
 
+/** Which engine host runs a system. */
+export type EmulatorEngine = 'emulatorjs' | 'flycast';
+
+/**
+ * The engine a system runs on, and whether it needs the optional release.
+ *
+ * The cartridge engine is the one that ships: its cores are fetched by the
+ * user's browser from its own CDN. The second engine is a pinned WebAssembly
+ * build the main process downloads on request; while it is switched off, its
+ * systems are not offered at all, so the default install behaves as it always
+ * has. See `src/lib/flycast.ts` and docs/EMULATOR_ENGINES.md.
+ */
+
+/** Options for the helpers below: which engines the interface has enabled. */
+export interface EngineOptions {
+  /** The second engine is installed and switched on. */
+  flycast?: boolean;
+}
+
 export interface RomSystemDef {
   id: EmulatorSystem;
   label: string;
   /** EmulatorJS core name. */
   core: string;
+  /** Defaults to the cartridge engine. */
+  engine?: EmulatorEngine;
   extensions: string[];
   /** Shown when a core is experimental or not a perfect match. */
   note?: string;
+  /**
+   * A disc system, measured against `MAX_DISC_BYTES` rather than the cartridge
+   * cap: a CD image is an order of magnitude larger than any cartridge and the
+   * slot has to accept one before the core can open it.
+   */
+  disc?: boolean;
 }
 
 /**
@@ -52,6 +79,41 @@ export const ROM_SYSTEMS: ReadonlyArray<RomSystemDef> = [
   { id: 'ngp', label: 'Neo Geo Pocket', core: 'ngp', extensions: ['ngp'] },
   { id: 'ngpc', label: 'Neo Geo Pocket Color', core: 'ngp', extensions: ['ngc', 'ngp'] },
   { id: 'vb', label: 'Virtual Boy', core: 'vb', extensions: ['vb', 'vboy'] },
+  {
+    id: 'n64',
+    label: 'Nintendo 64',
+    // EmulatorJS maps `n64` to mupen64plus_next (parallel_n64 is the fallback).
+    // A .n64, a .v64 and a .z64 are the same dump with a different byte order,
+    // and the core reads all three, so the extension never has to be guessed.
+    core: 'n64',
+    extensions: ['n64', 'v64', 'z64'],
+    note: 'The N64 core takes a few seconds longer to start and needs more memory than the 8-bit cores.',
+  },
+  {
+    id: 'dreamcast',
+    label: 'Dreamcast',
+    // The cartridge engine publishes no Dreamcast core, so this system rides on
+    // the pinned Flycast build and only appears while that engine is switched
+    // on. The core's own registry lists cdi/gdi/chd/cue/iso/elf/bin/lst/zip/7z;
+    // the slot takes the self-contained ones plus a zipped set, because a bare
+    // .gdi or .cue is a manifest and carries no picture data.
+    core: 'flycast',
+    engine: 'flycast',
+    extensions: ['cdi', 'chd', 'iso', 'zip'],
+    disc: true,
+    note: 'Experimental: a second engine, downloaded separately. One file per slot: use a .cdi or .chd, or a .zip of a full set. The Dreamcast BIOS is required.',
+  },
+  {
+    id: 'psx',
+    label: 'PlayStation',
+    // EmulatorJS maps `psx` to pcsx_rearmed or mednafen_psx_hw; both accept the
+    // same containers. Only the self-contained ones are offered, because the
+    // slot takes one file: a bare `.cue` is a manifest with no picture data.
+    core: 'psx',
+    extensions: ['chd', 'pbp'],
+    disc: true,
+    note: 'One disc image per slot: pack a .cue and .bin set into a .chd or a .pbp. Most titles need a PlayStation BIOS.',
+  },
 ];
 
 export const ROM_EXTENSIONS = Array.from(
@@ -59,7 +121,29 @@ export const ROM_EXTENSIONS = Array.from(
 ).sort();
 
 export const ROM_ACCEPT = ROM_EXTENSIONS.map(extension => `.${extension}`).join(',');
+
+/** The systems an install offers: the optional engine's are hidden until on. */
+export function offeredSystems(options?: EngineOptions): RomSystemDef[] {
+  return ROM_SYSTEMS.filter(system => system.engine !== 'flycast' || options?.flycast === true);
+}
+
+/** The file picker's accept list, narrowed to the engines in use. */
+export function romAccept(options?: EngineOptions): string {
+  return Array.from(new Set(offeredSystems(options).flatMap(system => system.extensions)))
+    .sort()
+    .map(extension => `.${extension}`)
+    .join(',');
+}
+
+export function engineFor(system: EmulatorSystem): EmulatorEngine {
+  return ROM_SYSTEMS.find(item => item.id === system)?.engine ?? 'emulatorjs';
+}
 export const MAX_ROM_BYTES = 64 * 1024 * 1024;
+/**
+ * A disc image, not a cartridge: a CD holds 700 MB and a `.chd` or `.pbp` is
+ * smaller than the set it was built from, so this leaves room for either.
+ */
+export const MAX_DISC_BYTES = 768 * 1024 * 1024;
 
 export function isEmulatorSystem(value: unknown): value is EmulatorSystem {
   return typeof value === 'string' && ROM_SYSTEMS.some(system => system.id === value);
@@ -82,18 +166,25 @@ export function extensionOf(name: string): string {
 /**
  * Every system whose core can open this file. A shared extension returns more
  * than one candidate; the emulator asks which console before starting a core.
+ *
+ * `.chd` is one of those: it is a PlayStation image and a Dreamcast one, so
+ * once the second engine is on the chooser asks which console the file belongs
+ * to instead of guessing from four letters.
  */
-export function systemsForFile(name: string): EmulatorSystem[] {
+export function systemsForFile(name: string, options?: EngineOptions): EmulatorSystem[] {
   const extension = extensionOf(name);
-  if (SHARED_EXTENSIONS[extension]) return [...SHARED_EXTENSIONS[extension]];
-  return ROM_SYSTEMS.filter(system => system.extensions.includes(extension)).map(
-    system => system.id,
-  );
+  if (SHARED_EXTENSIONS[extension]) {
+    const offered = new Set(offeredSystems(options).map(system => system.id));
+    return SHARED_EXTENSIONS[extension].filter(system => offered.has(system));
+  }
+  return offeredSystems(options)
+    .filter(system => system.extensions.includes(extension))
+    .map(system => system.id);
 }
 
 /** A unique extension gives one definite system; shared formats give null. */
-export function detectRomSystem(name: string): EmulatorSystem | null {
-  const systems = systemsForFile(name);
+export function detectRomSystem(name: string, options?: EngineOptions): EmulatorSystem | null {
+  const systems = systemsForFile(name, options);
   return systems.length === 1 ? systems[0]! : null;
 }
 
@@ -101,11 +192,19 @@ export function coreFor(system: EmulatorSystem): string {
   return ROM_SYSTEMS.find(item => item.id === system)?.core ?? 'nes';
 }
 
-export function romValidation(name: string, bytes: number): string | null {
-  if (systemsForFile(name).length === 0) {
+export function isDiscSystem(system: EmulatorSystem): boolean {
+  return ROM_SYSTEMS.find(item => item.id === system)?.disc === true;
+}
+
+export function romValidation(name: string, bytes: number, options?: EngineOptions): string | null {
+  const systems = systemsForFile(name, options);
+  if (systems.length === 0) {
     return 'That file is not a supported ROM. Use one of the cartridge formats listed beside the slot.';
   }
   if (bytes <= 0) return 'That ROM is empty.';
+  if (systems.some(isDiscSystem)) {
+    return bytes > MAX_DISC_BYTES ? 'That disc image is larger than 768 MB.' : null;
+  }
   if (bytes > MAX_ROM_BYTES) return 'That ROM is larger than 64 MB.';
   return null;
 }
@@ -201,7 +300,8 @@ function hashName(name: string): number {
  * script can never reach `window.kryvex` in the shell. The ROM arrives as an
  * ArrayBuffer over postMessage and becomes a blob URL inside that opaque
  * origin. EmulatorJS is fetched from its official CDN, which is the only
- * network call this feature makes.
+ * network call this feature makes: a second engine's core payload is packed by
+ * the shell and handed in as bytes, never served from a file on disk.
  */
 export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stable/data/'): string {
   return `<!doctype html>
@@ -341,6 +441,21 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
 
     var romUrl = URL.createObjectURL(new Blob([message.data]));
     window.EJS_player = '#game';
+    // A second engine is a normal core to the frontend: it asks its data path
+    // for a per-core zip and unzips it. EJS_paths overrides that download by
+    // file name, so the Flycast payload arrives as a blob the shell packed in
+    // memory instead of a file this app serves. The WebGL2 setting is what
+    // makes the frontend ask for the plain build rather than a legacy one this
+    // release does not publish; see src/lib/flycast.ts.
+    if (message.coreZip) {
+      var coreZipUrl = URL.createObjectURL(new Blob([message.coreZip], { type: 'application/zip' }));
+      window.EJS_paths = {
+        'flycast-wasm.data': coreZipUrl,
+        // Kept as a safety net: if a stored setting disables WebGL2, the
+        // frontend asks for this name, and the same payload answers it.
+        'flycast-legacy-wasm.data': coreZipUrl,
+      };
+    }
     window.EJS_core = message.core || 'nes';
     window.EJS_gameUrl = romUrl;
     window.EJS_gameName = message.name || 'ROM';
@@ -348,12 +463,19 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
     window.EJS_pathtodata = DATA_PATH;
     window.EJS_startOnLoaded = true;
     window.EJS_settingsLanguage = 'en-US';
-    window.EJS_defaultOptions = { 'save-state-location': 'browser' };
+    window.EJS_defaultOptions = message.coreZip
+      ? { 'save-state-location': 'browser', webgl2Enabled: 'enabled' }
+      : { 'save-state-location': 'browser' };
     if (message.bios) {
       window.EJS_biosUrl = URL.createObjectURL(new Blob([message.bios]));
     }
-    // EmulatorJS does not support netplay yet (upstream FAQ), so no server
-    // option is sent. Two controllers still work on this one screen.
+    // The engine's own netplay is experimental and switched off by default: its
+    // bundle gates the UI on EJS_DEBUG_XX && EJS_EXPERIMENTAL_NETPLAY and relays
+    // through https://netplay.emulatorjs.org. Kryvex does not enable it — the
+    // room already carries a link, and a third-party relay would move game data
+    // off the peer-to-peer path this service promises. That is also why the
+    // engine draws no netplay indicator here; Kryvex draws its own over the
+    // screen. See docs/EMULATOR_ENGINES.md before changing this.
     window.EJS_onGameStart = function () {
       post('kryvex-emulator-loaded', {});
     };
@@ -655,6 +777,27 @@ export function emulatorHostDocument(dataPath = 'https://cdn.emulatorjs.org/stab
 </script>
 </body>
 </html>`;
+}
+
+/** The frame message that starts a core, shared by both engines. */
+export function emulatorStartMessage(input: {
+  name: string;
+  data: ArrayBuffer;
+  system: EmulatorSystem;
+  gamepad: boolean;
+  bios: ArrayBuffer | null;
+  coreZip?: Uint8Array;
+}): Record<string, unknown> {
+  return {
+    type: 'kryvex-rom',
+    name: input.name,
+    data: input.data,
+    core: coreFor(input.system),
+    gamepad: input.gamepad,
+    bios: input.bios,
+    gameId: emulatorGameId(input.name),
+    coreZip: input.coreZip ?? null,
+  };
 }
 
 export function emulatorGameId(name: string): number {

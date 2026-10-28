@@ -522,6 +522,27 @@ const ADDED = [
   '{size} selected.',
   'Capture this area',
   'Record this area',
+  // Second engine (Dreamcast via Flycast).
+  'SECOND ENGINE',
+  'Dreamcast (experimental)',
+  'Runs on its own engine, off by default.',
+  'A pinned WebAssembly build of Flycast, fetched from its own release on first use. It is GPLv2 and is never bundled with Kryvex.',
+  'Ready · {version}',
+  'Downloading the engine… {percent}%',
+  'The engine could not be installed.',
+  'Not installed',
+  'Remove the engine',
+  'Download the engine ({size})',
+  'Stop the download',
+  'The second engine runs in the desktop app only.',
+  'Emulation by Flycast (GPLv2), loaded from its own release and not bundled with Kryvex.',
+  'Starting the second engine…',
+  'The core is read from this machine and packed for the screen. Nothing is uploaded.',
+  'Install the engine before starting a Dreamcast game.',
+  'The engine is ready. Load a Dreamcast image with its BIOS.',
+  'The engine was removed.',
+  'Dreamcast runs on the second engine. Naomi arcade boards are still not offered: a set is several files and the slot takes one.',
+  'Link play keeps the two machines together by sending save states, and a Dreamcast state is too large for that. Load the same image on both machines instead.',
 ];
 
 describe('translation coverage', () => {

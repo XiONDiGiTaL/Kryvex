@@ -21,6 +21,7 @@ skipped, weakened or excluded to make the suite pass.
 | `pnpm verify:identity` | exit 0 | A guest page saw `navigator.userAgentData` with a Google Chrome brand, matching platform, `getHighEntropyValues` and `fullVersionList`; `Sec-CH-UA`, `Sec-CH-UA-Mobile` and `Sec-CH-UA-Platform` arrived on the wire with no Electron token; farbling was active (2 pixels perturbed) and its wrappers still reported native code through `Function.prototype.toString` |
 | `pnpm verify:shield-filters` | exit 0 | The real engine downloaded 122,097 filters, compiled a custom list from the cached copy without the network, held a scriptlet back while trust was off, hid a custom cosmetic element in a live `<webview>`, ran a custom scriptlet in the page's main world, blocked a custom network rule before it reached the test server, scoped the YouTube bundle to youtube.com, and rebuilt after clearing the editor |
 | `pnpm verify:model` | exit 0 | A placeholder `.gguf` plus `scripts/fake-llama-server.mjs`: a non-GGUF path was refused, the runtime started on loopback, `/v1/models` reported the file name, a streamed chat reply arrived, and stop killed the process |
+| `pnpm verify:netplay` | exit 0 | A fake `retroarch.exe` (a copy of `cmd.exe`) and a `cores/` folder: an empty profile found nothing, a differently named executable was refused, the chosen copy reported its Flycast and FCEUmm cores, a console with no core was refused with the candidate file names, an undialable address was refused, the cartridge was written byte-for-byte under `roms/`, the process was spawned and its exit and stderr captured, the join address was parsed, and stop returned the sidecar to idle |
 | `pnpm verify:updater` | exit 0 | A loopback GitHub-shaped feed: an installed-mode build selected the version-matched Setup asset, a wrong SHA-256 was rejected with no stored file, a correct SHA-256 produced `ready` with matching bytes, an unpackaged build refused to launch the installer, a source checkout selected no binary and refused to download, and a 404 was reported as `no-release` |
 | `pnpm exec electron-builder --dir` | exit 0 | Unpacked Windows app rebuilt from this tree; the packaged `Kryvex.exe` passed `verify:location-ui` with `KRYVEX_APP` |
 | `pnpm run package:win` | exit 0 | Setup and Portable EXEs from the 0.5.0 tree; both report version `0.5.0` and `NotSigned` |
@@ -242,6 +243,12 @@ What the unit suite covers:
 - The NSIS wizard was not clicked through manually; installation was verified
   with `/S /D=<custom folder>` instead. No code-signed installer exists and no
   CI workflow has run.
+- **Netplay never ran a session.** `pnpm verify:netplay` proves the sidecar's
+  own half — locating RetroArch, discovering cores, writing the cartridge,
+  spawning and stopping — against a fake executable, and the unit tests cover
+  the flags and refusals. No RetroArch is installed on this machine, so no
+  `-H`/`-C` session, no frame rate and no input latency has been observed. The
+  manual two-machine plan is in [NETPLAY.md](NETPLAY.md).
 - macOS and Linux were not exercised.
 
 ## Reproduce

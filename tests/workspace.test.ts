@@ -221,6 +221,62 @@ describe('workspace windows', () => {
   });
 });
 
+describe('carrying a window between the canvas and the app', () => {
+  // The canvas is drawn to the right of the sidebar and below the header, so its
+  // box is offset as well as sized; both are needed to translate a drag.
+  const placed: WindowSpace = { viewport, canvas, canvasBox: { left: 180, top: 80 } };
+
+  it('parks a float that is dragged onto the board', () => {
+    const floated = floatWindow({}, 'view:rooms', placed);
+    expect(floated['view:rooms']?.kind).toBe('detached');
+    const rect = floated['view:rooms']!.rect;
+    // Aim the title bar at the middle of the canvas and step there.
+    const grabX = rect.x + Math.min(140, Math.max(30, rect.width / 2));
+    const grabY = rect.y + 12;
+    const goal = { x: 180 + canvas.width / 2, y: 80 + canvas.height / 2 };
+    const parked = moveWindow(
+      floated,
+      'view:rooms',
+      goal.x - grabX,
+      goal.y - grabY,
+      placed,
+    );
+    expect(parked['view:rooms']?.kind).toBe('canvas');
+    const box = parked['view:rooms']!.rect;
+    // Contained by the canvas, and roughly where the drag was released.
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(canvas.width);
+    expect(box.y + box.height).toBeLessThanOrEqual(canvas.height);
+    // The same box, in the canvas's own pixels: the drag is not a jump to a
+    // default slot, it stays where the title bar was released (or against the
+    // edge the clamp allows, for a window wider than the space left of it).
+    expect(box.width).toBe(rect.width);
+    expect(box.y).toBe(Math.max(0, Math.min(rect.y + goal.y - grabY - 80, canvas.height - box.height)));
+  });
+
+  it('hands a canvas window back to the viewport when it is pushed off', () => {
+    const start = placeOnCanvas({}, 'view:rooms', placed, { x: 100, y: 100 });
+    expect(start['view:rooms']?.kind).toBe('canvas');
+    // A nudge stays on the board; the margin is what makes the gesture deliberate.
+    expect(moveWindow(start, 'view:rooms', 4, 4, placed)['view:rooms']?.kind).toBe('canvas');
+    const released = moveWindow(start, 'view:rooms', -400, 0, placed);
+    expect(released['view:rooms']?.kind).toBe('detached');
+    const box = released['view:rooms']!.rect;
+    // Remembered in viewport pixels now, not canvas ones.
+    expect(box.x).toBeLessThan(180);
+    expect(box.y).toBeGreaterThan(100);
+  });
+
+  it('never leaves a surface the window was not dragged towards', () => {
+    const floated = floatWindow({}, 'a', { viewport, canvas: null });
+    // No canvas on screen means no boundary to cross: the float only moves.
+    const moved = moveWindow(floated, 'a', -20, 0, { viewport, canvas: null });
+    expect(moved.a?.kind).toBe('detached');
+    expect(moved.a?.rect.x).toBe(floated.a!.rect.x - 20);
+  });
+});
+
 describe('window motion settings', () => {
   it('defaults to the subtle motion a fresh profile starts with', () => {
     expect(DEFAULT_WORKSPACE).toEqual({ motion: 'subtle', motionSpeed: 1 });

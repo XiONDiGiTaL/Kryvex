@@ -169,10 +169,14 @@ function savedServices(statePath) {
  * A drag with a real `DataTransfer`, the way a pinned row starts one. Chromium
  * lets a test build the transfer, which is the only way to reach the drop
  * handler's MIME read: the row publishes the payload, the canvas reads it.
+ *
+ * The row is named by its own selector and the payload by its MIME type, so the
+ * same gesture proves both kinds of pin: a service row publishes
+ * `x-kryvex-service`, a built-in tool row publishes `x-kryvex-tool`.
  */
-function dragPinnedToCanvas(client, serviceId, target) {
+function dragPinnedToCanvas(client, selector, target, type = 'application/x-kryvex-service') {
   return client.evaluate(`(() => {
-    const row = document.querySelector('.pinned-list li[data-service="${serviceId}"]');
+    const row = document.querySelector(${JSON.stringify(selector)});
     const canvas = document.querySelector('.workspace-canvas');
     if (!row || !canvas) return 'missing';
     const box = canvas.getBoundingClientRect();
@@ -188,7 +192,7 @@ function dragPinnedToCanvas(client, serviceId, target) {
     canvas.dispatchEvent(new DragEvent('dragover', { ...init, dataTransfer: transfer }));
     canvas.dispatchEvent(new DragEvent('drop', { ...init, dataTransfer: transfer }));
     row.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: transfer }));
-    return transfer.getData('application/x-kryvex-service') ? 'dragged' : 'no payload';
+    return transfer.getData(${JSON.stringify(type)}) ? 'dragged' : 'no payload';
   })()`);
 }
 
@@ -277,7 +281,14 @@ async function main() {
       history: [],
       recent: [],
       browser: { tabs: [], activeTabId: null },
-      settings: { themeGallerySeen: true, startView: 'workspace' },
+      settings: {
+        themeGallerySeen: true,
+        startView: 'workspace',
+        // The rail only lists a tool pin once the tools are on; Canvas is the
+        // one dragged in the last check.
+        secretServices: true,
+        pinnedTools: ['canvas', 'lexium'],
+      },
     }),
   );
 
@@ -295,7 +306,11 @@ async function main() {
   })()`);
   check(empty.empty, 'the canvas starts empty');
   check(/Add service/.test(empty.text), 'the empty canvas offers Add service');
-  const dragged = await dragPinnedToCanvas(client, 's-tone', { x: 220, y: 160 });
+  const dragged = await dragPinnedToCanvas(
+    client,
+    '.pinned-list li[data-service="s-tone"]',
+    { x: 220, y: 160 },
+  );
   check(dragged === 'dragged', `the pinned row publishes a drag payload (${dragged})`);
 
   // 2. A service already in the sidebar opens as a window on the canvas.
@@ -429,6 +444,93 @@ async function main() {
     new Set(copies.map(service => service.id)).size === copies.length,
     'every instance has its own id, so each keeps its own partition',
   );
+
+  // 6. A pinned built-in tool drags in the same way, and opens its own window.
+  //    It rides a different MIME type, so this also proves the rail and the
+  //    canvas tell the two gestures apart.
+  const serviceWindowsBefore = await client.evaluate(
+    `document.querySelectorAll('.service-frame.is-window[data-service]').length`,
+  );
+  const toolDragged = await dragPinnedToCanvas(
+    client,
+    '.pinned-list li[data-tool="canvas"]',
+    { x: 300, y: 220 },
+    'application/x-kryvex-tool',
+  );
+  check(toolDragged === 'dragged', `the tool pin publishes a drag payload (${toolDragged})`);
+  await waitFor(
+    client.evaluate,
+    `Boolean(document.querySelector('.service-frame.is-tool-window[data-window="tool:canvas"]'))`,
+    8000,
+    'the tool window',
+  );
+  // The window arrives with its enter animation, which starts it a few pixels
+  // below its place. Measuring before that settles would read the animation
+  // rather than the placement, so the box is read once the frame has landed.
+  await waitFor(
+    client.evaluate,
+    `!document.querySelector('.service-frame.is-tool-window[data-window="tool:canvas"]').classList.contains('is-opening')`,
+    4000,
+    'the tool window to settle',
+  );
+  const toolWindow = await client.evaluate(`(() => {
+    const frame = document.querySelector('.service-frame.is-tool-window[data-window="tool:canvas"]');
+    const box = frame.getBoundingClientRect();
+    const canvas = document.querySelector('.workspace-canvas').getBoundingClientRect();
+    const stage = frame.parentElement.getBoundingClientRect();
+    return {
+      stage: [stage.left, stage.top, stage.right, stage.bottom].map(Math.round),
+      inline: [frame.style.left, frame.style.top, frame.style.width, frame.style.height],
+      name: (frame.querySelector('.service-title-line h1') || {}).textContent || '',
+      inside: box.left >= canvas.left - 1 && box.top >= canvas.top - 1
+        && box.right <= canvas.right + 1 && box.bottom <= canvas.bottom + 1,
+      box: [box.left, box.top, box.right, box.bottom].map(Math.round),
+      canvasBox: [canvas.left, canvas.top, canvas.right, canvas.bottom].map(Math.round),
+      sheet: Boolean(frame.querySelector('canvas.canvas-sheet')),
+      serviceWindows: document.querySelectorAll('.service-frame.is-window[data-service]').length,
+    };
+  })()`);
+  check(/Canvas/.test(toolWindow.name), `the dropped tool names itself in its title bar (${toolWindow.name})`);
+  check(
+    toolWindow.inside,
+    `the dropped tool window sits inside the canvas (${toolWindow.box} in ${toolWindow.canvasBox})`,
+  );
+  check(toolWindow.sheet, 'the dropped tool window holds the tool itself');
+  check(savedServices(statePath).length === 3, 'dropping a tool adds nothing to the service list');
+  check(
+    toolWindow.serviceWindows === serviceWindowsBefore,
+    `the service windows are untouched by the tool drop (${serviceWindowsBefore} → ${toolWindow.serviceWindows})`,
+  );
+  await shot(client, 'verify-canvas-tool-drop');
+
+  // 7. A tool that owns one session is honest about it: no second copy in a
+  //    window, a sentence that says why, and the tool's own view.
+  const singleDragged = await dragPinnedToCanvas(
+    client,
+    '.pinned-list li[data-tool="lexium"]',
+    { x: 400, y: 260 },
+    'application/x-kryvex-tool',
+  );
+  check(singleDragged === 'dragged', `a single-session tool drags too (${singleDragged})`);
+  // Earlier steps left toasts on screen, so the note is looked for by its own
+  // sentence rather than by being the first `.toast` in the document.
+  await waitFor(
+    client.evaluate,
+    `[...document.querySelectorAll('.toast')].some(node => /keeps one session/i.test(node.innerText))`,
+    6000,
+    'the single-session note',
+  );
+  const single = await client.evaluate(`(() => ({
+    toast: [...document.querySelectorAll('.toast')].map(node => node.innerText).join(' | '),
+    window: Boolean(document.querySelector('.service-frame.is-tool-window[data-window="tool:lexium"]')),
+    hash: location.hash,
+  }))()`);
+  check(
+    /Lexium keeps one session/i.test(single.toast),
+    `the note explains the one-session rule (${single.toast})`,
+  );
+  check(!single.window, 'no second copy of a single-session tool is opened in a window');
+  check(/lexium/i.test(single.hash), `the tool opens in its own view instead (${single.hash})`);
 
   check(
     client.exceptions.length === 0,

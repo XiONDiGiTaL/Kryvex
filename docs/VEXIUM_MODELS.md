@@ -593,3 +593,91 @@ path; nothing re-downloads on upgrade.
 The refusal, the invented city pairs and the unanswered math are gone. The
 model is still small: it is a 3B Q4 on CPU, so it is a helper for short answers,
 not a reasoning engine, and the German quality caveat from §15 still applies.
+
+## 17. Vexium-1 12B: the flagship core (2026-10-28)
+
+Vexium Core 3B answers short questions well on a CPU, and that stays the default.
+It is not a reasoning engine, and on a machine with a discrete GPU it leaves most
+of that hardware unused. **Vexium-1 12B** is the answer to that: the same contract
+and the same local-only design, on weights that can hold a longer thought.
+
+### What it actually is
+
+| Field | Value |
+| --- | --- |
+| Product | Vexium-1 (`vexium-1-12b`), shown as **Vexium-1 12B** |
+| Weights | `mistralai/Mistral-Nemo-Instruct-2407`, Q4_K_M, **not retrained, merged or fine-tuned** |
+| Publisher | Mistral AI (Apache-2.0), packaged by XiONDiGiTaL |
+| Repository | `XiONDiGiTaL/Vexium-1` on Hugging Face |
+| Bytes | 7,477,209,792 (6.96 GiB) |
+| SHA-256 | `26b5ad94d602c462cfdbe9f005cbdab8e66d60718d1054afc7060d42065b6ecb` |
+| Memory | ≈8.4–10.2 GB estimated at 4,096-token context (fits a 20 GB card with room for the KV cache) |
+| Context | 128k native; Kryvex runs it at 4,096 |
+
+The only changes are three metadata keys: `general.name` (`Vexium-1 12B`),
+`general.description`, and `tokenizer.chat_template`. The model card on Hugging
+Face states this in the first paragraph, because a packaging must not read like a
+fine-tune.
+
+### Why not train something
+
+An earlier plan for this work was a fine-tune trained on Kryvex's own
+conversations. It was dropped for a concrete reason: the failure the user actually
+hit was not a knowledge gap, it was a *behaviour* gap — the 3B refused a Turkish
+voice clip, guessed at facts it could not know, and answered in the wrong
+language. None of that needs new weights. It needs an operating contract and a
+tool layer, both of which are inspectable, cheap to change and can be tested
+without a GPU. A fine-tune would have hidden those rules inside 12B parameters and
+made every correction a retraining run.
+
+So the intelligence lives in three places instead:
+
+1. **The chat template** (in the GGUF) states the contract for any client.
+2. **Kryvex's own system turn** (`assistant-rules.ts`) adds the product facts and
+   the verified-facts block.
+3. **The tool layer** (`vexium-planner.ts`, `vexium-tools.ts`) decides when a
+   lookup is needed, runs it in the main process, and supplies the results.
+
+### The `--jinja` finding
+
+The first build of this file behaved correctly through `llama-cli` but Kryvex's
+`llama-server` ignored the template: without `--jinja`, llama.cpp cannot render a
+template that uses `set`, filters or conditionals, so it silently substituted a
+generic one and every rule above disappeared. `buildServerArgs()` now passes
+`--jinja` on every start, and `GET /props` on the running server returns the
+Vexium template (measured: 5,109 characters, preamble present), which is how this
+was verified rather than assumed.
+
+### Measured on this machine (2026-10-28)
+
+`llama-server` (Vulkan build), RX 7900 XT 20 GB, `--n-gpu-layers 99`, 4,096-token
+context, `--jinja`, `temperature 0.3`, `top_p 0.9`, through this exact template:
+
+| Prompt | Reply | Time |
+| --- | --- | --- |
+| `Bitcoin'in bugünkü fiyatı ne kadar?`, no sources | asks in Turkish to look the current price up; states **no** figure | 0.5 s |
+| Same, one supplied source stating 67,412 USD | `Bitcoin'in bugünkü fiyatı 67.412 ABD Dolarıdır.` | 0.3 s |
+| `Türkiye'nin en kalabalık şehri hangisi ve neden?` | `İstanbul. Çünkü en büyük nüfusa sahiptir.` | 0.2 s |
+| `Merhaba, kendini bir cümleyle tanıt.` | Turkish introduction naming Kryvex | 0.5 s |
+| `What is the capital of Turkey?` | `Ankara` | 0.1 s |
+
+Generation speed measured at ~73 tokens/s at 4k context. **These are four single
+checks, not a benchmark**, and no claim is made beyond them.
+
+The first two rows are the point of the exercise. The earlier template produced
+`I would look up the current price of Bitcoin.` for a Turkish question — English,
+because the instruction to answer in the user's language was weaker than the
+English exercise of looking something up. The current template names the language
+rule first, forbids stating fast-moving figures from memory, and reserves
+bracketed citations for sources that were actually supplied.
+
+### What it does not do
+
+- It does not browse by itself. When Kryvex supplies no sources, it says so and
+  names what it would check; the search runs in Kryvex, not in the model.
+- It is not fine-tuned on Kryvex's data and knows nothing about this codebase
+  beyond what a prompt supplies.
+- It is not benchmarked. Turkish quality here was checked on four prompts.
+- On a machine without a discrete GPU it will run mostly on system RAM and be
+  slow; Vexium Core 3B remains the default for that reason, and nothing selects
+  the 12B unless the user downloads it.

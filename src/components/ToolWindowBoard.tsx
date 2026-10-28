@@ -283,6 +283,9 @@ function ToolFrame({
         } as React.CSSProperties
       }
       data-motion={motion.motion}
+      // A service frame is addressed by `data-service`; a built-in window has no
+      // service record, so it carries the map id the drop placed it under.
+      data-window={id}
       onPointerDown={() => {
         if (!minimized) onRaise(id);
       }}

@@ -18,6 +18,13 @@ export const STARTER_MODEL_ID = 'vexium-core-3b';
 export const LIGHT_MODEL_ID = 'qwen2.5-1.5b-instruct';
 
 /**
+ * The flagship core: the biggest model the panel offers, for machines with a
+ * discrete GPU. It is not installed by default and nothing selects it without
+ * the user choosing it.
+ */
+export const FLAGSHIP_MODEL_ID = 'vexium-1-12b';
+
+/**
  * The first-party name for the supported local stack. It is deliberately not
  * the base model's own name: the weights are Qwen's, and the panel keeps that
  * attribution beside the product name.
@@ -76,6 +83,36 @@ export const MODEL_CATALOGUE: CatalogueEntry[] = [
     memory: {
       minBytes: 1_500_000_000,
       maxBytes: 1_700_000_000,
+      contextTokens: 4096,
+    },
+    commercialUse: true,
+  },
+  {
+    // Vexium-1 is Mistral-Nemo-Instruct-2407 (Apache-2.0) with Kryvex's own
+    // metadata and chat template. The weights were not retrained, merged or
+    // fine-tuned, and the model card says so; the size and hash here were read
+    // from the uploaded artifact, not from the base model's repository.
+    id: FLAGSHIP_MODEL_ID,
+    name: 'Vexium-1 12B',
+    productName: 'Vexium-1',
+    publisher: 'Mistral AI (base weights) · packaged by XiONDiGiTaL',
+    repository: 'XiONDiGiTaL/Vexium-1',
+    revision: '87c83243356e47dac7cfe5c06b9b2f34126ce500',
+    filename: 'vexium-1-12b-q4_k_m.gguf',
+    bytes: 7_477_209_792,
+    sha256: '26b5ad94d602c462cfdbe9f005cbdab8e66d60718d1054afc7060d42065b6ecb',
+    licence: 'Apache-2.0',
+    licenceUrl: 'https://huggingface.co/XiONDiGiTaL/Vexium-1/blob/main/NOTICE',
+    quantisation: 'Q4_K_M',
+    architecture: 'llama',
+    // 128k native; the estimate below assumes the 4k Kryvex runs it at.
+    contextLength: 128_000,
+    languages: ['en', 'tr', 'es', 'de', 'fr'],
+    capabilities: ['conversation', 'explanations', 'summaries', 'rewriting', 'web-tools'],
+    limitations: ['arithmetic', 'current-facts'],
+    memory: {
+      minBytes: 8_400_000_000,
+      maxBytes: 10_200_000_000,
       contextTokens: 4096,
     },
     commercialUse: true,

@@ -429,6 +429,72 @@ async function main() {
       `the pop-out drags by its title bar (${Math.round(dragged.left - dragged.fromLeft)}, ${Math.round(dragged.top - dragged.fromTop)})`,
     );
 
+    /* ---------------------------- the pop-out is parked on the board --- */
+    // A popped-out room used to be a float for good: it hovered over every view
+    // and could not be put beside the other Workspace windows. One drag across
+    // the boundary is the whole gesture, in both directions.
+    await go(client, 'workspace', '.workspace-canvas');
+    await waitFor(
+      client.evaluate,
+      `Boolean(document.querySelector('.workspace-canvas')) && document.querySelector('.workspace-canvas').getBoundingClientRect().width > 200`,
+      8000,
+      'a measured canvas',
+    );
+    // The board is only positioned from the shell's own measurement, so an
+    // inline left is the proof that the drag has a canvas to be translated
+    // into. Without this wait the drag races the effect and lands untouched.
+    await waitFor(
+      client.evaluate,
+      `(() => { const stage = document.querySelector('.is-tool-stage'); return Boolean(stage && stage.style.left); })()`,
+      8000,
+      'the shell to measure the canvas',
+    );
+    const dragTo = async (x, y) =>
+      client.evaluate(`(async () => {
+        const node = document.querySelector('.service-frame.is-tool-window');
+        const bar = node.querySelector('.service-toolbar');
+        const point = (px, py) => ({ clientX: Math.round(px), clientY: Math.round(py), pointerId: 11,
+          pointerType: 'mouse', buttons: 1, bubbles: true, isPrimary: true, cancelable: true });
+        const box = bar.getBoundingClientRect();
+        bar.dispatchEvent(new PointerEvent('pointerdown', point(box.left + 120, box.top + 12)));
+        bar.dispatchEvent(new PointerEvent('pointermove', point(${x}, ${y})));
+        await new Promise(resolve => setTimeout(resolve, 40));
+        bar.dispatchEvent(new PointerEvent('pointerup', point(${x}, ${y})));
+        await new Promise(resolve => requestAnimationFrame(() => resolve()));
+        const after = node.getBoundingClientRect();
+        const canvas = document.querySelector('.workspace-canvas').getBoundingClientRect();
+        return {
+          className: node.className,
+          position: window.getComputedStyle(node).position,
+          inside: after.left >= canvas.left - 1 && after.top >= canvas.top - 1 &&
+            after.right <= canvas.right + 1 && after.bottom <= canvas.bottom + 1,
+          holdsRooms: Boolean(node.querySelector('.rooms-view')),
+          canvas: { left: canvas.left, top: canvas.top, width: canvas.width, height: canvas.height },
+          rect: { left: after.left, top: after.top, width: after.width, height: after.height },
+        };
+      })()`);
+
+    const target = await client.evaluate(`(() => {
+      const canvas = document.querySelector('.workspace-canvas').getBoundingClientRect();
+      return { x: Math.round(canvas.left + canvas.width / 2), y: Math.round(canvas.top + canvas.height / 2) };
+    })()`);
+    const parked = await dragTo(target.x, target.y);
+    check(
+      /is-window/.test(parked.className) && !/is-floating/.test(parked.className) && parked.position === 'absolute',
+      `dragging the pop-out onto the Workspace parks it there (${parked.position}, ${parked.className.trim()})`,
+    );
+    check(
+      parked.inside && parked.holdsRooms,
+      `the parked room sits inside the canvas and keeps the room itself (${Math.round(parked.rect.left - parked.canvas.left)}, ${Math.round(parked.rect.top - parked.canvas.top)} · ${Math.round(parked.rect.width)}×${Math.round(parked.rect.height)})`,
+    );
+
+    const released = await dragTo(parked.canvas.left - 120, parked.rect.top + 20);
+    check(
+      /is-floating/.test(released.className) && released.position === 'fixed',
+      `dragging it back off the board hands it to the viewport again (${released.position})`,
+    );
+
+    await go(client, 'rooms', '.rooms-popped');
     await client.evaluate(`(() => {
       const button = Array.from(document.querySelectorAll('.rooms-popped button'))
         .find(node => /bring it back/i.test(node.textContent));

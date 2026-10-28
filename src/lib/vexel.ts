@@ -75,7 +75,7 @@ export function offlineReply(input: string): VexelReply {
   }
   if (/emulator|rom|retro|game ?boy|snes|nes/.test(value)) {
     return {
-      text: 'The 8-bit emulator is under Services → Secret emulator. It loads Nintendo, Sega Master System/Game Gear/Genesis/32X, Atari 2600/7800/Lynx, PC Engine, WonderSwan, Neo Geo Pocket and Virtual Boy files you already own and runs them locally. Kryvex does not provide ROMs or link to them. Gamepads and control remapping are in the emulator’s own menu.',
+      text: 'The emulator is under Services → Secret emulator. It loads Nintendo, Sega Master System/Game Gear/Genesis/32X, Atari 2600/7800/Lynx, PC Engine, WonderSwan, Neo Geo Pocket, Virtual Boy and PlayStation (.chd or .pbp disc images) files you already own and runs them locally. Kryvex does not provide ROMs or link to them. Gamepads and control remapping are in the emulator’s own menu.',
       kind: 'answer',
     };
   }

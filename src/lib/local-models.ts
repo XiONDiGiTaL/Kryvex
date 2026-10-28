@@ -76,6 +76,8 @@ export function capabilityLabel(id: string): string {
       return 'Short summaries of text you paste';
     case 'explanations':
       return 'Explanations and how-to';
+    case 'web-tools':
+      return 'Looks things up through Kryvex’s search and page tools';
     default:
       return id;
   }
@@ -104,6 +106,8 @@ export function languageLabel(code: string): string {
       return 'German';
     case 'fr':
       return 'French';
+    case 'tr':
+      return 'Turkish';
     default:
       return code.toUpperCase();
   }

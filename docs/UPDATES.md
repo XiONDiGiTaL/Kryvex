@@ -163,6 +163,13 @@ users:
   on its version line. The app itself reports the full
   `0.9.3-hotfix.1` from `package.json` in its header and Updates panel.
 
+**A fourth number is not an option.** `0.9.5.1` was asked for and cannot be
+built: `electron-builder` validates `package.json`'s `version` as strict semver
+and stops with `Invalid version: "0.9.5.1"` before it packages anything, and npm
+rejects the same string. The `-hotfix.N` suffix exists for that case and the
+updater already ranks the result above its base, so a patch of a line ships as
+`0.9.5-hotfix.4` rather than `0.9.5.1`.
+
 Only a release that adds features moves `0.9.3` to `0.9.4`; 1.0 is the last
 step and is not reached by accumulation.
 

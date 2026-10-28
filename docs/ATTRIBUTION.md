@@ -70,8 +70,41 @@ project's filter data natively instead.
   documented `EJS_*` globals, hands it a ROM over `postMessage`, and exchanges
   save states through its public API. It does not modify the emulator's code or
   claim the emulation as its own.
+- **Cores:** the console cores are the project's own builds inside that same
+  CDN (`cores/<core>-wasm.data`), fetched at run time and not vendored here —
+  `fceumm` for the NES, `snes9x`, `mgba`, `genesis_plus_gx`, `mednafen_*`,
+  `pcsx_rearmed`/`mednafen_psx_hw` for the PlayStation that Kryvex names as
+  `psx`, and `mupen64plus_next` (with `parallel_n64` as the engine's fallback)
+  for the Nintendo 64. Their licences travel with that distribution, not with
+  the installer.
+- **Second engine (Dreamcast):** the cartridge engine publishes no Dreamcast
+  core, so an opt-in second engine loads `nasomers/flycast-wasm` v1.0, a
+  **GPLv2** WebAssembly build of Flycast. Kryvex conveys none of it: the user's
+  machine fetches the two pinned files from that project's own release, each is
+  checked against a pinned size and SHA-256, and the app only repackages those
+  bytes into the archive the frontend it already runs expects. That archive
+  carries a `license.txt` naming both projects and the licence, and the panel
+  credits the build with a link to its source; the GPL text itself stays with
+  the release it came from. Naomi is not offered, and no Dreamcast
+  game is claimed to run; the reasoning and the measurements are in
+  [EMULATOR_ENGINES.md](EMULATOR_ENGINES.md).
 - **Attribution:** shown in the Emulator view ("Emulation by EmulatorJS,
   GPL-3.0, loaded from its official CDN"), with a link to the source.
+
+## RetroArch, for netplay
+
+- **What it is:** real, frame-synchronised netplay runs on
+  [RetroArch](https://www.retroarch.com), which the user installs themselves.
+  Kryvex finds that copy, writes the loaded cartridge to a temporary file and
+  launches it with `-H` (host) or `-C` (guest) on TCP 55435.
+- **Conveyed by Kryvex:** nothing. RetroArch is GPLv3 and is neither bundled, nor
+  downloaded, nor linked against, nor modified — it is a separate program Kryvex
+  starts, so no GPL code reaches the installer or the repository. Cores keep
+  their own licences and come from RetroArch's own updater, not from Kryvex.
+- **No prior code:** the argument list, the core table and the address parsing in
+  `electron/retroarch-catalogue.ts` are original Kryvex code written against
+  RetroArch's documented command line; no RetroArch source was copied. See
+  [NETPLAY.md](NETPLAY.md).
 
 ## Kryvex Link and its prior art
 

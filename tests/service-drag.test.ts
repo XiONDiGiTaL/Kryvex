@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   SERVICE_DRAG_TYPE,
+  TOOL_DRAG_TYPE,
   isServiceDrag,
+  isToolDrag,
   readServiceDrag,
+  readToolDrag,
   requestServiceDropEffect,
   serviceDropEffect,
 } from '../src/lib/service-drag';
@@ -37,6 +40,31 @@ describe('the service drag payload', () => {
     const long = transfer('copy');
     long.setData(SERVICE_DRAG_TYPE, 'x'.repeat(121));
     expect(readServiceDrag(long)).toBeNull();
+  });
+});
+
+describe('the tool drag payload', () => {
+  /** A transfer carrying one type, the way a drag source publishes it. */
+  function toolTransfer(value: string) {
+    const dragged = transfer('copy');
+    dragged.setData(TOOL_DRAG_TYPE, value);
+    Object.defineProperty(dragged, 'types', { value: [TOOL_DRAG_TYPE] });
+    return dragged;
+  }
+
+  it('keeps a tool apart from a service drag', () => {
+    const dragged = toolTransfer('canvas');
+    expect(isToolDrag(dragged)).toBe(true);
+    // The rail must not read a tool id as something to pin.
+    expect(isServiceDrag(dragged)).toBe(false);
+    expect(readServiceDrag(dragged)).toBeNull();
+    expect(readToolDrag(dragged)).toBe('canvas');
+  });
+
+  it('refuses an id this build does not have, and an absent transfer', () => {
+    expect(readToolDrag(null)).toBeNull();
+    expect(readToolDrag(toolTransfer('wordpad'))).toBeNull();
+    expect(readToolDrag(toolTransfer(''))).toBeNull();
   });
 });
 

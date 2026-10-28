@@ -32,8 +32,8 @@ export const sweepDe: Record<string, string> = {
   'Ask GitHub shortly after launch and every six hours. Downloads never start without you.':
     'Fragt kurz nach dem Start und danach alle sechs Stunden GitHub. Downloads starten nie ohne dich.',
   'Asking the host for the cartridge…': 'Frage den Host nach dem Modul …',
-  'Atari 8-bit computers, Pokemon Mini and Arduboy have no EmulatorJS core here, so those formats are not offered.':
-    'Atari-8-Bit-Rechner, Pokemon Mini und Arduboy haben hier keinen EmulatorJS-Kern, daher werden diese Formate nicht angeboten.',
+  'Atari 8-bit computers, Pokemon Mini, Arduboy, Dreamcast and Naomi have no EmulatorJS core here, so those formats are not offered.':
+    'Atari-8-Bit-Rechner, Pokemon Mini, Arduboy, Dreamcast und Naomi haben hier keinen EmulatorJS-Kern, daher werden diese Formate nicht angeboten.',
   'Audio and video pause while another view is open.':
     'Audio und Video pausieren, solange eine andere Ansicht offen ist.',
   'Audio and video pause while this view is hidden.':
@@ -158,6 +158,11 @@ export const sweepDe: Record<string, string> = {
   'Home board': 'Start-Board',
   'Home widgets': 'Start-Widgets',
   'Host this cartridge': 'Dieses Modul hosten',
+  'LINK LIVE': 'LINK AKTIV',
+  'LINK · WAITING FOR HOST': 'LINK · WARTE AUF HOST',
+  'Ask again': 'Erneut fragen',
+  'No host answered. The other machine has to open this cartridge in its own emulator and press Host this cartridge.':
+    'Niemand hat geantwortet. Der andere Rechner muss dieses Modul im eigenen Emulator öffnen und „Dieses Modul hosten“ drücken.',
   'Humidity {value}%': 'Luftfeuchtigkeit {value} %',
   'I understand': 'Ich verstehe',
   'INSERT CARTRIDGE': 'MODUL EINSETZEN',
@@ -206,8 +211,8 @@ export const sweepDe: Record<string, string> = {
   'Link play ended.': 'Link-Spiel beendet.',
   'Links and junctions are never followed, files in use are skipped, and system categories that need elevation are not offered in this build.':
     'Verknüpfungen und Junctions werden nie verfolgt, benutzte Dateien übersprungen, und Systemkategorien mit erhöhten Rechten werden in diesem Build nicht angeboten.',
-  'Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket and Virtual Boy files you already own.':
-    'Lade Nintendo-, Sega-, Atari-, PC-Engine-, WonderSwan-, Neo-Geo-Pocket- und Virtual-Boy-Dateien, die du bereits besitzt.',
+  'Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket, Virtual Boy and PlayStation files you already own.':
+    'Lade Nintendo-, Sega-, Atari-, PC-Engine-, WonderSwan-, Neo-Geo-Pocket-, Virtual-Boy- und PlayStation-Dateien, die du bereits besitzt.',
   'Load ROM': 'ROM laden',
   'Load a cartridge before hosting a link session.':
     'Lade ein Modul, bevor du eine Link-Sitzung hostest.',
@@ -230,8 +235,8 @@ export const sweepDe: Record<string, string> = {
   'Mute sound': 'Ton stummschalten',
   'Mute {name}': '{name} stummschalten',
   'NEEDS ELEVATION': 'ERHÖHTE RECHTE NÖTIG',
-  'NES · SNES · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy':
-    'NES · SNES · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy',
+  'NES · SNES · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy · PlayStation':
+    'NES · SNES · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy · PlayStation',
   'NOT FOUND': 'NICHT GEFUNDEN',
   Name: 'Name',
   Network: 'Netzwerk',
@@ -360,8 +365,15 @@ export const sweepDe: Record<string, string> = {
   'Sits over the theme with a translucent pane instead of replacing it.':
     'Liegt mit einer durchscheinenden Fläche über dem Theme, statt es zu ersetzen.',
   Software: 'Software',
-  'Some Game Boy Advance, Lynx and PC Engine titles need their own BIOS or firmware dump.':
-    'Einige Game-Boy-Advance-, Lynx- und PC-Engine-Titel brauchen einen eigenen BIOS- oder Firmware-Dump.',
+  'PlayStation needs its own BIOS to start; some Game Boy Advance, Lynx and PC Engine titles need a firmware dump of their own.':
+    'Die PlayStation braucht ein eigenes BIOS zum Starten; einige Game-Boy-Advance-, Lynx- und PC-Engine-Titel brauchen einen eigenen Firmware-Dump.',
+  'One disc image per slot: pack a .cue and .bin set into a .chd or a .pbp. Most titles need a PlayStation BIOS.':
+    'Ein Disc-Abbild pro Steckplatz: ein .cue/.bin-Paar in eine .chd oder .pbp packen. Die meisten Titel brauchen ein PlayStation-BIOS.',
+  'That disc image is larger than 768 MB.': 'Dieses Disc-Abbild ist größer als 768 MB.',
+  'The N64 core takes a few seconds longer to start and needs more memory than the 8-bit cores.':
+    'Der N64-Kern braucht ein paar Sekunden länger zum Start und mehr Arbeitsspeicher als die 8-Bit-Kerne.',
+  'NES · SNES · N64 · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy · PlayStation':
+    'NES · SNES · N64 · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy · PlayStation',
   'Sound, notifications and background behavior':
     'Ton, Benachrichtigungen und Verhalten im Hintergrund',
   Source: 'Quelle',

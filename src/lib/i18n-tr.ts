@@ -418,13 +418,33 @@ export const turkishCopy: Record<string, string> = {
   'Choose a ROM': 'ROM seç',
   'Choose a console': 'Konsol seç',
   'Load ROM': 'ROM yükle',
+  'Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket, Virtual Boy and PlayStation files you already own.':
+    'Sahip olduğunuz Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket, Virtual Boy ve PlayStation dosyalarını yükleyin.',
   'Emulator screen': 'Emülatör ekranı',
   'Gamepad': 'Oyun kolu',
+  'NES · SNES · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy · PlayStation':
+    'NES · SNES · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy · PlayStation',
+  'PlayStation needs its own BIOS to start; some Game Boy Advance, Lynx and PC Engine titles need a firmware dump of their own.':
+    'PlayStation’ın başlaması için kendi BIOS’u gerekir; bazı Game Boy Advance, Lynx ve PC Engine oyunları kendi firmware dökümünü ister.',
+  'One disc image per slot: pack a .cue and .bin set into a .chd or a .pbp. Most titles need a PlayStation BIOS.':
+    'Yuva başına tek disk imajı: .cue ve .bin ikilisini .chd veya .pbp olarak paketleyin. Çoğu oyun PlayStation BIOS’u ister.',
+  'That disc image is larger than 768 MB.': 'Bu disk imajı 768 MB’tan büyük.',
+  'The N64 core takes a few seconds longer to start and needs more memory than the 8-bit cores.':
+    'N64 çekirdeği başlamak için birkaç saniye daha bekler ve 8 bit çekirdeklerden daha fazla bellek ister.',
+  'NES · SNES · N64 · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy · PlayStation':
+    'NES · SNES · N64 · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy · PlayStation',
+  'Atari 8-bit computers, Pokemon Mini, Arduboy, Dreamcast and Naomi have no EmulatorJS core here, so those formats are not offered.':
+    'Atari 8 bit bilgisayarlar, Pokemon Mini, Arduboy, Dreamcast ve Naomi için burada EmulatorJS çekirdeği yok, bu yüzden bu biçimler sunulmuyor.',
   'Quick save': 'Hızlı kaydet',
   'Quick load': 'Hızlı yükle',
   'Save state': 'Durumu kaydet',
   'Load': 'Yükle',
   'End link play': 'Bağlantılı oyunu bitir',
+  'LINK LIVE': 'BAĞLANTI CANLI',
+  'LINK · WAITING FOR HOST': 'BAĞLANTI · SUNUCU BEKLENİYOR',
+  'Ask again': 'Yeniden iste',
+  'No host answered. The other machine has to open this cartridge in its own emulator and press Host this cartridge.':
+    'Kimse yanıt vermedi. Diğer makinenin bu kartuşu kendi emülatöründe açıp “Bu kartuşu sun” düğmesine basması gerekiyor.',
   Scan: 'Tara',
   'Scan this machine': 'Bu makineyi tara',
   Scanning: 'Taranıyor',
@@ -788,6 +808,80 @@ export const turkishCopy: Record<string, string> = {
   'Arcade, File Forge and Canvas run on this machine. They go straight into a window, with no sign-in and nothing added to your service list.':
     'Arcade, File Forge ve Canvas bu makinede çalışır. Doğrudan bir pencereye açılırlar; oturum açma yok ve servis listenize hiçbir şey eklenmez.',
   'Built-in tool windows': 'Yerleşik araç pencereleri',
+  '{name} keeps one session, so it opens in its own view instead of a second copy.':
+    '{name} tek bir oturum tutar, bu yüzden ikinci bir kopya yerine kendi görünümünde açılır.',
   'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse, Kryvex Link, Arcade, File Forge and Canvas. They need no account and no server, and their files stay local.':
     'Gizli servisler Kryvex’in içine gömülü, bu makinede çalışan araçlardır: Lexium, medya oynatıcı, emülatör, Disk pulse, Kryvex Link, Arcade, File Forge ve Canvas. Hesap ve sunucu gerektirmezler, dosyaları yerel kalır.',
+  // Second engine (Dreamcast)
+  'SECOND ENGINE': 'İKİNCİ MOTOR',
+  'Dreamcast (experimental)': 'Dreamcast (deneysel)',
+  'Runs on its own engine, off by default.': 'Kendi motorunda çalışır, varsayılan olarak kapalıdır.',
+  'A pinned WebAssembly build of Flycast, fetched from its own release on first use. It is GPLv2 and is never bundled with Kryvex.':
+    'Sabitlenmiş bir Flycast WebAssembly derlemesi; ilk kullanımda kendi sürümünden indirilir. GPLv2’dir ve Kryvex ile asla birlikte paketlenmez.',
+  'Ready · {version}': 'Hazır · {version}',
+  'Downloading the engine… {percent}%': 'Motor indiriliyor… {percent}%',
+  'The engine could not be installed.': 'Motor kurulamadı.',
+  // "Not installed" already exists in the service copy above.
+  'Remove the engine': 'Motoru kaldır',
+  'Download the engine ({size})': 'Motoru indir ({size})',
+  'Stop the download': 'İndirmeyi durdur',
+  'The second engine runs in the desktop app only.': 'İkinci motor yalnızca masaüstü uygulamasında çalışır.',
+  'Emulation by Flycast (GPLv2), loaded from its own release and not bundled with Kryvex.':
+    'Emülasyon Flycast (GPLv2) ile yapılır; kendi sürümünden yüklenir ve Kryvex ile paketlenmez.',
+  'Starting the second engine…': 'İkinci motor başlatılıyor…',
+  'The core is read from this machine and packed for the screen. Nothing is uploaded.':
+    'Çekirdek bu makineden okunur ve ekran için paketlenir. Hiçbir şey yüklenmez.',
+  'Install the engine before starting a Dreamcast game.': 'Bir Dreamcast oyunu başlatmadan önce motoru kurun.',
+  'The engine is ready. Load a Dreamcast image with its BIOS.': 'Motor hazır. BIOS’uyla birlikte bir Dreamcast imajı yükleyin.',
+  'The engine was removed.': 'Motor kaldırıldı.',
+  'Dreamcast runs on the second engine. Naomi arcade boards are still not offered: a set is several files and the slot takes one.':
+    'Dreamcast ikinci motorda çalışır. Naomi arcade kartları hâlâ sunulmuyor: bir set birkaç dosyadan oluşur ve yuva tek dosya alır.',
+  'Link play keeps the two machines together by sending save states, and a Dreamcast state is too large for that. Load the same image on both machines instead.':
+    'Bağlantılı oyun iki makineyi kayıt durumları göndererek aynı tutar ve bir Dreamcast durumu bunun için çok büyüktür. Aynı imajı iki makinede de yükleyin.',
+  'Experimental: a second engine, downloaded separately. One file per slot: use a .cdi or .chd, or a .zip of a full set. The Dreamcast BIOS is required.':
+    'Deneysel: ayrı indirilen ikinci bir motor. Yuva başına bir dosya: .cdi veya .chd ya da tam bir setin .zip’ini kullanın. Dreamcast BIOS’u gerekir.',
+  'That download did not match the pinned release, so it was discarded.': 'Bu indirme sabitlenmiş sürümle eşleşmedi, bu yüzden silindi.',
+  'The engine arrived incomplete and was discarded.': 'Motor eksik geldi ve silindi.',
+  'There is not enough free space for the engine.': 'Motor için yeterli boş alan yok.',
+  'The engine download was cancelled.': 'Motor indirmesi iptal edildi.',
+  'The engine could not be written to disk.': 'Motor diske yazılamadı.',
+  'The engine is already being installed.': 'Motor zaten kuruluyor.',
+  'The engine download was interrupted. Check the connection and try again.':
+    'Motor indirmesi kesildi. Bağlantıyı kontrol edip tekrar deneyin.',
+  'NETPLAY (RETROARCH)': 'AĞ OYUNU (RETROARCH)',
+  'Frame-synchronised netplay runs on RetroArch, which you install and keep. Kryvex starts it for you and never downloads or bundles it. Both machines need the same game and the same core.':
+    'Kare senkronize ağ oyunu, sizin kurup sakladığınız RetroArch üzerinde çalışır. Kryvex onu sizin için başlatır; hiçbir zaman indirmez veya paketlemez. İki makinede de aynı oyun ve aynı çekirdek olmalı.',
+  'Netplay runs in the desktop app only.': 'Ağ oyunu yalnızca masaüstü uygulamasında çalışır.',
+  'RetroArch: {path}': 'RetroArch konumu: {path}',
+  'RetroArch was not found on this machine.': 'RetroArch bu makinede bulunamadı.',
+  'Choose another copy': 'Başka bir kopya seç',
+  'Locate RetroArch': 'RetroArch’ı bul',
+  'Stop netplay': 'Ağ oyununu durdur',
+  'The core for {system} is missing: add {file} from RetroArch’s own core updater.':
+    '{system} için çekirdek eksik: RetroArch’ın kendi çekirdek güncelleyicisinden {file} ekleyin.',
+  'Hosting. The other player enters {address}.': 'Sunucu açık. Diğer oyuncu {address} adresini girer.',
+  'Joined {address}.': '{address} adresine bağlandı.',
+  'e.g. 192.168.1.20:55435': 'ör. 192.168.1.20:55435',
+  'Host address': 'Sunucu adresi',
+  'Host with RetroArch': 'RetroArch ile sunucu ol',
+  'Join with RetroArch': 'RetroArch ile katıl',
+  'The host may have to allow TCP {port} through the firewall, and forward it on the router for a player outside the network. RetroArch opens in its own window; Kryvex stops it when you quit.':
+    'Sunucu, güvenlik duvarında TCP {port} bağlantısına izin vermek ve ağ dışından bir oyuncu için yönlendiricide yönlendirmek zorunda kalabilir. RetroArch kendi penceresinde açılır; Kryvex çıkarken onu durdurur.',
+  'RetroArch was not found. Install it, then point Kryvex at retroarch.exe.':
+    'RetroArch bulunamadı. Kurun, ardından Kryvex’e retroarch.exe’yi gösterin.',
+  'The core for {system} is not installed: add {file} from RetroArch’s own core updater.':
+    '{system} çekirdeği kurulu değil: RetroArch’ın kendi çekirdek güncelleyicisinden {file} ekleyin.',
+  'That is not an address Kryvex can dial. Use the host’s IP or name, with an optional port.':
+    'Bu adres çevrilemez. Sunucunun IP’sini veya adını, isteğe bağlı bir bağlantı noktasıyla kullanın.',
+  'Load a cartridge before starting netplay.': 'Ağ oyununu başlatmadan önce bir kartuş yükleyin.',
+  'The cartridge could not be written for RetroArch to open.':
+    'Kartuş, RetroArch açabilsin diye yazılamadı.',
+  'A netplay session is already running.': 'Zaten bir ağ oyunu oturumu çalışıyor.',
+  'RetroArch could not be started.': 'RetroArch başlatılamadı.',
+  'Netplay could not start.': 'Ağ oyunu başlatılamadı.',
+  'Looking that up: {query}': 'Araştırılıyor: {query}',
+  'Reading that page…': 'Sayfa okunuyor…',
+  'That lookup did not come back.': 'Bu arama sonuç vermedi.',
+  'Read {count} sources.': '{count} kaynak okundu.',
+  'Page read.': 'Sayfa okundu.',
 };

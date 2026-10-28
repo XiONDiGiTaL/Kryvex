@@ -10,6 +10,7 @@ import {
   romFitsNetplay,
   samePad,
   sanitizePad,
+  shouldSendCartridge,
   splitRom,
 } from '../src/lib/netplay';
 import { emulatorHostDocument } from '../src/lib/emulator';
@@ -142,6 +143,18 @@ describe('emulator frame netplay hooks', () => {
     expect(doc).toContain('netplayPads = null');
     expect(doc).toContain("post('kryvex-netplay-state'");
     expect(doc).toContain('netplayRestore');
+  });
+
+  it('sends the cartridge once per peer, and again only when asked', () => {
+    // The two machines may open the link in either order, and a guest repeats
+    // its hello until the cartridge arrives. The host has to answer the first
+    // one without shipping the ROM again for every repeat.
+    expect(shouldSendCartridge('hello', 'peer-a', null)).toBe(true);
+    expect(shouldSendCartridge('hello', 'peer-a', 'peer-a')).toBe(false);
+    // A different machine is a different transfer.
+    expect(shouldSendCartridge('hello', 'peer-b', 'peer-a')).toBe(true);
+    // An explicit ask means the first transfer did not arrive.
+    expect(shouldSendCartridge('ask', 'peer-a', 'peer-a')).toBe(true);
   });
 
   it('shapes a pad the way a standard gamepad is read', () => {

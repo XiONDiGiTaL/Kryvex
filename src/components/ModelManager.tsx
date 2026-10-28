@@ -88,7 +88,7 @@ export function ModelManager({
       const result = await bridge.modelsDownload(id);
       if (result.ok) {
         setMessage({
-          text: entry?.productName
+          text: entry?.id === 'vexium-core-3b'
             ? t('Vexium Core is installed. Start it when you are ready; downloading never starts a server.')
             : t('Model installed. Use this model to hand it to Vexium, then start the server.'),
           tone: 'success',
@@ -187,7 +187,9 @@ export function ModelManager({
                   ? t('ALREADY INSTALLED')
                   : entry.id === 'vexium-core-3b'
                     ? t('DEFAULT CORE')
-                    : t('LIGHT')}
+                    : entry.id === 'qwen2.5-1.5b-instruct'
+                      ? t('LIGHT')
+                      : entry.quantisation}
               </span>
             </div>
 
@@ -278,7 +280,7 @@ export function ModelManager({
             <div className="model-actions">
               {row ? (
                 <>
-                  {entry.productName ? (
+                  {entry.id === 'vexium-core-3b' ? (
                     <button
                       className="btn primary small"
                       disabled={!isElectron || busy || !row.present}
@@ -321,14 +323,13 @@ export function ModelManager({
                 <button className="btn secondary small" onClick={() => void cancel(entry.id)}>
                   {t('Cancel download')}
                 </button>
-              ) : (
-                <button
-                  className="btn primary small"
-                  disabled={!isElectron || busy}
-                  onClick={() => void download(entry.id)}
-                >
-                  {entry.productName ? t('Download Vexium Core') : t('Download')}
-                </button>
+              ) : (                  <button
+                    className="btn primary small"
+                    disabled={!isElectron || busy}
+                    onClick={() => void download(entry.id)}
+                  >
+                    {entry.id === 'vexium-core-3b' ? t('Download Vexium Core') : t('Download')}
+                  </button>
               )}
             </div>
           </div>

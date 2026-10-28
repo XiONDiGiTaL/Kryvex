@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react';
 import type {
   AppInfo,
   Bookmark,
@@ -42,8 +50,9 @@ import { clearWallpaper, importWallpaper, loadWallpaper } from './lib/wallpaper'
 import { I18nProvider, makeI18n, resolveLanguage } from './lib/i18n';
 import { makeId, partitionFor, resolveServicePlacement } from './lib/services';
 import { addScreenCapture } from './lib/screen-capture';
-import { SECRET_TOOL_LABELS } from './lib/secret-tools';
+import { SECRET_TOOL_LABELS, isEmbeddableTool } from './lib/secret-tools';
 import { totalUnread, unreadFromTitle, windowTitle } from './lib/unread';
+import { partySession } from './lib/party';
 import { hostOf, resolveAddress } from './lib/url';
 import { Header, Sidebar, StatusBar } from './components/shell';
 import { ServiceDialog } from './components/ServiceDialog';
@@ -506,6 +515,10 @@ export default function App() {
     (): WindowSpace => ({
       viewport: { width: window.innerWidth, height: window.innerHeight },
       canvas: canvas ? { width: canvas.width, height: canvas.height } : null,
+      // The canvas is offset from the window by the sidebar and the header, so
+      // a window dragged across the boundary needs the origin as well as the
+      // size to be translated into the other surface's pixels.
+      canvasBox: canvas ? { left: canvas.left, top: canvas.top } : null,
     }),
     [canvas],
   );
@@ -616,6 +629,34 @@ export default function App() {
    * a second copy of it: one room, one session, two places it can be shown.
    */
   const roomsPopped = Boolean(windows[viewWindowId(ROOMS_VIEW)]);
+
+  /** Only the membership matters here: it is what a popped-out room holds. */
+  const party = useSyncExternalStore(partySession.subscribe, partySession.getSnapshot);
+
+  /** Whether the popped window has ever held a live room during this pop-out. */
+  const poppedLive = useRef(false);
+
+  /**
+   * A room that ends leaves nothing to keep in a window.
+   *
+   * The window holds a live session, so leaving the room and coming back used to
+   * leave the window standing over a room that was gone. Docking it puts the
+   * lobby back on its own route, which is where the next room is started. A
+   * pop-out taken from the lobby is left alone: nothing has ended there.
+   */
+  useEffect(() => {
+    if (!roomsPopped) {
+      poppedLive.current = false;
+      return;
+    }
+    if (party.status === 'joined' || party.status === 'joining') {
+      poppedLive.current = true;
+      return;
+    }
+    if (!poppedLive.current) return;
+    poppedLive.current = false;
+    setWindows(current => closeWindow(current, viewWindowId(ROOMS_VIEW)));
+  }, [party.status, roomsPopped]);
 
   /** Pops Rooms out of the route and into a window over the app. */
   const popOutRooms = useCallback(() => {
@@ -1668,6 +1709,23 @@ export default function App() {
             onDropService={(id, at) => {
               const service = state.services.find(item => item.id === id);
               if (service) openInWorkspace(service, at);
+            }}
+            onDropTool={(tool, at) => {
+              // The three tools that are a plain view open in a window. The rest
+              // own a partition, a server or an emulator core, so a second copy
+              // inside a window would be a second session wearing the first
+              // one's name: they open in their own view and say why.
+              if (isEmbeddableTool(tool)) {
+                openToolInWorkspace(tool, at);
+                return;
+              }
+              pushToast(
+                t('{name} keeps one session, so it opens in its own view instead of a second copy.', {
+                  name: t(SECRET_TOOL_LABELS[tool]),
+                }),
+                'info',
+              );
+              openSecretTool(tool);
             }}
             onMotion={patch =>
               updateSettingsPatch({

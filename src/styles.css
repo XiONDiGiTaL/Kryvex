@@ -6887,6 +6887,14 @@ select:hover {
   color: var(--ink-faint);
 }
 
+/* The live status of a lookup, between the thread and the composer. */
+.assistant-tool {
+  margin: 0 0 6px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
 .assistant-composer-foot {
   display: flex;
   align-items: center;

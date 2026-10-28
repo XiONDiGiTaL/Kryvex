@@ -16,6 +16,8 @@ GGUF remain available as alternative runtimes.
 | Runtime | llama.cpp `b11835` (commit `f64a49819`), CPU build, shipped in `resources/bin`. |
 | Weights | `vexium-core-3b-q4_k_m.gguf` (Qwen2.5-3B-Instruct, Q4_K_M), published on `XiONDiGiTaL/Vexium-Core` release `v2`; byte count and SHA-256 pinned in `electron/model-catalogue.ts`. |
 | Light core | `qwen2.5-1.5b-instruct.gguf` stays in the catalogue as **Vexium Core Light** for machines without the memory; its id and filename never change, so an existing install keeps working. |
+| Flagship core | `vexium-1-12b-q4_k_m.gguf` is offered as **Vexium-1 12B** on the same panel: Mistral-Nemo-Instruct-2407 at Q4_K_M with a Vexium chat template, 6.96 GiB, pinned to `XiONDiGiTaL/Vexium-1`. It is never downloaded or started on its own, and it is not the default. |
+| Template flag | `buildServerArgs()` passes `--jinja`, without which llama.cpp cannot render a template that uses `set` or filters and silently falls back to a generic one. `docs/VEXIUM_MODELS.md` §17 records the measurement. |
 | Licence | Apache-2.0, with the Qwen publisher, repository and licence shown on the card and in the installed list. |
 | Default | New state uses the `local` provider at `http://127.0.0.1:8080`; an existing saved provider is preserved. |
 

@@ -69,6 +69,8 @@ describe('buildServerArgs', () => {
       '8192',
       '--n-gpu-layers',
       '32',
+      // The GGUF's own chat template is only rendered when jinja is enabled.
+      '--jinja',
     ]);
     expect(args).not.toContain('0.0.0.0');
   });

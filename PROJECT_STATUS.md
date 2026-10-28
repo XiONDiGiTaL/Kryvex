@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.5, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.5-hotfix.4, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -27,6 +27,35 @@ vault, ~38 GitHub repos, a Play developer account and an unrelated salt-mill
 mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
+
+## Release batch (28 Oct 2026, 0.9.5-hotfix.4)
+
+This batch is the one that closes the run the earlier sections describe: the
+Vexium-1 flagship, netplay through RetroArch, the Flycast second engine behind
+its gate, Nintendo 64, and the rooms pop-out that can be parked. It is cut as
+**0.9.5-hotfix.4**.
+
+**`0.9.5.1` was asked for and cannot exist.** `electron-builder` validates
+`package.json`'s `version` as strict semver and refuses
+`Invalid version: "0.9.5.1"` in `fixVersionField` before packaging starts, and
+npm rejects the same string. The line's own `-hotfix.N` suffix is the mechanism
+built for it: `compareVersions()` ranks `0.9.5-hotfix.4` above `0.9.5`, so an
+installed 0.9.5 is offered this build. Recorded in [UPDATES.md](docs/UPDATES.md).
+
+Built and captured on this machine: `pnpm package:win` produced
+`release/Kryvex-Setup-0.9.5-hotfix.4-x64.exe` (137,362,603 B) and
+`release/Kryvex-Portable-0.9.5-hotfix.4-x64.exe` (137,118,701 B), and
+`node scripts/verify-self-update.cjs --no-app --wizard --archive --installer …
+--version 0.9.5-hotfix.4` captured the four NSIS pages (exit 0, install page
+24,368 ms) into `docs/media/releases/0.9.5-hotfix.4-wizard/`. `pnpm typecheck`
+is clean for both projects and `pnpm test` passes **1038/1038 across 91 files**.
+Full record: [RELEASE_0.9.5-hotfix.4.md](docs/RELEASE_0.9.5-hotfix.4.md).
+
+Not measured, and stated as such in that record: no netplay session was played
+(the harness supplies a fake `retroarch.exe`), no Dreamcast game was booted (no
+BIOS or disc image), the 7 GiB flagship download did not run end to end through
+the app, and the published installers' digests are recorded after the tag builds
+them — the digests above belong to the locally built pair.
 
 ## Latest batch (27 Oct 2026, inside the 0.9.5 line)
 
@@ -1125,3 +1154,410 @@ preceded them was verified again rather than assumed.
 Still open, unchanged: code signing, a real two-machine link-play session and a
 second account for the Google sign-in path, remote control beyond Kryvex's own
 captures, and the per-service pinnable secret tools.
+
+## The arcade's blank field
+
+The Arcade service (x535) rendered the xiondigital.net header, half a hero and
+then a black field, and repeated visits stayed that way. The page was not at
+fault: the guest was laid out at **1126x150**. `<webview>` is a replaced element
+like `<iframe>`, and `height: 100%` does not resolve against a frame whose height
+comes from `flex: 1`, so the guest silently kept Chromium's default 300x150
+instead of the frame's 641. The page therefore painted its first 150 pixels and
+nothing else, and no card ever crossed the `IntersectionObserver` threshold that
+raises the arcade's cards from `opacity: 0` — so the grid, the footer and the
+rest of the hero were all present in the DOM and invisible.
+
+`.arcade-view .arcade-frame > .webview` is now anchored with
+`position: absolute; inset: 0`, the same way `.service-frame` anchors the service
+stage's guests. The guest then reports 1126x639 inside a 1128x641 frame, the
+first three cards reveal, and the page scrolls to its real 1552 px height.
+
+`verify:inhouse` now connects to the guest's own target, which is the only place
+the fault was visible: it asserts the guest fills its frame, that every card
+inside the viewport is revealed, and that the page lays out taller than its
+viewport. The content checks are reported and skipped when the page does not
+arrive, because the arcade is a live site; the layout check does not depend on
+it. All 34 checks pass.
+
+## Built-in tools on the pinned rail drag like services
+
+A pinned service could be dragged onto the Workspace canvas to open a window; a
+pinned built-in tool could not, because the tool rows published no drag payload
+at all. They now do, under their own MIME type (`application/x-kryvex-tool`) so
+the two gestures stay apart: the rail's pin target only reacts to the service
+payload, and the canvas accepts either.
+
+What a drop does depends on what the tool owns:
+
+- **Arcade, File Forge and Canvas** open in a window at the point they were
+  dropped, exactly as a service does, and nothing is added to the service list.
+- **Lexium, the player, the emulator, Disk pulse and Kryvex Link** keep one
+  session each — a partition, a server, an emulator core — so a second copy in a
+  window would be a second session wearing the first one's name. The drop opens
+  the tool's own view and says so: *"{name} keeps one session, so it opens in its
+  own view instead of a second copy."* translated into Spanish, German, French
+  and Turkish.
+
+The tool pin rows carry `data-tool`, and a built-in window frame now carries
+`data-window` (the map id, e.g. `tool:canvas`), which is what lets a harness
+target one window rather than "the tool window". `verify:workspace` drags a
+Canvas pin into the canvas and asserts the window lands inside it, holds the
+sheet and adds no record, then drags the Lexium pin and asserts the note and
+that no window was opened. 34 checks pass, `tsc` is clean for both projects, and
+the drag payload has unit tests for both MIME types.
+
+## PlayStation in the secret emulator, and why Dreamcast is not
+
+**PlayStation (PSX) is in.** `ROM_SYSTEMS` gains `psx`, core `psx`, which
+EmulatorJS resolves to `pcsx_rearmed` or `mednafen_psx_hw`; both accept the same
+containers, so the slot offers the two self-contained ones — `.chd` and `.pbp`.
+A bare `.cue` is a manifest with no picture data and one file cannot carry the
+`.bin` beside it, so the system note says to pack the pair into a `.chd` or a
+`.pbp` instead. Disc images are measured against a new `MAX_DISC_BYTES`
+(768 MB, a CD plus room) rather than the 64 MB cartridge cap, and `isDiscSystem`
+is what decides which cap applies. The BIOS slot already existed and takes
+`scph*.bin` unchanged; the copy now says the PlayStation needs one to start at
+all. Memory cards come back through the core's `srm` save, so they land in the
+existing battery store.
+
+Verified by driving the built app over CDP with a throwaway `.chd`: the slot
+reports *PlayStation* with its note, and the sandboxed frame fetches
+`loader.js`, `emulator.min.js`, `cores/reports/pcsx_rearmed.json` and
+`cores/pcsx_rearmed-wasm.data` from the official CDN, constructs
+`window.EJS_emulator` and creates its `gameManager` — the core's runtime is up,
+not merely the shell. The image was junk, so **no game was booted**: a real
+disc needs a real `.chd`/`.pbp` and a PlayStation BIOS, neither of which this
+repository can ship.
+
+**Dreamcast and Naomi are not possible with this engine.** EmulatorJS publishes
+no core for them: its `cores.json` lists 48 cores on `stable` and `latest` and
+52 on `nightly`, and none of them is Flycast, Reicast or any Dreamcast/Naomi
+build; `emulator.min.js` contains no `flycast`, `dreamcast`, `naomi`, `reicast`
+or `dc_boot` token at all. There is therefore no core name to set and no BIOS
+path that would do anything, and inventing one would have shipped a format
+button that fails on first use. The panel now says so where it already lists
+the formats with no core here: *"Atari 8-bit computers, Pokemon Mini, Arduboy,
+Dreamcast and Naomi have no EmulatorJS core here…"*. Real Dreamcast support
+would mean a second emulator engine (Flycast compiled to WASM) behind its own
+sandboxed frame, with its own licence review and BIOS handling — a separate
+piece of work, not a line in `ROM_SYSTEMS`.
+
+## Nintendo 64, link play that can renegotiate, and a pop-out that can be parked
+
+**Nintendo 64 is in.** `ROM_SYSTEMS` gains `n64`, core `n64`, which the engine's
+own manifest resolves to `mupen64plus_next` with `parallel_n64` as the fallback.
+A `.n64`, a `.v64` and a `.z64` are one dump with different byte order and every
+one of them opens the same core, so the extension never asks the user to guess a
+console. It is a cartridge, so it is measured against the 64 MB cartridge cap and
+not the disc cap; the system note warns that the core starts slower and wants
+more memory than the 8-bit ones, in five languages.
+
+Measured by loading a probe `.z64` through the built app over CDP and reading
+the sandboxed frame's own resource timeline: it fetches
+`cores/reports/mupen64plus_next.json` and `cores/mupen64plus_next-wasm.data`,
+`window.EJS_emulator.getCore()` answers `mupen64plus_next`, and the
+`gameManager` exists. The probe was junk, so **no game was booted** — that needs
+a real cartridge, which this repository cannot ship.
+
+**Link play could not renegotiate.** A guest that pressed *Join* before the host
+pressed *Host this cartridge* waited for ever: the room does not replay a frame
+to a seat that had not opened one, the host's own hello found an empty peer list,
+and the panel sat on "Asking the host for the cartridge…" with nothing to retry.
+The guest now repeats its announcement every three seconds until the cartridge
+arrives, and stops with an explanation — *"No host answered. The other machine
+has to open this cartridge in its own emulator and press Host this cartridge."* —
+instead of waiting on a packet that was dropped before it existed. Sending the
+cartridge twice is what that would otherwise cost, so the host remembers the
+peer it sent to (`shouldSendCartridge`), and the new `ask` frame is the guest's
+explicit "it never arrived": the panel grows an *Ask again* button while it
+waits. The screen also carries the link's state now — a badge over the picture,
+quiet while it waits and lit once both ends run the same cartridge — because the
+engine draws no netplay indicator of its own.
+
+Verified in the same CDP run: posting the shell's two-seat `kryvex-netplay`
+frame into the sandboxed page makes the frame's own
+`navigator.getGamepads()` answer with *Kryvex link pad 1* (both buttons held)
+and *Kryvex link pad 2* (its stick axes), which is the input path the core
+reads. A two-machine session was **not** run here: it needs two live peers, and
+neither the room transport nor the controllers can be simulated honestly.
+
+**The engine does ship netplay — hidden, experimental and relayed.** A stale
+comment in the host document said it had none, and reading the 4.2.3 bundle
+corrected that: netplay is gated on `EJS_DEBUG_XX && EJS_EXPERIMENTAL_NETPLAY,
+hosts its button in the bottom bar, and defaults `config.netplayUrl` to
+`https://netplay.emulatorjs.org` over socket.io. That is why the user saw no
+sign of netplay in the emulator: the button is hidden unless debug mode is on,
+which is also the only way to turn the feature on. Kryvex still does not enable
+it — the relay is a third-party beta service and routing a session through it
+would move game data off the peer-to-peer path the room promises — but the
+comment and the docs now say so instead of claiming the feature does not exist.
+An opt-in would have to state that trade-off in the UI.
+
+**A popped-out room can be parked on the Workspace.** It used to hover over
+every view for good: its record said `detached` and a canvas is measured in
+different pixels, so dragging it towards the board only slid it around the
+window. `moveWindow` now translates across the boundary in both directions — a
+float dragged onto the canvas becomes a canvas window where the title bar was
+released, and a canvas window pushed more than 48 px past the board becomes a
+float over the rest of the app — with the canvas's own origin in `WindowSpace`,
+because the surface starts below the header and right of the sidebar. The
+margin is what stops a window that merely touches an edge from changing
+surfaces by accident.
+
+**Leaving a room no longer strands its pop-out.** The window holds a live
+session, so leaving the room and coming back left it standing over a room that
+was gone. It now docks itself when a room that was live ends, and a pop-out
+taken from the lobby is left alone because nothing ended there.
+
+`verify:shell-batch` proves both gestures in the built app: 26 checks, including
+dragging the pop-out onto the Workspace (it becomes an `absolute` window inside
+the canvas and still holds the room), dragging it back off (it becomes a `fixed`
+float again) and *Bring it back* afterwards. The harness waits for the shell's
+own canvas measurement before dragging — without that it raced the effect and
+the drag landed untouched.
+
+**Dreamcast, Naomi and the RetroArch question are scoped, not built.** See
+[EMULATOR_ENGINES.md](docs/EMULATOR_ENGINES.md): the engine publishes no
+Dreamcast/Naomi core, upstream Flycast is GPLv2 and only exists in WASM as a
+third-party build to prove, vendoring or forking RetroArch (GPL-3.0) would make
+the whole distribution GPL, and a native RetroArch sidecar is the only honest
+route to "every core, PS2 included".
+
+## Flycast WASM, measured instead of assumed
+
+**The scope became a measurement.** `pnpm verify:flycast` downloads the pinned
+`nasomers/flycast-wasm` v1.0 release, refuses it unless both files match their
+size and SHA-256 (`1f2ae9af…` / `db2b87d8…`), serves it with the COOP/COEP
+headers its README asks for, and drives it in an Electron window. Nothing is
+committed from upstream and nothing is bundled: the harness fetches on demand,
+like any other core.
+
+What it measured on this machine: **124–145 ms** to instantiate a 10.4 MB wasm
+with **256 MB** of heap and 109–110 exports; `Module.FS` present; `main` called
+and **returned** 292 ms later on a junk image. Two findings matter more than the
+timings:
+
+- **The core is written for a frontend, not for a page.** A bare host dies on
+  `querySelector('!parent')` — that is Emscripten's `specialHTMLTargets` hook,
+  and EmulatorJS passes its container as `Module.parent`; the core also reaches
+  for `Module.callbacks.setupCoreSettingFile` and `window.EJS_emulator`. Passing
+  `Module.parent` gets `main` running, and the next wall is a null entry in its
+  callback table, which only the frontend installs.
+- **The release's asset name does not match its own loader.**
+  `findWasmBinary()` asks for `flycast_libretro_upstream.wasm` while the asset is
+  `flycast_libretro.wasm`; without the rename it aborts with *"both async and
+  sync fetching of the wasm failed"*.
+
+**Dreamcast and Naomi are still not offered**, and the reason is content, not
+courage: a BIOS dump and a disc/cart image are needed to measure a frame, and
+this repository ships and downloads neither. Shipping a Dreamcast button on the
+strength of "it instantiates" would be exactly the half-working service the 0.9.x
+line is supposed to avoid. The integration shape is now written down
+([EMULATOR_ENGINES.md](docs/EMULATOR_ENGINES.md)): the frontend loads
+`cores/<core>-wasm.data` from a data path and looks it up in `cores.json`, so a
+second engine means a locally served, cross-origin-isolated origin — which the
+current sandboxed `srcdoc` frame cannot be — plus a licence decision about
+serving the frontend's own GPL-3.0 files from a Kryvex process.
+
+## The second engine is in: Dreamcast behind a gate
+
+**The measured scope became a shipped feature.** The Flycast proof from the
+previous batch answered "does the binary load"; this batch answers the question
+under it — can the app hand that core to the frontend it already runs without
+bundling a byte of it, and can the user turn it on and off? Both are now yes,
+and the Dreamcast system exists only while the switch is on.
+
+- **`electron/flycast-core.ts`** owns the network. It fetches the two pinned
+  files (`flycast_libretro.js`, `flycast_libretro.wasm`, 10,711,369 bytes) into
+  `userData/flycast/v1.0/`, streaming each into `<file>.part` and verifying size
+  and SHA-256 before a rename. It re-hashes on the way out, because the
+  payload is the one point where bytes reach a code loader. The renderer can ask
+  for a status, an install, the verified payload, a removal or a cancel — never
+  a URL, host, path or version.
+- **`src/lib/flycast.ts`** is the packer. The frontend wants one zip named
+  `<core>-wasm.data`; the release is two loose files, so this builds a **stored**
+  archive in memory — CRC-32 per entry, local headers, central directory, EOCD —
+  plus a `core.json` naming the core and its extensions and a `license.txt`
+  carrying the attribution notice.
+- **The frame** takes that archive as bytes over `postMessage`, turns it into a
+  blob and maps it in `EJS_paths` under `flycast-wasm.data` and
+  `flycast-legacy-wasm.data`. Nothing is served from disk; a sandboxed `srcdoc`
+  document has no origin to serve from, so the earlier note that this needed a
+  local, cross-origin-isolated server was wrong — the frontend accepts a blob
+  override.
+- **The panel** adds an off-by-default switch, a download state with a progress
+  bar, install/remove, and a credit line. Off means the console list has no
+  Dreamcast entry, `.cdi`/`.chd`/`.zip` are not accepted, and nothing is fetched.
+
+**Measured, through the real frontend.** `pnpm verify:flycast -- --frontend`
+compiles the app's own packer, builds the archive from the pinned release and
+drives EmulatorJS exactly as the shell does:
+
+| Measurement | Result |
+| --- | --- |
+| Packed archive | **10,712,194 bytes** from `flycastCoreZip` |
+| Archive requested by the frontend | **1 time**, unzipped |
+| `core.json` | read: core name **`flycast`** |
+| Runtime | **`EJS_Runtime` defined** from the packed zip |
+| Module | **instantiated, 111 exports**, 256 MB heap |
+| WebGL2 setting | **true** → the plain build was requested |
+| Game | **aborts on the junk image** — no BIOS, no disc |
+
+Two findings shaped the code, and both came from running it:
+
+- **A report blob is never parsed.** EmulatorJS fetches
+  `cores/reports/<core>.json` with `responseType: "text"`; for a blob URL it
+  reads bytes instead, so `buildStart` is missing, the core cache is disabled
+  and `webgl2Enabled` falls to false — which makes it ask for
+  `flycast-legacy-wasm.data`, a build this release does not publish. The flag
+  is settable directly (`EJS_defaultOptions.webgl2Enabled = 'enabled'`), and
+  that is what the frame sends now. Measured after the change: `webgl2: true`,
+  plain build, core up.
+- **The harness cannot read a core that is running.** Once the core's main loop
+  starts it owns the renderer thread, so a CDP `executeJavaScript` never
+  returns. The harness page posts its own state to the server on a timer
+  instead, and the last report that arrives is the result. The first version
+  hung for seven minutes learning this.
+
+**Naomi is not offered, and the reason is mechanical.** The frontend picks the
+boot file inside a set by extension from the core's own registry, and `bin` is
+on that list — so a Naomi set's first `.bin` is passed as the game instead of
+the archive, and the board cannot boot. It also wants a multi-file BIOS where
+the slot carries one file. The panel says Naomi is still not offered rather
+than shipping a button that fails on first use.
+
+**Link play refuses a Dreamcast game.** The room's link is checkpoint-based: a
+whole save state every 1.5 s. A Dreamcast state is far larger than that interval
+can carry, so the panel explains it and suggests loading the same image on both
+machines. Save-state keys stay `system:name-hash:size`, so a Dreamcast state can
+never be offered to a cartridge core.
+
+**Not measured:** no Dreamcast game was started — that needs a BIOS and a disc
+image, neither of which this repository ships or downloads — and Naomi has no
+path at all yet. The install-to-play path on a packaged build needs a real BIOS
+on a real machine. Everything above is either measured on this machine or
+explicitly marked as not.
+
+Checks: `pnpm typecheck` clean for both projects, `npx vitest run` **1026 tests
+across 90 files**, `pnpm build` clean, `pnpm verify:flycast` (bare and
+`--frontend`) both reporting the numbers above, and the i18n audit clean across
+57 renderer files.
+
+## Netplay that is netplay
+
+**The gap, stated honestly.** `docs/EMULATOR_ENGINES.md` already said that link
+play is a checkpoint channel: the host hands the guest a whole save state every
+1.5 s, so a guest that runs its own core re-simulates between corrections and
+feels every one. That is fine for "two people, one cartridge, no third party",
+and it is not netplay. Real netplay needs the two cores to consume the same input
+on the same frame, which is an engine feature — a transport cannot add it. A
+Dreamcast state is also far larger than 1.5 s of that channel can carry, which is
+why the panel refuses link play for it.
+
+**The frontend's own netplay is not the answer.** It exists, but upstream's
+maintainer calls it "a mess right now" and it has not reached stable; it is also
+relayed through `https://netplay.emulatorjs.org`, which would move game data off
+the peer-to-peer path the room promises. Switching it on would ship a button that
+sometimes works and sometimes does not — the thing this line of releases avoids.
+
+**So netplay runs on RetroArch, and Kryvex does not ship it.** RetroArch's netplay
+is the mature implementation and it is scriptable: `-H` hosts and waits, `-C
+<host>` joins, `--port` defaults to 55435. The new sidecar
+(`electron/retroarch.ts`, `electron/retroarch-catalogue.ts`) finds the copy the
+user installed, lists the cores actually present in its `cores/` folder, writes
+the loaded cartridge to `userData/retroarch/roms` (cleared on every start), and
+spawns host or guest, stopping it on quit. The renderer can ask for a status, open
+the main process's file dialog, start a session or stop one; it cannot name an
+executable or a URL, and the join address is parsed before it becomes an argument
+(`fe80::1`, `10.0.0.4`, `host:port` are accepted; schemes, paths, spaces and
+out-of-range ports are refused with a sentence).
+
+**Licence position, unchanged.** RetroArch is GPLv3. Kryvex neither bundles nor
+downloads it and does not link against it — the user installs it and its cores
+through RetroArch's own updater, and Kryvex only launches what is already on the
+machine. That is why this feature has no downloader, no hash pin and no URL
+catalogue: the one place a downloader would have forced a curation of per-core
+licences (some are non-commercial) is the place it was not built.
+
+**The panel** adds **NETPLAY (RETROARCH)** to the Emulator view: where RetroArch
+was found (or a button to point at another copy), the core for the loaded console
+or the exact file that is missing (`fceumm_libretro.dll`), the host's LAN address
+with the port, a host/join pair, stop, and the two requirements people trip over —
+the same core on both machines and TCP 55435 reachable on the host. It polls the
+sidecar every 5 s because RetroArch can be closed from its own window, and it
+never claims "connected": there is no machine-readable session line, so the two
+players confirm each other by nickname inside RetroArch.
+
+**Rooms are untouched.** Link play, chat and sharing still work exactly as they
+did; netplay is a second, independent path. The two are documented side by side in
+[NETPLAY.md](docs/NETPLAY.md), including the manual two-machine test plan.
+
+**Measured here, with `pnpm verify:netplay`.** RetroArch is not installed on this
+machine, so the harness supplies a fake one — a copy of `cmd.exe` named
+`retroarch.exe` beside a `cores/` folder — and checks Kryvex's own half end to end:
+22 consoles listed with nothing installed, a differently named executable refused,
+the chosen copy reporting its Flycast and FCEUmm cores, a console with no core
+refused *with the candidate file names*, an undialable address refused, the
+cartridge written byte-for-byte under `roms/`, the process spawned and its exit
+and stderr captured, `10.0.0.4:55535` parsed into a session, and `stop()` returning
+the sidecar to idle. Ten checks, exit 0. Plus 11 unit tests for the flags, names,
+addresses and cartridge naming.
+
+**Not measured:** no netplay session was played. The fake executable exits on the
+first flag it does not understand, so no host waited for a guest, no frame crossed
+a network and no latency was observed; `stop()` against a live RetroArch is a state
+transition here, not a killed process. The manual two-machine plan is in
+[NETPLAY.md](docs/NETPLAY.md). The panel and bridge compile in both TypeScript
+projects, and the copy is translated into all five languages with the coverage
+ratchet unmoved.
+
+## Vexium-1 12B: a flagship that asks instead of guessing
+
+The ask was a model that is smarter than what shipped, runs on a 20 GB card,
+answers in Turkish, and behaves like something that can be sent to look things up
+rather than refusing or inventing. It is built, published and wired into the
+model panel.
+
+**What it is.** `XiONDiGiTaL/Vexium-1` on Hugging Face, file
+`vexium-1-12b-q4_k_m.gguf`, 7,477,209,792 bytes,
+`26b5ad94d602c462cfdbe9f005cbdab8e66d60718d1054afc7060d42065b6ecb`, revision
+`87c83243356e47dac7cfe5c06b9b2f34126ce500`. The weights are
+`Mistral-Nemo-Instruct-2407` at Q4_K_M, **not retrained, merged or fine-tuned**;
+three metadata keys changed (`general.name`, `general.description`,
+`tokenizer.chat_template`). The card says so in its first table, and the licence
+stays Apache-2.0 with Mistral AI's attribution.
+
+**Why the intelligence is not in the weights.** The failures that prompted this
+were behavioural — an English answer to a Turkish question, a refusal, a guessed
+fact — and none of them need a training run. The contract lives in the chat
+template, Kryvex's own system turn and the tool layer (`vexium-planner.ts`,
+`vexium-tools.ts`), so a wrong rule is a text edit rather than a re-train.
+
+**Measured, through the template, on this machine** (`llama-server --jinja`,
+Vulkan, RX 7900 XT, 99 GPU layers, 4k context): a Turkish question about today's
+Bitcoin price with no sources supplied now *asks* to look it up and states **no**
+figure; the same question with one supplied source answers
+`Bitcoin'in bugünkü fiyatı 67.412 ABD Dolarıdır.`; `Türkiye'nin en kalabalık şehri
+hangisi ve neden?` gets `İstanbul. Çünkü en büyük nüfusa sahiptir.`; `What is the
+capital of Turkey?` gets `Ankara`; ~73 tokens/s. The first build answered that
+Turkish price question in English (`I would look up the current price of
+Bitcoin.`), which is why the template was rebuilt and the artifact replaced before
+publishing.
+
+**A silent failure worth remembering.** Without `--jinja`, llama.cpp cannot render
+a template that uses `set` or filters and substitutes a generic one, so the whole
+contract vanished while `llama-cli` looked fine. `buildServerArgs()` now passes the
+flag, and `GET /props` returning the 5,109-character Vexium template is the check
+that it took effect.
+
+**Wired in.** The panel lists Vexium-1 12B beside the two cores, with publisher,
+revision, size, checksum, licence, memory estimate and limits, and downloads only
+on a press that also verifies the size and SHA-256 before the file is used. The
+Hugging Face resolve URL 302s to `us.aws.cdn.hf.co` (allowlisted by suffix) with
+`content-length` equal to the pinned byte count. `ModelManager` labels the flagship
+by its quantisation instead of calling it "light", and `pnpm` typecheck plus 52
+tests over the catalogue, download rules and assistant prompt pass.
+
+**Not measured:** the 7 GiB download was not run through the app end to end (the
+3B path it shares was); no long-form benchmark was run; four Turkish prompts are
+not a Turkish evaluation. Nothing here claims a score.

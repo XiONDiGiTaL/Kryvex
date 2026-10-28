@@ -427,11 +427,24 @@ export interface AssistantChatResult {
   status?: number;
 }
 
+export interface AssistantToolEvent {
+  phase: 'start' | 'done';
+  name: 'search' | 'fetch';
+  /** The query or URL the tool is working on. */
+  detail: string;
+  count?: number;
+  failed?: boolean;
+}
+
 export interface AssistantDelta {
   requestId: string;
   delta?: string;
   done?: boolean;
   error?: string;
+  /** A live tool step, so a lookup is visible while it runs. */
+  tool?: AssistantToolEvent;
+  /** What the tools actually returned, for the panel's own links. */
+  sources?: Array<{ title: string; url: string }>;
 }
 
 export interface AssistantChatRequest {
@@ -441,6 +454,8 @@ export interface AssistantChatRequest {
   messages: AssistantMessage[];
   /** One verified line from Kryvex's own tools, when one answered. */
   facts?: string;
+  /** Let the main process look things up before the answer streams. */
+  tools?: boolean;
 }
 
 export interface WallpaperImage {
@@ -709,7 +724,11 @@ export type EmulatorSystem =
   | 'sgx'
   | 'ngp'
   | 'ngpc'
-  | 'vb';
+  | 'vb'
+  | 'n64'
+  | 'psx'
+  /** Second engine only: hidden unless the experimental Flycast build is on. */
+  | 'dreamcast';
 
 export interface EmulatorSettings {
   system: EmulatorSystem;
@@ -717,6 +736,15 @@ export interface EmulatorSettings {
   gamepad: boolean;
   /** Keep the CRT scanline treatment over the canvas. */
   crt: boolean;
+  /**
+   * The second engine (Dreamcast) is switched on.
+   *
+   * Off by default: while it is off the cartridge engine behaves exactly as it
+   * always has, its formats are the only ones offered, and nothing is
+   * downloaded. Turning it on reveals the system and the engine panel; the
+   * release itself is installed from there, one file at a time.
+   */
+  experimentalEngine: boolean;
 }
 
 /**
@@ -737,6 +765,20 @@ export type SpeechRuntimeStatus = import('../electron/types').SpeechRuntimeStatu
 export type SpeechInstallProgress = import('../electron/types').SpeechInstallProgress;
 export type SpeechFailure = import('../electron/types').SpeechFailure;
 export type SpeechModelEntry = import('../electron/types').SpeechModelEntry;
+
+/** The optional second emulator engine, as the main process describes it. */
+export type FlycastStatus = import('../electron/types').FlycastStatus;
+export type FlycastProgress = import('../electron/types').FlycastProgress;
+export type FlycastPayload = import('../electron/types').FlycastPayload;
+export type FlycastPayloadResult = import('../electron/types').FlycastPayloadResult;
+
+/** The netplay sidecar: the RetroArch the user installed, driven by Kryvex. */
+export type RetroarchStatus = import('../electron/types').RetroarchStatus;
+export type RetroarchPhase = import('../electron/types').RetroarchPhase;
+export type RetroarchFailure = import('../electron/types').RetroarchFailure;
+export type RetroarchCoreState = import('../electron/types').RetroarchCoreState;
+export type RetroarchSession = import('../electron/types').RetroarchSession;
+export type RetroarchStartInput = import('../electron/types').RetroarchStartInput;
 
 /** Lexium: the in-house translator, transcriber and OCR reader. */
 export interface LexiumSettings {
@@ -1291,6 +1333,37 @@ export interface KryvexBridge {
   onSpeechProgress: (
     listener: (event: import('../electron/types').SpeechInstallProgress) => void,
   ) => () => void;
+  /**
+   * The optional second emulator engine: a pinned Flycast build the main
+   * process fetches, verifies and keeps. `null` comes back from an untrusted
+   * sender or the web build, which the panel reads as "not available here".
+   */
+  flycastStatus: () => Promise<import('../electron/types').FlycastStatus | null>;
+  flycastInstall: () => Promise<import('../electron/types').FlycastStatus | null>;
+  /**
+   * The verified core files, as bytes. Re-hashed on the way out, so a file
+   * changed on disk is refused instead of handed to a code loader.
+   */
+  flycastCore: () => Promise<import('../electron/types').FlycastPayloadResult | null>;
+  flycastRemove: () => Promise<import('../electron/types').FlycastStatus | null>;
+  /** Stops a download in flight; the partial files are removed with it. */
+  flycastCancel: () => Promise<boolean>;
+  onFlycastProgress: (
+    listener: (event: import('../electron/types').FlycastProgress) => void,
+  ) => () => void;
+  /**
+   * Real netplay through the RetroArch the user installed themselves. Kryvex
+   * never ships or downloads it; `null` comes back from the web build or an
+   * untrusted sender, which the panel reads as "not available here".
+   */
+  retroarchStatus: () => Promise<import('../electron/types').RetroarchStatus | null>;
+  /** Opens the main process's own file dialog; a path never crosses the bridge. */
+  retroarchLocate: () => Promise<import('../electron/types').RetroarchStatus | null>;
+  retroarchForget: () => Promise<import('../electron/types').RetroarchStatus | null>;
+  retroarchStart: (
+    input: import('../electron/types').RetroarchStartInput,
+  ) => Promise<import('../electron/types').RetroarchStatus | null>;
+  retroarchStop: () => Promise<import('../electron/types').RetroarchStatus | null>;
   resourcesSample: (
     services: Array<{ id: string; url: string }>,
   ) => Promise<ResourceSnapshot | null>;

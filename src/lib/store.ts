@@ -502,6 +502,10 @@ export function sanitizeEmulator(raw: unknown): EmulatorSettings {
     scale: Number.isFinite(scale) ? Math.min(5, Math.max(1, Math.round(scale))) : base.scale,
     gamepad: raw.gamepad === undefined ? base.gamepad : raw.gamepad === true,
     crt: raw.crt === undefined ? base.crt : raw.crt === true,
+    // The second engine is opt-in, so anything but an explicit true is off. A
+    // system left pointing at it from an earlier session is kept: the field is
+    // still valid, and the panel resets it when the engine is switched off.
+    experimentalEngine: raw.experimentalEngine === true,
   };
 }
 

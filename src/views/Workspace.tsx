@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '../lib/i18n';
-import { isServiceDrag, readServiceDrag, requestServiceDropEffect } from '../lib/service-drag';
+import {
+  isServiceDrag,
+  isToolDrag,
+  readServiceDrag,
+  readToolDrag,
+  requestServiceDropEffect,
+} from '../lib/service-drag';
+import type { SecretToolId } from '../types';
 import { Icon } from '../components/ui';
 import type { WindowMap } from '../lib/workspace';
 import type { WindowMotion, WorkspaceSettings } from '../types';
@@ -40,6 +47,7 @@ export function Workspace({
   onRect,
   onAdd,
   onDropService,
+  onDropTool,
   onMotion,
 }: {
   windows: WindowMap;
@@ -47,6 +55,8 @@ export function Workspace({
   onRect: (rect: CanvasRect | null) => void;
   onAdd: () => void;
   onDropService: (id: string, at: { x: number; y: number }) => void;
+  /** A pinned built-in tool dragged in from the rail. */
+  onDropTool: (tool: SecretToolId, at: { x: number; y: number }) => void;
   onMotion: (patch: Partial<WorkspaceSettings>) => void;
 }) {
   const t = useT();
@@ -151,7 +161,7 @@ export function Workspace({
         ref={canvas}
         className={`workspace-canvas ${dropping ? 'is-drop' : ''} ${empty ? 'is-empty' : ''}`}
         onDragOver={event => {
-          if (!isServiceDrag(event.dataTransfer)) return;
+          if (!isServiceDrag(event.dataTransfer) && !isToolDrag(event.dataTransfer)) return;
           event.preventDefault();
           // Never demand an effect the source refuses: that cancels the drop
           // outright. The request follows the source instead, which is what lets
@@ -164,12 +174,15 @@ export function Workspace({
           setDropping(false);
         }}
         onDrop={event => {
-          const id = readServiceDrag(event.dataTransfer);
+          const tool = readToolDrag(event.dataTransfer);
+          const id = tool ? null : readServiceDrag(event.dataTransfer);
           setDropping(false);
-          if (!id) return;
+          if (!tool && !id) return;
           event.preventDefault();
           const box = event.currentTarget.getBoundingClientRect();
-          onDropService(id, { x: event.clientX - box.left, y: event.clientY - box.top });
+          const at = { x: event.clientX - box.left, y: event.clientY - box.top };
+          if (tool) onDropTool(tool, at);
+          else if (id) onDropService(id, at);
         }}
       >
         {empty ? (

@@ -18,6 +18,9 @@ import { lexiumDictationCopy } from './i18n-lexium';
 import { speechCopy } from './i18n-speech';
 import { secretServicesCopy } from './i18n-secret';
 import { captureCopy } from './i18n-capture';
+import { flycastCopy } from './i18n-flycast';
+import { netplayCopy } from './i18n-netplay';
+import { vexiumCopy } from './i18n-vexium';
 import { turkishCopy } from './i18n-tr';
 import { sweepEs } from './i18n-sweep-es';
 import { sweepDe } from './i18n-sweep-de';
@@ -2897,6 +2900,9 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           ...pick(speechCopy, language),
           ...pick(secretServicesCopy, language),
           ...pick(captureCopy, language),
+          ...pick(flycastCopy, language),
+          ...pick(netplayCopy, language),
+          ...pick(vexiumCopy, language),
           // Turkish is written as one catalogue, so it lands last and wins.
           ...(language === 'tr' ? turkishCopy : {}),
         };

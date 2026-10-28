@@ -48,6 +48,8 @@ export type WindowMap = Record<string, ServiceWindow>;
 export interface WindowSpace {
   viewport: FloatViewport;
   canvas: FloatViewport | null;
+  /** Where the canvas sits in the window, so a cross-surface drag can be translated. */
+  canvasBox?: { left: number; top: number } | null;
 }
 
 function kindBounds(kind: WindowKind, space: WindowSpace): FloatViewport {
@@ -173,6 +175,58 @@ function movable(entry: ServiceWindow | undefined): entry is ServiceWindow {
   return Boolean(entry) && !entry?.restore && !entry?.minimized;
 }
 
+/** How far past the canvas edge a drag has to travel before it lets go. */
+export const HANDOFF_MARGIN = 48;
+
+/** The part of the title bar a person actually drags by. */
+function grabPoint(rect: FloatRect): { x: number; y: number } {
+  return { x: rect.x + Math.min(140, Math.max(30, rect.width / 2)), y: rect.y + 12 };
+}
+
+function canvasBox(space: WindowSpace): (FloatViewport & { left: number; top: number }) | null {
+  // Without an origin the two surfaces cannot be translated into each other,
+  // so the drag stays on the surface the window already belongs to.
+  if (!space.canvas || !space.canvasBox) return null;
+  return { ...space.canvas, left: space.canvasBox.left, top: space.canvasBox.top };
+}
+
+function insideCanvas(
+  point: { x: number; y: number },
+  box: FloatViewport & { left: number; top: number },
+): boolean {
+  return (
+    point.x >= box.left &&
+    point.x <= box.left + box.width &&
+    point.y >= box.top &&
+    point.y <= box.top + box.height
+  );
+}
+
+/** Whether the point has left the canvas by more than the handoff margin. */
+function pastCanvas(
+  point: { x: number; y: number },
+  box: FloatViewport & { left: number; top: number },
+): boolean {
+  return (
+    point.x < box.left - HANDOFF_MARGIN ||
+    point.x > box.left + box.width + HANDOFF_MARGIN ||
+    point.y < box.top - HANDOFF_MARGIN ||
+    point.y > box.top + box.height + HANDOFF_MARGIN
+  );
+}
+
+/**
+ * Moves a window, and lets it change surface when the drag crosses the boundary.
+ *
+ * A module could already be opened on the Workspace or floated over the app, but
+ * not carried between them: a popped-out room stayed a float no matter where it
+ * was dragged, because its record kept saying `detached` and a canvas is
+ * measured in different pixels. Taking a float onto the board now parks it
+ * there, and pushing a window off the board hands it back to the viewport — so
+ * one drag is the whole gesture, the same way a service is dragged in from the
+ * rail. The margin is what keeps a window that merely touches an edge from
+ * jumping surfaces by accident.
+ */
 export function moveWindow(
   map: WindowMap,
   id: string,
@@ -183,9 +237,33 @@ export function moveWindow(
   const entry = map[id];
   if (!movable(entry)) return map;
   const bounds = kindBounds(entry.kind, space);
+  const moved = { ...entry.rect, x: entry.rect.x + dx, y: entry.rect.y + dy };
+
+  const box = canvasBox(space);
+  if (box) {
+    if (entry.kind === 'detached') {
+      if (insideCanvas(grabPoint(moved), box)) {
+        const rect = clampCanvasRect(
+          { ...moved, x: moved.x - box.left, y: moved.y - box.top },
+          { width: box.width, height: box.height },
+        );
+        return { ...map, [id]: { ...entry, kind: 'canvas', rect } };
+      }
+    } else {
+      const grab = grabPoint(moved);
+      if (pastCanvas({ x: grab.x + box.left, y: grab.y + box.top }, box)) {
+        const rect = clampFloatRect(
+          { ...moved, x: moved.x + box.left, y: moved.y + box.top },
+          space.viewport,
+        );
+        return { ...map, [id]: { ...entry, kind: 'detached', rect } };
+      }
+    }
+  }
+
   const rect =
     entry.kind === 'canvas'
-      ? clampCanvasRect({ ...entry.rect, x: entry.rect.x + dx, y: entry.rect.y + dy }, bounds)
+      ? clampCanvasRect(moved, bounds)
       : dragFloat(entry.rect, dx, dy, bounds);
   if (rect.x === entry.rect.x && rect.y === entry.rect.y) return map;
   return { ...map, [id]: { ...entry, rect } };

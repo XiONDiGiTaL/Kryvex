@@ -61,6 +61,8 @@ import {
 } from './window-rules';
 import { shield } from './shield';
 import { SpeechRuntime } from './speech-runtime';
+import { FlycastCore } from './flycast-core';
+import { RetroArchSidecar, normalizeRetroarchStart } from './retroarch';
 import {
   chooseDownloadLocation,
   downloadLocation,
@@ -140,6 +142,30 @@ const speech = new SpeechRuntime(path.join(app.getPath('userData'), 'speech'), p
     /* the shell may be closing */
   }
 });
+
+/**
+ * The optional second emulator engine (Flycast, for Dreamcast).
+ *
+ * Same profile logic as the speech runtime: the root is read here so a test or
+ * capture profile gets its own copy instead of the one belonging to the person
+ * using the app. Download progress is pushed to the shell; nothing polls.
+ */
+const flycast = new FlycastCore(path.join(app.getPath('userData'), 'flycast'), progress => {
+  try {
+    shellContents?.send('kryvex:flycast:progress', progress);
+  } catch {
+    /* the shell may be closing */
+  }
+});
+
+/**
+ * The netplay sidecar.
+ *
+ * Kryvex does not ship RetroArch: the user installs it, and this runs that
+ * copy. The root is read here for the same reason the other roots are — a test
+ * or capture profile gets its own remembered path instead of the real one's.
+ */
+const retroarch = new RetroArchSidecar(path.join(app.getPath('userData'), 'retroarch'));
 
 function forwardMagnet(url: string): void {
   if (!isMagnetLink(url) || !mainWindow || mainWindow.isDestroyed()) return;
@@ -872,6 +898,45 @@ function registerIpc(): void {
     isShellSender(event) ? speech.remove(model) : speech.status(),
   );
   ipcMain.handle('kryvex:speech:cancel', event => (isShellSender(event) ? speech.cancel() : false));
+  // The second emulator engine. The renderer can install, read the status, ask
+  // for the verified bytes or remove the copy; it cannot name a URL, a host or
+  // a path, so this cannot become a general downloader.
+  ipcMain.handle('kryvex:flycast:status', () => flycast.status());
+  ipcMain.handle('kryvex:flycast:install', event =>
+    isShellSender(event) ? flycast.install() : flycast.status(),
+  );
+  ipcMain.handle('kryvex:flycast:core', event =>
+    isShellSender(event) ? flycast.payload() : null,
+  );
+  ipcMain.handle('kryvex:flycast:remove', event =>
+    isShellSender(event) ? flycast.remove() : flycast.status(),
+  );
+  ipcMain.handle('kryvex:flycast:cancel', event =>
+    isShellSender(event) ? flycast.cancel() : false,
+  );
+  // Real netplay: start the RetroArch the user already installed, as host or
+  // guest. The dialog is the only way a path enters the main process, so the
+  // renderer cannot name an executable.
+  ipcMain.handle('kryvex:retroarch:status', () => retroarch.status());
+  ipcMain.handle('kryvex:retroarch:locate', async event => {
+    if (!isShellSender(event) || !mainWindow) return retroarch.status();
+    const picked = await dialog.showOpenDialog(mainWindow, {
+      title: 'Where is RetroArch?',
+      properties: ['openFile'],
+      filters: [{ name: 'RetroArch', extensions: ['exe'] }],
+    });
+    const file = picked.canceled ? undefined : picked.filePaths[0];
+    return file ? retroarch.useExecutable(file) : retroarch.status();
+  });
+  ipcMain.handle('kryvex:retroarch:forget', event =>
+    isShellSender(event) ? retroarch.forget() : retroarch.status(),
+  );
+  ipcMain.handle('kryvex:retroarch:start', (event, input: unknown) =>
+    isShellSender(event) ? retroarch.start(normalizeRetroarchStart(input)) : retroarch.status(),
+  );
+  ipcMain.handle('kryvex:retroarch:stop', event =>
+    isShellSender(event) ? retroarch.stop() : retroarch.status(),
+  );
   ipcMain.handle('kryvex:speech:autostart', (event, enabled: unknown) =>
     isShellSender(event) ? speech.setAutostart(enabled) : speech.status(),
   );
@@ -1318,6 +1383,8 @@ if (!gotLock) {
   app.on('before-quit', event => {
     playerEmbed.dispose();
     link.dispose();
+    // A session Kryvex started must not outlive it.
+    retroarch.dispose();
     void torrents.shutdown();
     if (flushed) return;
     event.preventDefault();

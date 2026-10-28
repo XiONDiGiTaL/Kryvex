@@ -149,7 +149,11 @@ interface NetplayPayload {
 }
 
 export interface NetplayMessage {
-  kind: 'hello' | 'rom' | 'pad' | 'state' | 'bye';
+  /**
+   * `hello` announces a seat, `ask` asks the host to send the cartridge again,
+   * and `rom`/`state`/`pad`/`bye` carry the session itself.
+   */
+  kind: 'hello' | 'ask' | 'rom' | 'pad' | 'state' | 'bye';
   role: 'host' | 'guest' | '';
   name: string;
   gameKey: string;
@@ -335,6 +339,7 @@ export class PartySession {
           const kind = payload?.kind;
           if (
             kind !== 'hello' &&
+            kind !== 'ask' &&
             kind !== 'rom' &&
             kind !== 'pad' &&
             kind !== 'state' &&

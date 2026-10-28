@@ -189,6 +189,8 @@ export const secretServicesCopy: Record<SecretLanguage, Record<string, string>> 
     'Minimized windows': 'Ventanas minimizadas',
     'Resize this window': 'Cambiar el tamaño de esta ventana',
     'Drag to resize': 'Arrastra para cambiar el tamaño',
+    '{name} keeps one session, so it opens in its own view instead of a second copy.':
+      '{name} mantiene una sola sesión, así que se abre en su propia vista en lugar de en una segunda copia.',
 
     'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse, Kryvex Link, Arcade, File Forge and Canvas. They need no account and no server, and their files stay local.':
       'Los servicios secretos son las herramientas integradas en Kryvex que funcionan en este equipo: Lexium, el reproductor multimedia, el emulador, Disk pulse, Kryvex Link, Arcade, File Forge y Canvas. No necesitan cuenta ni servidor, y sus archivos se quedan aquí.',
@@ -374,6 +376,8 @@ export const secretServicesCopy: Record<SecretLanguage, Record<string, string>> 
     'Minimized windows': 'Minimierte Fenster',
     'Resize this window': 'Fenstergröße ändern',
     'Drag to resize': 'Zum Ändern der Größe ziehen',
+    '{name} keeps one session, so it opens in its own view instead of a second copy.':
+      '{name} führt eine einzige Sitzung, deshalb öffnet es sich in seiner eigenen Ansicht statt in einer zweiten Kopie.',
 
     'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse, Kryvex Link, Arcade, File Forge and Canvas. They need no account and no server, and their files stay local.':
       'Die geheimen Dienste sind die in Kryvex eingebauten Werkzeuge, die auf diesem Rechner laufen: Lexium, der Mediaplayer, der Emulator, Disk pulse, Kryvex Link, Arcade, File Forge und Canvas. Sie brauchen kein Konto und keinen Server, und ihre Dateien bleiben lokal.',
@@ -559,6 +563,8 @@ export const secretServicesCopy: Record<SecretLanguage, Record<string, string>> 
     'Minimized windows': 'Fenêtres réduites',
     'Resize this window': 'Redimensionner cette fenêtre',
     'Drag to resize': 'Glissez pour redimensionner',
+    '{name} keeps one session, so it opens in its own view instead of a second copy.':
+      '{name} garde une seule session : il s’ouvre donc dans sa propre vue plutôt que dans une seconde copie.',
 
     'Secret services are the tools built into Kryvex that run on this machine: Lexium, the media player, the emulator, Disk pulse, Kryvex Link, Arcade, File Forge and Canvas. They need no account and no server, and their files stay local.':
       'Les services secrets sont les outils intégrés à Kryvex qui tournent sur cette machine : Lexium, le lecteur multimédia, l’émulateur, Disk pulse, Kryvex Link, Arcade, File Forge et Canvas. Ils n’ont besoin ni de compte ni de serveur, et leurs fichiers restent locaux.',

@@ -3,6 +3,7 @@
  * pure so the loopback-only rule, message shaping and stream parsing can be
  * tested without a model, a network or Electron.
  */
+import { detectLanguage, toolInstructions } from './vexium-planner';
 
 /** The only hosts a model runtime may live on. */
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
@@ -91,6 +92,12 @@ export interface AssistantChatRequest {
   messages: AssistantMessage[];
   /** Verified lines from Kryvex's own tools, never model output. */
   facts?: string;
+  /**
+   * Whether this turn may look things up. Off is the old behaviour: answer
+   * from the model alone. On lets the main process run the planner and the web
+   * tools before the answer streams.
+   */
+  tools?: boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -157,7 +164,14 @@ export function sanitizeChatRequest(raw: unknown): AssistantChatRequest | null {
   const messages = sanitizeAssistantMessages(raw.messages);
   if (!messages) return null;
   const facts = sanitizeFacts(raw.facts);
-  return { requestId, baseUrl, model, messages, ...(facts ? { facts } : {}) };
+  return {
+    requestId,
+    baseUrl,
+    model,
+    messages,
+    ...(facts ? { facts } : {}),
+    ...(raw.tools === true ? { tools: true } : {}),
+  };
 }
 
 /**
@@ -179,7 +193,16 @@ export function sanitizeFacts(raw: unknown): string {
  */
 export function buildMessages(
   messages: AssistantMessage[],
-  options: { facts?: string; now?: Date } = {},
+  options: {
+    facts?: string;
+    now?: Date;
+    /** Numbered search results or one page's text, already formatted. */
+    toolContext?: string;
+    /** What the user's last message is written in. */
+    language?: 'tr' | 'en';
+    /** True when a tool actually ran this turn. */
+    usedTool?: boolean;
+  } = {},
 ): AssistantMessage[] {
   const now = options.now ?? new Date();
   const today = `${now.toLocaleDateString('en-GB', {
@@ -198,7 +221,16 @@ export function buildMessages(
   ]
     .filter(Boolean)
     .join('\n\n');
-  return [{ role: 'system', content: system }, ...messages.filter(message => message.role !== 'system')];
+  const toolContext = options.toolContext?.trim() ?? '';
+  const language =
+    options.language ??
+    detectLanguage(messages.filter(message => message.role === 'user').at(-1)?.content ?? '');
+  const tools = toolInstructions(language, options.usedTool === true);
+  const composed = [system, tools, toolContext].filter(Boolean).join('\n\n');
+  return [
+    { role: 'system', content: composed },
+    ...messages.filter(message => message.role !== 'system'),
+  ];
 }
 
 export interface SseEvent {

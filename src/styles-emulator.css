@@ -183,6 +183,137 @@
   color: var(--ink-faint);
 }
 
+/*
+ * The second engine's panel.
+ *
+ * It sits under the BIOS block and reads as an opt-in, not as another console:
+ * a switch, then the download state and the credit once it is on. The accent
+ * only appears when the engine is actually installed — a switched-on engine
+ * with nothing downloaded is still "absent" and must not look ready.
+ */
+.emulator-engine {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.emulator-engine-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.emulator-engine-switch input {
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+.emulator-engine-switch > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.emulator-engine-switch strong {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.emulator-engine-switch .mono {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.emulator-engine-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.emulator-engine-body p {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.emulator-engine-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+
+.emulator-engine-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  flex: none;
+}
+
+.emulator-engine-dot.is-ready {
+  background: var(--accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.emulator-engine-dot.is-downloading {
+  background: var(--warn, var(--accent));
+  animation: emulator-engine-pulse 1.2s ease-in-out infinite;
+}
+
+.emulator-engine-dot.is-error {
+  background: var(--danger, #ff6b6b);
+}
+
+@keyframes emulator-engine-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.emulator-engine-bar {
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ink-faint) 24%, transparent);
+}
+
+.emulator-engine-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 160ms linear;
+}
+
+.emulator-engine-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.emulator-engine-credit {
+  color: var(--ink-faint);
+}
+
+.emulator-engine-credit .link {
+  font-size: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emulator-engine-dot.is-downloading {
+    animation: none;
+  }
+}
+
 .emulator-screen {
   display: flex;
   flex-direction: column;
@@ -208,6 +339,74 @@
   height: 100%;
   border: 0;
   display: block;
+}
+
+/*
+ * Link play's only on-screen signal. EmulatorJS draws its own canvas and has no
+ * netplay indicator, so the state of the link belongs to Kryvex's frame: one
+ * badge, quiet while it waits and lit once both cores run the same cartridge.
+ */
+.emulator-link {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--ink-faint) 42%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #05070a 78%, transparent);
+  backdrop-filter: blur(6px);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.emulator-link strong {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.emulator-link .mono {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.emulator-link-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  animation: emulator-link-pulse 1.6s ease-in-out infinite;
+}
+
+.emulator-link.is-live {
+  border-color: color-mix(in srgb, var(--accent) 62%, transparent);
+  color: var(--accent);
+}
+
+.emulator-link.is-live strong {
+  color: var(--accent);
+}
+
+.emulator-link.is-live .emulator-link-dot {
+  background: var(--accent);
+  animation: none;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+@keyframes emulator-link-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emulator-link-dot { animation: none; }
 }
 
 .emulator-screen.has-crt .emulator-screen-frame::after {
@@ -387,6 +586,16 @@
 .emulator-netplay-role {
   color: var(--accent) !important;
   letter-spacing: 0.08em;
+}
+
+/* The address is the one field here, so it takes the panel's full width. */
+.emulator-netplay-address {
+  width: 100%;
+  min-width: 0;
+}
+
+.emulator-netplay-hint {
+  opacity: 0.75;
 }
 
 .emulator-netplay input {

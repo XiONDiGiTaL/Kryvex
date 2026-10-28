@@ -105,6 +105,7 @@ export const DEFAULT_EMULATOR: EmulatorSettings = {
   scale: 3,
   gamepad: true,
   crt: true,
+  experimentalEngine: false,
 };
 
 /**

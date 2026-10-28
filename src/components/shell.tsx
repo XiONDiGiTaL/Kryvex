@@ -9,7 +9,13 @@ import type {
   ViewId,
 } from '../types';
 import { SECRET_TOOL_LABELS } from '../lib/secret-tools';
-import { SERVICE_DRAG_TYPE, isServiceDrag, readServiceDrag, requestServiceDropEffect } from '../lib/service-drag';
+import {
+  SERVICE_DRAG_TYPE,
+  TOOL_DRAG_TYPE,
+  isServiceDrag,
+  readServiceDrag,
+  requestServiceDropEffect,
+} from '../lib/service-drag';
 import { dropAnchor } from '../lib/store';
 import { getTheme } from '../lib/themes';
 import { useT } from '../lib/i18n';
@@ -385,7 +391,20 @@ export function Sidebar({
               </li>
             ))}
             {pinnedTools.map(tool => (
-              <li key={`tool-${tool}`}>
+              <li
+                key={`tool-${tool}`}
+                data-tool={tool}
+                // A tool pin drags for one destination only: the Workspace
+                // canvas, which opens it there. It is a copy — the pin stays
+                // where it is — and the rail itself never takes this payload,
+                // so the two gestures cannot be confused for each other.
+                draggable
+                onDragStart={event => {
+                  event.dataTransfer.effectAllowed = 'copy';
+                  event.dataTransfer.setData('text/plain', tool);
+                  event.dataTransfer.setData(TOOL_DRAG_TYPE, tool);
+                }}
+              >
                 <button
                   className="pinned-item is-tool"
                   onClick={() => onOpenTool?.(tool)}

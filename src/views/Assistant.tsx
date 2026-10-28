@@ -3,6 +3,7 @@ import type {
   AssistantDelta,
   AssistantMessage,
   AssistantSettings,
+  AssistantToolEvent,
   PersistedState,
 } from '../types';
 import { useI18n } from '../lib/i18n';
@@ -85,6 +86,9 @@ export function Assistant({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
+  // What the assistant is doing between asking and answering: a search, a page
+  // read, or nothing at all. Cleared on done and on error.
+  const [toolActivity, setToolActivity] = useState<AssistantToolEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<string | null>(null);
@@ -115,8 +119,29 @@ export function Assistant({
     if (!bridge) return;
     return bridge.onAssistantDelta((event: AssistantDelta) => {
       if (!activeRef.current || event.requestId !== activeRef.current) return;
+      // A lookup is visible while it runs, and its results become the answer's
+      // own links — so a source can still be opened if the model forgets to
+      // cite it in the prose.
+      if (event.tool) setToolActivity(event.tool);
+      if (event.sources?.length) {
+        const sources = event.sources;
+        setMessages(list => {
+          const next = [...list];
+          const last = next[next.length - 1];
+          if (!last || last.role !== 'assistant') return list;
+          const merged = [...(last.links ?? [])];
+          for (const source of sources) {
+            if (!merged.some(link => link.url === source.url)) {
+              merged.push({ label: source.title || source.url, url: source.url });
+            }
+          }
+          next[next.length - 1] = { ...last, links: merged.slice(0, 6) };
+          return next;
+        });
+      }
       if (event.error) {
         activeRef.current = null;
+        setToolActivity(null);
         streamRef.current = { id: '', text: '' };
         setRequestId(null);
         setError(event.error);
@@ -149,6 +174,7 @@ export function Assistant({
         activeRef.current = null;
         streamRef.current = { id: '', text: '' };
         setRequestId(null);
+        setToolActivity(null);
         // A model that admits uncertainty gets the same search escape hatch
         // the offline responder offers, instead of a dead end.
         setMessages(list => {
@@ -225,6 +251,9 @@ export function Assistant({
       model,
       messages: next,
       ...(fact ? { facts: fact.sentence } : {}),
+      // The main process decides what to look up; a model that knows the
+      // answer is not slowed down by more than one short planning turn.
+      tools: true,
     });
     // The invoke reply can reach the renderer before the last `send` deltas on
     // the same channel. Ending the request here would drop that tail; the
@@ -617,6 +646,20 @@ export function Assistant({
             </button>
           ) : null}
         </div>
+      ) : null}
+
+      {toolActivity ? (
+        <p className="assistant-tool mono">
+          {toolActivity.phase === 'start'
+            ? toolActivity.name === 'search'
+              ? t('Looking that up: {query}', { query: toolActivity.detail })
+              : t('Reading that page…')
+            : toolActivity.failed
+              ? t('That lookup did not come back.')
+              : toolActivity.name === 'search'
+                ? t('Read {count} sources.', { count: toolActivity.count ?? 0 })
+                : t('Page read.')}
+        </p>
       ) : null}
 
       <form

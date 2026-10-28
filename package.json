@@ -1,7 +1,7 @@
 {
   "name": "kryvex",
   "productName": "Kryvex",
-  "version": "0.9.5",
+  "version": "0.9.5-hotfix.4",
   "description": "A modular desktop workspace that brings independent web services, a browser and shared tools into one engineered surface.",
   "license": "MIT",
   "author": {
@@ -72,7 +72,9 @@
     "verify:inhouse": "pnpm build && node scripts/verify-inhouse-services.cjs",
     "verify:shell-batch": "pnpm build && node scripts/verify-shell-batch.cjs",
     "verify:batch": "pnpm build && node scripts/verify-batch.cjs",
-    "verify:vlan": "node scripts/verify-vlan.cjs"
+    "verify:vlan": "node scripts/verify-vlan.cjs",
+    "verify:flycast": "electron scripts/verify-flycast.cjs",
+    "verify:netplay": "electron scripts/verify-netplay.cjs"
   },
   "build": {
     "appId": "net.xiondigital.kryvex",

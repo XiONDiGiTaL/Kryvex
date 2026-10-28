@@ -7,6 +7,16 @@ import {
   parseSseData,
   sanitizeChatRequest,
 } from './assistant-rules';
+import {
+  PLAN_TIMEOUT_MS,
+  detectLanguage,
+  formatPage,
+  formatSearchResults,
+  parsePlan,
+  planMessages,
+  type VexiumPlan,
+} from './vexium-planner';
+import { fetchPage, searchWeb } from './vexium-tools';
 
 export type AssistantError =
   | 'invalid-url'
@@ -31,11 +41,29 @@ export interface AssistantChatResult {
   status?: number;
 }
 
+export interface AssistantSource {
+  title: string;
+  url: string;
+}
+
+export interface AssistantToolEvent {
+  phase: 'start' | 'done';
+  name: 'search' | 'fetch';
+  /** The query or URL, so the panel can say what it is doing. */
+  detail: string;
+  count?: number;
+  failed?: boolean;
+}
+
 export interface AssistantDelta {
   requestId: string;
   delta?: string;
   done?: boolean;
   error?: AssistantError;
+  /** Live tool activity, so a search is visible while it runs. */
+  tool?: AssistantToolEvent;
+  /** Every result the tools actually returned, for the panel's own links. */
+  sources?: AssistantSource[];
 }
 
 const PROBE_TIMEOUT = 4_000;
@@ -121,12 +149,32 @@ export class Assistant {
 
     try {
       armIdle();
+
+      // Look things up before answering, when the turn may use tools. A
+      // planner failure is not a failure of the answer: it falls back to the
+      // plain completion this app has always sent.
+      let toolContext = '';
+      let usedTool = false;
+      const lastUser = [...request.messages].reverse().find(message => message.role === 'user');
+      const language = detectLanguage(lastUser?.content ?? '');
+      if (request.tools) {
+        const plan = await this.plan(request, controller.signal);
+        const outcome = await this.runPlan(plan, request.requestId, controller.signal);
+        toolContext = outcome.context;
+        usedTool = outcome.used;
+      }
+
       const response = await fetch(`${request.baseUrl}/v1/chat/completions`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
         body: JSON.stringify({
           model: request.model,
-          messages: buildMessages(request.messages, { facts: request.facts }),
+          messages: buildMessages(request.messages, {
+            facts: request.facts,
+            toolContext,
+            language,
+            usedTool,
+          }),
           stream: true,
           ...GENERATION,
         }),
@@ -175,6 +223,92 @@ export class Assistant {
       if (idle) clearTimeout(idle);
       this.active.delete(request.requestId);
     }
+  }
+
+  /**
+   * One short, non-streamed turn that decides whether to look something up.
+   *
+   * Temperature 0 and a 96-token cap: this is a routing decision, not prose.
+   * Any error, refusal or malformed answer becomes `answer`.
+   */
+  private async plan(
+    request: { baseUrl: string; model: string; messages: Parameters<typeof buildMessages>[0] },
+    signal: AbortSignal,
+  ): Promise<VexiumPlan> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PLAN_TIMEOUT_MS);
+    const onAbort = () => controller.abort();
+    signal.addEventListener('abort', onAbort);
+    try {
+      const response = await fetch(`${request.baseUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({
+          model: request.model,
+          messages: planMessages(request.messages),
+          stream: false,
+          temperature: 0,
+          max_tokens: 96,
+        }),
+        signal: controller.signal,
+      });
+      if (!response.ok) return { action: 'answer' };
+      const body = (await response.json()) as {
+        choices?: Array<{ message?: { content?: unknown } }>;
+      };
+      const content = body.choices?.[0]?.message?.content;
+      return parsePlan(typeof content === 'string' ? content : '');
+    } catch {
+      return { action: 'answer' };
+    } finally {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', onAbort);
+    }
+  }
+
+  /** Runs the planned tool and returns the context the answer turn receives. */
+  private async runPlan(
+    plan: VexiumPlan,
+    requestId: string,
+    signal: AbortSignal,
+  ): Promise<{ context: string; used: boolean }> {
+    if (plan.action === 'search' && plan.query) {
+      this.emit({ requestId, tool: { phase: 'start', name: 'search', detail: plan.query } });
+      try {
+        const results = await searchWeb(plan.query, { signal });
+        this.emit({
+          requestId,
+          tool: { phase: 'done', name: 'search', detail: plan.query, count: results.length },
+          sources: results.map(result => ({ title: result.title, url: result.url })),
+        });
+        return { context: formatSearchResults(results), used: results.length > 0 };
+      } catch {
+        this.emit({
+          requestId,
+          tool: { phase: 'done', name: 'search', detail: plan.query, count: 0, failed: true },
+        });
+        return { context: '', used: false };
+      }
+    }
+    if (plan.action === 'fetch' && plan.url) {
+      this.emit({ requestId, tool: { phase: 'start', name: 'fetch', detail: plan.url } });
+      try {
+        const page = await fetchPage(plan.url, { signal });
+        this.emit({
+          requestId,
+          tool: { phase: 'done', name: 'fetch', detail: plan.url, count: 1 },
+          sources: [{ title: page.title || page.url, url: page.url }],
+        });
+        return { context: formatPage(page), used: page.text.length > 0 };
+      } catch {
+        this.emit({
+          requestId,
+          tool: { phase: 'done', name: 'fetch', detail: plan.url, count: 0, failed: true },
+        });
+        return { context: '', used: false };
+      }
+    }
+    return { context: '', used: false };
   }
 
   private emit(event: AssistantDelta): void {

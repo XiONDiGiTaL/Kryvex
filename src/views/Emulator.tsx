@@ -12,20 +12,31 @@ import { useT } from '../lib/i18n';
 import { openExternalUrl } from '../lib/external';
 import type { LifecycleVerdict } from '../lib/lifecycle';
 import {
-  ROM_ACCEPT,
-  ROM_SYSTEMS,
-  coreFor,
-  emulatorGameId,
   emulatorGameKey,
   emulatorHostDocument,
   emulatorRequestId,
+  emulatorStartMessage,
+  engineFor,
   identifyRomSystem,
   isEmulatorSystem,
+  offeredSystems,
+  romAccept,
   romValidation,
   systemLabel,
   systemNote,
   systemsForFile,
 } from '../lib/emulator';
+import {
+  FLYCAST_INSTALL_BYTES,
+  FLYCAST_RELEASE,
+  flycastCoreZip,
+  flycastFailureKey,
+} from '../lib/flycast';
+import type { FlycastStatus, RetroarchStatus } from '../types';
+import { retroarchFailureKey } from '../lib/retroarch';
+
+/** The desktop bridge, resolved once: the web build has no engine installer. */
+const bridge = typeof window === 'undefined' ? undefined : window.kryvex;
 import {
   MAX_STATES_PER_GAME,
   type EmulatorStateRecord,
@@ -48,6 +59,8 @@ import {
 import { partySession, type NetplayMessage } from '../lib/party';
 import {
   NEUTRAL_PAD,
+  NETPLAY_ASK_ATTEMPTS,
+  NETPLAY_ASK_INTERVAL_MS,
   NETPLAY_PAD_HEARTBEAT_MS,
   NETPLAY_STATE_INTERVAL_MS,
   joinRom,
@@ -55,6 +68,7 @@ import {
   pickLocalPad,
   romFitsNetplay,
   samePad,
+  shouldSendCartridge,
   splitRom,
   type NetplayPad,
 } from '../lib/netplay';
@@ -152,6 +166,52 @@ export function Emulator({
   const system = rom?.system ?? settings.system;
   const hostDocument = useRef(emulatorHostDocument());
 
+  // The second engine (Dreamcast). Switched off, nothing here is offered and
+  // the cartridge engine behaves exactly as it did before the feature existed.
+  const experimental = settings.experimentalEngine;
+  const engineOptions = useMemo(() => ({ flycast: experimental }), [experimental]);
+  const systems = useMemo(() => offeredSystems(engineOptions), [engineOptions]);
+  const [engine, setEngine] = useState<FlycastStatus | null>(null);
+  const [engineBusy, setEngineBusy] = useState(false);
+  // The packed core, once its files have been verified and read: 10.4 MB that
+  // is only fetched when a Dreamcast game actually starts.
+  const [coreZip, setCoreZip] = useState<Uint8Array | null>(null);
+  const engineInstalled = engine?.installed === true;
+  const desktopEngine = Boolean(bridge?.flycastCore);
+
+  // Real netplay runs in RetroArch, a program the user installed. The session
+  // is a separate process, so its state is read back from the main process
+  // instead of guessed from what this panel did.
+  const [retro, setRetro] = useState<RetroarchStatus | null>(null);
+  const [retroBusy, setRetroBusy] = useState(false);
+  const [joinAddress, setJoinAddress] = useState('');
+  const [retroNote, setRetroNote] = useState<string | null>(null);
+  const desktopNetplay = Boolean(bridge?.retroarchStart);
+
+  useEffect(() => {
+    if (!bridge?.retroarchStatus) return;
+    let alive = true;
+    const load = () => {
+      void bridge
+        .retroarchStatus?.()
+        .then(status => {
+          if (alive && status) setRetro(status);
+        })
+        .catch(() => undefined);
+    };
+    load();
+    // RetroArch can be closed from its own window, and nothing tells Kryvex, so
+    // the panel asks on a slow clock rather than claiming a session that ended.
+    const timer = window.setInterval(load, 5000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const retroSystem = rom?.system ?? null;
+  const retroCore = retro?.cores.find(core => core.system === retroSystem) ?? null;
+
   const refreshStates = useCallback(async (gameKey: string | null) => {
     if (!gameKey) {
       setStates([]);
@@ -172,6 +232,26 @@ export function Emulator({
     void getSaveDirectory()
       .then(handle => setSaveFolder(handle))
       .catch(() => setSaveFolder(null));
+  }, []);
+
+  // The engine's state lives in the main process, so a reopened panel reads it
+  // instead of guessing from what this session downloaded.
+  useEffect(() => {
+    if (!bridge?.flycastStatus) return;
+    let alive = true;
+    void bridge
+      .flycastStatus()
+      .then(status => {
+        if (alive && status) setEngine(status);
+      })
+      .catch(() => undefined);
+    const stop = bridge.onFlycastProgress?.(progress =>
+      setEngine(current => (current ? { ...current, phase: 'downloading', progress } : current)),
+    );
+    return () => {
+      alive = false;
+      stop?.();
+    };
   }, []);
 
   const post = useCallback((message: Record<string, unknown>) => {
@@ -246,6 +326,8 @@ export function Emulator({
   const party = useSyncExternalStore(partySession.subscribe, partySession.getSnapshot);
   const [netRole, setNetRole] = useState<'host' | 'guest' | null>(null);
   const [netNote, setNetNote] = useState<string | null>(null);
+  /** True once the two ends are actually playing the same cartridge. */
+  const [netLinked, setNetLinked] = useState(false);
   const net = useRef({
     role: null as 'host' | 'guest' | null,
     peer: null as string | null,
@@ -255,6 +337,12 @@ export function Emulator({
     frame: 0,
     rom: null as (string | null)[] | null,
     state: null as (string | null)[] | null,
+    /** The peer this host has already sent the cartridge to in this session. */
+    romPeer: null as string | null,
+    /** True once this end is playing the linked game rather than waiting. */
+    linked: false,
+    askTimer: 0 as number,
+    asks: 0,
   });
 
   const postPads = useCallback(() => {
@@ -303,11 +391,53 @@ export function Emulator({
     [],
   );
 
+  const stopAsking = useCallback(() => {
+    if (net.current.askTimer) {
+      window.clearInterval(net.current.askTimer);
+      net.current.askTimer = 0;
+    }
+  }, []);
+
+  /**
+   * A guest keeps announcing its seat until the cartridge arrives.
+   *
+   * The two machines open the link in either order and the room does not replay
+   * a frame to a peer that had not opened one yet, so a single hello can be
+   * lost. Repeating it is what makes "host presses Host after the guest pressed
+   * Join" work; the host remembers the peer it already sent the game to, so a
+   * repeat costs one small frame rather than a second transfer.
+   */
+  const startAsking = useCallback(() => {
+    stopAsking();
+    net.current.asks = 0;
+    net.current.askTimer = window.setInterval(() => {
+      if (net.current.role !== 'guest' || net.current.linked) return;
+      net.current.asks += 1;
+      if (net.current.asks > NETPLAY_ASK_ATTEMPTS) {
+        stopAsking();
+        setNetNote(
+          t(
+            'No host answered. The other machine has to open this cartridge in its own emulator and press Host this cartridge.',
+          ),
+        );
+        return;
+      }
+      void partySession.sendNetplay({
+        kind: 'hello',
+        role: 'guest',
+        name: partySession.getSnapshot().selfName || 'Player 2',
+        gameKey: '',
+        system: '',
+      });
+    }, NETPLAY_ASK_INTERVAL_MS);
+  }, [stopAsking, t]);
+
   const stopNetplay = useCallback(
     (note?: string) => {
       if (net.current.role) {
         void partySession.sendNetplay({ kind: 'bye', role: net.current.role });
       }
+      stopAsking();
       partySession.onNetplay = null;
       cancelAnimationFrame(net.current.frame);
       net.current.role = null;
@@ -316,8 +446,12 @@ export function Emulator({
       net.current.sent = [NEUTRAL_PAD, NEUTRAL_PAD];
       net.current.rom = null;
       net.current.state = null;
+      net.current.romPeer = null;
+      net.current.linked = false;
+      net.current.asks = 0;
       post({ type: 'kryvex-netplay', active: false });
       setNetRole(null);
+      setNetLinked(false);
       setNetNote(note ?? null);
     },
     [post],
@@ -339,27 +473,41 @@ export function Emulator({
     (message: NetplayMessage) => {
       const role = net.current.role;
       if (!role) return;
-      if (message.kind === 'hello') {
+      if (message.kind === 'hello' || message.kind === 'ask') {
         if (message.role === role) return;
         net.current.peer = message.peerId;
         if (role === 'host') {
           const label = message.name || t('Player 2');
-          setNetNote(t('{name} joined as player 2. Sending the cartridge…', { name: label }));
+          // An `ask` is the guest saying the transfer did not arrive; a repeat
+          // hello is only an announcement. Sending a multi-megabyte cartridge
+          // twice because both ends pressed their button is what the peer
+          // check prevents.
+          const send = shouldSendCartridge(
+            message.kind === 'ask' ? 'ask' : 'hello',
+            message.peerId,
+            net.current.romPeer,
+          );
+          if (send) {
+            net.current.romPeer = message.peerId;
+            setNetNote(t('{name} joined as player 2. Sending the cartridge…', { name: label }));
+          }
           if (rom) {
-            if (romFitsNetplay(rom.buffer.byteLength)) {
-              void sendChunked('rom', rom.buffer, {
-                gameName: rom.name,
-                system: rom.system,
-                gameKey: rom.gameKey,
-              });
-            } else {
+            if (!romFitsNetplay(rom.buffer.byteLength)) {
               setNetNote(
                 t('{name} joined, but this cartridge is too large to send. Both players can load the same file instead.', {
                   name: label,
                 }),
               );
+            } else if (send) {
+              void sendChunked('rom', rom.buffer, {
+                gameName: rom.name,
+                system: rom.system,
+                gameKey: rom.gameKey,
+              });
             }
           }
+          net.current.linked = true;
+          setNetLinked(true);
           postPads();
         } else {
           setNetNote(t('Connected to the host. Waiting for the cartridge…'));
@@ -369,6 +517,8 @@ export function Emulator({
       if (message.kind === 'bye') {
         net.current.peer = null;
         net.current.pads = role === 'host' ? [net.current.pads[0], NEUTRAL_PAD] : [NEUTRAL_PAD, net.current.pads[1]];
+        net.current.linked = false;
+        setNetLinked(false);
         postPads();
         setNetNote(t('The other player left the link.'));
         return;
@@ -390,6 +540,9 @@ export function Emulator({
           ? message.system
           : (identifyRomSystem(buffer) ?? 'nes');
         loadRom(message.gameName || 'linked.rom', buffer, next);
+        stopAsking();
+        net.current.linked = true;
+        setNetLinked(true);
         setNetNote(t('Cartridge received. The host’s game is now your game.'));
         return;
       }
@@ -412,7 +565,7 @@ export function Emulator({
         postPads();
       }
     },
-    [collectChunks, hostReady, post, postPads, rom, running, sendChunked, t],
+    [collectChunks, hostReady, post, postPads, rom, running, sendChunked, stopAsking, t],
   );
 
   useEffect(() => {
@@ -434,12 +587,15 @@ export function Emulator({
   // drift, rare enough that a save state never becomes video traffic.
   useEffect(() => {
     if (netRole !== 'host' || !running) return;
+    // A checkpoint is a whole save state: a Dreamcast one is far too large to
+    // send every second, so the second engine does not enter this loop at all.
+    if (rom && engineFor(rom.system) === 'flycast') return;
     const timer = window.setInterval(() => {
       if (net.current.role !== 'host' || !net.current.peer) return;
       post({ type: 'kryvex-netplay-snapshot', requestId: emulatorRequestId() });
     }, NETPLAY_STATE_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [netRole, post, running]);
+  }, [netRole, post, rom, running]);
 
   const newest = useMemo(
     () => states.find(record => record.kind === 'quick') ?? states[0] ?? null,
@@ -562,19 +718,21 @@ export function Emulator({
   // A host reload resets the frame; the next ROM has to be sent again.
   useEffect(() => {
     if (!hostReady || !rom) return;
+    // A Dreamcast game waits for the engine payload: the frame has nothing to
+    // start without it, and this effect runs again when the zip arrives.
+    if (engineFor(rom.system) === 'flycast' && !coreZip) return;
     iframeRef.current?.contentWindow?.postMessage(
-      {
-        type: 'kryvex-rom',
+      emulatorStartMessage({
         name: rom.name,
         data: rom.buffer,
-        core: coreFor(rom.system),
+        system: rom.system,
         gamepad: settings.gamepad,
         bios: bios?.buffer ?? null,
-        gameId: emulatorGameId(rom.name),
-      },
+        coreZip: coreZip ?? undefined,
+      }),
       '*',
     );
-  }, [bios, hostReady, rom, settings.gamepad]);
+  }, [bios, coreZip, hostReady, rom, settings.gamepad]);
 
   // Lifecycle: a paused service suspends the core but keeps its memory, and a
   // muted one keeps emulating without sound.
@@ -588,7 +746,144 @@ export function Emulator({
     post({ type: 'kryvex-mute', muted: lifecycle.mute });
   }, [hostReady, lifecycle.mute, post]);
 
+  /**
+   * Reads the verified core files and packs them for the frontend.
+   *
+   * The main process re-hashes on the way out, so a file changed after install
+   * is refused here rather than handed to a code loader.
+   */
+  const ensureCore = useCallback(async () => {
+    if (coreZip || !bridge?.flycastCore) return;
+    const answer = await bridge.flycastCore().catch(() => null);
+    if (!answer) {
+      onToast(t('The second engine runs in the desktop app only.'), 'warning');
+      return;
+    }
+    if (!answer.ok) {
+      onToast(t(flycastFailureKey(answer.error)), 'danger');
+      return;
+    }
+    setCoreZip(
+      flycastCoreZip({
+        js: new Uint8Array(answer.js),
+        wasm: new Uint8Array(answer.wasm),
+      }),
+    );
+  }, [coreZip, onToast, t]);
+
+  async function refreshEngine() {
+    const status = await bridge?.flycastStatus?.().catch(() => null);
+    if (status) setEngine(status);
+  }
+
+  async function installEngine() {
+    if (!bridge?.flycastInstall) {
+      onToast(t('The second engine runs in the desktop app only.'), 'warning');
+      return;
+    }
+    setEngineBusy(true);
+    try {
+      const status = await bridge.flycastInstall();
+      if (status) setEngine(status);
+      if (status?.installed) {
+        onToast(t('The engine is ready. Load a Dreamcast image with its BIOS.'), 'success');
+      } else if (status?.error) {
+        onToast(t(flycastFailureKey(status.error)), 'danger');
+      }
+    } catch {
+      onToast(t(flycastFailureKey('network')), 'danger');
+    } finally {
+      setEngineBusy(false);
+    }
+  }
+
+  async function removeEngine() {
+    if (!bridge?.flycastRemove) return;
+    setCoreZip(null);
+    const status = await bridge.flycastRemove().catch(() => null);
+    if (status) setEngine(status);
+    onToast(t('The engine was removed.'), 'info');
+  }
+
+  /**
+   * Netplay, through the RetroArch on this machine.
+   *
+   * The cartridge goes over as bytes — a guest's copy came out of Kryvex's own
+   * store, and RetroArch matches content by CRC, so the two files need not have
+   * the same name. An error id is turned into a sentence here, in the language
+   * the panel is already speaking.
+   */
+  async function startRetroarch(role: 'host' | 'join') {
+    if (!bridge?.retroarchStart || !rom) return;
+    setRetroBusy(true);
+    setRetroNote(null);
+    try {
+      const status = await bridge
+        .retroarchStart({
+          role,
+          system: rom.system,
+          address: role === 'join' ? joinAddress : undefined,
+          nick: party.selfName,
+          rom: {
+            name: rom.name,
+            extension: rom.name.split('.').pop() ?? '',
+            bytes: new Uint8Array(rom.buffer),
+          },
+        })
+        .catch(() => null);
+      if (!status) return;
+      setRetro(status);
+      if (status.error) {
+        setRetroNote(
+          t(retroarchFailureKey(status.error), {
+            system: systemLabel(rom.system),
+            file: status.missing?.[0] ?? '',
+          }),
+        );
+      }
+    } finally {
+      setRetroBusy(false);
+    }
+  }
+
+  async function locateRetroarch() {
+    if (!bridge?.retroarchLocate) return;
+    const status = await bridge.retroarchLocate().catch(() => null);
+    if (status) setRetro(status);
+  }
+
+  async function stopRetroarch() {
+    if (!bridge?.retroarchStop) return;
+    const status = await bridge.retroarchStop().catch(() => null);
+    if (status) setRetro(status);
+    setRetroNote(null);
+  }
+
+  /**
+   * Turning the engine off hides its formats and forgets the packed core. A
+   * game already running keeps running: closing it is the user's call, not a
+   * side effect of a switch.
+   */
+  function toggleEngine(on: boolean) {
+    const nextSystem = !on && engineFor(system) === 'flycast' ? 'nes' : system;
+    onUpdate({ experimentalEngine: on, system: nextSystem });
+    if (!on) setCoreZip(null);
+  }
+
   function loadRom(name: string, buffer: ArrayBuffer, nextSystem: EmulatorSystem) {
+    if (engineFor(nextSystem) === 'flycast' && !engineInstalled) {
+      onToast(
+        t(
+          desktopEngine
+            ? 'Install the engine before starting a Dreamcast game.'
+            : 'The second engine runs in the desktop app only.',
+        ),
+        'warning',
+      );
+      // A status read may have been missed: ask once more for the next attempt.
+      void refreshEngine();
+      return;
+    }
     setHostKey(value => value + 1);
     setHostReady(false);
     setRunning(false);
@@ -602,17 +897,18 @@ export function Emulator({
       gameKey: emulatorGameKey(name, nextSystem, buffer.byteLength),
     });
     onUpdate({ system: nextSystem });
+    if (engineFor(nextSystem) === 'flycast') void ensureCore();
     onToast(t('{name} loaded. The core starts on the canvas.', { name }), 'success');
   }
 
   async function acceptRom(file: File | undefined) {
     if (!file) return;
-    const error = romValidation(file.name, file.size);
+    const error = romValidation(file.name, file.size, engineOptions);
     if (error) {
       onToast(t(error), 'danger');
       return;
     }
-    const candidates = systemsForFile(file.name);
+    const candidates = systemsForFile(file.name, engineOptions);
     const buffer = await file.arrayBuffer();
     const identified = identifyRomSystem(buffer);
     if (identified && candidates.includes(identified)) {
@@ -745,6 +1041,15 @@ export function Emulator({
       onToast(t('Wait for the core to finish starting.'), 'info');
       return;
     }
+    if (engineFor(rom.system) === 'flycast') {
+      onToast(
+        t(
+          'Link play keeps the two machines together by sending save states, and a Dreamcast state is too large for that. Load the same image on both machines instead.',
+        ),
+        'warning',
+      );
+      return;
+    }
     if (party.status !== 'joined') {
       onToast(t('Join a room first: Rooms is the link between the two machines.'), 'warning');
       return;
@@ -753,7 +1058,10 @@ export function Emulator({
     net.current.peer = null;
     net.current.rom = null;
     net.current.state = null;
+    net.current.romPeer = null;
+    net.current.linked = false;
     setNetRole('host');
+    setNetLinked(false);
     setNetNote(t('Waiting for player 2. Share the room link from Rooms.'));
     startPadLoop();
     void partySession.sendNetplay({
@@ -775,7 +1083,10 @@ export function Emulator({
     net.current.peer = null;
     net.current.rom = null;
     net.current.state = null;
+    net.current.romPeer = null;
+    net.current.linked = false;
     setNetRole('guest');
+    setNetLinked(false);
     setNetNote(t('Asking the host for the cartridge…'));
     startPadLoop();
     void partySession.sendNetplay({
@@ -785,12 +1096,43 @@ export function Emulator({
       gameKey: '',
       system: '',
     });
+    startAsking();
+  }
+
+  /** The guest's retry: an explicit request the host honours even after a send. */
+  function askAgain() {
+    if (net.current.role !== 'guest') return;
+    net.current.linked = false;
+    setNetLinked(false);
+    setNetNote(t('Asking the host for the cartridge…'));
+    void partySession.sendNetplay({
+      kind: 'ask',
+      role: 'guest',
+      name: party.selfName || 'Player 2',
+      gameKey: '',
+      system: '',
+    });
+    startAsking();
   }
 
   const quick = states.find(record => record.kind === 'quick') ?? null;
   const folderLine = saveFolder
     ? t('Also writing to {folder}.', { folder: saveFolder.name })
     : t('Stored in this browser profile; it survives a reload.');
+  const enginePercent = engine?.progress
+    ? Math.min(
+        100,
+        Math.round((engine.progress.overall / Math.max(1, engine.progress.installBytes)) * 100),
+      )
+    : 0;
+  const engineLine =
+    engine?.phase === 'downloading'
+      ? t('Downloading the engine… {percent}%', { percent: enginePercent })
+      : engineInstalled
+        ? t('Ready · {version}', { version: engine?.label ?? FLYCAST_RELEASE.version })
+        : engine?.phase === 'error'
+          ? t('The engine could not be installed.')
+          : t('Not installed');
 
   return (
     <section className="view emulator-view">
@@ -872,13 +1214,16 @@ export function Emulator({
           <input
             ref={romInput}
             type="file"
-            accept={ROM_ACCEPT}
+            accept={romAccept(engineOptions)}
             hidden
             onChange={pickRom}
             aria-label={t('Choose a ROM')}
           />
           <p className="emulator-formats mono">
-            {t('NES · SNES · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy')}
+            {t(
+              'NES · SNES · N64 · GB/GBC · GBA · Sega · Atari · PC Engine · WonderSwan · Neo Geo Pocket · Virtual Boy · PlayStation',
+            )}
+            {experimental ? ' · Dreamcast' : ''}
           </p>
           {rom ? (
             <button className="link" onClick={closeCartridge}>
@@ -887,7 +1232,7 @@ export function Emulator({
           ) : null}
 
           <div className="emulator-system-list" role="group" aria-label={t('Console')}>
-            {ROM_SYSTEMS.map(item => (
+            {systems.map(item => (
               <button
                 key={item.id}
                 className={system === item.id ? 'is-active' : ''}
@@ -906,7 +1251,11 @@ export function Emulator({
             <p className="emulator-system-note mono">{t(systemNote(system)!)}</p>
           ) : null}
           <p className="emulator-system-note mono">
-            {t('Atari 8-bit computers, Pokemon Mini and Arduboy have no EmulatorJS core here, so those formats are not offered.')}
+            {t(
+              experimental
+                ? 'Dreamcast runs on the second engine. Naomi arcade boards are still not offered: a set is several files and the slot takes one.'
+                : 'Atari 8-bit computers, Pokemon Mini, Arduboy, Dreamcast and Naomi have no EmulatorJS core here, so those formats are not offered.',
+            )}
           </p>
 
           <div className="emulator-bios">
@@ -916,7 +1265,9 @@ export function Emulator({
               {bios ? bios.name : t('Choose BIOS')}
             </button>
             <p className="mono">
-              {t('Some Game Boy Advance, Lynx and PC Engine titles need their own BIOS or firmware dump.')}
+              {t(
+                'PlayStation needs its own BIOS to start; some Game Boy Advance, Lynx and PC Engine titles need a firmware dump of their own.',
+              )}
             </p>
             <input
               ref={biosInput}
@@ -930,6 +1281,88 @@ export function Emulator({
               }}
               aria-label={t('Choose a BIOS file')}
             />
+          </div>
+
+          {/* The second engine is opt-in and visibly separate: its formats are
+              not offered, and nothing is downloaded, while the switch is off. */}
+          <div className="emulator-engine">
+            <span className="mono emulator-side-label">{t('SECOND ENGINE')}</span>
+            <label className="emulator-engine-switch">
+              <input
+                type="checkbox"
+                checked={experimental}
+                onChange={event => toggleEngine(event.target.checked)}
+              />
+              <span>
+                <strong>{t('Dreamcast (experimental)')}</strong>
+                <span className="mono">{t('Runs on its own engine, off by default.')}</span>
+              </span>
+            </label>
+            {experimental ? (
+              <div className="emulator-engine-body">
+                <p className="mono">
+                  {t(
+                    'A pinned WebAssembly build of Flycast, fetched from its own release on first use. It is GPLv2 and is never bundled with Kryvex.',
+                  )}
+                </p>
+                <p className="emulator-engine-state mono">
+                  <span
+                    className={`emulator-engine-dot is-${engine?.phase ?? 'absent'}`}
+                    aria-hidden="true"
+                  />
+                  {engineLine}
+                </p>
+                {engine?.phase === 'downloading' && engine.progress ? (
+                  <div
+                    className="emulator-engine-bar"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={enginePercent}
+                    aria-label={t('Downloading the engine… {percent}%', { percent: enginePercent })}
+                  >
+                    <span style={{ width: `${enginePercent}%` }} />
+                  </div>
+                ) : null}
+                <div className="emulator-engine-actions">
+                  {engineInstalled ? (
+                    <button className="btn ghost small" onClick={() => void removeEngine()}>
+                      {t('Remove the engine')}
+                    </button>
+                  ) : (
+                    <button
+                      className="btn primary small"
+                      disabled={engineBusy || !desktopEngine || engine?.phase === 'downloading'}
+                      onClick={() => void installEngine()}
+                    >
+                      <Icon name="download" size={13} />{' '}
+                      {t('Download the engine ({size})', {
+                        size: formatSaveSize(FLYCAST_INSTALL_BYTES),
+                      })}
+                    </button>
+                  )}
+                  {engine?.phase === 'downloading' ? (
+                    <button className="link" onClick={() => void bridge?.flycastCancel?.()}>
+                      {t('Stop the download')}
+                    </button>
+                  ) : null}
+                </div>
+                {!desktopEngine ? (
+                  <p className="mono">{t('The second engine runs in the desktop app only.')}</p>
+                ) : null}
+                <p className="mono emulator-engine-credit">
+                  {t(
+                    'Emulation by Flycast (GPLv2), loaded from its own release and not bundled with Kryvex.',
+                  )}{' '}
+                  <button
+                    className="link"
+                    onClick={() => openExternalUrl(FLYCAST_RELEASE.project)}
+                  >
+                    {t('Source and licence')}
+                  </button>
+                </p>
+              </div>
+            ) : null}
           </div>
         </aside>
 
@@ -948,6 +1381,22 @@ export function Emulator({
                 allow="gamepad; fullscreen"
                 className="emulator-frame"
               />
+              {/* The core has no netplay UI of its own, so the screen carries
+                  the link's state: one badge over the picture, live only once
+                  the two ends are actually running the same cartridge. */}
+              {netRole ? (
+                <div
+                  className={`emulator-link ${netLinked ? 'is-live' : ''}`}
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span className="emulator-link-dot" aria-hidden="true" />
+                  <strong>{netLinked ? t('LINK LIVE') : t('LINK · WAITING FOR HOST')}</strong>
+                  <span className="mono">
+                    {netRole === 'host' ? t('Player 1 · host') : t('Player 2 · guest')}
+                  </span>
+                </div>
+              ) : null}
               {!rom ? (
                 <div className="emulator-idle">
                   <span className="mono">{t('INSERT CARTRIDGE')}</span>
@@ -955,6 +1404,17 @@ export function Emulator({
                   <p>
                     {t(
                       'Choose a file from the cartridge slot. The emulator core is fetched from the official EmulatorJS CDN on first use.',
+                    )}
+                  </p>
+                </div>
+              ) : null}
+              {rom && !running && !hostError && engineFor(rom.system) === 'flycast' && !coreZip ? (
+                <div className="emulator-idle">
+                  <span className="mono">{t('SECOND ENGINE')}</span>
+                  <strong>{t('Starting the second engine…')}</strong>
+                  <p>
+                    {t(
+                      'The core is read from this machine and packed for the screen. Nothing is uploaded.',
                     )}
                   </p>
                 </div>
@@ -1188,9 +1648,16 @@ export function Emulator({
                   {party.roomId ? ` · ${party.roomId.slice(0, 6)}…` : ''}
                 </p>
                 {netNote ? <p>{netNote}</p> : null}
-                <button className="btn ghost small" onClick={() => stopNetplay(t('Link play ended.'))}>
-                  <Icon name="close" size={12} /> {t('End link play')}
-                </button>
+                <div className="emulator-netplay-actions">
+                  {netRole === 'guest' && !netLinked ? (
+                    <button className="btn secondary small" onClick={askAgain}>
+                      {t('Ask again')}
+                    </button>
+                  ) : null}
+                  <button className="btn ghost small" onClick={() => stopNetplay(t('Link play ended.'))}>
+                    <Icon name="close" size={12} /> {t('End link play')}
+                  </button>
+                </div>
               </>
             ) : (
               <>
@@ -1221,6 +1688,93 @@ export function Emulator({
                   </>
                 )}
                 {netNote ? <p>{netNote}</p> : null}
+              </>
+            )}
+          </div>
+
+          {/* Netplay that is actually frame-synchronised runs on RetroArch. It
+              is a separate program the user installs, so the panel offers to
+              find it and start it — never to download it. */}
+          <div className="emulator-netplay">
+            <span className="mono emulator-side-label">{t('NETPLAY (RETROARCH)')}</span>
+            <p>
+              {t(
+                'Frame-synchronised netplay runs on RetroArch, which you install and keep. Kryvex starts it for you and never downloads or bundles it. Both machines need the same game and the same core.',
+              )}
+            </p>
+            {!desktopNetplay ? (
+              <p className="mono">{t('Netplay runs in the desktop app only.')}</p>
+            ) : (
+              <>
+                <p className="mono emulator-netplay-role">
+                  {retro?.found
+                    ? t('RetroArch: {path}', { path: retro.directory ?? '' })
+                    : t('RetroArch was not found on this machine.')}
+                </p>
+                <div className="emulator-netplay-actions">
+                  <button className="btn ghost small" onClick={() => void locateRetroarch()}>
+                    <Icon name="folder" size={12} />{' '}
+                    {retro?.found ? t('Choose another copy') : t('Locate RetroArch')}
+                  </button>
+                  {retro?.session ? (
+                    <button className="btn ghost small" onClick={() => void stopRetroarch()}>
+                      <Icon name="close" size={12} /> {t('Stop netplay')}
+                    </button>
+                  ) : null}
+                </div>
+                {retroCore && !retroCore.present ? (
+                  <p className="mono">
+                    {t(
+                      'The core for {system} is missing: add {file} from RetroArch’s own core updater.',
+                      { system: rom ? systemLabel(rom.system) : '', file: retroCore.file },
+                    )}
+                  </p>
+                ) : null}
+                {retro?.session ? (
+                  <p>
+                    {retro.session.role === 'host'
+                      ? t('Hosting. The other player enters {address}.', {
+                          address: retro.localAddress ?? '',
+                        })
+                      : t('Joined {address}.', { address: retro.session.address ?? '' })}
+                  </p>
+                ) : (
+                  <>
+                    <input
+                      className="mono emulator-netplay-address"
+                      value={joinAddress}
+                      onChange={event => setJoinAddress(event.target.value)}
+                      placeholder={t('e.g. 192.168.1.20:55435')}
+                      aria-label={t('Host address')}
+                      spellCheck={false}
+                    />
+                    <div className="emulator-netplay-actions">
+                      <button
+                        className="btn secondary small"
+                        disabled={!rom || !retro?.found || !retroCore?.present || retroBusy}
+                        onClick={() => void startRetroarch('host')}
+                      >
+                        <Icon name="play" size={12} /> {t('Host with RetroArch')}
+                      </button>
+                      <button
+                        className="btn ghost small"
+                        disabled={
+                          !rom || !retro?.found || !retroCore?.present || retroBusy || !joinAddress.trim()
+                        }
+                        onClick={() => void startRetroarch('join')}
+                      >
+                        {t('Join with RetroArch')}
+                      </button>
+                    </div>
+                  </>
+                )}
+                {retroNote ? <p className="mono">{retroNote}</p> : null}
+                <p className="mono emulator-netplay-hint">
+                  {t(
+                    'The host may have to allow TCP {port} through the firewall, and forward it on the router for a player outside the network. RetroArch opens in its own window; Kryvex stops it when you quit.',
+                    { port: String(retro?.defaultPort ?? 55435) },
+                  )}
+                </p>
               </>
             )}
           </div>

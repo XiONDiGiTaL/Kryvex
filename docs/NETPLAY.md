@@ -1,0 +1,153 @@
+# Netplay
+
+Kryvex has two ways to play with another person. They are different features, and
+neither pretends to be the other.
+
+| | **Link play (Rooms)** | **Netplay (RetroArch)** |
+| --- | --- | --- |
+| Transport | The room's own peer-to-peer data channel | RetroArch's own netplay (TCP) |
+| What moves | The cartridge, two controller frames, and a save state every 1.5 s | Frame-synchronised input |
+| Engines | The cartridge engine and the second engine | Whatever RetroArch runs |
+| Rooms required | Yes | No |
+| Where it renders | In Kryvex, on the emulator screen | In RetroArch's own window |
+| Honest summary | Two cores kept close by checkpoints | Real netplay |
+
+## Why link play cannot become netplay
+
+Link play was built to answer "can two people play the same cartridge without a
+third-party service?"
+
+- The host sends the cartridge once, chunked, so the guest never needs the file.
+- Both cores run locally; the host is authoritative and its save state is pushed
+  to the guest every 1.5 s so the two cannot drift far.
+
+That is a checkpoint channel, not netplay. A guest running its own core re-simulates
+between snapshots, so its input is always at least one interval late, and every
+snapshot is a correction the player can feel. Frame-synchronised netplay needs the
+two cores to consume the same input on the same frame, which needs rollback or a
+fixed input delay plus a shared clock — that is an engine feature, not something a
+transport can add. This is also why a Dreamcast game is refused: a Dreamcast state
+is far larger than 1.5 s of transport can carry, and its core is far heavier than
+the 8-bit ones the channel was measured against.
+
+The clean fix would be a netplay-capable core. The cartridge engine's own netplay
+exists but its maintainer describes it as "a mess right now" and it has not reached
+stable; it also routes through a third-party relay, which would move game data off
+the peer-to-peer path the room promises. Building rollback into a WASM core is a
+project, not a switch.
+
+## What ships instead
+
+**Netplay runs on RetroArch.** RetroArch implements netplay properly and exposes it
+on the command line, which is all a sidecar needs:
+
+```
+retroarch -L <core> -H --port 55435 --nick <name> <game>
+retroarch -L <core> -C <host> --port 55435 --nick <name> <game>
+```
+
+`-H` hosts and waits for a player; `-C` joins one. Kryvex finds the copy the user
+installed, writes the loaded cartridge to a temporary file, and starts it.
+
+**Kryvex never downloads or bundles RetroArch.** That is a licence decision, not a
+technical one: RetroArch is GPLv3, and shipping it inside an MIT application's
+installer is exactly the redistribution question this project refuses to answer
+casually. Every core on the buildbot has its own licence too — some are
+non-commercial — so a Kryvex downloader would have to curate them. The user installs
+RetroArch and the cores they want through RetroArch's own updater, and Kryvex only
+runs what is already there. Nothing in the app knows a RetroArch URL.
+
+### Where it is wired
+
+| File | Job |
+| --- | --- |
+| `electron/retroarch-catalogue.ts` | Console → core table, usual install paths, the argument list, address parsing, cartridge file names. Pure. |
+| `electron/retroarch.ts` | Finds the executable, lists installed cores, writes the cartridge, spawns host or guest, stops on quit. Electron is not imported, so it is testable. |
+| `electron/main.ts` | Five narrow IPC handlers; the file dialog is the only way a path enters the main process. |
+| `src/lib/retroarch.ts` | The failure ids as sentences the interface translates. |
+| `src/views/Emulator.tsx` | The **NETPLAY (RETROARCH)** panel: locate, status, per-console core check, host, join, stop. |
+| `tests/retroarch.test.ts` | The rules, the refusal cases, and the sidecar's own state machine with a fake install. |
+
+### What the panel does and does not do
+
+- It reports whether RetroArch was found and where, and offers a dialog to point at
+  a different copy. The remembered path is a JSON file in the app's own profile.
+- It names the missing core for the loaded console (`fceumm_libretro.dll` and so
+  on) instead of "netplay unavailable", because the fix is in RetroArch's updater.
+- It shows the host's own LAN address with the port, so it can be read out.
+- It refuses a join address it cannot dial: schemes, paths, spaces and out-of-range
+  ports are a sentence in the panel, not a process that exits quietly.
+- It never claims a session is up beyond "RetroArch was started": there is no
+  machine-readable "connected" line in RetroArch's output, so the two players
+  confirm each other by nickname inside RetroArch.
+
+## Requirements the user has to meet
+
+1. **RetroArch installed**, with `retroarch.exe` on a usual path or chosen once in
+   the panel.
+2. **The same core on both machines**, from RetroArch's own core updater. Kryvex
+   picks the first installed candidate for the console; both players must end up on
+   that same core.
+3. **The same content.** RetroArch matches the game by content CRC, so the file
+   names may differ, but it must be the same dump. A BIOS, where a core needs one,
+   is RetroArch's business — it reads its own `system` directory.
+4. **TCP 55435 reachable on the host.** On a LAN this is the firewall; across the
+   internet it is a port forward on the router. Kryvex does not do NAT traversal and
+   does not pretend to: no relay, no lobby, no account.
+
+## Licence position
+
+- RetroArch: **GPLv3**, a separate program. Kryvex launches it with an argument
+  list; it does not link against it, embed it, modify it or redistribute it.
+- Cores: each has its own licence. Kryvex downloads none and names none as its own.
+- Kryvex's own code for this feature is MIT, like the rest of the repository.
+
+## What is measured, and what is not
+
+Measured on this machine:
+
+- The rules: argument lists, nickname and address validation, cartridge file
+  naming, install-path discovery, and the sidecar's refusal cases (`not-found`,
+  `no-core`, `rom`, `address`) with a fake install — 11 unit tests.
+- The sidecar's own half, end to end, with `pnpm verify:netplay`: a fake
+  `retroarch.exe` (a copy of `cmd.exe`) plus a `cores/` folder. It found the
+  install, listed its Flycast and FCEUmm cores, refused a console with no core
+  and named the candidates, refused an address it cannot dial, wrote the
+  cartridge byte-for-byte into `roms/`, spawned the process with the documented
+  flags, captured its exit and its stderr, parsed `10.0.0.4:55535`, and returned
+  to idle on stop. Ten checks, exit 0.
+- The panel and the bridge compile in both TypeScript projects, and the copy is
+  translated into all five languages (the coverage audit counts zero new
+  untranslated strings).
+
+**Not measured, because this machine has one desktop and no RetroArch install:**
+
+- A real two-machine session. `-H`/`-C` are documented RetroArch flags, but no
+  host has ever waited for a guest here and no frame has crossed a network.
+- Stop against a *live* RetroArch process: the fake executable exits by itself,
+  so only the state transition is proven.
+- Frame rate and input latency under netplay.
+
+### Manual two-machine test plan
+
+1. Install RetroArch on both machines, add the same core (e.g. `fceumm`) through
+   *Online Updater → Core Downloader*.
+2. Open Kryvex → Emulator on both, load the same cartridge.
+3. On the host: **NETPLAY (RETROARCH)** → **Host with RetroArch**. RetroArch opens
+   and waits. Read out the address the panel shows.
+4. On the other machine: type that address → **Join with RetroArch**.
+5. Inside RetroArch, the host should see the guest's nickname in the netplay
+   overlay. Confirm both are on the same core.
+6. Play. Then quit Kryvex and confirm RetroArch closes with it.
+7. Repeat across the internet with TCP 55435 forwarded to the host, and note
+   whether the router needed a UPnP rule.
+
+## Not in this batch
+
+- Room-based netplay. The room carries chat, sharing and link play; carrying
+  RetroArch's TCP session through it would mean a proxy and a new security surface.
+- Automatic core installation. That is RetroArch's updater, and curating its core
+  licences is exactly what this document declines to do.
+- Naomi netplay, or any console the cartridge engine cannot run: RetroArch's
+  Flycast core can do Dreamcast and Naomi netplay, but the BIOS and image are still
+  the user's to provide.

@@ -382,7 +382,7 @@ export function Services({
                 <strong>{t('Secret emulator')}</strong>
                 <span>
                   {t(
-                    'Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket and Virtual Boy files you already own.',
+                    'Load Nintendo, Sega, Atari, PC Engine, WonderSwan, Neo Geo Pocket, Virtual Boy and PlayStation files you already own.',
                   )}
                 </span>
               </span>

@@ -315,6 +315,28 @@ const api = {
     ipcRenderer.on('kryvex:speech:progress', wrapped);
     return () => ipcRenderer.removeListener('kryvex:speech:progress', wrapped);
   },
+  // The second emulator engine: install, status, the verified bytes, removal.
+  // No URL, host or path is accepted, so the shell cannot choose what is
+  // fetched — only whether the pinned release is present.
+  flycastStatus: (): Promise<unknown> => ipcRenderer.invoke('kryvex:flycast:status'),
+  flycastInstall: (): Promise<unknown> => ipcRenderer.invoke('kryvex:flycast:install'),
+  flycastCore: (): Promise<unknown> => ipcRenderer.invoke('kryvex:flycast:core'),
+  flycastRemove: (): Promise<unknown> => ipcRenderer.invoke('kryvex:flycast:remove'),
+  flycastCancel: (): Promise<boolean> => ipcRenderer.invoke('kryvex:flycast:cancel'),
+  onFlycastProgress: (listener: (event: unknown) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, payload: unknown) => listener(payload);
+    ipcRenderer.on('kryvex:flycast:progress', wrapped);
+    return () => ipcRenderer.removeListener('kryvex:flycast:progress', wrapped);
+  },
+  // Real netplay: the RetroArch the user installed. No path is accepted from
+  // the shell — a dialog opens in the main process — and the address is parsed
+  // there before it becomes an argument.
+  retroarchStatus: (): Promise<unknown> => ipcRenderer.invoke('kryvex:retroarch:status'),
+  retroarchLocate: (): Promise<unknown> => ipcRenderer.invoke('kryvex:retroarch:locate'),
+  retroarchForget: (): Promise<unknown> => ipcRenderer.invoke('kryvex:retroarch:forget'),
+  retroarchStart: (input: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:retroarch:start', input),
+  retroarchStop: (): Promise<unknown> => ipcRenderer.invoke('kryvex:retroarch:stop'),
   resourcesSample: (services: Array<{ id: string; url: string }>): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:resources:sample', services),
   mediaList: (): Promise<unknown> => ipcRenderer.invoke('kryvex:media:list'),

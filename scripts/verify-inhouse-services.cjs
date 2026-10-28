@@ -9,7 +9,9 @@
  *   - the secret-services section lists eight built-in services, including the
  *     three new cards;
  *   - Arcade loads the xiondigital.net page in its own persistent partition,
- *     and says so in the DOM rather than showing a spinner;
+ *     and says so in the DOM rather than showing a spinner, and the guest is
+ *     laid out at the frame's size with its cards revealed rather than held at
+ *     Chromium's default 300x150;
  *   - File Forge renders its four groups, and the file boundary refuses a name
  *     it must not write, a rename of a file the user never picked, and an empty
  *     export — each as a code, with no dialog and no file;
@@ -102,6 +104,41 @@ async function connect(url) {
   await send('Runtime.enable');
   await send('Page.enable');
   return { evaluate, send, exceptions, close: () => socket.close() };
+}
+
+/**
+ * The embedded page's own target.
+ *
+ * A `<webview>` runs in its own process, so its viewport, its `opacity` and its
+ * `IntersectionObserver` callbacks are invisible from the app's target. The
+ * arcade's blank field was entirely visible from here and nowhere else.
+ */
+async function guestTarget(port) {
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    try {
+      const list = await fetch(`http://127.0.0.1:${port}/json/list`).then(r => r.json());
+      const guest = list.find(item => item.type === 'webview' && item.webSocketDebuggerUrl);
+      if (guest) return guest;
+    } catch {
+      /* not listening yet */
+    }
+    await sleep(250);
+  }
+  return null;
+}
+
+/** `waitFor` that answers instead of throwing, for a page we do not own. */
+async function poll(evaluate, expression, timeout = 8000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    try {
+      if (await evaluate(expression)) return true;
+    } catch {
+      /* the guest may be between documents */
+    }
+    await sleep(150);
+  }
+  return false;
 }
 
 async function waitFor(evaluate, expression, timeout = 8000, label = expression) {
@@ -213,6 +250,64 @@ async function main() {
       `Arcade keeps its own persistent session (${arcade.partition})`,
     );
     check(arcade.eyebrow.includes('x535'), 'the Arcade view carries its element kicker');
+
+    // The guest must be laid out by its frame, not left at Chromium's default
+    // 300x150. A percentage height against a `flex: 1` frame does not resolve
+    // for a replaced element, so the guest used to keep 150px, paint its first
+    // 150 pixels and leave the rest of the arcade blank and unobserved.
+    const frameBox = await client.evaluate(`(() => {
+      const box = document.querySelector('.arcade-frame').getBoundingClientRect();
+      return { width: Math.round(box.width), height: Math.round(box.height) };
+    })()`);
+    const guestPage = await guestTarget(PORT);
+    check(Boolean(guestPage), 'the arcade guest exposes its own target');
+    const guest = await connect(guestPage.webSocketDebuggerUrl);
+    try {
+      check(
+        await poll(guest.evaluate, `location.href.includes('xiondigital.net/arcade')`, 20000),
+        `the guest navigated to the arcade (${await guest.evaluate(`location.href`)})`,
+      );
+      await poll(guest.evaluate, `document.readyState === 'complete'`, 20000);
+
+      const laidOut = await guest.evaluate(`({ width: innerWidth, height: innerHeight })`);
+      check(
+        Math.abs(laidOut.height - frameBox.height) <= 8 && Math.abs(laidOut.width - frameBox.width) <= 8,
+        `the guest fills its frame (${laidOut.width}x${laidOut.height} in ${frameBox.width}x${frameBox.height})`,
+      );
+
+      // Cards the page has put in front of the reader must be revealed. The
+      // page starts every card at `opacity: 0` and raises it from an
+      // IntersectionObserver, so a guest that never laid out keeps all of them
+      // invisible; this counts only the ones actually inside the viewport, so a
+      // small runner window does not turn an off-screen card into a failure.
+      // The page is somebody else's, fetched over the network: when it does not
+      // arrive there is nothing to assert about its markup, and the layout check
+      // above still stands, so that case is reported and not failed.
+      const rendered = await poll(guest.evaluate, `document.querySelectorAll('.game').length > 0`, 15000);
+      if (rendered) {
+        const cards = await guest.evaluate(`(() =>
+          Array.from(document.querySelectorAll('.game')).map(card => ({
+            inView: card.getBoundingClientRect().top < innerHeight,
+            revealed: card.classList.contains('is-in') || Number(getComputedStyle(card).opacity) > 0.5,
+          }))
+        )()`);
+        const inView = cards.filter(card => card.inView);
+        check(
+          inView.length === 0 || inView.every(card => card.revealed),
+          `the cards in view are revealed (${inView.filter(card => card.revealed).length}/${inView.length})`,
+        );
+        check(
+          await guest.evaluate(`document.body.scrollHeight > innerHeight`),
+          'the page lays out taller than its viewport, so it got the full height',
+        );
+      } else {
+        const note = 'NOTE the arcade page did not render its cards, so only its layout was checked';
+        lines.push(note);
+        console.log(note);
+      }
+    } finally {
+      guest.close();
+    }
 
     /* --------------------------------------------------------- File Forge --- */
     await go(client, 'forge', '.forge-view');

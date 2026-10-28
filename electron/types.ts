@@ -375,3 +375,26 @@ export type SpeechInstallProgress = import('./speech-runtime').SpeechInstallProg
 export type SpeechFailure = import('./speech-runtime').SpeechFailure;
 export type SpeechModelEntry = import('./speech-runtime-rules').SpeechModelEntry;
 
+/**
+ * The optional second emulator engine (Flycast, for Dreamcast).
+ *
+ * Same rule as the speech runtime: the main process owns the real shapes, and
+ * the renderer reads them through the bridge rather than restating them.
+ */
+export type FlycastStatus = import('./flycast-core').FlycastStatus;
+export type FlycastProgress = import('./flycast-core').FlycastProgress;
+export type FlycastFailure = import('./flycast-core').FlycastFailure;
+export type FlycastPayload = import('./flycast-core').FlycastPayload;
+export type FlycastPayloadResult = import('./flycast-core').FlycastPayloadResult;
+
+/**
+ * The netplay sidecar: the RetroArch the user installed, which Kryvex drives
+ * for frame-synchronised link play. Kryvex never ships or downloads it.
+ */
+export type RetroarchStatus = import('./retroarch').RetroarchStatus;
+export type RetroarchPhase = import('./retroarch').RetroarchPhase;
+export type RetroarchFailure = import('./retroarch').RetroarchFailure;
+export type RetroarchCoreState = import('./retroarch').RetroarchCoreState;
+export type RetroarchSession = import('./retroarch').RetroarchSession;
+export type RetroarchStartInput = import('./retroarch').RetroarchStartInput;
+

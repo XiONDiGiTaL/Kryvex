@@ -9,6 +9,7 @@ import {
   modelFileLabel,
 } from '../src/lib/local-models';
 import {
+  FLAGSHIP_MODEL_ID,
   LIGHT_MODEL_ID,
   MODEL_CATALOGUE,
   STARTER_MODEL_ID,
@@ -35,6 +36,7 @@ import {
 // The catalogue is compiled in; the assertion only satisfies indexed access.
 const starter = MODEL_CATALOGUE[0] as CatalogueEntry;
 const light = MODEL_CATALOGUE[1] as CatalogueEntry;
+const flagship = MODEL_CATALOGUE[2] as CatalogueEntry;
 
 function copy(overrides: Partial<CatalogueEntry> = {}): CatalogueEntry {
   return { ...starter, ...overrides };
@@ -42,16 +44,32 @@ function copy(overrides: Partial<CatalogueEntry> = {}): CatalogueEntry {
 
 describe('the shipped catalogue', () => {
   it('offers the 3B core first and the light core beside it', () => {
-    expect(MODEL_CATALOGUE).toHaveLength(2);
+    expect(MODEL_CATALOGUE).toHaveLength(3);
     expect(starter.id).toBe(STARTER_MODEL_ID);
     expect(starter.id).toBe('vexium-core-3b');
     expect(starter.productName).toBe('Vexium Core');
     expect(starter.name).toBe('Vexium Core 3B');
     expect(light.id).toBe(LIGHT_MODEL_ID);
     expect(light.productName).toBe('Vexium Core Light');
+    expect(flagship.id).toBe(FLAGSHIP_MODEL_ID);
+    expect(flagship.productName).toBe('Vexium-1');
+    expect(flagship.name).toBe('Vexium-1 12B');
     expect(catalogueEntry(starter.id)).toBe(starter);
     expect(catalogueEntry('something-else')).toBeUndefined();
     expect(MODEL_CATALOGUE.every(entry => validateCatalogueEntry(entry).length === 0)).toBe(true);
+  });
+
+  it('pins the flagship artifact to the uploaded file, not to its base model', () => {
+    expect(validateCatalogueEntry(flagship)).toEqual([]);
+    expect(flagship.repository).toBe('XiONDiGiTaL/Vexium-1');
+    expect(flagship.revision).toBe('87c83243356e47dac7cfe5c06b9b2f34126ce500');
+    expect(flagship.bytes).toBe(7_477_209_792);
+    expect(flagship.sha256).toBe('26b5ad94d602c462cfdbe9f005cbdab8e66d60718d1054afc7060d42065b6ecb');
+    expect(flagship.licence).toBe('Apache-2.0');
+    expect(flagship.languages).toContain('tr');
+    expect(catalogueUrl(flagship)).toBe(
+      'https://huggingface.co/XiONDiGiTaL/Vexium-1/resolve/87c83243356e47dac7cfe5c06b9b2f34126ce500/vexium-1-12b-q4_k_m.gguf',
+    );
   });
 
   it('reads a configured model filename without its directory or suffix', () => {

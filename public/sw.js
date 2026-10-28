@@ -6,8 +6,8 @@
  * and falls back to the cached shell when the device is offline.
  */
 // The suffix is what moves when the web client is republished without a version
-// change, which is the case while 0.9.5 stays the working line.
-const CACHE = 'kryvex-web-0.9.5-v1';
+// change, which is the case while the 0.9.5 line stays the working line.
+const CACHE = 'kryvex-web-0.9.5-hotfix.4-v1';
 const SHELL = ['./', './index.html', './manifest.webmanifest'];
 
 /**
