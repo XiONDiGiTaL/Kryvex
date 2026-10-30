@@ -17,6 +17,11 @@
  *
  * Only bundled images are measured; Simple Icons paths follow the tile tone and
  * are never a contrast risk.
+ *
+ * The same pass reports the other half of the folder's health: images no source
+ * file references, and references with no file behind them. Unreferenced files
+ * are a warning because dropping artwork in before wiring it up is normal;
+ * `--strict` turns them into a failure for release builds.
  */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -359,8 +364,61 @@ for (const entry of entries) {
   );
 }
 
+/*
+ * The other half of the same gate: a file nobody references is weight every
+ * build carries and no tile ever draws. References are read from source rather
+ * than from BRAND_ICONS alone, so an asset a stylesheet or a plugin names counts
+ * as used. A stray file is reported, not fatal, because dropping artwork into
+ * the folder before wiring it up is a normal step; `--strict` makes it fatal.
+ */
+const iconDir = path.join(root, 'public', 'brand-icons');
+const referencePattern = /brand-icons\/([\w.-]+)/g;
+const referenced = new Map();
+
+function scan(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      scan(full);
+      continue;
+    }
+    if (!/\.(?:tsx?|jsx?|mjs|cjs|css|json|html)$/i.test(entry.name)) continue;
+    const body = fs.readFileSync(full, 'utf8');
+    for (const match of body.matchAll(referencePattern)) {
+      if (!referenced.has(match[1])) referenced.set(match[1], path.relative(root, full));
+    }
+  }
+}
+
+scan(path.join(root, 'src'));
+
+const bundled = fs.existsSync(iconDir)
+  ? fs
+      .readdirSync(iconDir, { withFileTypes: true })
+      .filter(entry => entry.isFile() && /\.(?:png|ico|jpe?g|webp|svg)$/i.test(entry.name))
+      .map(entry => entry.name)
+  : [];
+
+for (const [name, from] of referenced) {
+  if (fs.existsSync(path.join(iconDir, name))) continue;
+  check(`the bundled image ${name} exists`, false, `referenced by ${from}`);
+}
+
+const unused = bundled.filter(name => !referenced.has(name));
+for (const name of unused) {
+  console.log(`WARN public/brand-icons/${name} is not referenced by any source file`);
+}
+
+const strict = process.argv.includes('--strict');
+if (strict && unused.length > 0) {
+  check('every bundled image is referenced', false, `${unused.length} unreferenced, see above`);
+}
+
 if (failures === 0) {
-  console.log(`brand icons: PASS (${plated} on a light plate)`);
+  const unusedNote = unused.length
+    ? `${unused.length} unreferenced (warning)`
+    : 'every file referenced';
+  console.log(`brand icons: PASS (${plated} on a light plate, ${unusedNote})`);
 } else {
   console.log(`brand icons: FAIL (${failures})`);
   process.exitCode = 1;

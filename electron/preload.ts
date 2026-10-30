@@ -287,6 +287,9 @@ const api = {
     ipcRenderer.invoke('kryvex:weather:lookup', city, unit),
   weatherAt: (latitude: number, longitude: number, unit: 'c' | 'f'): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:weather:at', latitude, longitude, unit),
+  /** The country and network a site is served from, cached per host. */
+  serverOrigin: (url: string, refresh = false): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:origin:server', url, refresh),
   playlistResolve: (url: string): Promise<PlaylistImportResult> =>
     ipcRenderer.invoke('kryvex:playlist:resolve', url),
   playerEmbedUrl: (videoId: string, autoplay: boolean): Promise<string | null> =>

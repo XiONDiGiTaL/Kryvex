@@ -18,6 +18,7 @@ import { hostOf, isHttpUrl, resolveAddress } from '../lib/url';
 import { DEFAULT_ZOOM, canZoom, stepZoom } from '../lib/zoom';
 import { Icon, Modal, type ThemeMarkKind } from '../components/ui';
 import { BrowserStart } from '../components/BrowserStart';
+import { ServerOrigin } from '../components/ServerOrigin';
 import { pageSource, readPage, readSelection, selectionSource } from '../lib/vexium-capture';
 import type { VexiumSourceInput } from '../lib/vexium-transfer';
 import {
@@ -1011,7 +1012,7 @@ export function Browser({
             go(address);
           }}
         >
-          <Icon name="globe" size={14} />
+          <ServerOrigin url={currentUrl} />
           <input
             ref={addressInput}
             value={address}

@@ -403,3 +403,8 @@ export type EmulatorLibraryListing = import('./emulator-library').LibraryListing
 export type EmulatorLibraryRead = import('./emulator-library').LibraryRead;
 export type EmulatorLibraryFile = import('./emulator-library').LibraryFile;
 
+
+/** The server-origin chip: what the card shows for the page in front. */
+export type ServerOrigin = import('./origin-rules').ServerOrigin;
+export type ServerOriginReply = import('./origin-rules').ServerOriginReply;
+export type OriginError = import('./origin-rules').OriginError;

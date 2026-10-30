@@ -1310,6 +1310,8 @@ export interface KryvexBridge {
   ) => Promise<boolean>;
   weatherLookup: (city: string, unit: 'c' | 'f') => Promise<WeatherResult>;
   weatherAt: (latitude: number, longitude: number, unit: 'c' | 'f') => Promise<WeatherResult>;
+  /** The country and network the site in front is served from, cached per host. */
+  serverOrigin: (url: string, refresh?: boolean) => Promise<import('../electron/types').ServerOriginReply>;
   /** Resolve a public Spotify or YouTube playlist into player queue rows. */
   playlistResolve: (
     url: string,

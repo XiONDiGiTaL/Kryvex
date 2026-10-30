@@ -47,6 +47,7 @@ import { resources } from './resources';
 import { vpn } from './vpn';
 import { vlanStatus } from './vlan';
 import { weather } from './weather';
+import { serverOrigin } from './origin';
 import { isSafePartition } from './privacy';
 import { serviceSessions } from './service-sessions';
 import { followServicePopup, signsInWithin } from './service-signin';
@@ -875,6 +876,12 @@ function registerIpc(): void {
   );
   ipcMain.handle('kryvex:weather:at', (event, latitude: unknown, longitude: unknown, unit: unknown) =>
     isShellSender(event) ? weather.at(latitude, longitude, unit) : { ok: false, error: 'invalid' },
+  );
+  // The origin chip: the site's own host is resolved here, then its address is
+  // described by a keyless registry. Only a host and an address leave, and the
+  // answer is cached per host, so a reload asks nothing.
+  ipcMain.handle('kryvex:origin:server', (event, url: unknown, refresh: unknown) =>
+    isShellSender(event) ? serverOrigin.lookup(url, refresh) : { ok: false, error: 'invalid' },
   );
   // Playlist pages are fetched here so the renderer never needs a CORS proxy
   // or credentials. Only normalized track rows cross the bridge.
