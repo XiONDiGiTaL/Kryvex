@@ -503,7 +503,7 @@ export function ServiceIcon({
   if (brand) {
     return (
       <span
-        className={`service-glyph brand-glyph ${className ?? ''}`}
+        className={`service-glyph brand-glyph ${brand.plate ? 'has-plate' : ''} ${className ?? ''}`}
         style={{
           width: size,
           height: size,

@@ -358,6 +358,8 @@ describe('expanded catalogue', () => {
       if (brand?.src) {
         expect(existsSync(join(process.cwd(), 'public', brand.src)), preset.id).toBe(true);
       }
+      // Only a bundled image can need the light backing plate.
+      if (brand?.plate) expect(brand.src, preset.id).toBeTruthy();
     }
   });
 

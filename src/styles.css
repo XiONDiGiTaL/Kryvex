@@ -8801,3 +8801,12 @@ select:hover {
   object-fit: contain;
   border-radius: 3px;
 }
+
+/* A dark glyph-only mark (Splice, MIT OCW, TRT World, …) would vanish against a
+   dark tile, so it sits on a small light plate. The plate is barely visible in
+   light themes, and Simple Icons paths are untouched: they follow the tile tone. */
+.brand-glyph.has-plate .brand-glyph-image {
+  border-radius: 4px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 2px #f8fafc;
+}
