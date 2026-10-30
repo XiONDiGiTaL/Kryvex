@@ -62,6 +62,14 @@ export type ServiceCategory =
   | 'ai'
   | 'resources'
   | 'media'
+  | 'news'
+  | 'education'
+  | 'career'
+  | 'finance'
+  | 'language'
+  | 'design'
+  | 'music'
+  | 'utilities'
   | 'other';
 
 export type ServicePersistence = 'keep' | 'pause';

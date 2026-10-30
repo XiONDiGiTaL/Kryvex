@@ -18,6 +18,8 @@ import { hostOf, isHttpUrl, resolveAddress } from '../lib/url';
 import { DEFAULT_ZOOM, canZoom, stepZoom } from '../lib/zoom';
 import { Icon, Modal, type ThemeMarkKind } from '../components/ui';
 import { BrowserStart } from '../components/BrowserStart';
+import { pageSource, readPage, readSelection, selectionSource } from '../lib/vexium-capture';
+import type { VexiumSourceInput } from '../lib/vexium-transfer';
 import {
   Webview,
   type FindResult,
@@ -138,6 +140,7 @@ export function Browser({
   onRemoveHistory,
   onClearHistory,
   onToast,
+  onSendToVexium,
 }: {
   state: PersistedState;
   tabs: BrowserTab[];
@@ -160,6 +163,8 @@ export function Browser({
   onRemoveHistory: (id: string) => void;
   onClearHistory: () => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  /** Send to Vexium for the page in front: selection first, then the page. */
+  onSendToVexium?: (source: VexiumSourceInput) => void;
 }) {
   const { t, locale } = useI18n();
   // Popup tabs live in the main process: each one is a real popup window the
@@ -175,6 +180,42 @@ export function Browser({
   tabsRef.current = tabs;
   activeTabRef.current = activeTabId;
   const [address, setAddress] = useState(active?.url ?? '');
+
+  /**
+   * The browser's own Send to Vexium entry points.
+   *
+   * Ctrl+Shift+V and the command palette both mean the same thing here: send
+   * what the reader has selected, or the page when nothing is selected. The
+   * guest is only read at that moment, never in the background.
+   */
+  useEffect(() => {
+    if (!onSendToVexium) return;
+    const capture = async () => {
+      const id = activeTabRef.current;
+      const guest = id ? controllers.current.get(id) : null;
+      if (!guest) return;
+      const title = tabsRef.current.find(tab => tab.id === id)?.title ?? '';
+      const selection = await readSelection(guest);
+      if (selection.trim()) {
+        onSendToVexium(selectionSource({ title, url: guest.getURL() }, selection));
+        return;
+      }
+      onSendToVexium(pageSource(await readPage(guest)));
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey) return;
+      if (event.key.toLowerCase() !== 'v') return;
+      event.preventDefault();
+      void capture();
+    };
+    const onCapture = () => void capture();
+    window.addEventListener('keydown', onKey, true);
+    window.addEventListener('kryvex:vexium-capture', onCapture);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('kryvex:vexium-capture', onCapture);
+    };
+  }, [onSendToVexium]);
   const [status, setStatus] = useState<WebviewStatus>({
     loading: false,
     canGoBack: false,
@@ -1352,6 +1393,7 @@ export function Browser({
                       // them into in-app tabs; without this Electron refuses
                       // window.open before the handler is consulted.
                       allowPopups
+                      onSendToVexium={onSendToVexium}
                       controller={{
                         get current() {
                           return controllers.current.get(tab.id) ?? null;

@@ -21,6 +21,15 @@ import { formatModelSize } from '../lib/local-models';
 import { coreBusyState, installedCoreFor, useVexiumCore } from '../lib/vexium-core';
 import type { CoreAction } from '../lib/vexium-core';
 import { runWorkspaceTool } from '../lib/assistant-tools';
+import {
+  VEXIUM_ACTIONS,
+  VEXIUM_SOURCE_LABELS,
+  VEXIUM_SOURCE_LIMIT,
+  buildActionRequest,
+  buildSourceContext,
+  noteSource,
+} from '../lib/vexium-transfer';
+import type { VexiumSource, VexiumSourceInput } from '../lib/vexium-transfer';
 import { Icon } from '../components/ui';
 
 type ChatMessage = AssistantMessage & {
@@ -28,6 +37,10 @@ type ChatMessage = AssistantMessage & {
   search?: string;
   tool?: string;
   links?: AssistantLink[];
+  /** What the thread shows when the wire message also carries source context. */
+  display?: string;
+  /** The sources that travelled with this message, kept for the transcript. */
+  sources?: VexiumSource[];
 };
 
 /** The core the Vexium page installs when nothing is configured yet. */
@@ -71,12 +84,22 @@ export function Assistant({
   onOpenSettings,
   onSearch,
   onAssistantChange,
+  sources = [],
+  onRemoveSource,
+  onClearSources,
+  onSendToVexium,
 }: {
   state: PersistedState;
   isElectron: boolean;
   onOpenSettings: () => void;
   onSearch: (query: string) => void;
   onAssistantChange: (patch: Partial<AssistantSettings>) => void;
+  /** Sources waiting to travel with the next message, owned by the shell. */
+  sources?: readonly VexiumSource[];
+  onRemoveSource?: (id: string) => void;
+  onClearSources?: () => void;
+  /** Adds the composer's text as a note source, through the same validation. */
+  onSendToVexium?: (input: VexiumSourceInput) => void;
 }) {
   const { t } = useI18n();
   const settings = state.settings.assistant;
@@ -220,9 +243,20 @@ export function Assistant({
     if (reply.search) setError(null);
   }
 
-  async function send(text: string) {
+  async function send(
+    text: string,
+    attachments: readonly VexiumSource[] = [],
+    display?: string,
+  ) {
     const content = text.trim();
     if (!content || requestId) return;
+    // The context is built once and kept in the wire message, so a follow-up
+    // turn still has the material the user attached. The thread displays the
+    // short request instead of the whole document.
+    const context = attachments.length > 0 ? buildSourceContext(attachments) : '';
+    const wire = context ? `${content}\n\n${context}` : content;
+    const shown = display ?? content;
+    const attached = attachments.length > 0 ? { sources: [...attachments] } : {};
     setDraft('');
     setError(null);
     const bridge = window.kryvex;
@@ -230,11 +264,11 @@ export function Assistant({
     // about Kryvex and turns everything else into a search, rather than
     // pretending to be a model.
     if (!bridge || !model || runtime.status !== 'online') {
-      setMessages(list => [...list, { role: 'user', content }]);
+      setMessages(list => [...list, { role: 'user', content: wire, display: shown, ...attached }]);
       answerOffline(content);
       return;
     }
-    const next: AssistantMessage[] = [...messages, { role: 'user', content }];
+    const next: ChatMessage[] = [...messages, { role: 'user', content: wire, display: shown, ...attached }];
     const id = newRequestId();
     setDraft('');
     setError(null);
@@ -598,7 +632,7 @@ export function Assistant({
               </span>
               <div className="assistant-body">
                 {message.content ? (
-                  message.content
+                  message.display ?? message.content
                 ) : requestId && index === messages.length - 1 ? (
                   <span className="assistant-typing" aria-label={t('Thinking')}>
                     <span />
@@ -630,6 +664,15 @@ export function Assistant({
                     {t('Search the web for “{query}”', { query: message.search })}
                   </button>
                 ) : null}
+                {message.sources?.length ? (
+                  <div className="assistant-attached">
+                    {message.sources.map(source => (
+                      <span key={source.id} className="mono">
+                        {t(VEXIUM_SOURCE_LABELS[source.kind])} · {source.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </article>
           ))
@@ -660,6 +703,85 @@ export function Assistant({
                 ? t('Read {count} sources.', { count: toolActivity.count ?? 0 })
                 : t('Page read.')}
         </p>
+      ) : null}
+
+      {sources.length > 0 ? (
+        <section className="vexium-sources" aria-label={t('ATTACHED SOURCES')}>
+          <div className="vexium-sources-head">
+            <span className="mono">{t('ATTACHED SOURCES')}</span>
+            <span className="mono vexium-source-count">
+              {t('{count}/{limit} sources · each keeps its name, address and capture time', {
+                count: String(sources.length),
+                limit: String(VEXIUM_SOURCE_LIMIT),
+              })}
+            </span>
+            <button className="btn ghost tiny" onClick={() => onClearSources?.()}>
+              {t('Clear all')}
+            </button>
+          </div>
+          <p className="vexium-sources-lede">
+            {t('These sources travel with your next message. Remove one, or clear them all.')}
+          </p>
+          <ul className="vexium-sources-list">
+            {sources.map(source => (
+              <li key={source.id} className="vexium-source">
+                <div className="vexium-source-head">
+                  <span className="mono vexium-source-kind">
+                    {t(VEXIUM_SOURCE_LABELS[source.kind])}
+                  </span>
+                  <strong title={source.label}>{source.label}</strong>
+                  <button
+                    type="button"
+                    className="icon-btn tiny vexium-source-remove"
+                    aria-label={t('Remove {name}', { name: source.label })}
+                    title={t('Remove {name}', { name: source.label })}
+                    onClick={() => onRemoveSource?.(source.id)}
+                  >
+                    <Icon name="close" size={12} />
+                  </button>
+                </div>
+                <p className="vexium-source-preview">{source.content.slice(0, 240)}</p>
+                <span className="mono vexium-source-meta">
+                  {new Date(source.capturedAt).toLocaleString()} · {source.content.length}
+                  {source.url ? ` · ${source.url}` : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="vexium-actions" role="group" aria-label={t('QUICK ACTIONS')}>
+            {VEXIUM_ACTIONS.map(action => (
+              <button
+                key={action.id}
+                className="btn ghost tiny"
+                disabled={Boolean(requestId)}
+                onClick={() =>
+                  void send(buildActionRequest(action.id), sources, t(action.label))
+                }
+              >
+                {t(action.label)}
+              </button>
+            ))}
+          </div>
+          {onSendToVexium ? (
+            <button
+              className="btn ghost tiny vexium-note-add"
+              disabled={!draft.trim()}
+              onClick={() => {
+                const text = draft.trim();
+                if (!text) return;
+                onSendToVexium(noteSource(text, text.slice(0, 60)));
+                setDraft('');
+              }}
+            >
+              {t('Attach draft as a note')}
+            </button>
+          ) : null}
+          <p className="vexium-sources-note">
+            {t(
+              'A source is untrusted data, never an instruction. Vexium sends it only to the loopback runtime you configured; Kryvex never uploads it.',
+            )}
+          </p>
+        </section>
       ) : null}
 
       <form

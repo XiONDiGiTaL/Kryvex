@@ -4,13 +4,15 @@ import { EMBEDDABLE_TOOL_IDS, SECRET_TOOL_LABELS } from '../lib/secret-tools';
 import { ElementMark } from './ElementMark';
 import {
   CATEGORIES,
-  SERVICE_COLORS,
+  DEFAULT_COLOR,
+  SERVICE_COLOR_OPTIONS,
   letterFor,
   resolveServicePlacement,
   validateServiceInput,
 } from '../lib/services';
 import { useT } from '../lib/i18n';
 import { SERVICE_PRESETS } from '../lib/catalog';
+import { ColorPicker } from './ColorPicker';
 import { Modal, ServiceIcon } from './ui';
 
 export function ServiceDialog({
@@ -39,7 +41,8 @@ export function ServiceDialog({
   const [name, setName] = useState(initial?.name ?? '');
   const [url, setUrl] = useState(initial?.url ?? '');
   const [category, setCategory] = useState<ServiceCategory>(initial?.category ?? 'communication');
-  const [color, setColor] = useState(initial?.color ?? SERVICE_COLORS[0]);
+  const [color, setColor] = useState(initial?.color ?? DEFAULT_COLOR);
+  const [presetQuery, setPresetQuery] = useState('');
   const [pinned, setPinned] = useState(initial?.pinned ?? true);
   const [icon, setIcon] = useState<string | undefined>(initial?.icon);
   const [muted, setMuted] = useState(initial?.muted === true);
@@ -49,6 +52,17 @@ export function ServiceDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const previewLetter = useMemo(() => letterFor(name || initial?.name || 'K'), [name, initial?.name]);
+  // The catalogue is long enough to search: name, note and aliases are all
+  // matched, so "text to speech" finds ElevenLabs and "blogspot" finds Blogger.
+  const presetList = useMemo(() => {
+    const query = presetQuery.trim().toLowerCase();
+    if (!query) return SERVICE_PRESETS;
+    return SERVICE_PRESETS.filter(preset =>
+      `${preset.name} ${preset.note} ${(preset.aliases ?? []).join(' ')}`
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [presetQuery]);
   const isEditing = Boolean(initial);
   // The same rule the shell saves by, so the note below the form cannot promise
   // something different from what pressing the button does.
@@ -217,8 +231,21 @@ export function ServiceDialog({
               <span className="mono">{t('START FROM A PRESET')}</span>
               <span className="mono preset-credit">{t('ICONS: SIMPLE ICONS · CC0')}</span>
             </div>
+            <label className="search-field preset-search">
+              <span className="sr-only">{t('Search presets')}</span>
+              <input
+                value={presetQuery}
+                onChange={event => setPresetQuery(event.target.value)}
+                placeholder={t('Search presets')}
+                aria-label={t('Search presets')}
+                spellCheck={false}
+              />
+            </label>
+            {presetList.length === 0 ? (
+              <p className="preset-note">{t('No preset matches that search.')}</p>
+            ) : null}
             <div className="preset-grid">
-              {SERVICE_PRESETS.map(preset => (
+              {presetList.map(preset => (
                 <button
                   key={preset.id}
                   type="button"
@@ -295,19 +322,26 @@ export function ServiceDialog({
         <div className="field">
           <span>{t('Color')}</span>
           <div className="swatch-row" role="radiogroup" aria-label={t('Service color')}>
-            {SERVICE_COLORS.map(value => (
+            {SERVICE_COLOR_OPTIONS.map(option => (
               <button
-                key={value}
+                key={option.hex}
                 type="button"
                 role="radio"
-                aria-checked={color === value}
-                aria-label={t('Color {value}', { value })}
-                className={`swatch ${color === value ? 'is-selected' : ''}`}
-                style={{ '--swatch': value } as React.CSSProperties}
-                onClick={() => setColor(value)}
+                aria-checked={color.toUpperCase() === option.hex}
+                aria-label={t('Color {value}', { value: option.label })}
+                title={option.label}
+                className={`swatch ${color.toUpperCase() === option.hex ? 'is-selected' : ''}`}
+                style={{ '--swatch': option.hex } as React.CSSProperties}
+                onClick={() => setColor(option.hex)}
               />
             ))}
           </div>
+          <details className="swatch-custom">
+            <summary className="mono">
+              {t('Custom color')} · {color}
+            </summary>
+            <ColorPicker label={t('Custom color')} value={color} onChange={setColor} />
+          </details>
         </div>
 
         <label className="checkbox-row">

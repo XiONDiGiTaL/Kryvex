@@ -92,6 +92,13 @@ import {
 } from './lib/workspace';
 import type { ResizeDirection } from './lib/floating';
 import { Assistant } from './views/Assistant';
+import {
+  addVexiumSources,
+  removeVexiumSource,
+  type VexiumSource,
+  type VexiumSourceInput,
+  type VexiumSourceRejection,
+} from './lib/vexium-transfer';
 import { Arcade } from './views/Arcade';
 import { FileForge } from './views/FileForge';
 import { Canvas } from './views/Canvas';
@@ -150,6 +157,14 @@ interface ConfirmRequest {
 
 let toastSeq = 0;
 
+/** Why a source did not attach, in the words the toast shows. */
+const VEXIUM_REJECTION_COPY: Record<VexiumSourceRejection, string> = {
+  empty: 'Nothing is selected on this page.',
+  'too-large': 'That content is too large for Vexium.',
+  full: 'Vexium already has the most sources it can compare. Remove one first.',
+  duplicate: 'That source is already attached.',
+};
+
 export default function App() {
   const [state, setState] = useState<PersistedState>(() => newState());
   const [ready, setReady] = useState(false);
@@ -163,6 +178,10 @@ export default function App() {
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
   const [permissionQueue, setPermissionQueue] = useState<PermissionPrompt[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  // Send to Vexium: the shell holds the pending sources so a passage from the
+  // browser, a Lexium transcript and a typed note can meet in one request.
+  const [vexiumSources, setVexiumSources] = useState<VexiumSource[]>([]);
+  const vexiumRef = useRef<VexiumSource[]>([]);
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   // Service apps stay mounted for the session; openIds is the live set.
@@ -212,6 +231,46 @@ export default function App() {
       window.location.hash = target;
     }
   }, []);
+
+  const applyVexiumSources = useCallback((next: VexiumSource[]) => {
+    vexiumRef.current = next;
+    setVexiumSources(next);
+  }, []);
+
+  /**
+   * Everything that sends to Vexium comes through here.
+   *
+   * The same validator runs for a page selection, a transcript and a note, so
+   * no module can attach content that skips the size, duplicate or count
+   * limits. Nothing is inferred until the user presses Send in Vexium.
+   */
+  const sendToVexium = useCallback(
+    (input: VexiumSourceInput | VexiumSourceInput[]) => {
+      const result = addVexiumSources(vexiumRef.current, Array.isArray(input) ? input : [input]);
+      applyVexiumSources(result.sources);
+      if (result.added > 0) {
+        pushToast(t('Sent to Vexium.'), 'success');
+        navigate('assistant');
+      }
+      if (!result.rejection) return;
+      const first = Array.isArray(input) ? input[0] : input;
+      // An empty page selection and an unreadable page are both "empty" to the
+      // validator; the kind is what tells the user which one happened.
+      const copy =
+        result.rejection === 'empty' && first?.kind !== 'webpage-selection'
+          ? 'The page could not be read.'
+          : VEXIUM_REJECTION_COPY[result.rejection];
+      pushToast(t(copy), result.rejection === 'duplicate' ? 'info' : 'warning');
+    },
+    [applyVexiumSources, navigate, pushToast, t],
+  );
+
+  const removeVexiumSourceById = useCallback(
+    (id: string) => applyVexiumSources(removeVexiumSource(vexiumRef.current, id)),
+    [applyVexiumSources],
+  );
+
+  const clearVexiumSources = useCallback(() => applyVexiumSources([]), [applyVexiumSources]);
 
   const openExternalTab = useCallback(
     (url: string) => {
@@ -1582,6 +1641,7 @@ export default function App() {
           onEdit={service => setDialog({ mode: 'edit', service })}
           onDelete={deleteService}
           onClearSession={clearServiceSession}
+          onSendToVexium={sendToVexium}
           onTitle={handleServiceTitle}
           onUpdateService={updateServiceFlags}
           onToast={pushToast}
@@ -1885,6 +1945,10 @@ export default function App() {
           <Assistant
             state={state}
             isElectron={isElectron}
+            sources={vexiumSources}
+            onRemoveSource={removeVexiumSourceById}
+            onClearSources={clearVexiumSources}
+            onSendToVexium={sendToVexium}
             onAssistantChange={patch =>
               updateSettingsPatch({
                 assistant: { ...state.settings.assistant, ...patch },
@@ -1914,6 +1978,7 @@ export default function App() {
               onUpdate={updateLexium}
               onBack={() => navigate('services')}
               onToast={pushToast}
+              onSendToVexium={sendToVexium}
             />
           )
         ) : route.view === 'player' ? (
@@ -1973,6 +2038,7 @@ export default function App() {
             engineRevision={engineRevision}
             mark={themeMark}
             feeds={state.feeds}
+            onSendToVexium={sendToVexium}
             onAddFeeds={addFeeds}
             onRemoveFeed={removeFeed}
             onAddBookmark={addBookmark}

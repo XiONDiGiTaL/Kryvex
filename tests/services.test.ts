@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { BRAND_ICONS } from '../src/lib/brand-icons';
-import { SERVICE_PRESETS } from '../src/lib/catalog';
+import {
+  SERVICE_PRESETS,
+  findPresetByHost,
+  presetCapabilities,
+  presetIntegration,
+} from '../src/lib/catalog';
 import {
   CATEGORIES,
   SERVICE_COLORS,
+  SERVICE_COLOR_OPTIONS,
   letterFor,
   makeId,
   installedForUrl,
@@ -44,10 +50,14 @@ describe('validateServiceInput', () => {
     expect(result.errors.url).toMatch(/http/i);
   });
 
-  it('rejects colors outside the palette', () => {
-    const result = validateServiceInput({ ...valid, color: '#ff0000' });
-    expect(result.ok).toBe(false);
-    expect(result.errors.color).toBeTruthy();
+  it('accepts a palette tone and the user’s own hex, and rejects garbage', () => {
+    // A custom picker is part of the colour system, so a real hex is valid
+    // even when it is not one of the curated tones.
+    expect(validateServiceInput({ ...valid, color: '#ff0000' }).ok).toBe(true);
+    expect(validateServiceInput({ ...valid, color: '#ff0000' }).service?.color).toBe('#FF0000');
+    const rejected = validateServiceInput({ ...valid, color: 'chartreuse' });
+    expect(rejected.ok).toBe(false);
+    expect(rejected.errors.color).toBeTruthy();
   });
 
   it('keeps a known brand icon and drops unknown ones', () => {
@@ -214,6 +224,131 @@ describe('catalogue additions', () => {
     // The catalogue has no duplicate ids.
     const ids = SERVICE_PRESETS.map(preset => preset.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('expanded catalogue', () => {
+  it('ships a distinguishable palette with a true orange', () => {
+    const colors = SERVICE_COLORS.map(color => color.toUpperCase());
+    expect(colors.length).toBeGreaterThanOrEqual(21);
+    expect(new Set(colors).size).toBe(colors.length);
+    // Orange must be its own tone, not amber or red wearing another name.
+    expect(colors).toContain('#F97316');
+    expect(colors).toContain('#EF4444');
+    expect(colors).toContain('#F59E0B');
+    expect(colors).toContain('#0F172A');
+    expect(colors).toContain('#E2E8F0');
+    expect(colors).toContain('#92400E');
+    expect(colors).toContain('#94A3B8');
+    // The named swatches and the stored palette are the same list, so a new
+    // tone cannot be added to one without the other.
+    expect(SERVICE_COLOR_OPTIONS.map(option => option.hex)).toEqual([...SERVICE_COLORS]);
+  });
+
+  it('covers every new category with at least one preset', () => {
+    for (const category of ['career', 'education', 'language', 'finance', 'news', 'design', 'music', 'utilities'] as const) {
+      expect(SERVICE_PRESETS.some(preset => preset.category === category)).toBe(true);
+      expect(CATEGORIES.some(item => item.id === category)).toBe(true);
+    }
+  });
+
+  it('carries the requested services with their real destinations', () => {
+    const byId = new Map(SERVICE_PRESETS.map(preset => [preset.id, preset]));
+    const expected: Array<[string, string]> = [
+      ['novoresume', 'https://novoresume.com/'],
+      ['linkedin', 'https://www.linkedin.com/'],
+      ['indeed', 'https://www.indeed.com/'],
+      ['glassdoor', 'https://www.glassdoor.com/'],
+      ['elevenlabs', 'https://elevenlabs.io/'],
+      ['suno', 'https://suno.com/'],
+      ['udio', 'https://www.udio.com/'],
+      ['canva', 'https://www.canva.com/'],
+      ['adobeexpress', 'https://www.adobe.com/express/'],
+      ['ninite', 'https://ninite.com/'],
+      ['xda', 'https://www.xda-developers.com/'],
+      ['sourceforge', 'https://sourceforge.net/'],
+      ['alternativeto', 'https://alternativeto.net/'],
+      ['proton', 'https://proton.me/'],
+      ['alison', 'https://alison.com/'],
+      ['coursera', 'https://www.coursera.org/'],
+      ['edx', 'https://www.edx.org/'],
+      ['khanacademy', 'https://www.khanacademy.org/'],
+      ['mitocw', 'https://ocw.mit.edu/'],
+      ['freecodecamp', 'https://www.freecodecamp.org/'],
+      ['tandem', 'https://www.tandem.net/'],
+      ['interpals', 'https://www.interpals.net/'],
+      ['hellotalk', 'https://www.hellotalk.com/'],
+      ['wordreference', 'https://www.wordreference.com/'],
+      ['reverso', 'https://www.reverso.net/'],
+      ['coinbase', 'https://www.coinbase.com/'],
+      ['kraken', 'https://www.kraken.com/'],
+      ['binance', 'https://www.binance.com/'],
+      ['tradingview', 'https://www.tradingview.com/'],
+      ['coingecko', 'https://www.coingecko.com/'],
+      ['coinmarketcap', 'https://coinmarketcap.com/'],
+      ['blogger', 'https://www.blogger.com/'],
+      ['medium', 'https://medium.com/'],
+      ['substack', 'https://substack.com/'],
+      ['tumblr', 'https://www.tumblr.com/'],
+      ['wordpress', 'https://wordpress.com/'],
+      ['apnews', 'https://apnews.com/'],
+      ['reuters', 'https://www.reuters.com/'],
+      ['npr', 'https://www.npr.org/'],
+      ['pbsnewshour', 'https://www.pbs.org/newshour'],
+      ['businessinsider', 'https://www.businessinsider.com/'],
+      ['bbcnews', 'https://www.bbc.com/news'],
+      ['guardian', 'https://www.theguardian.com/'],
+      ['skynews', 'https://news.sky.com/'],
+      ['ft', 'https://www.ft.com/'],
+      ['aa', 'https://www.aa.com.tr/'],
+      ['trtworld', 'https://www.trtworld.com/'],
+      ['dailysabah', 'https://www.dailysabah.com/'],
+      ['hurriyet', 'https://www.hurriyet.com.tr/'],
+      ['dw', 'https://www.dw.com/'],
+      ['spiegel', 'https://www.spiegel.de/'],
+      ['dpa', 'https://www.dpa.com/'],
+      ['france24', 'https://www.france24.com/'],
+      ['lemonde', 'https://www.lemonde.fr/'],
+      ['elpais', 'https://elpais.com/'],
+      ['rtve', 'https://www.rtve.es/'],
+      ['ansa', 'https://www.ansa.it/'],
+      ['rainews', 'https://www.rainews.it/'],
+      ['aljazeera', 'https://www.aljazeera.com/'],
+      ['nhkworld', 'https://www3.nhk.or.jp/nhkworld/'],
+      ['scmp', 'https://www.scmp.com/'],
+      ['japantimes', 'https://www.japantimes.co.jp/'],
+      ['thehindu', 'https://www.thehindu.com/'],
+      ['straitstimes', 'https://www.straitstimes.com/'],
+    ];
+    for (const [id, url] of expected) {
+      const preset = byId.get(id);
+      expect(preset, id).toBeTruthy();
+      expect(preset?.url, id).toBe(url);
+      expect(preset?.name.length, id).toBeGreaterThan(0);
+      expect(preset?.note.length, id).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps preset ids and hosts unique and every entry a website', () => {
+    const ids = SERVICE_PRESETS.map(preset => preset.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const hosts = SERVICE_PRESETS.map(preset => new URL(preset.url).host.toLowerCase());
+    expect(new Set(hosts).size).toBe(hosts.length);
+    expect(findPresetByHost('www.linkedin.com')?.id).toBe('linkedin');
+    expect(findPresetByHost('not-a-host.invalid')).toBeUndefined();
+    for (const preset of SERVICE_PRESETS) {
+      expect(presetCapabilities(preset)).toEqual(
+        expect.arrayContaining(['open-url', 'send-selection', 'send-page']),
+      );
+      expect(presetIntegration(preset)).toBe('website');
+      expect(typeof preset.color).toBe('string');
+      expect(preset.color).toMatch(/^#[0-9A-F]{6}$/);
+    }
+  });
+
+  it('keeps Reddit orange rather than a borrowed yellow', () => {
+    const reddit = SERVICE_PRESETS.find(preset => preset.id === 'reddit');
+    expect(reddit?.color).toBe('#F97316');
   });
 });
 

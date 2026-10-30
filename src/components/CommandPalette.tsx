@@ -45,6 +45,17 @@ export function CommandPalette({
     ];
     const actions: Command[] = [
       { id: 'action-add', label: t('Add a service'), hint: t('Create a module'), group: 'Actions', icon: <Icon name="plus" size={15} />, run: onAdd },
+      {
+        // The Browser owns the live page; this only asks it to capture. With
+        // no browser tab in front there is nothing to read, so the command
+        // stays out of the way instead of opening an empty Vexium.
+        id: 'action-send-vexium',
+        label: t('Send the current page to Vexium'),
+        hint: t('Browser'),
+        group: 'Actions',
+        icon: <Icon name="spark" size={15} />,
+        run: () => window.dispatchEvent(new CustomEvent('kryvex:vexium-capture')),
+      },
     ];
     const services: Command[] = state.services.map(service => ({
       id: `service-${service.id}`,

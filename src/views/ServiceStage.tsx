@@ -69,6 +69,8 @@ interface StageProps {
   onWindowClose: (id: string) => void;
   onWindowMinimize: (id: string) => void;
   onWindowMaximize: (id: string) => void;
+  /** Send to Vexium for a module page: its selection, or the whole page. */
+  onSendToVexium?: (source: import('../lib/vexium-transfer').VexiumSourceInput) => void;
 }
 
 /**
@@ -110,6 +112,7 @@ export function ServiceStage({
   onWindowClose,
   onWindowMinimize,
   onWindowMaximize,
+  onSendToVexium,
 }: StageProps) {
   const t = useT();
   const active = services.find(service => service.id === activeId) ?? null;
@@ -187,6 +190,7 @@ export function ServiceStage({
             onTitle={title => onTitle(service, title)}
             onUpdateService={patch => onUpdateService(service, patch)}
             onToast={onToast}
+            onSendToVexium={onSendToVexium}
             onFloat={() => onFloat(service.id)}
             onDock={() => onDock(service.id)}
             onWindowMove={(dx, dy) => onWindowMove(service.id, dx, dy)}
@@ -237,6 +241,7 @@ function ServiceFrame({
   onTitle,
   onUpdateService,
   onToast,
+  onSendToVexium,
   onFloat,
   onDock,
   onWindowMove,
@@ -262,6 +267,7 @@ function ServiceFrame({
   onTitle: (title: string) => void;
   onUpdateService: (patch: Partial<Service>) => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  onSendToVexium?: (source: import('../lib/vexium-transfer').VexiumSourceInput) => void;
   onFloat: () => void;
   onDock: () => void;
   onWindowMove: (dx: number, dy: number) => void;
@@ -879,6 +885,7 @@ function ServiceFrame({
             muted={service.muted}
             paused={!visible && pauseWhenInactive}
             controller={controller}
+            onSendToVexium={onSendToVexium}
             onStatus={setStatus}
             onTitle={onTitle}
             onNavigate={url => {

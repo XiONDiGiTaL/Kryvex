@@ -79,7 +79,8 @@ import { sanitizePinnedTools } from './secret-tools';
 import { sanitizeCountdowns } from './countdowns';
 import { sanitizeWorldClocks } from './world-clock';
 import { sanitizeScreenCaptures } from './screen-capture';
-import { CATEGORIES, SERVICE_COLORS, starterState } from './services';
+import { CATEGORIES, DEFAULT_COLOR, starterState } from './services';
+import { normalizeHex } from './color';
 import { themeGallerySeenValue } from './theme-gallery';
 import { isThemeId, sanitizeCustomTheme } from './themes';
 import { hostOf, isHttpUrl } from './url';
@@ -117,9 +118,9 @@ function sanitizeService(raw: unknown): Service | null {
   const category = CATEGORIES.some(item => item.id === raw.category)
     ? (raw.category as ServiceCategory)
     : 'other';
-  const color = SERVICE_COLORS.includes(raw.color as (typeof SERVICE_COLORS)[number])
-    ? String(raw.color)
-    : SERVICE_COLORS[0];
+  // Any valid hex survives a load. Profiles saved before the palette expanded
+  // keep the exact colour the user chose; only a malformed value falls back.
+  const color = normalizeHex(raw.color) ?? DEFAULT_COLOR;
   const letter = /^[\p{L}\p{N}]{1,2}$/u.test(String(raw.letter ?? ''))
     ? String(raw.letter).toUpperCase()
     : name.charAt(0).toUpperCase();

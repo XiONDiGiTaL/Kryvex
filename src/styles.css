@@ -3711,13 +3711,14 @@ select:hover {
 
 .swatch-row {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
   padding-top: 2px;
 }
 
 .swatch {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   border: 2px solid transparent;
   background: var(--swatch);
@@ -8633,4 +8634,163 @@ select:hover {
   font-size: 9.5px;
   line-height: 1.5;
   color: var(--ink-dim);
+}
+
+
+/* ------------------------------------------------------- send to vexium --- */
+/*
+ * The attachment tray and the quick actions. They sit above the composer so
+ * the material being sent is visible at the moment it is sent, and they use
+ * the shell's own tokens, so a custom theme colours them like everything else.
+ */
+.vexium-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.vexium-sources-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.vexium-sources-head .vexium-source-count {
+  margin-left: auto;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+}
+
+.vexium-sources-lede,
+.vexium-sources-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.vexium-sources-note {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  border-top: 1px dashed var(--line);
+  padding-top: 8px;
+}
+
+.vexium-sources-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.vexium-source {
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) - 6px);
+  background: var(--raised);
+  padding: 7px 9px;
+}
+
+.vexium-source-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vexium-source-head strong {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vexium-source-kind {
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.vexium-source-remove {
+  flex-shrink: 0;
+}
+
+.vexium-source-preview {
+  margin: 5px 0 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.vexium-source-meta {
+  display: block;
+  font-size: 9.5px;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vexium-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vexium-note-add {
+  align-self: flex-start;
+}
+
+.assistant-attached {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.assistant-attached span {
+  font-size: 9.5px;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+}
+
+.lexium-segment-send {
+  justify-self: end;
+  align-self: start;
+}
+
+.swatch-custom {
+  margin-top: 8px;
+}
+
+.swatch-custom summary {
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.swatch-custom .color-picker {
+  margin-top: 10px;
 }

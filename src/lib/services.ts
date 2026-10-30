@@ -18,29 +18,94 @@ import {
 import { DEFAULT_LIFECYCLE } from './lifecycle';
 import { DEFAULT_TYPOGRAPHY } from './typography';
 import { normalizeUrl } from './url';
+import { normalizeHex } from './color';
 
+/**
+ * The catalogue's own grouping. Categories are labels on a service, never a
+ * capability: the same website can be reached from any of them, and moving a
+ * service between them changes nothing about its session.
+ *
+ * New families were added beside the original seven rather than replacing
+ * them, so every stored category still resolves.
+ */
 export const CATEGORIES: ReadonlyArray<{ id: ServiceCategory; label: string }> = [
   { id: 'communication', label: 'Communication' },
   { id: 'productivity', label: 'Productivity' },
   { id: 'development', label: 'Development' },
   { id: 'ai', label: 'AI' },
-  { id: 'resources', label: 'Resources' },
   { id: 'media', label: 'Media' },
+  { id: 'news', label: 'News' },
+  { id: 'education', label: 'Education' },
+  { id: 'career', label: 'Career' },
+  { id: 'finance', label: 'Finance' },
+  { id: 'language', label: 'Language' },
+  { id: 'design', label: 'Design' },
+  { id: 'music', label: 'Music' },
+  { id: 'utilities', label: 'Utilities' },
+  { id: 'resources', label: 'Resources' },
   { id: 'other', label: 'Other' },
 ];
 
+/**
+ * The curated service palette.
+ *
+ * Twenty-one named tones in spectrum order, not eight shades with gaps. The
+ * saturation and value steps are wide enough that red, orange and amber stay
+ * apart at swatch size, and that a red-orange brand (Reddit) no longer has to
+ * borrow a yellow. Existing profiles keep whatever they saved: the store
+ * accepts any valid hex, so expanding this list never rewrites a colour.
+ */
 export const SERVICE_COLORS = [
-  '#38BDF8',
-  '#2DD4BF',
-  '#A78BFA',
-  '#FBBF24',
-  '#FB7185',
-  '#34D399',
-  '#60A5FA',
-  '#94A3B8',
+  '#EF4444', // red
+  '#F97316', // orange
+  '#F59E0B', // amber
+  '#EAB308', // yellow
+  '#84CC16', // lime
+  '#22C55E', // green
+  '#10B981', // emerald
+  '#14B8A6', // teal
+  '#06B6D4', // cyan
+  '#38BDF8', // sky
+  '#3B82F6', // blue
+  '#6366F1', // indigo
+  '#8B5CF6', // violet
+  '#A855F7', // purple
+  '#D946EF', // magenta
+  '#EC4899', // pink
+  '#FB7185', // rose
+  '#92400E', // brown
+  '#94A3B8', // neutral gray
+  '#E2E8F0', // light neutral
+  '#0F172A', // dark neutral
 ] as const;
 
-export const DEFAULT_COLOR = SERVICE_COLORS[0];
+/** The palette with a human name for each tone, used by the swatch tooltips. */
+export const SERVICE_COLOR_OPTIONS: ReadonlyArray<{ id: string; label: string; hex: string }> = [
+  { id: 'red', label: 'Red', hex: '#EF4444' },
+  { id: 'orange', label: 'Orange', hex: '#F97316' },
+  { id: 'amber', label: 'Amber', hex: '#F59E0B' },
+  { id: 'yellow', label: 'Yellow', hex: '#EAB308' },
+  { id: 'lime', label: 'Lime', hex: '#84CC16' },
+  { id: 'green', label: 'Green', hex: '#22C55E' },
+  { id: 'emerald', label: 'Emerald', hex: '#10B981' },
+  { id: 'teal', label: 'Teal', hex: '#14B8A6' },
+  { id: 'cyan', label: 'Cyan', hex: '#06B6D4' },
+  { id: 'sky', label: 'Sky blue', hex: '#38BDF8' },
+  { id: 'blue', label: 'Blue', hex: '#3B82F6' },
+  { id: 'indigo', label: 'Indigo', hex: '#6366F1' },
+  { id: 'violet', label: 'Violet', hex: '#8B5CF6' },
+  { id: 'purple', label: 'Purple', hex: '#A855F7' },
+  { id: 'magenta', label: 'Magenta', hex: '#D946EF' },
+  { id: 'pink', label: 'Pink', hex: '#EC4899' },
+  { id: 'rose', label: 'Rose', hex: '#FB7185' },
+  { id: 'brown', label: 'Brown', hex: '#92400E' },
+  { id: 'neutral', label: 'Neutral gray', hex: '#94A3B8' },
+  { id: 'light', label: 'White / light neutral', hex: '#E2E8F0' },
+  { id: 'dark', label: 'Black / dark neutral', hex: '#0F172A' },
+];
+
+/** The colour a new service starts on; unchanged across the palette expansion. */
+export const DEFAULT_COLOR = '#38BDF8';
 
 export function makeId(prefix = 's'): string {
   const uuid =
@@ -111,8 +176,10 @@ export function validateServiceInput(input: ServiceInput): ServiceResult {
   if (!CATEGORIES.some(category => category.id === input.category)) {
     errors.category = 'Choose a category.';
   }
-  if (!SERVICE_COLORS.includes(input.color as (typeof SERVICE_COLORS)[number])) {
-    errors.color = 'Choose one of the palette colors.';
+  // A palette tone or the user's own hex: both are stored the same way.
+  const color = normalizeHex(input.color);
+  if (!color) {
+    errors.color = 'Choose a color from the palette, or pick your own.';
   }
 
   const letter = (input.letter?.trim() || letterFor(name)).slice(0, 2).toUpperCase();
@@ -131,7 +198,7 @@ export function validateServiceInput(input: ServiceInput): ServiceResult {
       name,
       url,
       category: input.category,
-      color: input.color,
+      color: color as string,
       letter,
       pinned: Boolean(input.pinned),
       muted: input.muted === true,

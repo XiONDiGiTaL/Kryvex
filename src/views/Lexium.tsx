@@ -30,6 +30,7 @@ import { transcribeWithBridge } from '../lib/lexium-bridge';
 import { recognizerFor } from '../lib/lexium-dictation';
 import { loadAudioFile, type LoadedAudio } from '../lib/lexium-audio';
 import { readImageText } from '../lib/lexium-ocr';
+import type { VexiumSourceInput } from '../lib/vexium-transfer';
 import { ElementMark } from '../components/ElementMark';
 import { LexiumServerSetup } from '../components/LexiumServerSetup';
 import { Icon } from '../components/ui';
@@ -54,6 +55,7 @@ export function Lexium({
   onBack,
   onToast,
   embedded = false,
+  onSendToVexium,
 }: {
   settings: LexiumSettings;
   onUpdate: (patch: Partial<LexiumSettings>) => void;
@@ -61,6 +63,11 @@ export function Lexium({
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
   /** Rendered inside a Workspace window: the window owns the title bar. */
   embedded?: boolean;
+  /**
+   * Hands finished Lexium output to Vexium. The words already exist here, so
+   * nothing is transcribed, read or translated a second time on the way.
+   */
+  onSendToVexium?: (source: VexiumSourceInput) => void;
 }) {
   const t = useT();
   const [tab, setTab] = useState<Tab>('transcribe');
@@ -690,6 +697,20 @@ export function Lexium({
                     <Icon name="language" size={13} />
                     {t('Translate transcript')}
                   </button>
+                  <button
+                    className="btn ghost tiny"
+                    onClick={() =>
+                      onSendToVexium?.({
+                        kind: 'transcript',
+                        content: transcriptAsText(transcript),
+                        label: audio?.name || t('Transcript'),
+                      })
+                    }
+                    disabled={!transcript.text.trim() || !audio}
+                  >
+                    <Icon name="spark" size={13} />
+                    {t('Send to Vexium')}
+                  </button>
                 </div>
               </div>
               {dictation === 'uncertain' ? (
@@ -723,6 +744,22 @@ export function Lexium({
                     <li key={index}>
                       <span className="mono">{formatClock(segment.start)}</span>
                       <span>{segment.text}</span>
+                      <button
+                        type="button"
+                        className="btn ghost tiny lexium-segment-send"
+                        disabled={!segment.text.trim()}
+                        title={t('Send to Vexium')}
+                        aria-label={`${t('Send to Vexium')}: ${formatClock(segment.start)}`}
+                        onClick={() =>
+                          onSendToVexium?.({
+                            kind: 'transcript',
+                            content: segment.text,
+                            label: `${audio?.name || t('Transcript')} · ${formatClock(segment.start)}`,
+                          })
+                        }
+                      >
+                        <Icon name="spark" size={11} />
+                      </button>
                     </li>
                   ))}
                 </ol>
@@ -842,6 +879,20 @@ export function Lexium({
                   <Icon name="copy" size={13} />
                   {t('Copy')}
                 </button>
+                <button
+                  className="btn ghost tiny"
+                  onClick={() =>
+                    onSendToVexium?.({
+                      kind: 'translation',
+                      content: output,
+                      label: `${t('Translation')} · ${languageName(settings.target)}`,
+                    })
+                  }
+                  disabled={!output}
+                >
+                  <Icon name="spark" size={13} />
+                  {t('Send to Vexium')}
+                </button>
               </div>
             </div>
           </div>
@@ -948,6 +999,20 @@ export function Lexium({
                 >
                   <Icon name="language" size={14} />
                   {t('Translate this text')}
+                </button>
+                <button
+                  className="btn ghost tiny"
+                  onClick={() =>
+                    onSendToVexium?.({
+                      kind: 'ocr',
+                      content: ocrText,
+                      label: image?.name || t('Extracted text'),
+                    })
+                  }
+                  disabled={!ocrText.trim()}
+                >
+                  <Icon name="spark" size={13} />
+                  {t('Send to Vexium')}
                 </button>
               </div>
             </div>
