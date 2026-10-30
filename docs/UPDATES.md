@@ -73,9 +73,7 @@ example a local build), because no update is available in either case.
 The checksum protects against a corrupted or tampered transport, not against a
 compromised GitHub repository or release. Both the installer and its checksum
 come from the same release. Builds are currently **unsigned**, so Windows may
-show SmartScreen or an unknown-publisher prompt — [CODE_SIGNING.md](CODE_SIGNING.md)
-records what signing would change and what is already wired into the workflow.
-Verify the hash yourself
+show SmartScreen or an unknown-publisher prompt. Verify the hash yourself
 against a release you trust, or build from source.
 
 There is no delta update, beta channel, rollback, staged rollout or mandatory

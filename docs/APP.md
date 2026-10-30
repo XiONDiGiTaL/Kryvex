@@ -19,7 +19,7 @@ Electron application with a small trusted main process and untrusted content.
 | Voice/video | Per-session permission broker; explicit microphone/camera prompt for webviews |
 | Rooms | Trystero (WebTorrent trackers) for signaling, direct WebRTC for chat and video, main-process capture broker with a one-shot shell-only display grant |
 | Browser registration | Per-user Default Apps capabilities + `app.setAsDefaultProtocolClient` handoff |
-| Packaging | electron-builder (NSIS + portable, Windows); signed in the release workflow through SignPath Foundation when its credentials exist, unsigned otherwise |
+| Packaging | electron-builder (NSIS + portable, Windows), unsigned |
 | Updates | GitHub Releases feed in the main process, checksum-verified Setup download, interactive installer after quit |
 
 ## Process model
@@ -762,7 +762,5 @@ boot and render every route before screenshots exist.
   its own install bar on detail pages and downloads the CRX directly.
 - Capture mode leaves a 138 px gap in the header where native window controls
   sit in the live app (they are not part of the captured web contents).
-- Packaging is configured and unsigned by default; the release workflow signs
-  through SignPath Foundation only when its credentials exist, and the position is
-  recorded in [CODE_SIGNING.md](CODE_SIGNING.md). `pnpm pack` is pnpm's tarball
+- Packaging is configured but unsigned; no CI yet. `pnpm pack` is pnpm's tarball
   command: use `pnpm run package:dir` / `package:win`.
