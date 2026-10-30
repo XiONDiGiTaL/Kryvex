@@ -28,6 +28,29 @@ mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
+## Released (2026-10-30, 0.9.5-hotfix.7)
+
+The `v0.9.5-hotfix.7` tag ran the Release workflow to completion — both jobs
+(`windows` in 3m00s, `web` in 35s) succeeded — and published a stable release,
+not a draft or a prerelease, at 2026-10-30T20:17:24Z. `releases/latest` answers
+`v0.9.5-hotfix.7`.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.5-hotfix.7-x64.exe` | 138,226,334 B | `9408c5640bd6b9055a07362748052504f419eb1b8a2cef163818fe2e17779686` |
+| `Kryvex-Portable-0.9.5-hotfix.7-x64.exe` | 137,982,458 B | `3c12208c2e1a44de1958b469da4496efd28a9836ceff4b0e82efb7a0512a4b30` |
+
+`gh-pages` was force-pushed from the same tag and the published worker names
+`kryvex-web-0.9.5-hotfix.7-v1`; `index` answers HTTP 200 at
+`https://xiondigital.net/Kryvex/` and the served bundle reports this version.
+Both installers are unsigned. The batch adds **Send to Vexium** — selected text
+from the browser or a Lexium transcript becomes a named, metadata-carrying
+source Vexium can explain, summarize, compare and contradict — a catalogue of
+143 presets across 15 categories with corrected Notion, Zoom and Copilot hosts,
+a 21-tone palette with a true orange, bundled brand marks for every preset, and
+the whole browser surface in Turkish. Full record:
+[RELEASE_0.9.5-hotfix.7.md](docs/RELEASE_0.9.5-hotfix.7.md).
+
 ## Released (2026-10-28, 0.9.5-hotfix.6)
 
 The `v0.9.5-hotfix.6` tag ran the Release workflow to completion — both jobs

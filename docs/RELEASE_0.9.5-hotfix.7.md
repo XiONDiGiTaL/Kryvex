@@ -130,30 +130,35 @@ of making the user copy and paste it.
 ## Artifacts
 
 Built by the Release workflow on the `v0.9.5-hotfix.7` tag (`windows-latest`,
-Node 22, pnpm 10) and attached to
+Node 22, pnpm 10), published stable at 2026-10-30T20:17:24Z, and attached to
 [the release](https://github.com/XiONDiGiTaL/Kryvex/releases/tag/v0.9.5-hotfix.7):
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.9.5-hotfix.7-x64.exe` | recorded after the tag | recorded after the tag |
-| `Kryvex-Portable-0.9.5-hotfix.7-x64.exe` | recorded after the tag | recorded after the tag |
+| `Kryvex-Setup-0.9.5-hotfix.7-x64.exe` | 138,226,334 B (131.82 MiB) | `9408c5640bd6b9055a07362748052504f419eb1b8a2cef163818fe2e17779686` |
+| `Kryvex-Portable-0.9.5-hotfix.7-x64.exe` | 137,982,458 B (131.59 MiB) | `3c12208c2e1a44de1958b469da4496efd28a9836ceff4b0e82efb7a0512a4b30` |
 
-`SHA256SUMS.txt` travels with them. **The digests above are filled in by the
-follow-up commit that records the published assets**, the way 0.9.5-hotfix.6's
-were: at the time this record was written the tag had not run. Both EXEs are
-**unsigned**.
+`SHA256SUMS.txt` (207 B) travels with them, and the digests above are GitHub's
+own asset digests, so the in-app updater accepts this release. It is not a draft
+and not a prerelease, and `releases/latest` answers `v0.9.5-hotfix.7`. The
+workflow builds what it publishes, so these files — not the locally built pair
+below — are the ones to check a download against. Both EXEs are **unsigned**.
 
 The locally built pair from this working tree (`pnpm package:win`, Electron
-44.9.3, x64), used for the wizard capture and **not** one of the published files:
+44.9.3, x64), used for the wizard capture and **not** one of the published files.
+NSIS compression on this machine differed from the runner by 1 and 4 bytes, which
+is exactly why the published digests rather than these sizes are the ones to
+verify against:
 
 | File | Size |
 | --- | --- |
 | `Kryvex-Setup-0.9.5-hotfix.7-x64.exe` | 138,226,335 B (131.82 MiB) |
 | `Kryvex-Portable-0.9.5-hotfix.7-x64.exe` | 137,982,462 B (131.59 MiB) |
 
-**Web client.** The same tag rebuilds and force-pushes `gh-pages`, so the
-published worker at `https://xiondigital.net/Kryvex/sw.js` names
-`kryvex-web-0.9.5-hotfix.7-v1` and the site reports this version.
+**Web client.** The same tag rebuilt and force-pushed `gh-pages`: the published
+worker at `https://xiondigital.net/Kryvex/sw.js` names
+`kryvex-web-0.9.5-hotfix.7-v1`, `https://xiondigital.net/Kryvex/` answers HTTP
+200, and the served `assets/main-*.js` reports `0.9.5-hotfix.7`.
 
 ## Install
 
@@ -191,6 +196,11 @@ published worker at `https://xiondigital.net/Kryvex/sw.js` names
   manifest, four non-empty screenshots and the text of every page.
 - CI on `c461e07`: Windows job and all six harness batches green
   ([run 41107607717](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/41107607717)).
+- **The Release workflow on the tag:** both jobs green — `windows` in 3m00s and
+  `web` in 35s ([run 41121616649](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/41121616649))
+  — so the tag matched `package.json`, the record check passed on the runner,
+  the full suite and packaging ran there, and the artifacts above are the ones it
+  built.
 
 The other packaged-app harnesses (`pnpm verify:*`) were **not** re-run for this
 record. The self-update wizard harness was, and its result is in *Wizard capture*
