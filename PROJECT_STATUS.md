@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.5-hotfix.6, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.5-hotfix.7, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent

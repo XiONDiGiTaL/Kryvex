@@ -263,17 +263,47 @@ model and the limits.
 
 ## Service presets
 
-`src/lib/catalog.ts` lists web endpoints only: messaging (Discord, Messenger,
-WhatsApp, Telegram, Instagram, Gmail, X), work tools (GitHub, Linear, Notion,
-Figma, Trello), AI assistants (ChatGPT, Claude, Gemini, Copilot, Perplexity,
-Hugging Face, Freebuff), resources (FMHY, Ollama, Internet Archive) and media
-(Spotify, YouTube, Reddit). Links that exist only as research material for the
-app's own build (the Awesome Electron list, for instance) never appear here.
+`src/lib/catalog.ts` lists web endpoints only: **143 presets across 15
+categories** — communication, productivity, development, AI, resources, media,
+news, education, career, finance, language, design, music, utilities and other.
+Links that exist only as research material for the app's own build (the Awesome
+Electron list, for instance) never appear here.
 
 A preset fills the form; it does not bundle a client, an API key or a bridge.
 Kryvex is not affiliated with these services, and their terms still apply. Some
 sites refuse to run in any webview, and that is reported honestly instead of
 being bypassed.
+
+Each entry declares its id, display name, endpoint, category, colour, note and —
+where a mark is bundled — its icon, plus optional aliases for search. It also
+declares its **capabilities** and its **integration kind**. A capability is what
+the preset can do inside Kryvex (`open-url`, `send-selection`, `send-page`), and
+the kind is `website` for every shipped preset: opening a site here is not a
+native integration, and nothing in the catalogue claims to hold a token or act
+on an account.
+
+An exchange preset is a shortcut to that exchange's website. Kryvex is not a
+wallet, holds no trading credential and reads no balance.
+
+### Service colours and marks
+
+`SERVICE_COLORS` in `src/lib/services.ts` carries **21 named tones in spectrum
+order** — red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky,
+blue, indigo, violet, purple, magenta, pink, rose, brown, neutral gray, light
+neutral and dark neutral — with a custom picker beside them. Orange is its own
+tone, so a red-orange brand no longer has to borrow a yellow: Reddit is orange,
+Coinbase blue, Kraken purple, Binance yellow, Spotify green, GitHub and
+ElevenLabs dark neutral.
+
+Widening the palette never rewrites a profile: the store accepts any valid hex,
+so an existing service keeps the colour it was saved with, and `DEFAULT_COLOR`
+is unchanged for new ones.
+
+Brand marks are bundled under `public/brand-icons/`, so the grid works offline
+and a host that refuses to serve its favicon leaves no blank tile. A mark that is
+dark by design gets a light plate on dark themes. `pnpm check:icons` decodes
+every file, measures it against the tile it sits on and fails the build on a
+missing, undecodable or unreferenced mark.
 
 ## Discord specifically
 
@@ -375,3 +405,33 @@ a user-added service. Mailinator carries a warning in its note because its
 inboxes are public by design, Temu and AliExpress start muted because their
 feeds autoplay, and Weather.com is described as the full site rather than a
 replacement for the Home board's keyless feed.
+
+### The 0.9.5-hotfix.7 expansion
+
+One hundred and two more presets arrived with eight new categories, taking 41
+across 7 categories to 143 across 15:
+
+| Group | New categories | Examples |
+| --- | --- | --- |
+| Career and professional development | `career` | Novorésumé, LinkedIn, Indeed, Glassdoor |
+| AI, audio and content creation | `ai`, `design`, `music` | ElevenLabs, Suno, Udio, Canva, Adobe Express, Splice, Bandcamp |
+| Software, utilities and technology | `utilities`, `development` | Ninite, XDA, SourceForge, AlternativeTo, Proton, Internet Archive |
+| Education | `education` | Alison, Coursera, edX, Khan Academy, MIT OpenCourseWare, freeCodeCamp |
+| Language and international communication | `language` | Tandem, InterPals, HelloTalk, WordReference, Reverso |
+| Finance and cryptocurrency | `finance` | Coinbase, Kraken, Binance, TradingView, CoinGecko, CoinMarketCap |
+| Publishing | `media`, `productivity` | Blogger, Medium, Substack, Tumblr, WordPress, Reddit |
+| News and journalism | `news` | AP, Reuters, NPR, PBS NewsHour, BBC, The Guardian, Sky News, FT, Anadolu, TRT World, Daily Sabah, Hürriyet, DW, Der Spiegel, dpa, France 24, Le Monde, El País, RTVE, ANSA, Rai News, Al Jazeera, NHK World, SCMP, The Japan Times, The Hindu, The Straits Times |
+
+The news group spans eight countries by design rather than defaulting to one,
+and the category exists so a reader can filter for it. A publication here is a
+source link, never an endorsement, and nothing in the catalogue implies that any
+of them is neutral or universally reliable.
+
+Blogspot did not get an entry of its own — it is part of the Blogger ecosystem
+and is an alias on that preset instead.
+
+The expansion also corrected three destinations that still answered but had
+moved: `notion.so` → `notion.com`, `zoom.us` → `zoom.com` and
+`copilot.microsoft.com` → `copilot.com`. A full sweep of all 143 endpoints found
+no dead host; 22 answer a bot-protection status to a client without a browser
+fingerprint, which is expected of a signed-out request rather than a fault.

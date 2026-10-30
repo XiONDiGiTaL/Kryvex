@@ -3494,3 +3494,48 @@ devtools, and the step is skipped, with a line saying so, if the handle is
 missing. The controller stub hands back a fresh `Gamepad` snapshot per call like
 the browser does: one shared mutable object lets the loop's "before" snapshot
 move with the press, which hides the edge a claim depends on.
+
+## The catalogue, the palette and Send to Vexium (0.9.5-hotfix.7, 2026-10-30)
+
+The 0.9.5-hotfix.7 batch is covered by unit tests and two build gates rather than
+by a packaged-app harness, because everything it changes is data and rendering
+that can be asserted directly:
+
+- **`tests/vexium-transfer.test.ts` (19 tests).** The shared source model:
+  every producer kind lands with its name, kind, address and capture time
+  intact; a source over the per-source cap, a total context over the shared cap
+  and a source past the attachment limit are each refused; the same passage is
+  refused twice; a non-HTTP URL or one carrying credentials is dropped;
+  whitespace-only content is refused with the reason the panel shows; imported
+  text is framed as untrusted data; and every action builds one request with a
+  unique id.
+- **`tests/services.test.ts` (32 tests).** The expanded catalogue: ids and hosts
+  unique across all presets, every entry declaring `website` plus the three
+  capabilities, every preset's colour a six-digit hex, every new category
+  covered by at least one preset and by a filter chip, every preset's icon key
+  resolving to a bundled file that exists, and the palette holding at least 21
+  unique tones with a true orange (`#F97316`) distinct from red and amber. A
+  user's own hex still validates alongside a palette tone.
+- **`tests/origin.test.ts` (18 tests).** The serving-country chip: reading the
+  host out of a page address and refusing anything that is not a web page, never
+  asking the registry about a local page, preferring IPv4, building the lookup
+  against the keyless endpoint, reading a partial answer, falling back to no flag
+  for an unusable code, naming the country, the network owner, the node, the
+  coordinates and the clock, and explaining a lookup that could not name a
+  country.
+- **`tests/i18n-coverage.test.ts` (12 tests).** The two ratchets. The Spanish,
+  German and French backlog may not grow (41 / 68 / 56), Turkish drops to
+  **1,128**, every string this release added is translated in all three
+  full languages, and every interpolation token survives translation in all
+  four non-English catalogues.
+- **`pnpm check:icons`.** Decodes all 59 bundled marks, fails on a missing or
+  undecodable file, fails on one no source references, and measures the dark
+  marks that need the light plate.
+- **`pnpm build:web`.** The PWA gate, unchanged but re-run: manifest, service
+  worker, icons and the published bundle.
+
+What this does **not** cover, and should not be read into the pass: no
+`pnpm verify:*` harness ran against a packaged build for this batch, so the
+catalogue was not clicked through category by category in the installed app, and
+the twenty-two presets that answer `403`/`418`/`400` to a scripted client were
+confirmed to resolve, not to render.
