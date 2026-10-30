@@ -587,10 +587,12 @@ describe('translation coverage', () => {
  * everything else falls back to English. The ratchet keeps the untranslated
  * remainder from growing while it is worked off.
  */
-// Measured after the first Turkish pass: the shell, Home board, Workspace,
-// browser, player, rooms, capture and the clock are translated, and the long
-// explanatory copy is still English. Only lower this number.
-const TURKISH_BACKLOG = 1291;
+// Measured after the second Turkish pass: the shell, Home board, Workspace, the
+// whole browser surface (view, tabs, downloads, torrents, history, bookmarks
+// and the start page), the player, rooms, capture and the clock are translated,
+// and the long explanatory copy elsewhere is still English. Only lower this
+// number.
+const TURKISH_BACKLOG = 1128;
 
 describe('Turkish', () => {
   it('resolves a Turkish system locale to Turkish', () => {

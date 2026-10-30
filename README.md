@@ -121,11 +121,11 @@ these falls back to English rather than to a half-translated screen.
 
 | Language | Code | Chrome, dialogs and settings | Notes |
 | --- | --- | --- | --- |
-| English | `en` | 1,951 of 1,951 strings | The source catalogue: every key is a complete English sentence, so an untranslated string shows English rather than a blank. |
-| Español | `es` | 1,910 of 1,951 | The 41 that stay English are protocol and product tokens (`SHA-256`, `VEXIUM CORE`), units (`{value} kcal`) and words already correct in Spanish (`Color`, `Hardware`). |
-| Deutsch | `de` | 1,884 of 1,951 | The 67 that stay English are tokens, units and words already correct in German (`Browser`, `Desktop`, `Downloads`, `Name`, `Update`). |
-| Français | `fr` | 1,895 of 1,951 | The 56 that stay English are tokens and words already correct in French (`Accent`, `Architecture`). |
-| Türkçe | `tr` | 669 of 1,951 | **Knowingly partial, and labelled as such.** The shell, Home board, Workspace, browser, player, Rooms, capture and clock are translated; the long explanatory paragraphs still fall back to English. |
+| English | `en` | 2,002 of 2,002 strings | The source catalogue: every key is a complete English sentence, so an untranslated string shows English rather than a blank. |
+| Español | `es` | 1,961 of 2,002 | The 41 that stay English are protocol and product tokens (`SHA-256`, `VEXIUM CORE`), units (`{value} kcal`) and words already correct in Spanish (`Color`, `Hardware`). |
+| Deutsch | `de` | 1,934 of 2,002 | The 68 that stay English are tokens, units and words already correct in German (`Browser`, `Desktop`, `Downloads`, `Name`, `Update`). |
+| Français | `fr` | 1,946 of 2,002 | The 56 that stay English are tokens and words already correct in French (`Accent`, `Architecture`). |
+| Türkçe | `tr` | 874 of 2,002 | **Knowingly partial, and labelled as such.** The shell, Home board, Workspace, the whole browser surface and Start page, player, Rooms, capture, clock and the Send to Vexium panel are translated; the long explanatory paragraphs still fall back to English. |
 
 What the catalogue covers: the shell and navigation, every dialog, Settings,
 per-service controls and menus, status and error messages, the browser library,
