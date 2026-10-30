@@ -114,7 +114,8 @@ away.
 > share, Vexium answers from a local model or a GGUF file you point it at,
 > torrents live in the downloads hub,
 > downloads and new torrents can use any writable folder you choose, and the
-> Windows installer and portable build run. Builds are unsigned. The app
+> Windows installer and portable build run. Builds are unsigned; the signing
+> position is in [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). The app
 > checks GitHub Releases for updates, verifies the installer checksum and
 > can install it on restart, says **UP TO DATE** in green when nothing newer
 > exists; portable and git builds download or point at the release instead.
@@ -223,9 +224,11 @@ checksums, verification steps and limitations are recorded in
 [docs/RELEASE_0.6.0.md](docs/RELEASE_0.6.0.md) and
 [docs/RELEASE_0.5.0.md](docs/RELEASE_0.5.0.md).
 
-**Unsigned build notice.** Code signing is not configured yet, so Windows
-SmartScreen may show **Unknown publisher**. Only continue if you built the
-artifact yourself or downloaded it from a release you trust.
+**Unsigned build notice.** No release is signed yet, so Windows SmartScreen may
+show **Unknown publisher**. Only continue if you built the artifact yourself or
+downloaded it from a release you trust. [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md)
+explains what a signature would and would not change, which route is free, and
+what is already wired into the release workflow.
 
 ## Kryvex Web (non-Electron)
 
@@ -582,8 +585,9 @@ Kryvex now runs services like installed apps rather than browser pages.
 - **Docs that take a position:** [SERVICES.md](docs/SERVICES.md) explains the
   engine, [PLATFORM_PLAN.md](docs/PLATFORM_PLAN.md) triages client mods,
   compounds, local models and the emulator idea, [UPDATES.md](docs/UPDATES.md)
-  covers the release/checksum chain, and [LEGAL.md](docs/LEGAL.md) holds the
-  privacy/terms/cookies/accessibility pack.
+  covers the release/checksum chain, [CODE_SIGNING.md](docs/CODE_SIGNING.md)
+  records the signing position and policy, and [LEGAL.md](docs/LEGAL.md) holds
+  the privacy/terms/cookies/accessibility pack.
 
 ## What was new in 0.5.0
 
@@ -1336,8 +1340,11 @@ pnpm start         # run the built app
 `package.json` contains the electron-builder configuration: app id
 `net.xiondigital.kryvex`, NSIS + portable Windows targets, the 7-resolution
 `brand/icons/kryvex.ico`, extra icons in resources, and production node modules
-for the shield/extension runtime. Code signing is not configured, so current
-builds are unsigned development artifacts.
+for the shield/extension runtime. Code signing runs in the release workflow
+only: it signs through SignPath Foundation when `SIGNPATH_API_TOKEN` exists and
+publishes unsigned installers when it does not, so a local `package:win` build is
+still unsigned. [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md) has the details and
+the signing policy.
 
 `pnpm run package:win` writes distinct artifacts: a standard Setup EXE with a
 selectable install folder, Desktop/Start Menu shortcuts and an uninstaller; and

@@ -55,6 +55,65 @@ jobs:
 
       - run: pnpm package:win
 
+      # Signing is off until the SignPath Foundation credentials exist, so a
+      # fork, a clone and the next tag all publish exactly what they built.
+      # See docs/CODE_SIGNING.md for why this is the only free route to a
+      # publicly trusted signature and what the maintainer has to configure.
+      - name: Detect the signing configuration
+        id: signing
+        shell: bash
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        run: |
+          if [ -n "$SIGNPATH_API_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "No SIGNPATH_API_TOKEN: publishing unsigned installers, as before."
+          fi
+
+      # SignPath signs an Actions artifact rather than a file in the working
+      # tree, so the installers go up unsigned and come back signed into the
+      # same output directory, which is what the checksums then describe.
+      - name: Upload the unsigned installers
+        if: steps.signing.outputs.enabled == 'true'
+        id: unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: kryvex-unsigned-installers
+          path: |
+            release/Kryvex-Setup-*-x64.exe
+            release/Kryvex-Portable-*-x64.exe
+          if-no-files-found: error
+
+      # The request waits for the per-release approval the Foundation's terms
+      # require, so the wait is longer than a build and it is not a hang.
+      - name: Sign the installers
+        if: steps.signing.outputs.enabled == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: release
+
+      # A signed build is only worth the wait if the published file is the
+      # signed one, so the signature is read back off both installers here.
+      - name: Verify the signed installers
+        if: steps.signing.outputs.enabled == 'true'
+        shell: pwsh
+        run: |
+          $exes = @(Get-ChildItem release/Kryvex-*-x64.exe)
+          if ($exes.Count -ne 2) { throw "expected two installers, found $($exes.Count)" }
+          foreach ($exe in $exes) {
+            $sig = Get-AuthenticodeSignature $exe.FullName
+            if ($sig.Status -ne 'Valid') { throw "$($exe.Name) is not validly signed: $($sig.Status)" }
+            Write-Host "$($exe.Name) signed by $($sig.SignerCertificate.Subject)"
+          }
+
       - name: Write checksums
         run: node scripts/release-checksums.cjs
 
