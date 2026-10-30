@@ -204,7 +204,8 @@ export function ServerOrigin({ url }: { url: string }) {
           </dl>
           <footer className="origin-foot">
             <span>
-              {t('ipwho.is')} · {ageLabel(origin.lookedUpAt, openedAt || Date.now())}
+              {/* The provider's hostname is a proper noun, not copy to translate. */}
+              ipwho.is · {ageLabel(origin.lookedUpAt, openedAt || Date.now())}
             </span>
             <button type="button" className="origin-copy" onClick={copyAddress}>
               {copied ? t('Copied') : t('Copy IP')}

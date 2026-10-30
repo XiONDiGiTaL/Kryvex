@@ -990,4 +990,17 @@ export const turkishCopy: Record<string, string> = {
   "Nothing is selected on this page.": "Bu sayfada hiçbir şey seçili değil.",
   "The page could not be read.": "Sayfa okunamadı.",
 
+  /* ---------------------------------------------- server origin chip --- */
+  'Server origin unavailable': 'Sunucu kaynağı kullanılamıyor',
+  'Server origin': 'Sunucu kaynağı',
+  'Origin unknown': 'Kaynak bilinmiyor',
+  'Look up again': 'Yeniden sorgula',
+  'Server IP': 'Sunucu IP’si',
+  'Unknown': 'Bilinmiyor',
+  'Node': 'Düğüm',
+  'Their time': 'Onların saati',
+  'Coordinates': 'Koordinatlar',
+  'Copy IP': 'IP’yi kopyala',
+  'Resolving this site’s network…': 'Bu sitenin ağı çözümleniyor…',
+
 };

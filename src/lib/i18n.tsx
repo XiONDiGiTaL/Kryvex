@@ -23,6 +23,7 @@ import { netplayCopy } from './i18n-netplay';
 import { couchCopy } from './i18n-couch';
 import { vexiumCopy } from './i18n-vexium';
 import { vexiumTransferCopy } from './i18n-vexium-transfer';
+import { originCopy } from './i18n-origin';
 import { turkishCopy } from './i18n-tr';
 import { sweepEs } from './i18n-sweep-es';
 import { sweepDe } from './i18n-sweep-de';
@@ -2907,6 +2908,7 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           ...pick(couchCopy, language),
           ...pick(vexiumCopy, language),
           ...pick(vexiumTransferCopy, language),
+          ...pick(originCopy, language),
           // Turkish is written as one catalogue, so it lands last and wins.
           ...(language === 'tr' ? turkishCopy : {}),
         };

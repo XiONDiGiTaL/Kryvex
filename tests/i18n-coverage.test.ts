@@ -543,6 +543,18 @@ const ADDED = [
   'The engine was removed.',
   'Dreamcast runs on the second engine. Naomi arcade boards are still not offered: a set is several files and the slot takes one.',
   'Link play keeps the two machines together by sending save states, and a Dreamcast state is too large for that. Load the same image on both machines instead.',
+  // Server-origin chip in the address bar.
+  'Server origin unavailable',
+  'Server origin',
+  'Origin unknown',
+  'Look up again',
+  'Server IP',
+  'Unknown',
+  'Node',
+  'Their time',
+  'Coordinates',
+  'Copy IP',
+  'Resolving this site’s network…',
 ];
 
 describe('translation coverage', () => {
