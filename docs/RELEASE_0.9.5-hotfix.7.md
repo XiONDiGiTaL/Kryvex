@@ -143,6 +143,14 @@ follow-up commit that records the published assets**, the way 0.9.5-hotfix.6's
 were: at the time this record was written the tag had not run. Both EXEs are
 **unsigned**.
 
+The locally built pair from this working tree (`pnpm package:win`, Electron
+44.9.3, x64), used for the wizard capture and **not** one of the published files:
+
+| File | Size |
+| --- | --- |
+| `Kryvex-Setup-0.9.5-hotfix.7-x64.exe` | 138,226,335 B (131.82 MiB) |
+| `Kryvex-Portable-0.9.5-hotfix.7-x64.exe` | 137,982,462 B (131.59 MiB) |
+
 **Web client.** The same tag rebuilds and force-pushes `gh-pages`, so the
 published worker at `https://xiondigital.net/Kryvex/sw.js` names
 `kryvex-web-0.9.5-hotfix.7-v1` and the site reports this version.
@@ -174,25 +182,46 @@ published worker at `https://xiondigital.net/Kryvex/sw.js` names
   bot-protection status (`403`, `418`, `400`) to a client without a browser
   fingerprint, which is not a dead destination; no preset failed to resolve
   after a second attempt. Three hosts redirect permanently and were corrected.
-- CI on the preceding commit (`46bfaf8`): Windows job and all six harness
-  batches green.
+- `pnpm package:win`: exit 0, producing the two installers sized above.
+- **`pnpm verify:self-update --wizard --archive` against that local installer:
+  PASS** — four pages captured, installer exit 0, 20,858 ms on the install page,
+  and the wizard found the existing `C:\Kryvex` installation and upgraded it
+  (`DisplayVersion` now reports `0.9.5-hotfix.7`).
+- `pnpm release:check`: PASS for `0.9.5-hotfix.7` — record, capture link,
+  manifest, four non-empty screenshots and the text of every page.
+- CI on `c461e07`: Windows job and all six harness batches green
+  ([run 41107607717](https://github.com/XiONDiGiTaL/Kryvex/actions/runs/41107607717)).
 
-The packaged-app harnesses (`pnpm verify:*`) were **not** re-run for this
-record; the gates above, and CI, are what this commit was verified with.
+The other packaged-app harnesses (`pnpm verify:*`) were **not** re-run for this
+record. The self-update wizard harness was, and its result is in *Wizard capture*
+below. The gates above, that run and CI are what this commit was verified with.
 
 ## Wizard capture
 
 The installer is a native Windows dialog, so its pages appear in no screenshot of
-the app. **This capture has not been recorded for this version yet.** It is
-produced by [`scripts/verify-self-update.cjs --wizard --archive`](verify-self-update.cjs)
-against a locally built installer (`pnpm package:win`), and that run installs
-over the existing `C:\Kryvex` to photograph the upgrade path — so it is the one
-step of this record that touches the machine it runs on, and it has to be run
-deliberately.
+the app. The capture comes from the locally built installer and is committed with
+this record:
+[capture.md](media/releases/0.9.5-hotfix.7-wizard/capture.md).
 
-`scripts/check-release-record.cjs` fails a tag whose record has no capture
-committed under `docs/media/releases/0.9.5-hotfix.7-wizard/`, which is the point:
-the tag for this note cannot cut until that capture exists.
+Recorded 2026-10-30T18:42:32Z from the local installer of this working tree by
+[`scripts/verify-self-update.cjs --wizard --archive`](verify-self-update.cjs).
+The wizard found the existing per-user installation in `C:\Kryvex` and upgraded it
+in place.
+
+| # | Page | What it said |
+| --- | --- | --- |
+| 1 | [Choose Installation Options](media/releases/0.9.5-hotfix.7-wizard/pages/01-Choose%20Installation%20Options.png) | "Who should this application be installed for?"; "There is already a per-user installation.(C:\Kryvex) Will reinstall/upgrade." |
+| 2 | [Choose Install Location](media/releases/0.9.5-hotfix.7-wizard/pages/02-Choose%20Install%20Location.png) | Destination `C:\Kryvex`; "Space required: 489.2 MB" |
+| 3 | [Installing](media/releases/0.9.5-hotfix.7-wizard/pages/03-Installing.png) | "Please wait while Kryvex is being installed."; "Kryvex 0.9.5-hotfix.7" |
+| 4 | [Completing Kryvex Setup](media/releases/0.9.5-hotfix.7-wizard/pages/04-Completing%20Kryvex%20Setup.png) | "Kryvex has been installed on your computer. Click Finish to close Setup." |
+
+The install page ran for 20,858 ms between **Installing** and **Completing Kryvex
+Setup**, all four pages were photographed, and the installer exited 0. After the
+run the installed build reports `DisplayVersion 0.9.5-hotfix.7` in
+Windows' uninstall record, which is how the upgrade in place is confirmed.
+
+`scripts/check-release-record.cjs` reads this capture, so the tag for this note
+fails unless it is committed with it.
 
 ## Known limitations
 

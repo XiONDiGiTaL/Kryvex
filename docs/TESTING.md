@@ -3534,8 +3534,13 @@ that can be asserted directly:
 - **`pnpm build:web`.** The PWA gate, unchanged but re-run: manifest, service
   worker, icons and the published bundle.
 
-What this does **not** cover, and should not be read into the pass: no
-`pnpm verify:*` harness ran against a packaged build for this batch, so the
-catalogue was not clicked through category by category in the installed app, and
-the twenty-two presets that answer `403`/`418`/`400` to a scripted client were
-confirmed to resolve, not to render.
+One packaged harness did run for this batch: `pnpm verify:self-update --wizard
+--archive` against the locally built `Kryvex-Setup-0.9.5-hotfix.7-x64.exe`, which
+captured all four installer pages, exited 0 and upgraded the existing `C:\Kryvex`
+in place (see [the capture](media/releases/0.9.5-hotfix.7-wizard/capture.md)).
+
+What this does **not** cover, and should not be read into the pass: no other
+`pnpm verify:*` harness ran against a packaged build, so the catalogue was not
+clicked through category by category in the installed app, and the twenty-two
+presets that answer `403`/`418`/`400` to a scripted client were confirmed to
+resolve, not to render.
