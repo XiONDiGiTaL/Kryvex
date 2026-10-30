@@ -201,6 +201,13 @@ worker at `https://xiondigital.net/Kryvex/sw.js` names
   — so the tag matched `package.json`, the record check passed on the runner,
   the full suite and packaging ran there, and the artifacts above are the ones it
   built.
+- **The live update path, after publication:** `node scripts/verify-self-update.cjs`
+  against a 0.9.5-hotfix.6 installation asked GitHub for `releases/latest`,
+  reported *Kryvex 0.9.5-hotfix.7 is available*, downloaded the published Setup
+  EXE, confirmed its SHA-256 matched `SHA256SUMS.txt`, quit so the installer could
+  run, and its wizard completed in 21,877 ms with exit code 0. `DisplayVersion`
+  afterwards reads `0.9.5-hotfix.7`. So the upgrade users get from **Settings →
+  Updates** is the same file linked above, not a locally built one.
 
 The other packaged-app harnesses (`pnpm verify:*`) were **not** re-run for this
 record. The self-update wizard harness was, and its result is in *Wizard capture*
