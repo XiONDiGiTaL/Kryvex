@@ -154,7 +154,8 @@ export const SERVICE_PRESETS: ServicePreset[] = [
   {
     id: 'notion',
     name: 'Notion',
-    url: 'https://www.notion.so',
+    // notion.so redirects to the .com brand home since the rename.
+    url: 'https://www.notion.com',
     category: 'productivity',
     color: '#0F172A',
     icon: 'notion',
@@ -293,7 +294,8 @@ export const SERVICE_PRESETS: ServicePreset[] = [
   {
     id: 'copilot',
     name: 'Copilot',
-    url: 'https://copilot.microsoft.com',
+    // copilot.microsoft.com redirects to the standalone Copilot home.
+    url: 'https://copilot.com/',
     category: 'ai',
     color: '#60A5FA',
     icon: 'copilot',
@@ -1165,7 +1167,8 @@ export const SERVICE_PRESETS: ServicePreset[] = [
   {
     id: 'zoom',
     name: 'Zoom',
-    url: 'https://zoom.us/',
+    // zoom.us redirects to zoom.com; the web client lives under the same host.
+    url: 'https://www.zoom.com/',
     category: 'communication',
     color: '#3B82F6',
     icon: 'zoom',

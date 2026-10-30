@@ -285,7 +285,7 @@ export function starterState(): PersistedState {
     },
     {
       name: 'Notion',
-      url: 'https://www.notion.so',
+      url: 'https://www.notion.com',
       category: 'productivity',
       color: '#FBBF24',
       letter: 'N',
