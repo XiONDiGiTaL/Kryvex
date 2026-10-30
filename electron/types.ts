@@ -85,6 +85,24 @@ export interface ExtensionRecord {
   error?: string;
 }
 
+/** One installed `.user.js`, as the browser panel and Settings list it. */
+export interface UserscriptRecord {
+  key: string;
+  name: string;
+  version: string;
+  description: string;
+  /** The hosts the script claims, reduced to something a person reads. */
+  hosts: string[];
+  /** Raw patterns, so the browser panel can say whether it runs on this page. */
+  matches: string[];
+  includes: string[];
+  excludes: string[];
+  runAt: 'document-start' | 'document-end' | 'document-idle';
+  enabled: boolean;
+  installedAt: number;
+  bytes: number;
+}
+
 export type DownloadState = 'progressing' | 'paused' | 'completed' | 'cancelled' | 'interrupted';
 
 export interface DownloadRecord {

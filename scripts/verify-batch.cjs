@@ -27,6 +27,7 @@ const pkg = require('../package.json');
 const BATCHES = {
   browser: [
     'verify:browser',
+    'verify:userscripts',
     'verify:browser-start',
     'verify:popups',
     'verify:chromium',

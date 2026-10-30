@@ -178,6 +178,17 @@ const api = {
     ipcRenderer.invoke('kryvex:extensions:enabled', key, enabled),
   extensionsRemove: (key: string): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:extensions:remove', key),
+  userscriptsList: (): Promise<unknown> => ipcRenderer.invoke('kryvex:userscripts:list'),
+  userscriptsInstallFile: (): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:userscripts:install-file'),
+  userscriptsInstallText: (source: string): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:userscripts:install-text', source),
+  userscriptsInstallUrl: (url: string): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:userscripts:install-url', url),
+  userscriptsSetEnabled: (key: string, enabled: boolean): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:userscripts:enabled', key, enabled),
+  userscriptsRemove: (key: string): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:userscripts:remove', key),
   downloadsList: (): Promise<DownloadRecord[]> => ipcRenderer.invoke('kryvex:downloads:list'),
   downloadsLocation: (): Promise<DownloadLocation | null> =>
     ipcRenderer.invoke('kryvex:downloads:location'),

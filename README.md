@@ -18,7 +18,7 @@ calls, without asking you to trust a browser policy.
 
 [![Services](https://img.shields.io/badge/services-143-2DD4BF?style=flat-square)](#adding-services)
 [![Categories](https://img.shields.io/badge/categories-15-38BDF8?style=flat-square)](#adding-services)
-[![Tests](https://img.shields.io/badge/tests-1%2C136-38BDF8?style=flat-square)](docs/TESTING.md)
+[![Tests](https://img.shields.io/badge/tests-1%2C152-38BDF8?style=flat-square)](docs/TESTING.md)
 [![UI languages](https://img.shields.io/badge/ui%20languages-5-F2C94C?style=flat-square)](#languages)
 [![Themes](https://img.shields.io/badge/themes-78-9AA6B5?style=flat-square)](#themes)
 
@@ -83,6 +83,9 @@ away.
   live download progress and a one-click Windows default-browser setup live in
   the same workspace. A page's pop-up opens as a tab, so a sign-in that needs a
   new window finishes inside Kryvex instead of leaving for the system browser.
+  Userscripts arrive with it: install a `.user.js` and it runs on the pages its
+  `@match` names, with a switch per script in **Settings → User scripts** or the
+  script icon in the toolbar.
 - **Controls where you expect them.** Add, Settings and Help stay visible in the
   header, and Home puts the four most common actions in one strip. Keyboard
   shortcuts exist for speed, but they are not the only route through the app.
@@ -127,11 +130,11 @@ these falls back to English rather than to a half-translated screen.
 
 | Language | Code | Chrome, dialogs and settings | Notes |
 | --- | --- | --- | --- |
-| English | `en` | 2,002 of 2,002 strings | The source catalogue: every key is a complete English sentence, so an untranslated string shows English rather than a blank. |
-| Español | `es` | 1,961 of 2,002 | The 41 that stay English are protocol and product tokens (`SHA-256`, `VEXIUM CORE`), units (`{value} kcal`) and words already correct in Spanish (`Color`, `Hardware`). |
-| Deutsch | `de` | 1,934 of 2,002 | The 68 that stay English are tokens, units and words already correct in German (`Browser`, `Desktop`, `Downloads`, `Name`, `Update`). |
-| Français | `fr` | 1,946 of 2,002 | The 56 that stay English are tokens and words already correct in French (`Accent`, `Architecture`). |
-| Türkçe | `tr` | 874 of 2,002 | **Knowingly partial, and labelled as such.** The shell, Home board, Workspace, the whole browser surface and Start page, player, Rooms, capture, clock and the Send to Vexium panel are translated; the long explanatory paragraphs still fall back to English. |
+| English | `en` | 2,029 of 2,029 strings | The source catalogue: every key is a complete English sentence, so an untranslated string shows English rather than a blank. |
+| Español | `es` | 1,988 of 2,029 | The 41 that stay English are protocol and product tokens (`SHA-256`, `VEXIUM CORE`), units (`{value} kcal`) and words already correct in Spanish (`Color`, `Hardware`). |
+| Deutsch | `de` | 1,961 of 2,029 | The 68 that stay English are tokens, units and words already correct in German (`Browser`, `Desktop`, `Downloads`, `Name`, `Update`). |
+| Français | `fr` | 1,973 of 2,029 | The 56 that stay English are tokens and words already correct in French (`Accent`, `Architecture`). |
+| Türkçe | `tr` | 901 of 2,029 | **Knowingly partial, and labelled as such.** The shell, Home board, Workspace, the whole browser surface and Start page, player, Rooms, capture, clock and the Send to Vexium panel are translated; the long explanatory paragraphs still fall back to English. |
 
 What the catalogue covers: the shell and navigation, every dialog, Settings,
 per-service controls and menus, status and error messages, the browser library,
@@ -582,8 +585,9 @@ Kryvex now runs services like installed apps rather than browser pages.
 - **Docs that take a position:** [SERVICES.md](docs/SERVICES.md) explains the
   engine, [PLATFORM_PLAN.md](docs/PLATFORM_PLAN.md) triages client mods,
   compounds, local models and the emulator idea, [UPDATES.md](docs/UPDATES.md)
-  covers the release/checksum chain, and [LEGAL.md](docs/LEGAL.md) holds the
-  privacy/terms/cookies/accessibility pack.
+  covers the release/checksum chain, [USERSCRIPTS.md](docs/USERSCRIPTS.md) records
+  the metadata a script needs and the limits it runs under, and
+  [LEGAL.md](docs/LEGAL.md) holds the privacy/terms/cookies/accessibility pack.
 
 ## What was new in 0.5.0
 
@@ -695,6 +699,7 @@ faster; the same actions remain available on screen.
 | **Service apps** | Keep-alive webview, a shared lifecycle policy (keep running, keep muted, pause on leave, pause when idle, stop) with per-service overrides, native notifications, unread badges, sandboxed OAuth popups on the same session, a persistent Steam session, an in-service one-time-code relay for Steam Guard, other sign-in codes and split one-character boxes, per-service session clearing, reload, open externally, edit, remove, loading bar and an error state with retry. A Chrome-shaped user agent replaces Electron's. |
 | **Browser** | Tabs that reopen after a restart, back / forward / reload, address bar with host-or-search resolution, per-tab in-memory session, find-in-page (`Ctrl F`), page zoom (`Ctrl +` / `Ctrl -` / `Ctrl 0`), bookmarks bar, system-browser handoff, direct URL deep links. |
 | **Browser library** | Downloads, history and bookmarks in a side panel. Live download progress, pause/resume, cancel, show in folder, remove and delete-file actions; searchable history with clear/remove; full bookmark list. |
+| **User scripts** | Greasemonkey and Tampermonkey `.user.js` files in browser tabs: `@match`, `@include` and `@exclude` decide where a script runs, and it is installed from a file, pasted, or fetched from an address. A switch per script, removal, and a toolbar panel that lists what is installed and marks the scripts running on the page in front. Scripts run on `dom-ready` when the page loads; service modules are never patched. See [docs/USERSCRIPTS.md](docs/USERSCRIPTS.md). |
 | **Downloads** | Chromium downloads are observed in the main process across services and browser tabs, saved to the folder chosen in **Settings → Data** (Downloads by default) with collision-safe names, and exposed only as tracked display records. Finished history is written to `userData/kryvex-downloads.json`, so the library survives a restart; a download interrupted by quitting is shown as interrupted. |
 | **Torrents** | Magnet links and `.torrent` files open into the Downloads hub. New torrents use a `Kryvex Torrents` subfolder inside the chosen download location. Live progress, seeders/leechers, download/upload speed, ratio, time remaining, protocols, trackers and file list; pause/resume, reveal folder, remove, and optional data deletion. The queue is written to `userData/kryvex-torrents.json` and restored paused after a restart; no transfer resumes until the user presses Resume. Kryvex does not host, index or recommend torrents. |
 | **Rooms** | A link-only hangout view: create a room, copy the invite, and everyone who opens it shares presence, a name, a colour and ephemeral chat. Share a whole screen, a single window, or one Kryvex service app (Discord, a browser tab, Vexium), optionally with system audio on Windows, with peers connecting directly over WebRTC. Signaling rides public WebTorrent trackers, media never touches a Kryvex server, and no account is involved. Capture is shell-only, one armed source at a time, and every viewer costs the sharer one upload (mesh). |

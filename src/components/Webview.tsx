@@ -55,7 +55,13 @@ interface WebviewProps {
    * a context-menu pick, a shortcut or a palette command.
    */
   onSendToVexium?: (source: VexiumSourceInput) => void;
-  onNavigate?: (url: string) => void;
+  /**
+   * `document` is a real page load; `in-page` is the page rewriting its own URL
+   * with pushState/replaceState, which a search box does on every keystroke.
+   * The address bar has to tell them apart: a load replaces what is shown, an
+   * in-page change must never overwrite something being typed.
+   */
+  onNavigate?: (url: string, kind: 'document' | 'in-page') => void;
   onTitle?: (title: string) => void;
   onStatus?: (status: WebviewStatus) => void;
   onFound?: (result: FindResult) => void;
@@ -235,7 +241,12 @@ export function Webview({
     const onReady = () => readStatus(false);
     const onNavigated = (event: Event) => {
       const detail = event as Event & { url: string };
-      onNavigate?.(detail.url);
+      onNavigate?.(detail.url, 'document');
+      readStatus(false);
+    };
+    const onNavigatedInPage = (event: Event) => {
+      const detail = event as Event & { url: string };
+      onNavigate?.(detail.url, 'in-page');
       readStatus(false);
     };
     const onTitleUpdated = (event: Event) => {
@@ -259,7 +270,7 @@ export function Webview({
     el.addEventListener('did-stop-loading', onStop);
     el.addEventListener('dom-ready', onReady);
     el.addEventListener('did-navigate', onNavigated);
-    el.addEventListener('did-navigate-in-page', onNavigated);
+    el.addEventListener('did-navigate-in-page', onNavigatedInPage);
     el.addEventListener('page-title-updated', onTitleUpdated);
     el.addEventListener('found-in-page', onFoundInPage);
     el.addEventListener('did-fail-load', onFail);
@@ -270,7 +281,7 @@ export function Webview({
       el.removeEventListener('did-stop-loading', onStop);
       el.removeEventListener('dom-ready', onReady);
       el.removeEventListener('did-navigate', onNavigated);
-      el.removeEventListener('did-navigate-in-page', onNavigated);
+      el.removeEventListener('did-navigate-in-page', onNavigatedInPage);
       el.removeEventListener('page-title-updated', onTitleUpdated);
       el.removeEventListener('found-in-page', onFoundInPage);
       el.removeEventListener('did-fail-load', onFail);

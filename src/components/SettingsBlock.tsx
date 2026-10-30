@@ -11,6 +11,7 @@ type SettingsIcon =
   | 'users'
   | 'monitor'
   | 'volume'
+  | 'script'
   | 'lock';
 
 /**

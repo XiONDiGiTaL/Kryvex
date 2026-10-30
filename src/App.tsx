@@ -2065,6 +2065,7 @@ export default function App() {
             focusUpdates={route.query.get('section') === 'updates'}
             focusAssistant={route.query.get('section') === 'assistant'}
             focusResources={route.query.get('section') === 'resources'}
+            focusUserscripts={route.query.get('section') === 'userscripts'}
             onCheckUpdate={() => void checkForUpdates()}
             onDownloadUpdate={() => void downloadUpdate()}
             onInstallUpdate={() => void installUpdate()}

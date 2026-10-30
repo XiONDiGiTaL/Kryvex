@@ -8394,6 +8394,187 @@ select:hover {
   background: var(--line-soft);
 }
 
+/* --------------------------------------------------------- user scripts --- */
+
+.userscript-menu {
+  width: 300px;
+  padding: 7px;
+}
+
+.userscript-menu-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 6px 7px;
+}
+
+.userscript-menu-head strong {
+  font-size: 11px;
+}
+
+.userscript-menu-head .mono {
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+.userscript-menu-empty {
+  margin: 0;
+  padding: 4px 6px 8px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.userscript-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 210px;
+  overflow-y: auto;
+}
+
+/* The menu's shared button rules stretch every button to the full row; a
+   switch keeps its own size and sits beside the name instead. */
+.userscript-menu .userscript-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: var(--r-sm);
+}
+
+.userscript-menu .userscript-row.runs-here {
+  background: color-mix(in srgb, var(--accent-wash) 55%, transparent);
+}
+
+.userscript-menu .userscript-row .switch {
+  width: 34px;
+  min-height: 0;
+  padding: 2px;
+  flex: none;
+  background: var(--bg);
+}
+
+.userscript-menu .userscript-row .switch.is-on {
+  background: var(--accent-wash);
+}
+
+.userscript-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.userscript-row-copy strong {
+  font-size: 10.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userscript-row-copy .mono {
+  font-size: 8px;
+  letter-spacing: 0.03em;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userscript-menu .userscript-row.runs-here .userscript-row-copy .mono {
+  color: var(--accent);
+}
+
+.userscript-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.userscript-editor textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.userscript-editor .btn {
+  align-self: flex-start;
+}
+
+.userscript-url {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.userscript-url input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 9px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.userscript-description {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.userscript-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.userscript-sources strong {
+  font-size: 11px;
+}
+
+.userscript-source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.userscript-source-links .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+}
+
+.userscript-source-note {
+  font-size: 8.5px;
+  letter-spacing: 0.03em;
+  color: var(--ink-faint);
+}
+
 /* --------------------------------------------------------- private tabs --- */
 
 .tab.is-private {

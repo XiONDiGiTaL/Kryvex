@@ -1094,6 +1094,28 @@ export interface ExtensionRecord {
   error?: string;
 }
 
+/** Mirrors `UserscriptRecord` in the main process: one installed `.user.js`. */
+export interface UserscriptRecord {
+  key: string;
+  name: string;
+  version: string;
+  description: string;
+  hosts: string[];
+  matches: string[];
+  includes: string[];
+  excludes: string[];
+  runAt: 'document-start' | 'document-end' | 'document-idle';
+  enabled: boolean;
+  installedAt: number;
+  bytes: number;
+}
+
+export interface UserscriptResult {
+  ok: boolean;
+  message: string;
+  records: UserscriptRecord[];
+}
+
 export type UpdatePhase =
   | 'idle'
   | 'checking'
@@ -1245,6 +1267,12 @@ export interface KryvexBridge {
     enabled: boolean,
   ) => Promise<{ ok: boolean; message: string; records: ExtensionRecord[] }>;
   extensionsRemove: (key: string) => Promise<{ ok: boolean; message: string; records: ExtensionRecord[] }>;
+  userscriptsList: () => Promise<UserscriptRecord[]>;
+  userscriptsInstallFile: () => Promise<UserscriptResult>;
+  userscriptsInstallText: (source: string) => Promise<UserscriptResult>;
+  userscriptsInstallUrl: (url: string) => Promise<UserscriptResult>;
+  userscriptsSetEnabled: (key: string, enabled: boolean) => Promise<UserscriptResult>;
+  userscriptsRemove: (key: string) => Promise<UserscriptResult>;
   downloadsList: () => Promise<DownloadRecord[]>;
   downloadsLocation: () => Promise<DownloadLocation | null>;
   downloadsChooseLocation: () => Promise<DownloadLocationResult>;

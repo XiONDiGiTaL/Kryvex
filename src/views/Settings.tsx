@@ -15,6 +15,7 @@ import type {
   ShieldStatus,
   StartupStatus,
   UpdateStatus,
+  UserscriptRecord,
   ViewId,
   VpnStatus,
   WallpaperFit,
@@ -118,6 +119,18 @@ function timeLabel(timestamp: number | null, locale: string, never: string): str
   });
 }
 
+/**
+ * Where user scripts are published. These open in the system browser: the
+ * point is browsing a library, and a library inside a signed-in webview would
+ * be a different thing to maintain. All four were reachable when this shipped.
+ */
+const USERSCRIPT_SOURCES = [
+  { name: 'Greasy Fork', url: 'https://greasyfork.org/' },
+  { name: 'OpenUserJS', url: 'https://openuserjs.org/' },
+  { name: 'GitHub · userscripts', url: 'https://github.com/topics/userscript' },
+  { name: 'Tampermonkey · documentation', url: 'https://www.tampermonkey.net/documentation.php' },
+] as const;
+
 export function Settings({
   state,
   info,
@@ -134,6 +147,7 @@ export function Settings({
   focusUpdates = false,
   focusAssistant = false,
   focusResources = false,
+  focusUserscripts = false,
   onCheckUpdate,
   onDownloadUpdate,
   onInstallUpdate,
@@ -156,6 +170,8 @@ export function Settings({
   focusUpdates?: boolean;
   focusAssistant?: boolean;
   focusResources?: boolean;
+  /** Deep link from the browser's user-script panel. */
+  focusUserscripts?: boolean;
   onCheckUpdate: () => void;
   onDownloadUpdate: () => void;
   onInstallUpdate: () => void;
@@ -169,6 +185,10 @@ export function Settings({
   const [filtersDraft, setFiltersDraft] = useState('');
   const [filtersDirty, setFiltersDirty] = useState(false);
   const [extensions, setExtensions] = useState<ExtensionRecord[]>([]);
+  const [scripts, setScripts] = useState<UserscriptRecord[]>([]);
+  const [scriptPaste, setScriptPaste] = useState('');
+  const [scriptUrl, setScriptUrl] = useState('');
+  const [scriptPasteOpen, setScriptPasteOpen] = useState(false);
   const [defaultBrowser, setDefaultBrowser] = useState<DefaultBrowserStatus | null>(null);
   const [startup, setStartup] = useState<StartupStatus | null>(null);
   const [downloadLocation, setDownloadLocation] = useState<DownloadLocation | null>(null);
@@ -179,6 +199,7 @@ export function Settings({
   const [busy, setBusy] = useState<string | null>(null);
   const [customOpen, setCustomOpen] = useState(settings.themeId === CUSTOM_THEME_ID);
   const updatesRef = useRef<HTMLElement | null>(null);
+  const userscriptsRef = useRef<HTMLElement | null>(null);
   const assistantRef = useRef<HTMLElement | null>(null);
   const resourcesRef = useRef<HTMLElement | null>(null);
   const runtime = useAssistantRuntime(settings.assistant);
@@ -198,6 +219,19 @@ export function Settings({
     if (!focusAssistant) return;
     assistantRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }, [focusAssistant]);
+
+  useEffect(() => {
+    if (!focusUserscripts) return;
+    userscriptsRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [focusUserscripts]);
+
+  useEffect(() => {
+    if (!isElectron || !window.kryvex) return;
+    void window.kryvex
+      .userscriptsList()
+      .then(next => setScripts(next ?? []))
+      .catch(() => undefined);
+  }, [isElectron]);
 
   useEffect(() => {
     if (!focusResources) return;
@@ -499,7 +533,7 @@ export function Settings({
       if (result.location) setDownloadLocation(result.location);
       if (result.ok) onToast(t('Download location updated.'), 'success');
       else if (result.message !== 'Selection cancelled.') {
-        onToast(t(result.message), 'warning');
+        onToast(result.message, 'warning');
       }
     } catch {
       onToast(t('The download folder could not be changed.'), 'danger');
@@ -514,7 +548,7 @@ export function Settings({
     try {
       const result = await window.kryvex.downloadsResetLocation();
       if (result.location) setDownloadLocation(result.location);
-      onToast(t(result.message), result.ok ? 'success' : 'danger');
+      onToast(result.message, result.ok ? 'success' : 'danger');
     } catch {
       onToast(t('The download folder could not be reset.'), 'danger');
     } finally {
@@ -737,6 +771,80 @@ export function Settings({
       onToast(extensionMessage(t, result.message), result.ok ? 'success' : 'warning');
     } catch {
       onToast(t('Extension installation failed.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function installScriptFile() {
+    if (!window.kryvex) return;
+    setBusy('script-file');
+    try {
+      const result = await window.kryvex.userscriptsInstallFile();
+      setScripts(result.records ?? []);
+      if (result.message !== 'Installation cancelled.') {
+        onToast(result.message, result.ok ? 'success' : 'warning');
+      }
+    } catch {
+      onToast(t('The script could not be installed.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function installScriptText(source: string) {
+    if (!window.kryvex || !source.trim()) return;
+    setBusy('script-text');
+    try {
+      const result = await window.kryvex.userscriptsInstallText(source);
+      setScripts(result.records ?? []);
+      if (result.ok) setScriptPaste('');
+      onToast(result.message, result.ok ? 'success' : 'warning');
+    } catch {
+      onToast(t('The script could not be installed.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function installScriptUrl() {
+    if (!window.kryvex || !scriptUrl.trim()) return;
+    setBusy('script-url');
+    try {
+      const result = await window.kryvex.userscriptsInstallUrl(scriptUrl.trim());
+      setScripts(result.records ?? []);
+      if (result.ok) setScriptUrl('');
+      onToast(result.message, result.ok ? 'success' : 'warning');
+    } catch {
+      onToast(t('The script could not be downloaded.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function toggleScript(record: UserscriptRecord, enabled: boolean) {
+    if (!window.kryvex) return;
+    setBusy(`script-${record.key}`);
+    try {
+      const result = await window.kryvex.userscriptsSetEnabled(record.key, enabled);
+      setScripts(result.records ?? []);
+      if (!result.ok) onToast(result.message, 'warning');
+    } catch {
+      onToast(t('The script could not be changed.'), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeScript(record: UserscriptRecord) {
+    if (!window.kryvex) return;
+    setBusy(`script-${record.key}`);
+    try {
+      const result = await window.kryvex.userscriptsRemove(record.key);
+      setScripts(result.records ?? []);
+      onToast(result.message, result.ok ? 'warning' : 'danger');
+    } catch {
+      onToast(t('The script could not be removed.'), 'danger');
     } finally {
       setBusy(null);
     }
@@ -2672,6 +2780,155 @@ export function Settings({
               </p>
             </div>
             <code className="mono code-line">persist:svc-* · browser-* (in-memory)</code>
+          </div>
+        </SettingsBlock>
+
+        <SettingsBlock
+          className="panel panel-wide userscripts-panel"
+          id="userscripts"
+          sectionRef={userscriptsRef}
+          forceOpen={focusUserscripts}
+          icon="script"
+          title={t('User scripts')}
+          meta={t('{count} INSTALLED', { count: scripts.length })}
+        >
+          <p className="settings-copy">
+            {t(
+              'Greasemonkey and Tampermonkey .user.js files run in browser tabs. A script is injected into the page itself, so it can change what that page shows or reads what is already on it. Service modules are never patched, and nothing runs until you install a script and leave it switched on.',
+            )}
+          </p>
+
+          <div className="extension-actions">
+            <button
+              className="btn secondary small"
+              disabled={!isElectron || busy === 'script-file'}
+              onClick={() => void installScriptFile()}
+            >
+              <Icon name="plus" size={13} />
+              {t('Install from file')}
+            </button>
+            <button
+              className="btn ghost small"
+              aria-expanded={scriptPasteOpen}
+              onClick={() => setScriptPasteOpen(open => !open)}
+            >
+              {scriptPasteOpen ? t('Hide the editor') : t('Paste a script')}
+            </button>
+          </div>
+
+          {scriptPasteOpen ? (
+            <div className="userscript-editor">
+              <textarea
+                value={scriptPaste}
+                onChange={event => setScriptPaste(event.target.value)}
+                spellCheck={false}
+                rows={8}
+                aria-label={t('Script source')}
+                placeholder={t('Paste a .user.js file here, starting with // ==UserScript==')}
+              />
+              <button
+                className="btn secondary small"
+                disabled={!isElectron || !scriptPaste.trim() || busy === 'script-text'}
+                onClick={() => void installScriptText(scriptPaste)}
+              >
+                <Icon name="check" size={13} />
+                {t('Install this script')}
+              </button>
+            </div>
+          ) : null}
+
+          <div className="userscript-url">
+            <input
+              value={scriptUrl}
+              onChange={event => setScriptUrl(event.target.value)}
+              spellCheck={false}
+              aria-label={t('Address of a user script')}
+              placeholder={t('Paste the address of a .user.js file')}
+            />
+            <button
+              className="btn secondary small"
+              disabled={!isElectron || !scriptUrl.trim() || busy === 'script-url'}
+              onClick={() => void installScriptUrl()}
+            >
+              <Icon name="download" size={13} />
+              {t('Fetch and install')}
+            </button>
+          </div>
+
+          {scripts.length === 0 ? (
+            <p className="shield-note">
+              {t(
+                'No user scripts installed. The sources below are libraries other people publish to; Kryvex hosts none of them and audits none of them.',
+              )}
+            </p>
+          ) : (
+            <ul className="extension-list">
+              {scripts.map(record => (
+                <li key={record.key} className="extension-row">
+                  <div className="extension-id">
+                    <strong>{record.name}</strong>
+                    <span className="mono">
+                      v{record.version} · {record.hosts.join(' · ')}
+                    </span>
+                    {record.description ? (
+                      <span className="userscript-description">{record.description}</span>
+                    ) : null}
+                  </div>
+                  <div className="extension-controls">
+                    <button
+                      className={`switch small ${record.enabled ? 'is-on' : ''}`}
+                      role="switch"
+                      aria-checked={record.enabled}
+                      disabled={busy === `script-${record.key}`}
+                      onClick={() => void toggleScript(record, !record.enabled)}
+                      title={record.enabled ? t('Disable') : t('Enable')}
+                    >
+                      <span />
+                    </button>
+                    <button
+                      className="icon-btn"
+                      aria-label={t('Remove {name}', { name: record.name })}
+                      disabled={busy === `script-${record.key}`}
+                      onClick={() => void removeScript(record)}
+                    >
+                      <Icon name="trash" size={14} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="extension-notes">
+            <p>
+              <strong>{t('When it runs')}:</strong>{' '}
+              {t(
+                "Every script runs once the page's markup is ready. @run-at document-start is treated as document-end, because nothing is injected before the page has loaded.",
+              )}
+            </p>
+            <p className="credit-disclaimer">
+              {t(
+                "A user script is third-party code running inside the page with that page's own access. Install only scripts you trust, and switch one off before visiting a site where it changes something you rely on.",
+              )}
+            </p>
+          </div>
+
+          <div className="userscript-sources">
+            <strong>{t('Where to find scripts')}</strong>
+            <div className="userscript-source-links">
+              {USERSCRIPT_SOURCES.map(source => (
+                <button
+                  key={source.url}
+                  className="link"
+                  onClick={() => openExternalUrl(source.url)}
+                >
+                  {source.name} <Icon name="external" size={12} />
+                </button>
+              ))}
+            </div>
+            <span className="mono userscript-source-note">
+              {t('Opens in your default browser, not inside Kryvex.')}
+            </span>
           </div>
         </SettingsBlock>
 

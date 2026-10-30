@@ -9,7 +9,9 @@ import type {
   PopupTabInfo,
   RssFeed,
   TorrentRecord,
+  UserscriptRecord,
 } from '../types';
+import { appliesTo } from '../../electron/userscript-rules';
 import { makeId } from '../lib/services';
 import { extensionMessage, useI18n } from '../lib/i18n';
 import { chromeWebStoreExtensionId, chromeWebStoreTitle } from '../lib/chrome-store';
@@ -181,6 +183,13 @@ export function Browser({
   tabsRef.current = tabs;
   activeTabRef.current = activeTabId;
   const [address, setAddress] = useState(active?.url ?? '');
+  /** Installed user scripts, read from the main process on demand. */
+  const [scripts, setScripts] = useState<UserscriptRecord[]>([]);
+  const [scriptMenuOpen, setScriptMenuOpen] = useState(false);
+  const scriptMenuRef = useRef<HTMLDivElement | null>(null);
+  const scriptsOnPage = currentUrl
+    ? scripts.filter(record => record.enabled && appliesTo(record, currentUrl)).length
+    : 0;
 
   /**
    * The browser's own Send to Vexium entry points.
@@ -242,6 +251,22 @@ export function Browser({
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const findInput = useRef<HTMLInputElement | null>(null);
   const addressInput = useRef<HTMLInputElement | null>(null);
+  /**
+   * True while the person is editing the address, either because the field has
+   * focus or because they typed and have not submitted yet. A page that
+   * rewrites its own URL (`pushState` on a search box, a feed that updates the
+   * query as you scroll) used to reach the address bar through
+   * `did-navigate-in-page` and replace the text mid-typing. Nothing the page
+   * does may edit what someone is typing here.
+   */
+  const addressEditing = useRef(false);
+  /**
+   * A click focuses the field and then collapses the selection at the caret,
+   * which would leave the old URL in front of the typed text. This marks the
+   * mouse-up that immediately follows focus so it can keep the select-all,
+   * while a second click inside the field still places a caret normally.
+   */
+  const selectOnClick = useRef(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const controllers = useRef(new Map<string, WebviewElement | null>());
@@ -270,9 +295,18 @@ export function Browser({
   }, [initialPanel]);
 
   useEffect(() => {
-    setAddress(active?.url ?? '');
+    // Switching tabs always shows that tab's address, even mid-edit; a URL that
+    // arrives for the current tab while it is being edited does not.
+    if (!addressEditing.current) setAddress(active?.url ?? '');
     setStatus({ loading: false, canGoBack: false, canGoForward: false, error: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active?.id, active?.url]);
+
+  useEffect(() => {
+    // A tab switch is a deliberate move to another page, so the field follows
+    // it rather than keeping the text typed for the tab that was in front.
+    addressEditing.current = false;
+  }, [active?.id]);
 
   // Popup tabs: the main process announces each window it opens and the tab
   // strip mirrors it. Closing the popup (the provider finishes and calls
@@ -391,6 +425,64 @@ export function Browser({
       window.removeEventListener('keydown', escape);
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!scriptMenuOpen) return;
+    const close = (event: MouseEvent) => {
+      if (!scriptMenuRef.current?.contains(event.target as Node)) setScriptMenuOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setScriptMenuOpen(false);
+    };
+    window.addEventListener('mousedown', close);
+    window.addEventListener('keydown', escape);
+    return () => {
+      window.removeEventListener('mousedown', close);
+      window.removeEventListener('keydown', escape);
+    };
+  }, [scriptMenuOpen]);
+
+  /** The list is cheap and lives in the main process, so it is re-read rather
+   *  than mirrored: an install from Settings shows up without a reload. */
+  async function refreshScripts() {
+    if (!window.kryvex) return;
+    try {
+      setScripts(await window.kryvex.userscriptsList());
+    } catch {
+      setScripts([]);
+    }
+  }
+
+  async function installScriptFromFile() {
+    const bridge = window.kryvex;
+    if (!bridge) return;
+    try {
+      const result = await bridge.userscriptsInstallFile();
+      setScripts(result.records ?? []);
+      if (result.message && result.message !== 'Installation cancelled.') {
+        onToast(result.message, result.ok ? 'success' : 'warning');
+      }
+    } catch {
+      onToast(t('The script could not be installed.'), 'danger');
+    }
+  }
+
+  useEffect(() => {
+    void refreshScripts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function toggleScript(record: UserscriptRecord) {
+    const bridge = window.kryvex;
+    if (!bridge) return;
+    try {
+      const result = await bridge.userscriptsSetEnabled(record.key, !record.enabled);
+      setScripts(result.records ?? []);
+      if (!result.ok) onToast(result.message, 'warning');
+    } catch {
+      onToast(t('The script could not be changed.'), 'danger');
+    }
+  }
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -570,6 +662,8 @@ export function Browser({
     }
     const controller = controllers.current.get(active.id);
     updateActive({ url, title: title || hostOf(url) });
+    // The person asked for this address, so the field follows the page again.
+    addressEditing.current = false;
     setAddress(url);
     if (controller) {
       // HTTPS upgrades, tracking-parameter redirects and the one-time HTTP
@@ -1016,7 +1110,30 @@ export function Browser({
           <input
             ref={addressInput}
             value={address}
-            onChange={event => setAddress(event.target.value)}
+            onChange={event => {
+              addressEditing.current = true;
+              setAddress(event.target.value);
+            }}
+            onFocus={event => {
+              addressEditing.current = true;
+              selectOnClick.current = true;
+              // Clicking the address bar selects the whole address, so the next
+              // keystroke replaces it. Without this, typing spliced the new
+              // address into the current one and Enter reloaded a broken URL.
+              event.currentTarget.select();
+            }}
+            onMouseUp={event => {
+              // The browser places its own caret during the press, after the
+              // focus event has already run, so the selection is made here —
+              // once, on the click that brought focus in.
+              if (!selectOnClick.current) return;
+              selectOnClick.current = false;
+              event.currentTarget.select();
+            }}
+            onBlur={() => {
+              addressEditing.current = false;
+              selectOnClick.current = false;
+            }}
             placeholder={
               active?.private
                 ? t('Search privately or enter an address')
@@ -1125,6 +1242,92 @@ export function Browser({
           >
             <Icon name="bookmark" size={15} />
           </button>
+        </div>
+
+        <div className="browser-menu-wrap" ref={scriptMenuRef}>
+          <button
+            className={`icon-btn ${scriptMenuOpen ? 'is-on' : ''}`}
+            onClick={() => {
+              void refreshScripts();
+              setScriptMenuOpen(open => !open);
+            }}
+            aria-haspopup="dialog"
+            aria-expanded={scriptMenuOpen}
+            aria-label={t('User scripts')}
+            title={t('User scripts')}
+          >
+            <Icon name="script" size={16} />
+            {scriptsOnPage > 0 ? <span className="browser-count">{scriptsOnPage}</span> : null}
+          </button>
+          {scriptMenuOpen ? (
+            <div className="browser-menu userscript-menu" role="dialog" aria-label={t('User scripts')}>
+              <header className="userscript-menu-head">
+                <strong>{t('User scripts')}</strong>
+                <span className="mono">
+                  {t('{count} RUNNING', { count: scriptsOnPage })}
+                </span>
+              </header>
+              {scripts.length === 0 ? (
+                <p className="userscript-menu-empty">
+                  {t('No user scripts yet. Add one from a file, or browse a library in Settings.')}
+                </p>
+              ) : (
+                <ul className="userscript-menu-list">
+                  {scripts.map(record => {
+                    const here = Boolean(currentUrl) && appliesTo(record, currentUrl);
+                    return (
+                      <li
+                        key={record.key}
+                        className={here && record.enabled ? 'userscript-row runs-here' : 'userscript-row'}
+                        data-runs-here={here ? 'true' : 'false'}
+                      >
+                        <button
+                          className={`switch small ${record.enabled ? 'is-on' : ''}`}
+                          role="switch"
+                          aria-checked={record.enabled}
+                          onClick={() => void toggleScript(record)}
+                          aria-label={t('Run {name}', { name: record.name })}
+                        >
+                          <span />
+                        </button>
+                        <span className="userscript-row-copy">
+                          <strong>{record.name}</strong>
+                          <span className="mono">
+                            {here
+                              ? t('Runs on this page')
+                              : record.hosts.length > 0
+                                ? record.hosts.join(' · ')
+                                : t('No page matches')}
+                          </span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <div className="browser-menu-rule" role="separator" />
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setScriptMenuOpen(false);
+                  void installScriptFromFile();
+                }}
+              >
+                <Icon name="plus" size={14} />
+                <span>{t('Install from file')}</span>
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setScriptMenuOpen(false);
+                  window.location.hash = '#/settings?section=userscripts';
+                }}
+              >
+                <Icon name="sliders" size={14} />
+                <span>{t('All scripts and sources')}</span>
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="browser-menu-wrap" ref={menuRef}>
@@ -1415,7 +1618,7 @@ export function Browser({
                           /* the guest may already be gone */
                         }
                       }}
-                      onNavigate={url => {
+                      onNavigate={(url, kind) => {
                         setTabs(current =>
                           current.map(item =>
                             item.id === tab.id
@@ -1431,7 +1634,10 @@ export function Browser({
                           ),
                         );
                         if (tab.id === activeTabId) {
-                          setAddress(url);
+                          // A real document load is the page changing, so the
+                          // field follows it. An in-page URL change only wins
+                          // when it is not fighting someone's typing.
+                          if (kind === 'document' || !addressEditing.current) setAddress(url);
                           // Private tabs keep no trace in Kryvex history.
                           if (!tab.private) recordVisit(url);
                         }

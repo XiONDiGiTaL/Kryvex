@@ -25,6 +25,7 @@ import { startupStatus, setStartup } from './startup';
 import { diskService } from './disk-service';
 import { downloads } from './downloads';
 import { extensions } from './extensions';
+import { userscripts } from './userscripts';
 import { configurePrivacySwitches, hardenSession } from './hardening';
 import { ensureBrowserIdentity, followUserAgent } from './identity';
 import { link } from './link';
@@ -266,6 +267,9 @@ function hardenWebContents(): void {
       ensureBrowserIdentity(contents.session);
       webPrivacy.ensureSession(contents.session, true);
       shield.attachScriptlets(contents);
+      // User scripts are browser-tab only; the manager refuses a service
+      // session, so a signed-in module is never patched with third-party code.
+      userscripts.attach(contents);
     }
 
     contents.setWindowOpenHandler(({ url, disposition }) => {
@@ -715,6 +719,37 @@ function registerIpc(): void {
       return { ok: false, message: 'Invalid request.', records: extensions.list() };
     }
     return extensions.remove(key);
+  });
+  ipcMain.handle('kryvex:userscripts:list', event =>
+    isShellSender(event) ? userscripts.list() : [],
+  );
+  ipcMain.handle('kryvex:userscripts:install-file', (event) => {
+    if (!isShellSender(event)) return { ok: false, message: 'Untrusted sender.', records: userscripts.list() };
+    return userscripts.installFromDialog();
+  });
+  ipcMain.handle('kryvex:userscripts:install-text', (event, source: unknown) => {
+    if (!isShellSender(event) || typeof source !== 'string') {
+      return { ok: false, message: 'Invalid request.', records: userscripts.list() };
+    }
+    return userscripts.installFromText(source);
+  });
+  ipcMain.handle('kryvex:userscripts:install-url', (event, url: unknown) => {
+    if (!isShellSender(event) || typeof url !== 'string') {
+      return { ok: false, message: 'Invalid request.', records: userscripts.list() };
+    }
+    return userscripts.installFromUrl(url);
+  });
+  ipcMain.handle('kryvex:userscripts:enabled', (event, key: unknown, enabled: unknown) => {
+    if (!isShellSender(event) || typeof key !== 'string' || typeof enabled !== 'boolean') {
+      return { ok: false, message: 'Invalid request.', records: userscripts.list() };
+    }
+    return userscripts.setEnabled(key, enabled);
+  });
+  ipcMain.handle('kryvex:userscripts:remove', (event, key: unknown) => {
+    if (!isShellSender(event) || typeof key !== 'string') {
+      return { ok: false, message: 'Invalid request.', records: userscripts.list() };
+    }
+    return userscripts.remove(key);
   });
   ipcMain.handle('kryvex:downloads:list', (event) => (isShellSender(event) ? downloads.list() : []));
   ipcMain.handle('kryvex:downloads:location', (event) =>
@@ -1363,6 +1398,7 @@ if (!gotLock) {
     fileKit.attachWindow(mainWindow);
     partyAttachWindow(mainWindow);
     extensions.attachWindow(mainWindow);
+    userscripts.attachWindow(mainWindow);
     updater.attachWindow(mainWindow);
     modelManager.attachWindow(mainWindow);
     assistant.attachWindow(mainWindow);

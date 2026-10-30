@@ -59,6 +59,7 @@ type IconName =
   | 'moon'
   | 'power'
   | 'link'
+  | 'script'
   | 'camera'
   | 'record'
   | 'stop';
@@ -203,6 +204,14 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M3.5 8.5h3.2l1.5-2.2h7.6l1.5 2.2h3.2v11h-17z" />
       <circle cx="12" cy="13.2" r="3.3" />
+    </>
+  ),
+  script: (
+    <>
+      <path d="M6 3.5h7.6L18 7.9v12.6H6z" />
+      <path d="M13.4 3.5v4.6h4.6" />
+      <path d="m10.8 11.6-1.7 2.3 1.7 2.3" />
+      <path d="m13.2 11.6 1.7 2.3-1.7 2.3" />
     </>
   ),
   record: (
