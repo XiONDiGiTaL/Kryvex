@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { BRAND_ICONS } from '../src/lib/brand-icons';
 import {
@@ -343,6 +345,19 @@ describe('expanded catalogue', () => {
       expect(presetIntegration(preset)).toBe('website');
       expect(typeof preset.color).toBe('string');
       expect(preset.color).toMatch(/^#[0-9A-F]{6}$/);
+    }
+  });
+
+  it('bundles a mark for every preset, so no tile needs a favicon', () => {
+    for (const preset of SERVICE_PRESETS) {
+      expect(preset.icon, preset.id).toBeTruthy();
+      const brand = preset.icon ? BRAND_ICONS[preset.icon] : undefined;
+      expect(brand, preset.id).toBeTruthy();
+      // Exactly one source: a Simple Icons path or a bundled site image.
+      expect(Boolean(brand?.path) !== Boolean(brand?.src), preset.id).toBe(true);
+      if (brand?.src) {
+        expect(existsSync(join(process.cwd(), 'public', brand.src)), preset.id).toBe(true);
+      }
     }
   });
 

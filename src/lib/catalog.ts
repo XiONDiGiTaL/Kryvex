@@ -269,6 +269,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://chatgpt.com',
     category: 'ai',
     color: '#34D399',
+    icon: 'chatgpt',
     note: 'OpenAI chat. Sign-in stays inside this module.',
   },
   {
@@ -322,6 +323,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://freebuff.com',
     category: 'ai',
     color: '#38BDF8',
+    icon: 'freebuff',
     note: 'Coding agent workspace in its own tab.',
   },
   {
@@ -330,6 +332,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://fmhy.net',
     category: 'resources',
     color: '#94A3B8',
+    icon: 'fmhy',
     note: 'Community-maintained index of free resources. External links only; Kryvex does not host or endorse their content.',
   },
   {
@@ -347,6 +350,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://archive.org',
     category: 'resources',
     color: '#FBBF24',
+    icon: 'archive',
     note: 'Public library of archived pages, audio and video.',
   },
   {
@@ -355,6 +359,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://mail.proton.me',
     category: 'communication',
     color: '#A78BFA',
+    icon: 'protonmail',
     note: 'Encrypted mail. Sign-in stays inside this module.',
   },
   {
@@ -363,6 +368,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://outlook.live.com/mail/',
     category: 'communication',
     color: '#38BDF8',
+    icon: 'outlook',
     note: 'Microsoft mail and calendar. Microsoft sign-in uses a real auth popup.',
   },
   {
@@ -371,6 +377,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.mail.com/mail/',
     category: 'communication',
     color: '#60A5FA',
+    icon: 'mailcom',
     note: 'Mail.com webmail in its own persistent session.',
   },
   {
@@ -379,6 +386,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.mailinator.com',
     category: 'communication',
     color: '#FBBF24',
+    icon: 'mailinator',
     note: 'Disposable public inboxes: anyone who knows the name can read them, so never use one for anything private.',
   },
   {
@@ -387,6 +395,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.wikipedia.org',
     category: 'resources',
     color: '#94A3B8',
+    icon: 'wikipedia',
     note: 'The free encyclopedia. Reading needs no account.',
   },
   {
@@ -395,6 +404,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://weather.com',
     category: 'resources',
     color: '#38BDF8',
+    icon: 'weathercom',
     note: 'Forecasts and radar. The Home board keeps its own keyless feed, so this card is for the full site.',
   },
   {
@@ -403,6 +413,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.amazon.com',
     category: 'other',
     color: '#FBBF24',
+    icon: 'amazon',
     note: 'Storefront, lists and orders. Sign-in stays inside this module.',
   },
   {
@@ -411,6 +422,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.ebay.com',
     category: 'other',
     color: '#34D399',
+    icon: 'ebay',
     note: 'Listings, watchlist and orders in a persistent session.',
   },
   {
@@ -419,6 +431,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.temu.com',
     category: 'other',
     color: '#FB7185',
+    icon: 'temu',
     muted: true,
     note: 'Marketplace with an autoplaying feed. Starts muted so a page cannot make noise on its own.',
   },
@@ -428,6 +441,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.aliexpress.com',
     category: 'other',
     color: '#FB7185',
+    icon: 'aliexpress',
     muted: true,
     note: 'Marketplace with heavy autoplay media. Starts muted.',
   },
@@ -439,6 +453,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://novoresume.com/',
     category: 'career',
     color: '#10B981',
+    icon: 'novoresume',
     note: 'CV and cover-letter builder with ATS-friendly templates.',
   },
   {
@@ -447,6 +462,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.linkedin.com/',
     category: 'career',
     color: '#3B82F6',
+    icon: 'linkedin',
     note: 'Professional network, job search and messages.',
   },
   {
@@ -455,6 +471,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.indeed.com/',
     category: 'career',
     color: '#38BDF8',
+    icon: 'indeed',
     note: 'Job listings and applications. Sign-in stays in this module.',
   },
   {
@@ -463,6 +480,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.glassdoor.com/',
     category: 'career',
     color: '#10B981',
+    icon: 'glassdoor',
     note: 'Company reviews, salaries and interview reports.',
   },
 
@@ -473,6 +491,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://elevenlabs.io/',
     category: 'ai',
     color: '#0F172A',
+    icon: 'elevenlabs',
     muted: true,
     aliases: ['voice generation', 'text to speech'],
     note: 'Voice generation, speech synthesis and dubbing. Starts muted so a preview clip cannot surprise you.',
@@ -483,6 +502,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://suno.com/',
     category: 'music',
     color: '#0F172A',
+    icon: 'suno',
     muted: true,
     note: 'AI song generation. Starts muted because previews autoplay.',
   },
@@ -492,6 +512,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.udio.com/',
     category: 'music',
     color: '#8B5CF6',
+    icon: 'udio',
     muted: true,
     note: 'AI music generation. Starts muted because previews autoplay.',
   },
@@ -501,6 +522,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.canva.com/',
     category: 'design',
     color: '#06B6D4',
+    icon: 'canva',
     note: 'Design templates, presentations and social graphics.',
   },
   {
@@ -509,6 +531,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.adobe.com/express/',
     category: 'design',
     color: '#FB7185',
+    icon: 'adobeexpress',
     note: 'Adobe’s browser editor for flyers, images and short videos.',
   },
 
@@ -519,6 +542,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://ninite.com/',
     category: 'utilities',
     color: '#22C55E',
+    icon: 'ninite',
     note: 'Bundle common Windows installers into one download; nothing installs until you run it.',
   },
   {
@@ -527,6 +551,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.xda-developers.com/',
     category: 'development',
     color: '#22C55E',
+    icon: 'xda',
     aliases: ['xda forums'],
     note: 'Android, Windows and hardware news and guides.',
   },
@@ -536,6 +561,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://sourceforge.net/',
     category: 'development',
     color: '#F97316',
+    icon: 'sourceforge',
     note: 'Open-source project hosting and downloads.',
   },
   {
@@ -544,6 +570,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://alternativeto.net/',
     category: 'utilities',
     color: '#38BDF8',
+    icon: 'alternativeto',
     aliases: ['alternative software'],
     note: 'Crowd-sourced alternatives to software you already know.',
   },
@@ -553,6 +580,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://proton.me/',
     category: 'utilities',
     color: '#8B5CF6',
+    icon: 'proton',
     aliases: ['proton mail', 'proton vpn', 'proton drive'],
     note: 'Proton’s account hub: Mail, Drive, VPN and Calendar. Sign-in stays in this module.',
   },
@@ -564,6 +592,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://alison.com/',
     category: 'education',
     color: '#10B981',
+    icon: 'alison',
     note: 'Free certificate courses across work and technology topics.',
   },
   {
@@ -572,6 +601,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.coursera.org/',
     category: 'education',
     color: '#3B82F6',
+    icon: 'coursera',
     note: 'University and industry courses, with paid certificates.',
   },
   {
@@ -580,6 +610,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.edx.org/',
     category: 'education',
     color: '#FB7185',
+    icon: 'edx',
     note: 'Courses from universities and companies; many can be audited free.',
   },
   {
@@ -588,6 +619,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.khanacademy.org/',
     category: 'education',
     color: '#22C55E',
+    icon: 'khanacademy',
     note: 'Free maths, science and economics lessons with practice.',
   },
   {
@@ -596,6 +628,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://ocw.mit.edu/',
     category: 'education',
     color: '#EF4444',
+    icon: 'mitocw',
     aliases: ['ocw'],
     note: 'MIT course materials published free of charge.',
   },
@@ -605,6 +638,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.freecodecamp.org/',
     category: 'education',
     color: '#0F172A',
+    icon: 'freecodecamp',
     note: 'Free interactive web-development curriculum and certifications.',
   },
 
@@ -615,6 +649,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.tandem.net/',
     category: 'language',
     color: '#06B6D4',
+    icon: 'tandem',
     note: 'Language exchange with native speakers.',
   },
   {
@@ -623,6 +658,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.interpals.net/',
     category: 'language',
     color: '#F59E0B',
+    icon: 'interpals',
     note: 'Pen-pal and language-exchange community. Public profiles; share carefully.',
   },
   {
@@ -631,6 +667,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.hellotalk.com/',
     category: 'language',
     color: '#3B82F6',
+    icon: 'hellotalk',
     note: 'Chat-based language exchange with correction tools.',
   },
   {
@@ -639,6 +676,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.wordreference.com/',
     category: 'language',
     color: '#6366F1',
+    icon: 'wordreference',
     note: 'Bilingual dictionaries and language forums.',
   },
   {
@@ -647,6 +685,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.reverso.net/',
     category: 'language',
     color: '#F97316',
+    icon: 'reverso',
     note: 'Translation, conjugation and context examples.',
   },
 
@@ -657,6 +696,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.coinbase.com/',
     category: 'finance',
     color: '#3B82F6',
+    icon: 'coinbase',
     note: 'Exchange website only: Kryvex never asks for exchange credentials and cannot trade. Sign-in stays in this module.',
   },
   {
@@ -665,6 +705,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.kraken.com/',
     category: 'finance',
     color: '#A855F7',
+    icon: 'kraken',
     note: 'Exchange website only: Kryvex never asks for exchange credentials and cannot trade.',
   },
   {
@@ -673,6 +714,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.binance.com/',
     category: 'finance',
     color: '#EAB308',
+    icon: 'binance',
     note: 'Exchange website only: Kryvex never asks for exchange credentials and cannot trade. Some regions block this host.',
   },
   {
@@ -681,6 +723,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.tradingview.com/',
     category: 'finance',
     color: '#38BDF8',
+    icon: 'tradingview',
     note: 'Charts, indicators and public market ideas. A website, not a market feed inside Kryvex.',
   },
   {
@@ -689,6 +732,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.coingecko.com/',
     category: 'finance',
     color: '#10B981',
+    icon: 'coingecko',
     note: 'Public cryptocurrency prices and market data. No account needed.',
   },
   {
@@ -697,6 +741,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://coinmarketcap.com/',
     category: 'finance',
     color: '#06B6D4',
+    icon: 'coinmarketcap',
     note: 'Public cryptocurrency rankings and market data. No account needed.',
   },
 
@@ -707,6 +752,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.blogger.com/',
     category: 'communication',
     color: '#F97316',
+    icon: 'blogger',
     aliases: ['blogspot'],
     note: 'Blogger’s dashboard; Blogspot-hosted blogs are part of the same service.',
   },
@@ -716,6 +762,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://medium.com/',
     category: 'communication',
     color: '#0F172A',
+    icon: 'medium',
     note: 'Long-form posts and reading lists.',
   },
   {
@@ -724,6 +771,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://substack.com/',
     category: 'communication',
     color: '#F97316',
+    icon: 'substack',
     note: 'Newsletter publishing and subscriptions.',
   },
   {
@@ -732,6 +780,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.tumblr.com/',
     category: 'communication',
     color: '#6366F1',
+    icon: 'tumblr',
     note: 'Short-form blogging and reblogs.',
   },
   {
@@ -740,6 +789,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://wordpress.com/',
     category: 'communication',
     color: '#3B82F6',
+    icon: 'wordpress',
     note: 'WordPress.com sites, posts and the reader.',
   },
 
@@ -750,6 +800,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://apnews.com/',
     category: 'news',
     color: '#F59E0B',
+    icon: 'apnews',
     aliases: ['ap'],
     note: 'US wire service reporting. A source, not an editorial endorsement.',
   },
@@ -759,6 +810,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.reuters.com/',
     category: 'news',
     color: '#F97316',
+    icon: 'reuters',
     note: 'International wire service reporting. A source, not an endorsement.',
   },
   {
@@ -767,6 +819,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.npr.org/',
     category: 'news',
     color: '#EF4444',
+    icon: 'npr',
     note: 'US public radio news and audio. A source, not an endorsement.',
   },
   {
@@ -775,6 +828,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.pbs.org/newshour',
     category: 'news',
     color: '#6366F1',
+    icon: 'pbsnewshour',
     note: 'US public television news, including full episodes.',
   },
   {
@@ -783,6 +837,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.businessinsider.com/',
     category: 'news',
     color: '#38BDF8',
+    icon: 'businessinsider',
     aliases: ['insider'],
     note: 'US business and technology reporting. Some articles are metered.',
   },
@@ -794,6 +849,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.bbc.com/news',
     category: 'news',
     color: '#EF4444',
+    icon: 'bbcnews',
     aliases: ['bbc'],
     note: 'UK public broadcaster’s news service, with world coverage.',
   },
@@ -803,6 +859,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.theguardian.com/',
     category: 'news',
     color: '#6366F1',
+    icon: 'guardian',
     note: 'UK daily with international reporting and opinion.',
   },
   {
@@ -811,6 +868,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://news.sky.com/',
     category: 'news',
     color: '#38BDF8',
+    icon: 'skynews',
     note: 'UK rolling news from Sky, with live video.',
   },
   {
@@ -819,6 +877,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.ft.com/',
     category: 'news',
     color: '#FB7185',
+    icon: 'ft',
     note: 'UK business and finance reporting. Most articles are metered.',
   },
 
@@ -829,6 +888,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.aa.com.tr/',
     category: 'news',
     color: '#EF4444',
+    icon: 'aa',
     aliases: ['anadolu ajansı'],
     note: 'Turkish state-run wire service, publishing in several languages.',
   },
@@ -838,6 +898,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.trtworld.com/',
     category: 'news',
     color: '#14B8A6',
+    icon: 'trtworld',
     note: 'International English-language news from Türkiye’s public broadcaster.',
   },
   {
@@ -846,6 +907,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.dailysabah.com/',
     category: 'news',
     color: '#10B981',
+    icon: 'dailysabah',
     note: 'Turkish English-language daily.',
   },
   {
@@ -854,6 +916,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.hurriyet.com.tr/',
     category: 'news',
     color: '#F97316',
+    icon: 'hurriyet',
     note: 'Turkish daily newspaper, published in Turkish.',
   },
 
@@ -864,6 +927,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.dw.com/',
     category: 'news',
     color: '#3B82F6',
+    icon: 'dw',
     aliases: ['deutsche welle'],
     note: 'Germany’s international public broadcaster, in many languages.',
   },
@@ -873,6 +937,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.spiegel.de/',
     category: 'news',
     color: '#F59E0B',
+    icon: 'spiegel',
     note: 'German weekly news magazine. Some articles are metered.',
   },
   {
@@ -881,6 +946,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.dpa.com/',
     category: 'news',
     color: '#94A3B8',
+    icon: 'dpa',
     aliases: ['dpa'],
     note: 'German wire service; the public site is mostly corporate information.',
   },
@@ -892,6 +958,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.france24.com/',
     category: 'news',
     color: '#6366F1',
+    icon: 'france24',
     note: 'French international news in French, English and other languages.',
   },
   {
@@ -900,6 +967,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.lemonde.fr/',
     category: 'news',
     color: '#0F172A',
+    icon: 'lemonde',
     note: 'French daily newspaper. Most articles are metered.',
   },
 
@@ -910,6 +978,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://elpais.com/',
     category: 'news',
     color: '#38BDF8',
+    icon: 'elpais',
     note: 'Spanish daily newspaper, also published in English and Catalan.',
   },
   {
@@ -918,6 +987,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.rtve.es/',
     category: 'news',
     color: '#14B8A6',
+    icon: 'rtve',
     note: 'Spain’s public broadcaster: news, radio and television.',
   },
 
@@ -928,6 +998,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.ansa.it/',
     category: 'news',
     color: '#06B6D4',
+    icon: 'ansa',
     note: 'Italian national wire service.',
   },
   {
@@ -936,6 +1007,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.rainews.it/',
     category: 'news',
     color: '#3B82F6',
+    icon: 'rainews',
     note: 'News from Italy’s public broadcaster, with live video.',
   },
 
@@ -946,6 +1018,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.aljazeera.com/',
     category: 'news',
     color: '#F59E0B',
+    icon: 'aljazeera',
     note: 'Qatar-based international news network, publishing in English and Arabic.',
   },
   {
@@ -954,6 +1027,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www3.nhk.or.jp/nhkworld/',
     category: 'news',
     color: '#3B82F6',
+    icon: 'nhkworld',
     note: 'Japan’s public broadcaster in English and other languages.',
   },
   {
@@ -962,6 +1036,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.scmp.com/',
     category: 'news',
     color: '#EAB308',
+    icon: 'scmp',
     aliases: ['scmp'],
     note: 'Hong Kong daily with regional coverage. Some articles are metered.',
   },
@@ -971,6 +1046,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.japantimes.co.jp/',
     category: 'news',
     color: '#FB7185',
+    icon: 'japantimes',
     note: 'English-language Japanese daily. Some articles are metered.',
   },
   {
@@ -979,6 +1055,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.thehindu.com/',
     category: 'news',
     color: '#3B82F6',
+    icon: 'thehindu',
     note: 'Indian daily newspaper, publishing in English.',
   },
   {
@@ -987,6 +1064,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.straitstimes.com/',
     category: 'news',
     color: '#EC4899',
+    icon: 'straitstimes',
     note: 'Singapore daily with regional reporting. Some articles are metered.',
   },
 
@@ -997,6 +1075,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.dropbox.com/',
     category: 'productivity',
     color: '#3B82F6',
+    icon: 'dropbox',
     note: 'Cloud files and shared folders. Sign-in stays in this module.',
   },
   {
@@ -1005,6 +1084,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://drive.google.com/',
     category: 'productivity',
     color: '#F59E0B',
+    icon: 'googledrive',
     note: 'Google’s file storage. Google sign-in uses a real auth popup.',
   },
   {
@@ -1013,6 +1093,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://onedrive.live.com/',
     category: 'productivity',
     color: '#38BDF8',
+    icon: 'onedrive',
     note: 'Microsoft cloud files. Microsoft sign-in uses a real auth popup.',
   },
   {
@@ -1021,6 +1102,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://mega.io/',
     category: 'productivity',
     color: '#EF4444',
+    icon: 'mega',
     note: 'Encrypted cloud storage; the decryption key is held by the client, never by Kryvex.',
   },
   {
@@ -1029,6 +1111,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://docs.google.com/',
     category: 'productivity',
     color: '#3B82F6',
+    icon: 'googledocs',
     note: 'Documents, sheets and slides in the browser.',
   },
   {
@@ -1037,6 +1120,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.office.com/',
     category: 'productivity',
     color: '#F97316',
+    icon: 'office',
     aliases: ['office', 'word online', 'excel online'],
     note: 'Browser versions of Word, Excel and PowerPoint.',
   },
@@ -1048,6 +1132,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://asana.com/',
     category: 'productivity',
     color: '#FB7185',
+    icon: 'asana',
     note: 'Tasks, projects and team timelines.',
   },
   {
@@ -1056,6 +1141,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://clickup.com/',
     category: 'productivity',
     color: '#A855F7',
+    icon: 'clickup',
     note: 'Tasks, docs and goals in one workspace.',
   },
   {
@@ -1064,6 +1150,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://miro.com/',
     category: 'design',
     color: '#EAB308',
+    icon: 'miro',
     note: 'Collaborative whiteboards and diagrams.',
   },
   {
@@ -1072,6 +1159,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://app.slack.com/client',
     category: 'communication',
     color: '#A855F7',
+    icon: 'slack',
     note: 'Team channels and direct messages in their own session.',
   },
   {
@@ -1080,6 +1168,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://zoom.us/',
     category: 'communication',
     color: '#3B82F6',
+    icon: 'zoom',
     note: 'Meetings and webinars. The web client may still hand the call to the desktop app.',
   },
 
@@ -1090,6 +1179,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://developer.mozilla.org/',
     category: 'development',
     color: '#94A3B8',
+    icon: 'mdn',
     aliases: ['mozilla developer network'],
     note: 'Reference documentation for the web platform.',
   },
@@ -1099,6 +1189,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://devdocs.io/',
     category: 'development',
     color: '#64748B',
+    icon: 'devdocs',
     note: 'Fast, combined API documentation for many languages and libraries.',
   },
   {
@@ -1107,6 +1198,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://stackoverflow.com/',
     category: 'development',
     color: '#F59E0B',
+    icon: 'stackoverflow',
     note: 'Programming questions and answers.',
   },
   {
@@ -1115,6 +1207,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://replit.com/',
     category: 'development',
     color: '#F97316',
+    icon: 'replit',
     note: 'Browser IDE and hosted runtimes.',
   },
   {
@@ -1123,6 +1216,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://codepen.io/',
     category: 'development',
     color: '#0F172A',
+    icon: 'codepen',
     note: 'Front-end experiments and pens.',
   },
 
@@ -1133,6 +1227,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://dribbble.com/',
     category: 'design',
     color: '#EC4899',
+    icon: 'dribbble',
     note: 'Design portfolios and visual inspiration.',
   },
   {
@@ -1141,6 +1236,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.behance.net/',
     category: 'design',
     color: '#3B82F6',
+    icon: 'behance',
     note: 'Adobe’s portfolio network for creative work.',
   },
   {
@@ -1149,6 +1245,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://unsplash.com/',
     category: 'design',
     color: '#0F172A',
+    icon: 'unsplash',
     note: 'Free photographs under the Unsplash licence.',
   },
   {
@@ -1157,6 +1254,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.photopea.com/',
     category: 'design',
     color: '#14B8A6',
+    icon: 'photopea',
     note: 'Browser image editor that opens PSD files; runs locally in the page.',
   },
 
@@ -1167,6 +1265,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://bandcamp.com/',
     category: 'music',
     color: '#38BDF8',
+    icon: 'bandcamp',
     note: 'Independent music store and artist pages. Playback depends on the page’s own player.',
   },
   {
@@ -1175,6 +1274,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://splice.com/',
     category: 'music',
     color: '#8B5CF6',
+    icon: 'splice',
     note: 'Sample and loop library for music production.',
   },
 
@@ -1185,6 +1285,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://scholar.google.com/',
     category: 'resources',
     color: '#38BDF8',
+    icon: 'scholar',
     note: 'Scholarly literature search across publishers and repositories.',
   },
   {
@@ -1193,6 +1294,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.semanticscholar.org/',
     category: 'resources',
     color: '#3B82F6',
+    icon: 'semanticscholar',
     note: 'AI-assisted academic search with citation context.',
   },
   {
@@ -1201,6 +1303,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://arxiv.org/',
     category: 'resources',
     color: '#EF4444',
+    icon: 'arxiv',
     note: 'Open preprints in physics, maths, computing and more.',
   },
   {
@@ -1209,6 +1312,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://pubmed.ncbi.nlm.nih.gov/',
     category: 'resources',
     color: '#38BDF8',
+    icon: 'pubmed',
     note: 'Biomedical literature index from the US National Library of Medicine.',
   },
   {
@@ -1217,6 +1321,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.gutenberg.org/',
     category: 'resources',
     color: '#F59E0B',
+    icon: 'gutenberg',
     note: 'Public-domain books in several formats.',
   },
   {
@@ -1225,6 +1330,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://openlibrary.org/',
     category: 'resources',
     color: '#22C55E',
+    icon: 'openlibrary',
     note: 'Internet Archive’s catalogue of books and borrowing.',
   },
   {
@@ -1233,6 +1339,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.dictionary.com/',
     category: 'resources',
     color: '#6366F1',
+    icon: 'dictionary',
     note: 'English definitions, thesaurus and usage.',
   },
   {
@@ -1241,6 +1348,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.etymonline.com/',
     category: 'resources',
     color: '#F59E0B',
+    icon: 'etymonline',
     note: 'Word origins and historical development.',
   },
 
@@ -1251,6 +1359,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://todoist.com/',
     category: 'productivity',
     color: '#EF4444',
+    icon: 'todoist',
     note: 'Tasks and projects across devices.',
   },
   {
@@ -1259,6 +1368,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://calendar.google.com/',
     category: 'productivity',
     color: '#3B82F6',
+    icon: 'googlecalendar',
     note: 'Calendars and scheduling. Google sign-in uses a real auth popup.',
   },
   {
@@ -1267,6 +1377,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.skyscanner.net/',
     category: 'other',
     color: '#38BDF8',
+    icon: 'skyscanner',
     note: 'Flight and travel search; bookings finish on the provider’s own site.',
   },
   {
@@ -1275,6 +1386,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://www.google.com/travel/flights',
     category: 'other',
     color: '#3B82F6',
+    icon: 'googleflights',
     note: 'Flight search and price tracking; bookings happen elsewhere.',
   },
 
@@ -1285,6 +1397,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://cloudconvert.com/',
     category: 'utilities',
     color: '#F59E0B',
+    icon: 'cloudconvert',
     note: 'Online file conversion. Files are uploaded to CloudConvert, unlike Kryvex’s own File Forge.',
   },
   {
@@ -1293,6 +1406,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://squoosh.app/',
     category: 'utilities',
     color: '#EC4899',
+    icon: 'squoosh',
     note: 'Image compression that runs in the page; the image never leaves this machine.',
   },
   {
@@ -1301,6 +1415,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://vault.bitwarden.com/',
     category: 'utilities',
     color: '#3B82F6',
+    icon: 'bitwarden',
     note: 'Password vault web app. Kryvex never reads, stores or autofills vault credentials; the master password stays in the page.',
   },
   {
@@ -1309,6 +1424,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://haveibeenpwned.com/',
     category: 'utilities',
     color: '#EF4444',
+    icon: 'haveibeenpwned',
     aliases: ['hibp', 'breach check'],
     note: 'Checks whether an email appears in known data breaches. The address you type goes to that site.',
   },

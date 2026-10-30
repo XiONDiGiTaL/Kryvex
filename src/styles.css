@@ -8794,3 +8794,10 @@ select:hover {
 .swatch-custom .color-picker {
   margin-top: 10px;
 }
+
+/* Brand marks bundled from a site's own icon rather than Simple Icons. */
+.brand-glyph-image {
+  display: block;
+  object-fit: contain;
+  border-radius: 3px;
+}

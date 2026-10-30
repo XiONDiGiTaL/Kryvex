@@ -480,8 +480,9 @@ export function ThemeMark({
 }
 
 /**
- * Brand glyph when we know the mark, a direct favicon request to the service
- * itself when we do not, and the letter tile as the final fallback.
+ * Brand glyph when we know the mark — a Simple Icons path or a bundled copy of
+ * the service's own icon — a direct favicon request to the service itself for
+ * a site Kryvex has never seen, and the letter tile as the final fallback.
  */
 export function ServiceIcon({
   service,
@@ -512,9 +513,27 @@ export function ServiceIcon({
         }}
         title={brand.title}
       >
-        <svg viewBox="0 0 24 24" width={Math.round(size * 0.54)} height={Math.round(size * 0.54)} aria-hidden="true">
-          <path d={brand.path} fill="currentColor" />
-        </svg>
+        {brand.path ? (
+          <svg
+            viewBox="0 0 24 24"
+            width={Math.round(size * 0.54)}
+            height={Math.round(size * 0.54)}
+            aria-hidden="true"
+          >
+            <path d={brand.path} fill="currentColor" />
+          </svg>
+        ) : brand.src ? (
+          <img
+            className="brand-glyph-image"
+            src={brand.src}
+            alt=""
+            width={Math.round(size * 0.62)}
+            height={Math.round(size * 0.62)}
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+          />
+        ) : null}
       </span>
     );
   }
