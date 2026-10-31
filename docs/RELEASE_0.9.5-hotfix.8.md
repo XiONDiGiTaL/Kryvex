@@ -162,11 +162,13 @@ one page must have been captured. It reports **PASS for 0.9.5-hotfix.8**.
 
 ## Known gaps
 
-- **The PWA's cache name lags by one hotfix.** `public/sw.js` was still named
-  `kryvex-web-0.9.5-hotfix.7-v1` when the tag was cut, so the worker the web job
-  deployed from it names the old cache. `main` carries the corrected name
-  (`kryvex-web-0.9.5-hotfix.8-v1`) and the next web publish applies it. The
-  desktop installers are unaffected: they do not run the service worker.
+- **The PWA cache name lagged at cut time, and was corrected after.**
+  `public/sw.js` was still named `kryvex-web-0.9.5-hotfix.7-v1` when the tag was
+  cut, so the worker the web job deployed from the tag named the old cache. The
+  web client was republished from `main` on 2026-10-30 (gh-pages `8cd1aff`): the
+  live `sw.js` now declares `kryvex-web-0.9.5-hotfix.8-v1`, and the index serves
+  the same bundle hash (`main-BFCFgqNb.js`) as this build. The desktop installers
+  are unaffected either way: they do not run a service worker.
 - **Two unsigned EXEs.** Signing was considered and dropped for this line, so
   SmartScreen still warns on first run.
 - **Two travel presets are still absent.** GetYourGuide and Amtrak refuse every

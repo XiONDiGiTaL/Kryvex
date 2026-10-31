@@ -42,10 +42,12 @@ succeeded — and published a stable release, not a draft or a prerelease, at
 `SHA256SUMS.txt` (207 B) travels with them and matches both digests, so the
 in-app updater accepts this release. `gh-pages` was force-pushed from the same
 tag: `index` answers HTTP 200 at `https://xiondigital.net/Kryvex/` and the
-served bundle reports this version. The worker deployed from the tag still names
-the `kryvex-web-0.9.5-hotfix.7-v1` cache because `public/sw.js` was not bumped
-before the cut; `main` carries the corrected name and the next web publish
-applies it. Both installers are unsigned.
+served bundle reports this version. The worker deployed from the tag first named
+the old `kryvex-web-0.9.5-hotfix.7-v1` cache because `public/sw.js` was not bumped
+before the cut; the web client was then republished from `main` (gh-pages
+`8cd1aff`, 2026-10-30) and the live worker now declares
+`kryvex-web-0.9.5-hotfix.8-v1` beside the same bundle hash. Both installers are
+unsigned.
 
 The batch adds **userscripts** — Greasemonkey/Tampermonkey `.user.js` files
 installed from a file, pasted source or a URL, matched by `@match`/`@include`/
