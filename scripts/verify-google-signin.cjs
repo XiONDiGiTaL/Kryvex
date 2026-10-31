@@ -136,21 +136,19 @@ async function main() {
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'kryvex-google-'));
   app.setPath('userData', userData);
 
-  const { rememberApplicationAgent, stableUserAgent } = require(
-    path.join(process.cwd(), 'dist-electron', 'user-agent.js'),
-  );
+  const { stableUserAgent } = require(path.join(process.cwd(), 'dist-electron', 'user-agent.js'));
   const { hardenSession } = require(path.join(process.cwd(), 'dist-electron', 'hardening.js'));
-  const { ensureBrowserIdentity, followUserAgent } = require(
+  const { ensureBrowserIdentity, settleUserAgent } = require(
     path.join(process.cwd(), 'dist-electron', 'identity.js'),
   );
   const { webPrivacy } = require(path.join(process.cwd(), 'dist-electron', 'web-privacy.js'));
   const { isGoogleSite } = require(path.join(process.cwd(), 'dist-electron', 'sign-in-hosts.js'));
 
   app.setName('Kryvex');
-  rememberApplicationAgent(app.userAgentFallback);
-  const { chromiumUserAgent } = require(path.join(process.cwd(), 'dist-electron', 'user-agent.js'));
-  const googleAgent = chromiumUserAgent(app.userAgentFallback);
-  app.userAgentFallback = stableUserAgent(process.platform, process.versions.chrome);
+  // One agent for every host, settled once: the Google brand difference lives
+  // in the client hints, not in a second user-agent string.
+  const googleAgent = stableUserAgent(process.platform, process.versions.chrome);
+  app.userAgentFallback = googleAgent;
 
   ipcMain.on('kryvex:farbling:seed', event => {
     event.returnValue = 0x9e3779b9;
@@ -184,7 +182,7 @@ async function main() {
   let guest = null;
   win.webContents.on('did-attach-webview', (_event, contents) => {
     guest = contents;
-    followUserAgent(contents);
+    settleUserAgent(contents);
   });
 
   await win.loadURL(
@@ -204,7 +202,7 @@ async function main() {
   const startHost = new URL(guest.getURL()).hostname;
   log(`landed on ${guest.getURL()}`);
   check(
-    'Google pages get the bare Chromium agent',
+    'Google pages keep the one settled agent',
     start.userAgent === googleAgent,
     `${start.userAgent}`,
   );

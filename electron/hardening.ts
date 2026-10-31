@@ -7,7 +7,7 @@ import {
   withPrivacyHeaders,
 } from './privacy';
 import { isGoogleSite } from './sign-in-hosts';
-import { applicationUserAgent, chromiumUserAgent, withUserAgent } from './user-agent';
+import { stableUserAgent, withUserAgent } from './user-agent';
 
 /**
  * Chromium hardening for Kryvex sessions.
@@ -17,6 +17,9 @@ import { applicationUserAgent, chromiumUserAgent, withUserAgent } from './user-a
  * Electron API and are intentionally not faked.
  */
 const hardenedSessions = new WeakSet<Session>();
+
+/** The one agent every request carries; see `settleUserAgent` in identity.ts. */
+const BROWSER_AGENT = stableUserAgent(process.platform, process.versions.chrome);
 
 export function configurePrivacySwitches(): void {
   // Hyperlink auditing (<a ping>) is a tracking channel with no user benefit.
@@ -78,25 +81,22 @@ export function hardenSession(ses: Session): void {
 
   ses.webRequest.onBeforeSendHeaders((details, callback) => {
     const privateHeaders = withPrivacyHeaders(details.requestHeaders, details.url);
-    // Google's account pages check the browser against the identity it claims.
-    // A Chrome agent from an engine that is not Chrome is refused outright, and
-    // one that names the Electron shell is treated as an embedded browser;
-    // reporting the bare Chromium engine is what got through in measurement.
-    // Google therefore gets that agent with Chromium's own brand list — on its
-    // account hosts *and* on its products, so a sign-in that starts on Gmail and
-    // returns from the account host never changes browser halfway through.
-    // Everything else keeps the Chrome agent with matching hints, because a
-    // Chrome user agent with no hints is a combination real Chrome never
-    // produces.
+    // Every request carries the same user agent — the bundled Chromium engine
+    // with its reduced Chrome version and no shell tokens. What differs on
+    // Google's hosts is only the brand list in the client hints, because a
+    // guest that claims Google Chrome from an engine that is not Chrome is
+    // refused by the account pages, while one whose hints name the engine is
+    // accepted. Hints travel with the request, so no navigation ever changes
+    // browser halfway through — which is what a per-host user-agent swap used
+    // to do, and what broke sign-in redirect chains. Everything else keeps the
+    // Chrome brand list, because a Chrome user agent with no hints is a
+    // combination real Chrome never produces.
     const platform = clientHintPlatform(process.platform);
+    const signed = withUserAgent(privateHeaders, BROWSER_AGENT);
     callback({
       requestHeaders: isGoogleUrl(details.url)
-        ? withChromiumClientHints(
-            withUserAgent(privateHeaders, chromiumUserAgent(applicationUserAgent())),
-            process.versions.chrome,
-            platform,
-          )
-        : withChromeClientHints(privateHeaders, process.versions.chrome, platform),
+        ? withChromiumClientHints(signed, process.versions.chrome, platform)
+        : withChromeClientHints(signed, process.versions.chrome, platform),
     });
   });
 }

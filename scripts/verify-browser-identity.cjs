@@ -227,22 +227,21 @@ async function main() {
   for (const host of ['example.com', 'notgoogle.com', 'accounts.google.com.evil.test']) {
     if (isGoogleSite(host)) return fail(`${host} claimed the Google identity`);
   }
-  log('Google account and product hosts share one identity; other sites keep Chrome');
+  log('Google account and product hosts share one identity; every host keeps one settled agent');
 
-  // The Google identity is the engine naming only itself, with the engine's own
-  // brand list on the wire — nothing claims to be Google Chrome.
-  const { chromiumUserAgent } = require(path.join(process.cwd(), 'dist-electron', 'user-agent.js'));
+  // Google's difference is the brand list on the wire, not a second user agent:
+  // the engine never claims to be Google Chrome, and no agent carries the shell
+  // tokens. One value is settled per guest, so a redirect cannot change it.
   const { withChromiumClientHints } = require(path.join(process.cwd(), 'dist-electron', 'privacy.js'));
-  const shellAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Kryvex/0.8.9 Chrome/${process.versions.chrome} Electron/44.9.3 Safari/537.36`;
-  const bare = chromiumUserAgent(shellAgent);
+  const bare = stableUserAgent(process.platform, process.versions.chrome);
   if (/Kryvex|Electron/.test(bare) || !/Chrome\//.test(bare)) {
-    return fail(`the Chromium agent is ${bare}`);
+    return fail(`the settled agent is ${bare}`);
   }
   const googleHints = withChromiumClientHints({}, process.versions.chrome);
   if (/Google Chrome/.test(googleHints['Sec-CH-UA'])) {
     return fail(`Google client hints claim Chrome: ${googleHints['Sec-CH-UA']}`);
   }
-  log(`Google identity: ${bare.replace(/^.*Gecko\) /, '')} · ${googleHints['Sec-CH-UA']}`);
+  log(`Settled agent: ${bare.replace(/^.*Gecko\) /, '')} · Google hints ${googleHints['Sec-CH-UA']}`);
 
   win.destroy();
   server.close();

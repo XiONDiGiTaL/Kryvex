@@ -94,6 +94,33 @@ denied, device/Bluetooth denial, GPC, referrer trimming, and disposable browser
 storage. Controls that have no documented Electron equivalent are not exposed
 or claimed.
 
+### Session identity and sign-ins
+
+A guest is pinned to one user agent for its whole life (`settleUserAgent` in
+`electron/identity.ts`). That is not cosmetic: `setUserAgent` on a WebContents
+that is mid-navigation installs a new override, and Chromium cancels and
+restarts the pending navigation. An OAuth flow is a cross-origin POST followed
+by a redirect chain, so a per-navigation override replays it from the start, the
+identity provider counts each attempt and eventually answers 429 — a "too many
+requests" screen produced by the app rather than by the site. Kryvex used to
+change its agent on `will-navigate`, `will-redirect` and `did-navigate`, and the
+two agents differed only in their patch version; both are gone. One value is
+settled once per guest, and the brands Google's account pages inspect are written
+as client hints per request in `electron/hardening.ts`, with
+`navigator.userAgentData` patched by the identity preload beside it.
+
+What that cannot fix is policy. Google refuses OAuth inside an embedded
+user-agent (`disallowed_useragent`) no matter which string it claims, so a
+"Sign in with Google" button inside a service module may still be rejected.
+Email-and-password sign-in in the module, or the site in a regular browser, is
+the route that works; Kryvex does not pretend otherwise.
+
+Persistence is handled separately and deliberately: service partitions start
+with `persist:`, page storage and cookies are flushed before every teardown and
+once more on quit (`electron/service-sessions.ts`), and Steam's session-scoped
+auth cookie is rewritten with an expiry because Electron never writes session
+cookies to disk. No partition is cleared on quit, on idle or on a timer.
+
 ## Privacy protections
 
 Kryvex implements a deliberately small, auditable subset in JavaScript and

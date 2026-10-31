@@ -27,7 +27,7 @@ import { downloads } from './downloads';
 import { extensions } from './extensions';
 import { userscripts } from './userscripts';
 import { configurePrivacySwitches, hardenSession } from './hardening';
-import { ensureBrowserIdentity, followUserAgent } from './identity';
+import { ensureBrowserIdentity, settleUserAgent } from './identity';
 import { link } from './link';
 import { localModel } from './local-model';
 import { media } from './media';
@@ -54,7 +54,7 @@ import { serviceSessions } from './service-sessions';
 import { followServicePopup, signsInWithin } from './service-signin';
 import { isGoogleSite } from './sign-in-hosts';
 import { spotifyAds } from './spotify-ads';
-import { rememberApplicationAgent, stableUserAgent } from './user-agent';
+import { stableUserAgent } from './user-agent';
 import {
   MIN_WINDOW_SIZE,
   PREFERRED_WINDOW_SIZE,
@@ -93,12 +93,11 @@ const BROWSER_PARTITION = /^browser-[a-z0-9-]{1,64}$/i;
 app.setName('Kryvex');
 notifications.configure();
 
-// Service modules must look like a normal Chromium browser. Electron's
-// default agent advertises "Electron/x", which several web clients treat as an
-// unsupported browser and answer with forced sign-outs or broken OAuth. The
-// original value is kept: Google's pages verify the browser and accept the
-// agent that names the product Kryvex actually is, so Google hosts get it.
-rememberApplicationAgent(app.userAgentFallback);
+// Service modules must look like a normal Chromium browser. Electron's default
+// agent advertises "Electron/x", which several web clients treat as an
+// unsupported browser and answer with forced sign-outs or broken OAuth. One
+// value serves every guest, for its whole life: see `settleUserAgent` for why a
+// per-navigation or per-host swap is the bug rather than the fix.
 app.userAgentFallback = stableUserAgent(process.platform, process.versions.chrome);
 
 // Integration harnesses use an isolated profile so they never read or write the
@@ -343,7 +342,7 @@ function hardenWebContents(): void {
     // own window.open calls go to the system browser rather than stacking
     // unknown windows inside the app.
     contents.on('did-create-window', window => {
-      followUserAgent(window.webContents);
+      settleUserAgent(window.webContents);
       // A popup tab keeps the window-open policy above, so a link opened from
       // inside it stays in Kryvex too.
       if (popupTabs.claim(window, contents)) return;
@@ -455,7 +454,7 @@ function createWindow(): BrowserWindow {
 
   win.webContents.on('did-attach-webview', (_event, contents) => {
     trackChromiumGuest(contents);
-    followUserAgent(contents);
+    settleUserAgent(contents);
     serviceSessions.applyTo(contents);
     serviceSessions.observeGuest(contents);
     media.track(contents);

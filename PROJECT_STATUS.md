@@ -1766,3 +1766,69 @@ assertion was always about.
 planner prompt was extended and unit-tested, but whether a 1.5B model picks
 `github` over `search` for "what does the Tampermonkey repo do" is a prompt
 question this change does not answer.
+
+## Sign-in loops and sign-outs: the user-agent override was the bug
+
+**What was reported.** ChatGPT's "Sign in with Google" pushed rapidly and ended
+in Google's "too many requests"; Messenger signed out after a while; Discord kept
+logging out even though Ferdium, also Electron, held its session.
+
+**What the code did.** `electron/identity.ts` called `contents.setUserAgent()` from
+`will-navigate`, `will-redirect` *and* `did-navigate`, choosing between a
+"Chrome" agent and a "Chromium" one per host family. Two facts make that a bug
+rather than a policy:
+
+1. `setUserAgent` on a WebContents that is mid-navigation installs a new override,
+   and Chromium cancels and restarts the pending navigation. An OAuth flow is a
+   cross-origin POST plus a redirect chain, so every override replayed it from
+   the start, Google counted each attempt, and the account host answered 429 —
+   the retry storm was Kryvex's, not Google's. Ferdium's own source carries a
+   comment saying it only changes its agent from `did-navigate` for exactly this
+   reason, which is why the comparison the user made was pointing in the right
+   direction.
+2. The two agents differed only in their patch version
+   (`Chrome/140.0.6533.99` versus the reduced `Chrome/140.0.0.0`), so the swap
+   changed nothing a site wants and everything a fingerprint can see. The brand
+   Google inspects is written as a client hint, and always was.
+
+**The fix.** One agent is settled once per guest (`settleUserAgent`), with no
+navigation listeners at all; `electron/hardening.ts` writes that same agent on
+every request and keeps the brand difference where it belongs — Google's hosts
+get `Chromium` brands, everything else `Google Chrome`. `chromiumUserAgent`,
+`applicationUserAgent`, `rememberApplicationAgent` and the per-host toggle are
+deleted, so the second identity cannot come back by accident. Two held-back
+harnesses (`verify-browser-identity`, `verify-google-signin`) were updated to the
+single-agent model.
+
+**Checked.** `pnpm typecheck`, `pnpm test` (1,166 passing in 99 files, including a
+new `tests/identity.test.ts` that asserts one `setUserAgent` call and that no
+navigation listener is registered) and `pnpm build` are clean.
+`electron scripts/verify-browser-identity.cjs` passes in the built app: settled
+agent `Chrome/152.0.0.0`, Google hints `"Not?A_Brand";v="24", "Chromium";v="152"`,
+Chrome brands on ordinary sites. `verify-google-signin` needs a live Google
+page and was not run.
+
+**Not claimed.** Google still refuses OAuth inside an embedded user agent by
+policy (`disallowed_useragent`), so a Google button in a service module may
+still be rejected; email-and-password or a normal browser is the working route.
+The Messenger and Discord sign-outs have not been reproduced end to end, so this
+fix is a demonstrated cause of navigation restarts, not a proven cure for those
+two accounts. What was ruled out by reading the code: partitions are
+`persist:svc-*`, storage and cookies are flushed before teardown and on quit, and
+nothing clears a partition except the explicit "clear session" action. Next
+diagnostic if it persists: attach DevTools to the affected service, record
+`did-fail-load` and the `/auth` redirect chain, and compare against the same
+service in Ferdium.
+
+**REA.** `morluto/rea` is an MCP server for *reverse-engineering* binaries,
+JavaScript/Electron bundles, .NET assemblies and websites. It is a development
+instrument, not a runtime dependency, so there is nothing to bake into Kryvex;
+it would be useful if we ever needed to compare a shipped Ferdium build without
+its source, which we did not — its source is public and was read directly.
+
+**BetterDiscord.** It is a client mod loader: it patches Discord's own ASAR,
+injects `betterdiscord.asar` and runs community plugins and themes. It is not a
+performance layer, it does not apply to a webview that loads discord.com, and
+shipping it would put Kryvex on the wrong side of Discord's terms. Kryvex already
+has the legitimate analogue — a userscript engine that injects CSS and JS into
+its own tabs — and nothing from BetterDiscord is being bundled.

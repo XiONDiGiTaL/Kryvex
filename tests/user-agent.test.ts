@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chromiumUserAgent, stableUserAgent, withUserAgent } from '../electron/user-agent';
+import { stableUserAgent, withUserAgent } from '../electron/user-agent';
 
 describe('stableUserAgent', () => {
   it('reports the bundled Chromium engine and never the Electron shell', () => {
@@ -18,25 +18,6 @@ describe('stableUserAgent', () => {
 
   it('falls back to a plausible major version for an unknown engine', () => {
     expect(stableUserAgent('win32', 'nonsense')).toContain('Chrome/140.0.0.0');
-  });
-});
-
-describe('chromiumUserAgent', () => {
-  const appAgent =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Kryvex/0.8.9 Chrome/152.0.7977.167 Electron/44.9.3 Safari/537.36';
-
-  it('removes the shell tokens and keeps a Chromium agent', () => {
-    const agent = chromiumUserAgent(appAgent);
-    expect(agent).toBe(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.7977.167 Safari/537.36',
-    );
-    expect(agent).not.toMatch(/Kryvex|Electron/);
-  });
-
-  it('leaves an agent without shell tokens untouched and survives an empty one', () => {
-    const plain = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/152.0.0.0 Safari/537.36';
-    expect(chromiumUserAgent(plain)).toBe(plain);
-    expect(chromiumUserAgent('')).toBe('');
   });
 });
 
