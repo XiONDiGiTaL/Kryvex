@@ -263,11 +263,11 @@ model and the limits.
 
 ## Service presets
 
-`src/lib/catalog.ts` lists web endpoints only: **143 presets across 15
+`src/lib/catalog.ts` lists web endpoints only: **179 presets across 16
 categories** — communication, productivity, development, AI, resources, media,
-news, education, career, finance, language, design, music, utilities and other.
-Links that exist only as research material for the app's own build (the Awesome
-Electron list, for instance) never appear here.
+news, education, career, finance, travel, language, design, music, utilities and
+other. Links that exist only as research material for the app's own build (the
+Awesome Electron list, for instance) never appear here.
 
 A preset fills the form; it does not bundle a client, an API key or a bridge.
 Kryvex is not affiliated with these services, and their terms still apply. Some
@@ -435,3 +435,32 @@ moved: `notion.so` → `notion.com`, `zoom.us` → `zoom.com` and
 `copilot.microsoft.com` → `copilot.com`. A full sweep of all 143 endpoints found
 no dead host; 22 answer a bot-protection status to a client without a browser
 fingerprint, which is expected of a signed-out request rather than a fault.
+
+### The travel family
+
+The `travel` category arrived with 38 presets, taking the catalogue to 179 across
+16 categories. Two of them — Skyscanner and Google Flights — were already here
+under `other` and were moved rather than duplicated.
+
+| Group | Presets |
+| --- | --- |
+| Fare search and full-service booking | Skyscanner, Google Flights, Kayak, Momondo, Expedia, Hopper, Priceline |
+| Stays | Booking.com, Agoda, Hotels.com, Trip.com, trivago, Airbnb, Vrbo, Hostelworld |
+| Planning, tours and tickets | Tripadvisor, Viator, Rome2Rio |
+| Rail, coaches and cars | Trainline, Omio, FlixBus, Turo, Rentalcars |
+| Cruises | Royal Caribbean, Carnival, Norwegian Cruise Line, MSC Cruises, Princess, Celebrity, Cruise Critic |
+| Airlines | Turkish Airlines, Emirates, Lufthansa, Ryanair, Delta, easyJet, United, American Airlines |
+
+A travel preset is a search or a booking desk, never a ticket. The fare, the room
+and the sailing are still sold by the site that shows them, the provider's terms
+still apply, and Kryvex holds no booking record, payment method or loyalty
+account. Several airline hosts answer a bot-protection status or reset a
+scripted connection at the front door; that is the site's posture, not a wiring
+fault, so their notes say a reload or the system browser may be needed.
+
+Every travel preset carries a bundled mark: a Simple Icons glyph where the brand
+publishes one, otherwise the site's own icon saved under `public/brand-icons`.
+MSC's blue mark sits on a light plate like the other dark glyphs. GetYourGuide
+and Amtrak were left out of this batch because both refuse every scripted
+request, including their own favicon, and shipping a preset the catalogue cannot
+draw a mark for would break the one-mark-per-preset rule the icon check enforces.

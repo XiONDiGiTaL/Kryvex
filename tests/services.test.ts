@@ -248,7 +248,7 @@ describe('expanded catalogue', () => {
   });
 
   it('covers every new category with at least one preset', () => {
-    for (const category of ['career', 'education', 'language', 'finance', 'news', 'design', 'music', 'utilities'] as const) {
+    for (const category of ['career', 'education', 'language', 'finance', 'travel', 'news', 'design', 'music', 'utilities'] as const) {
       expect(SERVICE_PRESETS.some(preset => preset.category === category)).toBe(true);
       expect(CATEGORIES.some(item => item.id === category)).toBe(true);
     }
@@ -329,6 +329,63 @@ describe('expanded catalogue', () => {
       expect(preset?.name.length, id).toBeGreaterThan(0);
       expect(preset?.note.length, id).toBeGreaterThan(0);
     }
+  });
+
+  it('covers flights, stays, cruises and ground transport with real destinations', () => {
+    const byId = new Map(SERVICE_PRESETS.map(preset => [preset.id, preset]));
+    const expected: Array<[string, string]> = [
+      ['skyscanner', 'https://www.skyscanner.net/'],
+      ['googleflights', 'https://www.google.com/travel/flights'],
+      ['kayak', 'https://www.kayak.com/'],
+      ['momondo', 'https://www.momondo.com/'],
+      ['expedia', 'https://www.expedia.com/'],
+      ['hopper', 'https://www.hopper.com/'],
+      ['priceline', 'https://www.priceline.com/'],
+      ['booking', 'https://www.booking.com/'],
+      ['agoda', 'https://www.agoda.com/'],
+      ['hotelscom', 'https://www.hotels.com/'],
+      ['tripcom', 'https://www.trip.com/'],
+      ['trivago', 'https://www.trivago.com/'],
+      ['airbnb', 'https://www.airbnb.com/'],
+      ['vrbo', 'https://www.vrbo.com/'],
+      ['hostelworld', 'https://www.hostelworld.com/'],
+      ['tripadvisor', 'https://www.tripadvisor.com/'],
+      ['viator', 'https://www.viator.com/'],
+      ['rome2rio', 'https://www.rome2rio.com/'],
+      ['trainline', 'https://www.thetrainline.com/'],
+      ['omio', 'https://www.omio.com/'],
+      ['flixbus', 'https://global.flixbus.com/'],
+      ['turo', 'https://turo.com/'],
+      ['rentalcars', 'https://www.rentalcars.com/'],
+      ['royalcaribbean', 'https://www.royalcaribbean.com/'],
+      ['carnival', 'https://www.carnival.com/'],
+      ['ncl', 'https://www.ncl.com/'],
+      ['msc', 'https://www.msccruises.com/'],
+      ['princess', 'https://www.princess.com/'],
+      ['celebrity', 'https://www.celebritycruises.com/'],
+      ['cruisecritic', 'https://www.cruisecritic.com/'],
+      ['turkishairlines', 'https://www.turkishairlines.com/'],
+      ['emirates', 'https://www.emirates.com/'],
+      ['lufthansa', 'https://www.lufthansa.com/'],
+      ['ryanair', 'https://www.ryanair.com/'],
+      ['delta', 'https://www.delta.com/'],
+      ['easyjet', 'https://www.easyjet.com/'],
+      ['united', 'https://www.united.com/'],
+      ['americanairlines', 'https://www.aa.com/'],
+    ];
+    for (const [id, url] of expected) {
+      const preset = byId.get(id);
+      expect(preset, id).toBeTruthy();
+      expect(preset?.url, id).toBe(url);
+      expect(preset?.category, id).toBe('travel');
+    }
+    // The two travel links that used to be filed under other now sit here.
+    expect(byId.get('skyscanner')?.category).toBe('travel');
+    expect(byId.get('googleflights')?.category).toBe('travel');
+    // Cruises, rail, coaches and car hire are covered, not just flights.
+    expect(SERVICE_PRESETS.filter(preset => preset.category === 'travel')).toHaveLength(
+      expected.length,
+    );
   });
 
   it('keeps preset ids and hosts unique and every entry a website', () => {

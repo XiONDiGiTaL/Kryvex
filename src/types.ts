@@ -66,6 +66,7 @@ export type ServiceCategory =
   | 'education'
   | 'career'
   | 'finance'
+  | 'travel'
   | 'language'
   | 'design'
   | 'music'

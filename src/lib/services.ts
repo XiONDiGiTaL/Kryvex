@@ -38,6 +38,7 @@ export const CATEGORIES: ReadonlyArray<{ id: ServiceCategory; label: string }> =
   { id: 'education', label: 'Education' },
   { id: 'career', label: 'Career' },
   { id: 'finance', label: 'Finance' },
+  { id: 'travel', label: 'Travel' },
   { id: 'language', label: 'Language' },
   { id: 'design', label: 'Design' },
   { id: 'music', label: 'Music' },
