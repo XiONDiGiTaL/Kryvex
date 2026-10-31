@@ -1,0 +1,60 @@
+{
+  "name": "Kryvex",
+  "short_name": "Kryvex",
+  "description": "A modular workspace for the web services you live in.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0b0d12",
+  "theme_color": "#0b0d12",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./icons/kryvex-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/kryvex-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/kryvex-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/kryvex-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Services",
+      "short_name": "Services",
+      "url": "./#/services",
+      "icons": [{ "src": "./icons/kryvex-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Browser",
+      "short_name": "Browser",
+      "url": "./#/browser",
+      "icons": [{ "src": "./icons/kryvex-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Vexium",
+      "short_name": "Vexium",
+      "url": "./#/assistant",
+      "icons": [{ "src": "./icons/kryvex-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
