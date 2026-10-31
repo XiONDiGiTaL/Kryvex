@@ -1756,7 +1756,11 @@ strips markup before decoding, or an escaped `<x>` in an abstract disappears),
 comment flattening, the planner action and the context budget; `pnpm test` is
 1,165 passing across 98 files, `pnpm typecheck` and `pnpm build` clean. The three
 channels were also read live on 2026-10-30 (Kryvex's own repository, a 1,311-point
-Hacker News thread with its comments, and two arXiv abstracts).
+Hacker News thread with its comments, and two arXiv abstracts). The first CI run
+of this batch went red in `verify:disk`, not here: the harness asserted the
+Clean action while the scan's sizes were still landing. It now waits for that
+state (bounded at 20 s) instead of sampling one moment, which is the state the
+assertion was always about.
 
 **Not measured:** no local model was asked to route through the new action. The
 planner prompt was extended and unit-tested, but whether a 1.5B model picks

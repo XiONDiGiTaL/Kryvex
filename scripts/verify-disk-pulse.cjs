@@ -195,6 +195,16 @@ async function main() {
     check(scanned.rows >= 4, `scan lists ${scanned.rows} cleanup categories`);
     check(scanned.sizes > 0, `scan measured real sizes for ${scanned.sizes} categories`);
 
+    // The list renders as soon as the walk returns, but the clean action arms
+    // only when the measured sizes land and the scan's own selection runs. A
+    // busy runner showed the rows with the button still disabled, so this waits
+    // for the state the assertion is about instead of sampling one moment.
+    await waitFor(
+      client.evaluate,
+      `(() => { const b = [...document.querySelectorAll('.disk-actions button')].find(n => /Clean /.test(n.textContent)); return !!b && !b.disabled; })()`,
+      20_000,
+      'clean action to arm after the scan',
+    );
     const canClean = await client.evaluate(
       `(() => { const b = [...document.querySelectorAll('.disk-actions button')].find(n => /Clean /.test(n.textContent)); return b ? !b.disabled : false; })()`,
     );
