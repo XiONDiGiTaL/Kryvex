@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.5-hotfix.7, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.5-hotfix.8, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -27,6 +27,34 @@ vault, ~38 GitHub repos, a Play developer account and an unrelated salt-mill
 mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
+
+## Released (2026-10-31, 0.9.5-hotfix.8)
+
+The `v0.9.5-hotfix.8` tag ran the Release workflow to completion — both jobs
+succeeded — and published a stable release, not a draft or a prerelease, at
+2026-10-31T01:01:01Z. `releases/latest` answers `v0.9.5-hotfix.8`.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.5-hotfix.8-x64.exe` | 138,291,522 B | `8927a33868ff49ebc9064fbe98d0e019acc0e2eef6a406353c42657b03295403` |
+| `Kryvex-Portable-0.9.5-hotfix.8-x64.exe` | 138,047,637 B | `e99a5fdd67ed20e83af3ad88f7930bd04dbd8f2af5aa7c4311eeb8ad7e00111e` |
+
+`SHA256SUMS.txt` (207 B) travels with them and matches both digests, so the
+in-app updater accepts this release. `gh-pages` was force-pushed from the same
+tag: `index` answers HTTP 200 at `https://xiondigital.net/Kryvex/` and the
+served bundle reports this version. The worker deployed from the tag still names
+the `kryvex-web-0.9.5-hotfix.7-v1` cache because `public/sw.js` was not bumped
+before the cut; `main` carries the corrected name and the next web publish
+applies it. Both installers are unsigned.
+
+The batch adds **userscripts** — Greasemonkey/Tampermonkey `.user.js` files
+installed from a file, pasted source or a URL, matched by `@match`/`@include`/
+`@exclude`, injected into browser tabs only, with a toolbar icon and a Settings
+block that links to where scripts are published — **an address bar that selects
+on click and ignores a page's own `pushState` churn**, and the **travel family**:
+38 presets for flights, stays, cruises, rail, coaches and car hire, taking the
+catalogue to 179 presets across sixteen categories. Full record:
+[RELEASE_0.9.5-hotfix.8.md](docs/RELEASE_0.9.5-hotfix.8.md).
 
 ## Released (2026-10-30, 0.9.5-hotfix.7)
 

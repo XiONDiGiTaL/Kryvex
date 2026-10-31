@@ -88,8 +88,13 @@ family it was missing.
   GetYourGuide and Amtrak are absent because both refuse every scripted request,
   including their own favicon, and shipping a preset the catalogue cannot draw a
   mark for would break the one-mark-per-preset rule.
-- **Version 0.9.5-hotfix.8.** `package.json` and the web worker's cache name
-  (`kryvex-web-0.9.5-hotfix.8-v1`) move together.
+- **Version 0.9.5-hotfix.8.** `package.json` moves to the new suffix. The web
+  worker's cache name is part of the same rule, but the tag was cut with the old
+  value still in `public/sw.js`; it is corrected on `main`
+  (`kryvex-web-0.9.5-hotfix.8-v1`) and the next web publish carries it. The
+  deployed PWA built from this tag therefore still names the
+  `kryvex-web-0.9.5-hotfix.7-v1` cache while serving this build's hashed bundles;
+  see [Known gaps](#known-gaps).
 
 ## Verification
 
@@ -117,11 +122,20 @@ Node 22, pnpm 10) and attached to
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.9.5-hotfix.8-x64.exe` | recorded below | recorded below |
-| `Kryvex-Portable-0.9.5-hotfix.8-x64.exe` | recorded below | recorded below |
+| `Kryvex-Setup-0.9.5-hotfix.8-x64.exe` | 138,291,522 B (131.89 MiB) | `8927a33868ff49ebc9064fbe98d0e019acc0e2eef6a406353c42657b03295403` |
+| `Kryvex-Portable-0.9.5-hotfix.8-x64.exe` | 138,047,637 B (131.65 MiB) | `e99a5fdd67ed20e83af3ad88f7930bd04dbd8f2af5aa7c4311eeb8ad7e00111e` |
 
-`SHA256SUMS.txt` travels with them. Both EXEs are **unsigned**, so Windows
-SmartScreen still shows its unknown-publisher prompt on first run.
+`SHA256SUMS.txt` (207 B) travels with them, and the digests above are GitHub's
+own asset digests, so the in-app updater accepts this release. It is not a draft
+and not a prerelease, `releases/latest` answers `v0.9.5-hotfix.8`, and it was
+published stable at 2026-10-31T01:01:01Z. The workflow builds what it publishes,
+so these files — not the locally built pair — are the ones to check a download
+against. Both EXEs are **unsigned**, so Windows SmartScreen still shows its
+unknown-publisher prompt on first run.
+
+The web job published the same renderer to `gh-pages`; `https://xiondigital.net/Kryvex/`
+answers HTTP 200 and the served `assets/main-BgwYxP3Z.js` reports
+`0.9.5-hotfix.8`.
 
 ## Wizard capture
 
@@ -145,6 +159,19 @@ was alive.
 `pnpm release:check` reads this record: the doc must name the capture, the
 manifest must match the version, the installer must have exited 0, and more than
 one page must have been captured. It reports **PASS for 0.9.5-hotfix.8**.
+
+## Known gaps
+
+- **The PWA's cache name lags by one hotfix.** `public/sw.js` was still named
+  `kryvex-web-0.9.5-hotfix.7-v1` when the tag was cut, so the worker the web job
+  deployed from it names the old cache. `main` carries the corrected name
+  (`kryvex-web-0.9.5-hotfix.8-v1`) and the next web publish applies it. The
+  desktop installers are unaffected: they do not run the service worker.
+- **Two unsigned EXEs.** Signing was considered and dropped for this line, so
+  SmartScreen still warns on first run.
+- **Two travel presets are still absent.** GetYourGuide and Amtrak refuse every
+  scripted request, including their own favicon, and the catalogue's icon gate
+  requires a bundled mark for each preset.
 
 ## Upgrading
 
