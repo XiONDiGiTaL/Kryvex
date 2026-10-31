@@ -441,12 +441,17 @@ export interface AssistantChatResult {
 
 export interface AssistantToolEvent {
   phase: 'start' | 'done';
-  name: 'search' | 'fetch';
-  /** The query or URL the tool is working on. */
+  name: 'search' | 'fetch' | 'channel';
+  /** The query, URL or channel target the tool is working on. */
   detail: string;
+  /** Which read-only channel last ran, when the tool was a channel. */
+  channel?: AssistantChannel;
   count?: number;
   failed?: boolean;
 }
+
+/** The three places Vexium can read besides the open web. */
+export type AssistantChannel = 'github' | 'discussion' | 'paper';
 
 export interface AssistantDelta {
   requestId: string;

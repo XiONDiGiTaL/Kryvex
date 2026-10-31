@@ -885,6 +885,8 @@ export const turkishCopy: Record<string, string> = {
   'That lookup did not come back.': 'Bu arama sonuç vermedi.',
   'Read {count} sources.': '{count} kaynak okundu.',
   'Page read.': 'Sayfa okundu.',
+  'Reading from {source}…': '{source} üzerinden okunuyor…',
+  'Read {source}.': '{source} üzerinden okundu.',
   'In use': 'Kullanımda',
   'IN USE': 'KULLANIMDA',
   'in use': 'kullanımda',

@@ -10,12 +10,15 @@ import {
 import {
   PLAN_TIMEOUT_MS,
   detectLanguage,
+  formatChannel,
   formatPage,
   formatSearchResults,
   parsePlan,
   planMessages,
   type VexiumPlan,
 } from './vexium-planner';
+import { readChannel } from './vexium-channels';
+import type { ChannelId } from './vexium-channels';
 import { fetchPage, searchWeb } from './vexium-tools';
 
 export type AssistantError =
@@ -48,9 +51,11 @@ export interface AssistantSource {
 
 export interface AssistantToolEvent {
   phase: 'start' | 'done';
-  name: 'search' | 'fetch';
-  /** The query or URL, so the panel can say what it is doing. */
+  name: 'search' | 'fetch' | 'channel';
+  /** The query, URL or channel target, so the panel can say what it is doing. */
   detail: string;
+  /** Which read-only channel ran, when the tool was a channel. */
+  channel?: ChannelId;
   count?: number;
   failed?: boolean;
 }
@@ -304,6 +309,40 @@ export class Assistant {
         this.emit({
           requestId,
           tool: { phase: 'done', name: 'fetch', detail: plan.url, count: 0, failed: true },
+        });
+        return { context: '', used: false };
+      }
+    }
+    if (plan.action === 'channel' && plan.channel && plan.target) {
+      this.emit({
+        requestId,
+        tool: { phase: 'start', name: 'channel', detail: plan.target, channel: plan.channel },
+      });
+      try {
+        const read = await readChannel({ channel: plan.channel, target: plan.target }, { signal });
+        this.emit({
+          requestId,
+          tool: {
+            phase: 'done',
+            name: 'channel',
+            detail: plan.target,
+            channel: plan.channel,
+            count: read.sources.length,
+          },
+          sources: read.sources,
+        });
+        return { context: formatChannel(read), used: true };
+      } catch {
+        this.emit({
+          requestId,
+          tool: {
+            phase: 'done',
+            name: 'channel',
+            detail: plan.target,
+            channel: plan.channel,
+            count: 0,
+            failed: true,
+          },
         });
         return { context: '', used: false };
       }

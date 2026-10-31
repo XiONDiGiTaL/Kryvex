@@ -20,6 +20,8 @@
  *
  * Everything here is pure, so it is tested without a model.
  */
+import { sanitizeChannel, sanitizeTarget } from './vexium-channels';
+import type { ChannelId, ChannelRead } from './vexium-channels';
 import type { PageRead, WebResult } from './vexium-tools';
 
 /** Local shape, so this module can be imported by the rules it feeds. */
@@ -28,12 +30,16 @@ export interface PlannerMessage {
   content: string;
 }
 
-export type VexiumAction = 'answer' | 'search' | 'fetch';
+export type VexiumAction = 'answer' | 'search' | 'fetch' | 'channel';
 
 export interface VexiumPlan {
   action: VexiumAction;
   query?: string;
   url?: string;
+  /** Which read-only channel, when the action is `channel`. */
+  channel?: ChannelId;
+  /** A repository, an arXiv id, a discussion phrase or a story number. */
+  target?: string;
 }
 
 export const PLAN_MAX_QUERY = 200;
@@ -52,8 +58,11 @@ export const PLAN_PROMPT = [
   '{"action":"answer"}',
   '{"action":"search","query":"a short web query"}',
   '{"action":"fetch","url":"https://..."}',
+  '{"action":"channel","channel":"github","target":"owner/name"}',
   'Choose "search" when the answer depends on facts that change or that you cannot know for certain: news, prices, releases, dates, schedules, scores, weather, who currently holds a position, a product specification, a place’s hours, a person’s recent work, or anything after your training data.',
   'Choose "fetch" only when the user supplied a URL and asks about what is on it.',
+  'Choose "channel" when a web page is not enough and the answer lives in one of three places: a GitHub repository, issue or pull request (channel "github", target "owner/name", "owner/name#12" or a phrase to search); a Hacker News discussion (channel "discussion", target a search phrase or a story number); or a research paper (channel "paper", target an arXiv id or a phrase).',
+  'Prefer "channel" over "search" for exactly those three, because the search results would only describe them while the channel reads them.',
   'Choose "answer" for arithmetic you can do reliably, definitions, code, opinions, creative writing, translation, or when the user is talking about their own machine.',
   'Never choose "answer" merely to avoid work, and never answer a time-sensitive question from memory.',
   'Write the query in the language the user used, short enough to search (2–12 words).',
@@ -128,6 +137,12 @@ export function parsePlan(raw: unknown): VexiumPlan {
     if (!url) return { action: 'answer' };
     return { action: 'fetch', url };
   }
+  if (action === 'channel') {
+    const channel = sanitizeChannel(record.channel ?? record.site ?? record.source);
+    const target = sanitizeTarget(record.target ?? record.repo ?? record.url ?? record.query);
+    if (!channel || !target) return { action: 'answer' };
+    return { action: 'channel', channel, target };
+  }
   return { action: 'answer' };
 }
 
@@ -164,6 +179,22 @@ export function formatSearchResults(results: WebResult[], limit = 4): string {
 export function formatPage(page: PageRead): string {
   const body = page.text.replace(/\s+/g, ' ').trim();
   return clampContext(`PAGE TEXT\n${page.title || page.url}\n${page.url}\n${body}`);
+}
+
+/**
+ * A channel read as the answer turn sees it: the facts, then numbered sources.
+ *
+ * The numbering matters: `toolInstructions()` asks the model to cite `[1]`, and
+ * a repository read is one source, not a list of search snippets.
+ */
+export function formatChannel(read: ChannelRead): string {
+  const sources =
+    read.sources.length > 0
+      ? `\n\nSOURCES\n${read.sources
+          .map((source, index) => `[${index + 1}] ${source.title}\n${source.url}`)
+          .join('\n')}`
+      : '';
+  return clampContext(`${read.text}${sources}`);
 }
 
 function clampContext(text: string): string {

@@ -45,7 +45,7 @@ export const SEARCH_TIMEOUT_MS = 12_000;
 export const PAGE_TIMEOUT_MS = 12_000;
 export const MAX_QUERY_LENGTH = 240;
 
-const USER_AGENT =
+export const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36';
 
 /** A query the model may send: one line, printable, bounded. */

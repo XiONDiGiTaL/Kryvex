@@ -214,6 +214,46 @@ never turn into instructions. A question no tool recognises reaches the model
 unchanged; when the reply still sounds unsure, the existing search button
 offers the web instead of a dead end.
 
+## Channels
+
+`vexium-tools.ts` searches the web and reads one page. Three things a local
+model is usually blind to need a different read, so `electron/vexium-channels.ts`
+implements them as the same kind of bounded, main-process tool:
+
+| Channel | Reads | Endpoint |
+| --- | --- | --- |
+| `github` | a repository with a README excerpt, an issue or pull request with its top comments, or a repository search | `api.github.com`, keyless |
+| `discussion` | a Hacker News search, or one thread with its leading comments | `hn.algolia.com` |
+| `paper` | an arXiv search, or one paper's abstract and authors | `export.arxiv.org` |
+
+The planner gains one action, `channel`, which names the channel and a target:
+`owner/name`, `owner/name#12`, a link, a search phrase, an arXiv id or a story
+number. A wrong plan fails closed — `parsePlan` returns `answer`, exactly as it
+did before channels existed — and the target is re-validated before any request
+is made. One read is capped at 3,600 characters, 15 seconds and one target per
+turn, and its sources arrive numbered so the answer can cite `[1]` as it does
+for a search. The panel shows the same step (`Reading from GitHub…`) while it
+runs and attaches what was read as session sources.
+
+**What is not here, and why.** [Agent-Reach](https://github.com/Panniantong/Agent-Reach)
+is where the scope comes from, but not the method: it is a Python CLI with a
+per-user tool tree and a dedicated browser that copies a site's cookies so
+logged-in platforms answer. Vexium Core is a bundled llama.cpp runtime and GGUF
+weights inside an Electron main process — there is no Python to ship, and
+copying a user's session is what this app refuses to do. So the channels here
+are only the ones that answer a plain request with no account and no key:
+
+- Reddit, X, Instagram, LinkedIn and Xiaohongshu answer 403 or a login wall to an
+  anonymous read, so no channel reaches them.
+- YouTube transcripts are closed for the same class of reason. The watch page
+  still lists caption tracks, but every `api/timedtext` URL answers 200 with an
+  empty body unless it carries a token minted by the player, and the player API
+  reports UNPLAYABLE without one. Measured on 2026-10-30 against a video with
+  both manual and automatic tracks, so the video channel is not shipped.
+
+A tool that guessed around those limits would hand the model a confident wrong
+answer, which is worse than the missing one it reports instead.
+
 ## Run a model file
 
 A runtime is not the only route. **Run a model file** takes a `.gguf` the user

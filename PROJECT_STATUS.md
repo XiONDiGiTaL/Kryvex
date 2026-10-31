@@ -1709,3 +1709,54 @@ tests over the catalogue, download rules and assistant prompt pass.
 **Not measured:** the 7 GiB download was not run through the app end to end (the
 3B path it shares was); no long-form benchmark was run; four Turkish prompts are
 not a Turkish evaluation. Nothing here claims a score.
+
+## Channels: what Vexium can read beyond one page
+
+**The question was whether Agent-Reach could be baked into Vexium Core.** It
+cannot be, and the reason is structural rather than a matter of effort.
+[Agent-Reach](https://github.com/Panniantong/Agent-Reach) is a Python CLI that
+installs per-user tooling in `~/.agent-reach` and drives a dedicated browser
+which copies a site's cookies so logged-in platforms answer. Vexium Core is a
+bundled llama.cpp runtime plus GGUF weights inside an Electron main process: an
+installer that does not carry Python, and an app whose whole claim is that it
+does not touch a user's sessions. `XiONDiGiTaL/Vexium-1` is a weights repository,
+so there is nothing there to host a reader either.
+
+**What the capability does transfer to** is the keyless subset, and that is now
+built rather than proposed: `electron/vexium-channels.ts` adds three read-only
+channels through the same bounded tool loop as `search` and `fetch`.
+
+| Channel | Reads | Verified |
+| --- | --- | --- |
+| `github` | repository with README excerpt, stars, licence and last push; an issue or pull request with its top comments; a repository search | live, keyless |
+| `discussion` | Hacker News search, or one thread with its leading comments | live, keyless |
+| `paper` | arXiv search, or one paper's abstract, authors and date | live, keyless |
+
+**The limits are measured, not assumed.** Reddit answers 403 to an anonymous
+read even with a browser user agent. YouTube's watch page still lists caption
+tracks, but every `api/timedtext` URL returns 200 with an empty body without a
+token minted by the player, the legacy `video.google.com` endpoint does the same,
+and the `youtubei` player reports UNPLAYABLE for WEB and 400 for the ANDROID/IOS
+clients — so a video channel was removed rather than shipped as a stub that
+returned a title and an apology. Those platforms are reachable only by copying a
+session, which is the line this file does not cross.
+
+**Wiring.** The planner gained one action, `channel`, with a channel name and a
+target; anything malformed still falls back to `answer`, so a model that ignores
+the schema cannot break a turn. Targets are re-validated (`owner/name`,
+`owner/name#12`, a github.com link, an arXiv id, a story number, or a phrase), a
+read is capped at 3,600 characters and 15 seconds, sources arrive numbered, and
+the panel shows `Reading from GitHub…` while it runs. Captured README excerpts,
+feeds and comment trees are untrusted input and never instructions.
+
+**Checks.** 12 new tests cover the target parsers, the Atom feed parser (which
+strips markup before decoding, or an escaped `<x>` in an abstract disappears),
+comment flattening, the planner action and the context budget; `pnpm test` is
+1,165 passing across 98 files, `pnpm typecheck` and `pnpm build` clean. The three
+channels were also read live on 2026-10-30 (Kryvex's own repository, a 1,311-point
+Hacker News thread with its comments, and two arXiv abstracts).
+
+**Not measured:** no local model was asked to route through the new action. The
+planner prompt was extended and unit-tested, but whether a 1.5B model picks
+`github` over `search` for "what does the Tampermonkey repo do" is a prompt
+question this change does not answer.

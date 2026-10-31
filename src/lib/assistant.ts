@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AssistantMessage, AssistantProbe, AssistantSettings } from '../types';
+import type { AssistantChannel, AssistantMessage, AssistantProbe, AssistantSettings } from '../types';
+
+/**
+ * The brand a channel read came from, for the panel's status line.
+ *
+ * Brand names rather than translated nouns: "GitHub" reads the same in every
+ * locale, and the sentence around it is the part that gets translated.
+ */
+export function channelSourceName(channel: AssistantChannel | undefined): string {
+  if (channel === 'github') return 'GitHub';
+  if (channel === 'discussion') return 'Hacker News';
+  if (channel === 'paper') return 'arXiv';
+  return 'the web';
+}
 
 /** Mirrors `electron/assistant-rules.ts`; the main process is the real gate. */
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);

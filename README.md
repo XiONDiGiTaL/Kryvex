@@ -99,7 +99,9 @@ away.
   loopback only. Vexium Core pairs the llama.cpp runtime included in the
   installer with the reviewed Qwen2.5-1.5B-Instruct weights; Qwen and its
   Apache-2.0 licence stay visible. No account, no key, no cloud call, no
-  transcript on disk.
+  transcript on disk. When a page is not enough it reads three keyless channels
+  — a GitHub repository or issue, a Hacker News thread, an arXiv paper — and
+  says so when the platform refuses.
 - **A real design system.** 78 catalogue themes in eight families (including
   reds, pinks, birthstones and the solar system) plus two creator plugins and a
   **Custom** slot,
@@ -683,7 +685,7 @@ faster; the same actions remain available on screen.
 | Area | What works today |
 | --- | --- |
 | **Module registry** | Add, edit, remove and pin services. Name, URL, category, colour, glyph and brand-icon validation. Search, category filters, recents, starter catalogue, duplicate-safe IDs. |
-| **Vexium** | Chat with a local Ollama or LM Studio runtime over its OpenAI-compatible API, or a GGUF file Kryvex starts with the llama.cpp CPU runtime it now bundles. Offline app answers and a search fallback when no model is loaded, streamed replies, Stop, runtime/address/model settings. Loopback http only; prompts stay in the session and no key or weights are stored. |
+| **Vexium** | Chat with a local Ollama or LM Studio runtime over its OpenAI-compatible API, or a GGUF file Kryvex starts with the llama.cpp CPU runtime it now bundles. Offline app answers and a search fallback when no model is loaded, streamed replies, Stop, runtime/address/model settings. Read-only channels for GitHub, Hacker News and arXiv through the same bounded tool loop: keyless, no cookies, one target per turn. Loopback http only; prompts stay in the session and no key or weights are stored. |
 | **Home board** | Greeting and clock plus six widgets drawn from one small registry: opt-in Open-Meteo weather with a ten-minute cache and °C/°F, an optional Wellness card, sticky notes (off until the note button beside the heart opens them), a local calculator with a safe arithmetic parser, a currency converter using ECB reference rates via Frankfurter, and a board guide. Each card can be shown or hidden, moved up or down inside its column, or switched between the main and side column from the Widgets picker, which numbers the visible cards in display order. The guide column collapses when it has no card, and the order survives restarts. |
 | **Wellness (off by default)** | A heart beside the Widgets button opens one optional intake form: units, height, weight, birth year, activity, an optional note, water and sleep goals. Water, hours slept, weight, calories and one tiny daily task are then logged by hand; XP, levels and a streak are recomputed from that log, never stored. BMI and a calorie estimate are labelled as estimates, and the whole block is one local state subtree with no network calls. |
 | **Resource monitor** | CPU, system memory, the Chromium GPU process and per-service/per-process usage, in the sidebar or a full view. Samples only while visible, and every module row has a two-press **Kill** that force-closes its guests without touching another service. |

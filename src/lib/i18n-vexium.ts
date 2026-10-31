@@ -14,6 +14,8 @@ export const vexiumCopy: Record<VexiumLanguage, Record<string, string>> = {
     'That lookup did not come back.': 'Esa búsqueda no devolvió resultados.',
     'Read {count} sources.': 'Leídas {count} fuentes.',
     'Page read.': 'Página leída.',
+    'Reading from {source}…': 'Leyendo en {source}…',
+    'Read {source}.': 'Leído en {source}.',
   },
   de: {
     'Looking that up: {query}': 'Suche: {query}',
@@ -21,6 +23,8 @@ export const vexiumCopy: Record<VexiumLanguage, Record<string, string>> = {
     'That lookup did not come back.': 'Diese Suche lieferte kein Ergebnis.',
     'Read {count} sources.': '{count} Quellen gelesen.',
     'Page read.': 'Seite gelesen.',
+    'Reading from {source}…': '{source} wird gelesen…',
+    'Read {source}.': '{source} gelesen.',
   },
   fr: {
     'Looking that up: {query}': 'Recherche : {query}',
@@ -28,5 +32,7 @@ export const vexiumCopy: Record<VexiumLanguage, Record<string, string>> = {
     'That lookup did not come back.': 'Cette recherche n’a rien renvoyé.',
     'Read {count} sources.': '{count} sources lues.',
     'Page read.': 'Page lue.',
+    'Reading from {source}…': 'Lecture sur {source}…',
+    'Read {source}.': 'Lu sur {source}.',
   },
 };

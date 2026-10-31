@@ -11,6 +11,7 @@ import { openExternalUrl } from '../lib/external';
 import {
   ASSISTANT_SUGGESTIONS,
   MODEL_SOURCES,
+  channelSourceName,
   newRequestId,
   useAssistantRuntime,
 } from '../lib/assistant';
@@ -696,12 +697,20 @@ export function Assistant({
           {toolActivity.phase === 'start'
             ? toolActivity.name === 'search'
               ? t('Looking that up: {query}', { query: toolActivity.detail })
-              : t('Reading that page…')
+              : toolActivity.name === 'channel'
+                ? t('Reading from {source}…', {
+                    source: channelSourceName(toolActivity.channel),
+                  })
+                : t('Reading that page…')
             : toolActivity.failed
               ? t('That lookup did not come back.')
               : toolActivity.name === 'search'
                 ? t('Read {count} sources.', { count: toolActivity.count ?? 0 })
-                : t('Page read.')}
+                : toolActivity.name === 'channel'
+                  ? t('Read {source}.', {
+                      source: channelSourceName(toolActivity.channel),
+                    })
+                  : t('Page read.')}
         </p>
       ) : null}
 
