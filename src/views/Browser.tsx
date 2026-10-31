@@ -261,12 +261,12 @@ export function Browser({
    */
   const addressEditing = useRef(false);
   /**
-   * A click focuses the field and then collapses the selection at the caret,
-   * which would leave the old URL in front of the typed text. This marks the
-   * mouse-up that immediately follows focus so it can keep the select-all,
+   * A click focuses the field and then places the browser's own caret, which
+   * discards the select-all and would leave the old URL in front of the typed
+   * text. This marks the click that follows focus so it can keep the select-all,
    * while a second click inside the field still places a caret normally.
    */
-  const selectOnClick = useRef(false);
+  const selectOnClick = useRef(true);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const controllers = useRef(new Map<string, WebviewElement | null>());
@@ -1122,17 +1122,21 @@ export function Browser({
               // address into the current one and Enter reloaded a broken URL.
               event.currentTarget.select();
             }}
-            onMouseUp={event => {
-              // The browser places its own caret during the press, after the
-              // focus event has already run, so the selection is made here —
-              // once, on the click that brought focus in.
+            onClick={event => {
+              // A click is the last event of the interaction, after the browser
+              // has placed its own caret, so the selection is made here: a
+              // press-time or mouse-up selection was overwritten by that caret
+              // on some machines. It runs once per focus, which leaves a second
+              // click free to put the caret where it was clicked.
               if (!selectOnClick.current) return;
               selectOnClick.current = false;
               event.currentTarget.select();
             }}
             onBlur={() => {
               addressEditing.current = false;
-              selectOnClick.current = false;
+              // The next click into the bar selects again, exactly as the first
+              // click after leaving the field should.
+              selectOnClick.current = true;
             }}
             placeholder={
               active?.private
