@@ -109,6 +109,19 @@ settled once per guest, and the brands Google's account pages inspect are writte
 as client hints per request in `electron/hardening.ts`, with
 `navigator.userAgentData` patched by the identity preload beside it.
 
+`scripts/verify-signin-trace.cjs` (`pnpm verify:signin-trace`) measures both
+halves of that claim. It replays a redirect chain locally twice — once with the
+removed override re-created in place, once with the shipped one — against a
+server that answers 429 after five visits to the same entry point. With the
+removed code the chain reloaded its first step **2,260 times and collected 2,255
+throttled answers** without ever delivering its POST; with the shipped code it
+made **one request per hop and no throttled answer**. The same harness then
+loads `accounts.google.com` in a real guest with the production plumbing and
+records the traffic through the DevTools protocol: one submission, 31 requests,
+three document responses all 200, no document loaded twice, no failed load and
+**no 429**. That run still ends on Google's "This browser or app may not be
+secure" page, which is the policy below, not a rate limit.
+
 What that cannot fix is policy. Google refuses OAuth inside an embedded
 user-agent (`disallowed_useragent`) no matter which string it claims, so a
 "Sign in with Google" button inside a service module may still be rejected.

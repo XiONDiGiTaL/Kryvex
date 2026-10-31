@@ -58,6 +58,22 @@ on click and ignores a page's own `pushState` churn**, and the **travel family**
 catalogue to 179 presets across sixteen categories. Full record:
 [RELEASE_0.9.5-hotfix.8.md](docs/RELEASE_0.9.5-hotfix.8.md).
 
+The sign-in fix from the previous batch was then traced end to end rather than
+argued from source. `scripts/verify-signin-trace.cjs` (`pnpm verify:signin-trace`)
+replays an OAuth-shaped redirect chain twice — the removed override restored in
+place, then the shipped one — against a server that answers `429` after five
+visits to the same entry point. The removed code reloaded the chain's first step
+**2,260 times, collected 2,255 throttled answers and never delivered its POST**;
+the shipped code walked it **once per hop with no throttled answer**. The same
+harness then loads `accounts.google.com` with the production plumbing and records
+the traffic through the DevTools protocol: **one submission, 31 requests, three
+document responses all `200`, no repeated document, no failed load and no `429`**.
+That flow ends on Google's *"This browser or app may not be secure"* page — its
+embedded-browser policy, which no user-agent string defeats — so the sign-in
+button in a module still cannot complete a Google login. What is fixed is the
+storm: the app no longer restarts its own sign-in chain, and there is no `429`
+left for it to cause.
+
 ## Released (2026-10-30, 0.9.5-hotfix.7)
 
 The `v0.9.5-hotfix.7` tag ran the Release workflow to completion — both jobs
