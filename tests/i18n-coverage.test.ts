@@ -585,6 +585,7 @@ const ADDED = [
   'File transfer',
   'SEND FILES',
   'Send files',
+  'Paused until the other side comes back.',
   'Clear finished',
   'Send the invite first: the files start when the other person is here.',
   'Files go straight to the other person over the room. Nothing is uploaded, there is no size limit, and the receiver chooses where it lands.',

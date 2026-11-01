@@ -29,12 +29,25 @@ import {
 
 export interface TransferControl {
   [key: string]: string | number;
-  kind: 'offer' | 'accept' | 'decline' | 'begin' | 'credit' | 'end' | 'done' | 'cancel' | 'fail';
+  kind:
+    | 'offer'
+    | 'accept'
+    | 'decline'
+    | 'begin'
+    | 'credit'
+    | 'end'
+    | 'done'
+    | 'cancel'
+    | 'fail'
+    | 'resume'
+    | 'resume-accept';
   id: string;
   name: string;
   size: number;
   chunks: number;
   credits: number;
+  /** Bytes the receiver already has on disk, when a transfer resumes. */
+  have: number;
   reason: string;
 }
 
@@ -71,6 +84,10 @@ interface Outbound {
   running: boolean;
   total: number;
   seq: number;
+  /** True once a peer accepted, which is what makes a pause resumable. */
+  accepted: boolean;
+  /** Bumped by a pause, so a loop still unwinding cannot join a resumed one. */
+  serial: number;
 }
 
 interface Inbound {
@@ -91,6 +108,8 @@ const CONTROL_KINDS = new Set([
   'done',
   'cancel',
   'fail',
+  'resume',
+  'resume-accept',
 ]);
 
 interface ControlPatch {
@@ -98,6 +117,7 @@ interface ControlPatch {
   size?: number;
   chunks?: number;
   credits?: number;
+  have?: number;
   reason?: string;
 }
 
@@ -113,6 +133,7 @@ function control(
     size: patch.size ?? 0,
     chunks: patch.chunks ?? 0,
     credits: patch.credits ?? 0,
+    have: patch.have ?? 0,
     reason: patch.reason ?? '',
   };
 }
@@ -131,8 +152,9 @@ function normalizeControl(raw: unknown): TransferControl | null {
   const size = clampTransferSize(source.size) ?? 0;
   const chunks = numeric(source.chunks, Number.MAX_SAFE_INTEGER);
   const credits = numeric(source.credits, TRANSFER_WINDOW);
+  const have = numeric(source.have, Number.MAX_SAFE_INTEGER);
   const reason = typeof source.reason === 'string' ? source.reason.slice(0, 60) : '';
-  return { kind: kind as TransferControl['kind'], id, name, size, chunks, credits, reason };
+  return { kind: kind as TransferControl['kind'], id, name, size, chunks, credits, have, reason };
 }
 
 function normalizeChunkMeta(raw: unknown): TransferChunkMeta | null {
@@ -226,7 +248,16 @@ export class TransferEngine {
         rate: 0,
         startedAt: 0,
       });
-      this.outbound.set(id, { file, peerId: '', credits: 0, running: false, total, seq: 0 });
+      this.outbound.set(id, {
+        file,
+        peerId: '',
+        credits: 0,
+        running: false,
+        total,
+        seq: 0,
+        accepted: false,
+        serial: 0,
+      });
       void this.ports
         .control(control('offer', id, { name, size, chunks: total }), '')
         .catch(() => undefined);
@@ -315,11 +346,25 @@ export class TransferEngine {
     return true;
   }
 
-  /** A peer left: whatever it was sending or receiving ends here. */
+  /**
+   * A peer left.
+   *
+   * A transfer that never started is over: the offer described a peer that is
+   * gone and there is nothing to continue. A transfer that had already moved
+   * bytes keeps everything it owns — the partial file, its open handle, the
+   * sender's `File` — and pauses instead. A peer reaches the room through a new
+   * channel every time it returns, so the id stored on the row is already stale;
+   * `announceResume` is what joins the two ends back together.
+   */
   peerLeft(peerId: string): void {
     const affected = this.list().filter(row => row.peerId === peerId && !isFinishedTransfer(row));
     for (const row of affected) {
       const inbox = this.inbound.get(row.id);
+      const job = this.outbound.get(row.id);
+      if (row.state === 'active' && (inbox || job)) {
+        this.pause(row.id);
+        continue;
+      }
       if (inbox) {
         this.inbound.delete(row.id);
         void this.ports.abortSink?.(inbox.token).catch(() => undefined);
@@ -328,6 +373,50 @@ export class TransferEngine {
       this.patch(row.id, { state: 'failed', error: 'peer-left', endedAt: Date.now(), rate: 0 });
       this.wake(row.id);
     }
+  }
+
+  /**
+   * Park a transfer that is still intact but has no channel.
+   *
+   * The bytes on disk stay, the sender keeps its `File`, and the pump's serial
+   * moves on so a loop that was in flight cannot write into the resumed stream.
+   */
+  private pause(id: string): void {
+    const row = this.rows.get(id);
+    if (!row || isFinishedTransfer(row) || row.state === 'paused') return;
+    const job = this.outbound.get(id);
+    if (job) {
+      job.serial += 1;
+      job.peerId = '';
+      job.credits = 0;
+      job.running = false;
+    }
+    this.patch(id, { state: 'paused', rate: 0 });
+    this.wake(id);
+  }
+
+  /**
+   * Ask the room to continue every paused transfer this client was sending.
+   *
+   * The sender is the side that can restart one: it still holds the whole file,
+   * and the receiver still holds the bytes it wrote. The sender re-states the
+   * offer; whoever answers with `resume-accept` says how far the file got, and
+   * the stream continues from that offset. Re-asking is cheap and idempotent,
+   * so a join can announce twice without a transfer starting twice.
+   */
+  announceResume(): number {
+    if (this.disposed) return 0;
+    let sent = 0;
+    for (const row of this.list()) {
+      if (row.state !== 'paused' || row.direction !== 'send') continue;
+      const job = this.outbound.get(row.id);
+      if (!job) continue;
+      void this.ports
+        .control(control('resume', row.id, { name: row.name, size: row.size, chunks: job.total }), '')
+        .catch(() => undefined);
+      sent += 1;
+    }
+    return sent;
   }
 
   dispose(): void {
@@ -364,8 +453,56 @@ export class TransferEngine {
         return;
       }
       job.peerId = peerId;
+      job.accepted = true;
       job.credits = Math.max(1, Math.min(TRANSFER_WINDOW, payload.credits || TRANSFER_WINDOW));
       this.patch(payload.id, { state: 'active', peerId, startedAt: Date.now() });
+      void this.pump(payload.id);
+      return;
+    }
+
+    // A sender came back and still holds the file: say where this one stopped.
+    if (payload.kind === 'resume') {
+      const inbox = this.inbound.get(payload.id);
+      if (row.direction !== 'receive' || row.state !== 'paused' || !inbox) return;
+      // Only the same file continues; a different size or name is a new offer.
+      if (payload.size !== row.size || sanitizeTransferName(payload.name) !== row.name) return;
+      if (inbox.bytes > row.size) return;
+      // Every byte is already on disk and only the end frame was lost.
+      if (inbox.bytes === row.size) {
+        void this.finishInbound(payload.id, peerId);
+        return;
+      }
+      // Chunks are written whole, so the sender can only seek to a boundary.
+      if (inbox.bytes % TRANSFER_CHUNK_BYTES !== 0) return;
+      this.patch(payload.id, { state: 'active', peerId, startedAt: Date.now(), rate: 0 });
+      void this.ports
+        .control(
+          control('resume-accept', payload.id, { have: inbox.bytes, credits: TRANSFER_WINDOW }),
+          peerId,
+        )
+        .catch(() => undefined);
+      return;
+    }
+
+    if (payload.kind === 'resume-accept') {
+      if (row.direction !== 'send' || row.state !== 'paused') return;
+      const job = this.outbound.get(payload.id);
+      if (!job) return;
+      const have = payload.have;
+      if (!Number.isSafeInteger(have) || have < 0 || have > row.size) return;
+      if (have % TRANSFER_CHUNK_BYTES !== 0) return;
+      if (job.peerId && job.peerId !== peerId) return;
+      job.peerId = peerId;
+      job.accepted = true;
+      job.seq = Math.floor(have / TRANSFER_CHUNK_BYTES);
+      job.credits = Math.max(1, Math.min(TRANSFER_WINDOW, payload.credits || TRANSFER_WINDOW));
+      this.patch(payload.id, {
+        state: 'active',
+        peerId,
+        done: have,
+        startedAt: Date.now(),
+        rate: 0,
+      });
       void this.pump(payload.id);
       return;
     }
@@ -456,7 +593,10 @@ export class TransferEngine {
     try {
       await this.ports.control(control('credit', meta.id, { credits: 1 }), peerId);
     } catch {
-      this.failInbound(meta.id, 'send-failed', peerId);
+      // A credit that cannot be delivered means this channel is gone. Those
+      // bytes are already on disk, so park the transfer instead of discarding
+      // a half-written file: the sender can ask to continue later.
+      this.pause(meta.id);
     }
   }
 
@@ -525,37 +665,59 @@ export class TransferEngine {
     void this.ports.control(control('fail', id, { reason: code }), peerId).catch(() => undefined);
   }
 
-  /** Sender loop: one chunk at a time while the receiver keeps crediting. */
+  /**
+   * Sender loop: one chunk at a time while the receiver keeps crediting.
+   *
+   * `serial` is captured at the start and a pause bumps it, so a loop that is
+   * still unwinding can never write a byte, or an end frame, into a stream that
+   * has already been resumed on another channel.
+   */
   private async pump(id: string): Promise<void> {
     const job = this.outbound.get(id);
     if (!job || job.running) return;
     job.running = true;
+    const serial = job.serial;
+    const stale = (): boolean => this.disposed || job.serial !== serial;
     try {
       while (job.seq < job.total) {
         const row = this.rows.get(id);
-        if (!row || row.state !== 'active') return;
+        if (!row || row.state !== 'active' || stale()) return;
         while (job.credits <= 0) {
           await this.waitForCredit(id);
           const waiting = this.rows.get(id);
-          if (!waiting || waiting.state !== 'active') return;
-          if (this.disposed) return;
+          if (!waiting || waiting.state !== 'active' || stale()) return;
         }
         const start = job.seq * TRANSFER_CHUNK_BYTES;
         const end = Math.min(job.file.size, start + TRANSFER_CHUNK_BYTES);
         const bytes = new Uint8Array(await job.file.slice(start, end).arrayBuffer());
+        if (stale()) return;
         job.credits -= 1;
         await this.ports.chunk(bytes, { id, seq: job.seq }, job.peerId);
+        if (stale() || this.rows.get(id)?.state !== 'active') return;
         job.seq += 1;
         this.patch(id, { done: end, rate: this.rateOf(row, end) });
       }
+      // Every byte went out, but a pause can land between the last frame and
+      // this one; the receiver says how far it got, and only it knows that.
+      if (stale() || this.rows.get(id)?.state !== 'active') return;
       await this.ports.control(control('end', id, { chunks: job.total }), job.peerId);
     } catch {
+      // A closed channel is what a peer leaving looks like from here. The pause
+      // path already owns that case, so it is not a failure.
+      if (stale() || this.rows.get(id)?.state === 'paused') return;
       this.patch(id, { state: 'failed', error: 'send-failed', endedAt: Date.now(), rate: 0 });
       void this.ports
         .control(control('fail', id, { reason: 'send-failed' }), job.peerId)
         .catch(() => undefined);
     } finally {
-      job.running = false;
+      if (job.serial === serial) {
+        job.running = false;
+        // A loop that exits on a pause that has already been lifted is restarted
+        // rather than left to stall the stream it was about to give up on.
+        if (!this.disposed && job.seq < job.total && this.rows.get(id)?.state === 'active') {
+          void this.pump(id);
+        }
+      }
     }
   }
 }

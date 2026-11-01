@@ -28,6 +28,7 @@ export type TransferState =
   | 'offered'
   | 'waiting'
   | 'active'
+  | 'paused'
   | 'done'
   | 'saved'
   | 'declined'

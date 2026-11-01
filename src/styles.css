@@ -7627,6 +7627,11 @@ select:hover {
   color: var(--danger);
 }
 
+/* Paused: the file is still there, the other end is not. */
+.room-file.is-paused .room-file-bar span {
+  background: var(--muted);
+}
+
 .room-file-bar {
   height: 5px;
   border-radius: 999px;

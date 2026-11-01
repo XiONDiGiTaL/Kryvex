@@ -74,7 +74,7 @@ function TransferItem({
         <p className="room-file-note">{t('Waiting for the other side…')}</p>
       ) : null}
 
-      {row.state === 'active' || row.state === 'waiting' ? (
+      {row.state === 'active' || row.state === 'waiting' || row.state === 'paused' ? (
         <>
           <div
             className="room-file-bar"
@@ -91,7 +91,9 @@ function TransferItem({
             <span>
               {row.state === 'waiting'
                 ? t('Waiting for a destination…')
-                : [eta ? `${eta}` : '', rate].filter(Boolean).join(' · ')}
+                : row.state === 'paused'
+                  ? t('Paused until the other side comes back.')
+                  : [eta ? `${eta}` : '', rate].filter(Boolean).join(' · ')}
             </span>
           </div>
         </>

@@ -200,9 +200,19 @@ disks.
 - **The sender cannot exceed the agreed size.** The sink refuses any chunk that
   would take the file past the size the receiver accepted.
 
+- **A drop pauses, it does not end.** A transfer that has already moved bytes
+  keeps its partial file, its open handle and the sender's `File`. When the peer
+  returns — with a new id and a new channel, because that is how a room peer
+  comes back — the sender re-asks (`resume`) and the receiver answers with the
+  byte count it has on disk (`resume-accept`), so the stream continues from that
+  offset and nothing is transferred twice. A transfer that never started still
+  ends when its peer leaves: there is nothing to continue.
+
 Wire: two actions. `xfer` is a JSON control frame (`offer`, `accept`, `decline`,
-`credit`, `end`, `done`, `cancel`, `fail`); `xfer-chunk` is binary, 256 KiB per
-frame, with `{id, seq}` metadata. A chunk that arrives out of order, or a final
+`credit`, `end`, `done`, `cancel`, `fail`, `resume`, `resume-accept`);
+`xfer-chunk` is binary, 256 KiB per frame, with `{id, seq}` metadata. A resume
+only continues the same file: a different size or name is refused, and the
+receiver only answers with a chunk boundary it actually wrote. A chunk that arrives out of order, or a final
 byte count that disagrees with the offer, fails the transfer instead of saving a
 corrupt file.
 

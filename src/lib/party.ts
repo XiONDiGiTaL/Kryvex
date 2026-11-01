@@ -524,6 +524,7 @@ export class PartySession {
         });
         this.refreshPeers();
         void this.sendHello?.({ name: display, color });
+        this.resumeTransfers();
         // A member who joins after an address was published never saw it; send
         // it again for this one peer so the panel is complete for them too.
         const mine = this.state.myVlan;
@@ -544,7 +545,8 @@ export class PartySession {
       room.onPeerLeave = peerId => {
         this.names.delete(peerId);
         this.sharing.delete(peerId);
-        // A transfer cannot outlive the peer it was moving bytes with.
+        // A transfer that has not started ends with its peer; one already
+        // moving bytes pauses and waits to be picked up again.
         this.transfers?.peerLeft(peerId);
         const vlan = { ...this.state.vlan };
         delete vlan[peerId];
@@ -673,6 +675,21 @@ export class PartySession {
   }
 
   /** Offer files to the room. Returns how many offers left this client. */
+  /**
+   * Restart the transfers this client was sending before the other end dropped.
+   *
+   * Only the sender can continue one: it still holds the file, while the
+   * receiver answers with how much it already wrote. A join is also the moment
+   * an answer can arrive before the other side has settled its channel, so the
+   * ask is repeated once shortly after; a second reply changes nothing.
+   */
+  private resumeTransfers(): void {
+    if (!this.transfers || this.transfers.announceResume() === 0) return;
+    window.setTimeout(() => {
+      this.transfers?.announceResume();
+    }, 2500);
+  }
+
   sendFiles(files: File[]): number {
     return this.transfers ? this.transfers.offer(files) : 0;
   }

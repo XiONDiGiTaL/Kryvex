@@ -197,7 +197,166 @@ describe('transfer engine', () => {
     expect(frames).toContain('decline:extra');
   });
 
-  it('ends every transfer when the other peer leaves', () => {
+  it('pauses a started transfer, then picks it up where it stopped', async () => {
+    const payload = new Uint8Array(TRANSFER_CHUNK_BYTES * 6 + 777);
+    for (let index = 0; index < payload.length; index += 1) payload[index] = (index * 7) % 251;
+
+    const sink = new Map<string, Uint8Array[]>();
+    const aborted: string[] = [];
+    let sender: TransferEngine;
+    let receiver: TransferEngine;
+    // A peer that comes back reaches the room through a new channel, so both
+    // ids change; every port reads the current ones.
+    let senderId = 'sender-1';
+    let receiverId = 'receiver-1';
+    let fed = 0;
+    let limit = 3;
+
+    sender = new TransferEngine({
+      control: async (frame, peerId) => {
+        void peerId;
+        receiver.onControl(frame, senderId);
+      },
+      chunk: async (bytes, meta) => {
+        if (fed >= limit) {
+          // The channel died: this frame is lost and both ends notice.
+          sender.peerLeft(receiverId);
+          receiver.peerLeft(senderId);
+          return;
+        }
+        fed += 1;
+        await receiver.onChunk(bytes, meta, senderId);
+      },
+    });
+    receiver = new TransferEngine({
+      control: async (frame, peerId) => {
+        void peerId;
+        sender.onControl(frame, receiverId);
+      },
+      chunk: async () => {
+        throw new Error('the receiver never sends chunks');
+      },
+      openSink: async ({ name }) => ({ token: 'sink-1', path: `/tmp/${name}` }),
+      writeSink: async (token, bytes) => {
+        const list = sink.get(token) ?? [];
+        list.push(bytes.slice());
+        sink.set(token, list);
+        return bytes.byteLength;
+      },
+      finishSink: async token => {
+        const list = sink.get(token) ?? [];
+        return `/saved/${list.reduce((total, part) => total + part.byteLength, 0)}`;
+      },
+      abortSink: async token => {
+        aborted.push(token);
+        sink.delete(token);
+      },
+    });
+
+    const file = new File([payload], 'long.bin');
+    expect(sender.offer([file])).toBe(1);
+    const id = sender.list()[0]!.id;
+    expect(await receiver.accept(id)).toBe(true);
+
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      if (receiver.list()[0]?.state === 'paused') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+
+    const onDisk = (sink.get('sink-1') ?? []).reduce((total, part) => total + part.byteLength, 0);
+    expect(sender.list()[0]!.state).toBe('paused');
+    expect(receiver.list()[0]!.state).toBe('paused');
+    expect(onDisk).toBe(3 * TRANSFER_CHUNK_BYTES);
+    expect(receiver.list()[0]!.done).toBe(3 * TRANSFER_CHUNK_BYTES);
+    // Pausing keeps the partial file: nothing is thrown away or closed.
+    expect(aborted).toEqual([]);
+
+    senderId = 'sender-2';
+    receiverId = 'receiver-2';
+    // The link is back: the channel works again from here on.
+    fed = 0;
+    limit = Number.MAX_SAFE_INTEGER;
+    expect(sender.announceResume()).toBe(1);
+
+    for (let attempt = 0; attempt < 400; attempt += 1) {
+      if (receiver.list()[0]?.state === 'saved') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+
+    expect(sender.list()[0]!.state).toBe('done');
+    expect(receiver.list()[0]!.state).toBe('saved');
+    expect(receiver.list()[0]!.done).toBe(payload.byteLength);
+
+    const written = (sink.get('sink-1') ?? []).reduce<number[]>(
+      (all, part) => all.concat(Array.from(part)),
+      [],
+    );
+    expect(written.length).toBe(payload.byteLength);
+    expect(written).toEqual(Array.from(payload));
+  });
+
+  it('finishes a paused transfer whose last end frame was lost', async () => {
+    const payload = new Uint8Array(TRANSFER_CHUNK_BYTES);
+    const sink = new Map<string, Uint8Array[]>();
+    let sender: TransferEngine;
+    let receiver: TransferEngine;
+    let senderId = 'sender-1';
+    let receiverId = 'receiver-1';
+
+    sender = new TransferEngine({
+      control: async (frame, peerId) => {
+        void peerId;
+        if (frame.kind === 'end') {
+          // The last chunk landed, the end frame did not.
+          sender.peerLeft(receiverId);
+          receiver.peerLeft(senderId);
+          return;
+        }
+        receiver.onControl(frame, senderId);
+      },
+      chunk: async (bytes, meta) => receiver.onChunk(bytes, meta, senderId),
+    });
+    receiver = new TransferEngine({
+      control: async (frame, peerId) => {
+        void peerId;
+        sender.onControl(frame, receiverId);
+      },
+      chunk: async () => {
+        throw new Error('the receiver never sends chunks');
+      },
+      openSink: async ({ name }) => ({ token: 'sink-1', path: `/tmp/${name}` }),
+      writeSink: async (token, bytes) => {
+        const list = sink.get(token) ?? [];
+        list.push(bytes.slice());
+        sink.set(token, list);
+        return bytes.byteLength;
+      },
+      finishSink: async () => '/saved/whole.bin',
+      abortSink: async () => undefined,
+    });
+
+    expect(sender.offer([new File([payload], 'one.bin')])).toBe(1);
+    const id = sender.list()[0]!.id;
+    expect(await receiver.accept(id)).toBe(true);
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      if (receiver.list()[0]?.state === 'paused') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    expect(receiver.list()[0]!.state).toBe('paused');
+    expect(receiver.list()[0]!.done).toBe(payload.byteLength);
+
+    senderId = 'sender-2';
+    receiverId = 'receiver-2';
+    sender.announceResume();
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      if (receiver.list()[0]?.state === 'saved') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    expect(receiver.list()[0]!.state).toBe('saved');
+    expect(sender.list()[0]!.state).toBe('done');
+  });
+
+  it('ends a transfer that never started when the other peer leaves', () => {
     const engine = new TransferEngine({
       control: async () => undefined,
       chunk: async () => undefined,
@@ -206,5 +365,6 @@ describe('transfer engine', () => {
     engine.peerLeft('peer-b');
     expect(engine.list()[0]!.state).toBe('failed');
     expect(engine.list()[0]!.error).toBe('peer-left');
+    expect(engine.announceResume()).toBe(0);
   });
 });
