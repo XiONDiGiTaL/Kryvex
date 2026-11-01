@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   formatTransferEta,
   formatTransferRate,
@@ -33,12 +33,15 @@ interface RoomFilesPanelProps {
 
 function TransferItem({
   row,
+  now,
   onAccept,
   onDecline,
   onCancel,
   onReveal,
 }: {
   row: TransferRow;
+  /** The panel's once-a-second clock, so a pause can count down. */
+  now: number;
   onAccept: (id: string) => void;
   onDecline: (id: string) => void;
   onCancel: (id: string) => void;
@@ -46,6 +49,7 @@ function TransferItem({
 }) {
   const { t } = useI18n();
   const percent = transferPercent(row.done, row.size);
+  const left = row.pausedUntil ? Math.ceil((row.pausedUntil - now) / 1000) : 0;
   const remaining = row.rate > 0 ? (row.size - row.done) / row.rate : 0;
   const eta = row.state === 'active' ? formatTransferEta(remaining) : '';
   const rate = formatTransferRate(row.rate);
@@ -74,6 +78,10 @@ function TransferItem({
         <p className="room-file-note">{t('Waiting for the other side…')}</p>
       ) : null}
 
+      {row.state === 'paused' ? (
+        <p className="room-file-note">{t('Paused until the other side comes back.')}</p>
+      ) : null}
+
       {row.state === 'active' || row.state === 'waiting' || row.state === 'paused' ? (
         <>
           <div
@@ -92,7 +100,9 @@ function TransferItem({
               {row.state === 'waiting'
                 ? t('Waiting for a destination…')
                 : row.state === 'paused'
-                  ? t('Paused until the other side comes back.')
+                  ? left > 0
+                    ? t('Gives up in {time}', { time: formatTransferEta(left) })
+                    : t('Paused until the other side comes back.')
                   : [eta ? `${eta}` : '', rate].filter(Boolean).join(' · ')}
             </span>
           </div>
@@ -164,6 +174,16 @@ export function RoomFilesPanel({
   const { t } = useI18n();
   const input = useRef<HTMLInputElement | null>(null);
   const [over, setOver] = useState(false);
+  // A paused row counts down, so the panel re-renders once a second while one
+  // exists and stops entirely when there is nothing to count.
+  const [now, setNow] = useState(() => Date.now());
+  const paused = transfers.some(row => row.state === 'paused');
+  useEffect(() => {
+    if (!paused) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [paused]);
 
   const take = (files: FileList | null): void => {
     if (!files || files.length === 0) return;
@@ -227,6 +247,7 @@ export function RoomFilesPanel({
             <TransferItem
               key={row.id}
               row={row}
+              now={now}
               onAccept={onAccept}
               onDecline={onDecline}
               onCancel={onCancel}

@@ -197,9 +197,12 @@ export class TransferEngine {
     const row = this.rows.get(id);
     if (!row) return;
     // Only a pause is on a clock; every other state ends that clock right here,
-    // so no caller has to remember to disarm it.
-    if (patch.state && patch.state !== 'paused') this.clearPauseTimeout(id);
-    this.rows.set(id, { ...row, ...patch });
+    // so no caller has to remember to disarm it or to clear the deadline the
+    // panel counts down from.
+    const leavingPause = Boolean(patch.state && patch.state !== 'paused');
+    if (leavingPause) this.clearPauseTimeout(id);
+    const next = leavingPause ? { ...patch, pausedUntil: undefined } : patch;
+    this.rows.set(id, { ...row, ...next });
     this.emit();
   }
 
@@ -439,7 +442,13 @@ export class TransferEngine {
       job.credits = 0;
       job.running = false;
     }
-    this.patch(id, { state: 'paused', rate: 0 });
+    this.patch(id, {
+      state: 'paused',
+      rate: 0,
+      // The panel counts down from here, so the row states its own deadline
+      // rather than each view guessing one from the moment it first noticed.
+      pausedUntil: Date.now() + (this.ports.pauseTimeoutMs ?? TRANSFER_PAUSE_MS),
+    });
     this.wake(id);
     this.armPauseTimeout(id);
   }

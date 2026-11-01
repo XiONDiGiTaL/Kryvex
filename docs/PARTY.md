@@ -210,7 +210,9 @@ disks.
 - **A pause has a deadline.** A pause holds a partial file open and one of the
   twelve transfer slots, so it waits `TRANSFER_PAUSE_MS` (5 minutes) and then
   gives up: the partial file is removed, the slot is freed and the row says the
-  other side never came back. A transfer that resumes is taken off that clock.
+  other side never came back. The row carries `pausedUntil`, so the panel counts
+  down the time left instead of promising a wait with no end, and a transfer that
+  resumes drops that deadline.
 
 Wire: two actions. `xfer` is a JSON control frame (`offer`, `accept`, `decline`,
 `credit`, `end`, `done`, `cancel`, `fail`, `resume`, `resume-accept`);

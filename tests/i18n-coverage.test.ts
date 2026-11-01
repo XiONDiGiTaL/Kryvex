@@ -586,6 +586,7 @@ const ADDED = [
   'SEND FILES',
   'Send files',
   'Paused until the other side comes back.',
+  'Gives up in {time}',
   'The other side did not come back, so the transfer stopped.',
   'Clear finished',
   'Send the invite first: the files start when the other person is here.',

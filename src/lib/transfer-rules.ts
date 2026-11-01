@@ -62,6 +62,8 @@ export interface TransferRow {
   rate: number;
   startedAt: number;
   endedAt?: number;
+  /** When a pause gives up, as epoch ms; absent unless the row is paused. */
+  pausedUntil?: number;
 }
 
 export function newTransferId(): string {

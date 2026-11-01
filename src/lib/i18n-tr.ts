@@ -25,6 +25,7 @@ export const turkishCopy: Record<string, string> = {
   'Waiting for the other side…': 'Karşı taraf bekleniyor…',
   'Waiting for a destination…': 'Hedef klasör bekleniyor…',
   'Paused until the other side comes back.': 'Karşı taraf dönene kadar duraklatıldı.',
+  'Gives up in {time}': '{time} sonra vazgeçer',
   'Sent.': 'Gönderildi.',
   'Declined.': 'Reddedildi.',
   'Cancelled.': 'İptal edildi.',

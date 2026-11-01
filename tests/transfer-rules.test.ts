@@ -297,6 +297,8 @@ describe('transfer engine', () => {
     expect(written).toEqual(Array.from(payload));
 
     // A pause that was picked up is off the clock for good.
+    expect(receiver.list()[0]!.pausedUntil).toBeUndefined();
+    expect(sender.list()[0]!.pausedUntil).toBeUndefined();
     await new Promise(resolve => setTimeout(resolve, 250));
     expect(receiver.list()[0]!.state).toBe('saved');
     expect(sender.list()[0]!.state).toBe('done');
@@ -348,9 +350,10 @@ describe('transfer engine', () => {
     for (let attempt = 0; attempt < 200; attempt += 1) {
       if (receiver.list()[0]?.state === 'paused') break;
       await new Promise(resolve => setTimeout(resolve, 5));
-    }
-    expect(receiver.list()[0]!.state).toBe('paused');
-
+    }    expect(receiver.list()[0]!.state).toBe('paused');
+    // The row carries the deadline its panel counts down from.
+    expect(receiver.list()[0]!.pausedUntil).toBeGreaterThan(Date.now());
+    expect(sender.list()[0]!.pausedUntil).toBeGreaterThan(Date.now());
     for (let attempt = 0; attempt < 200; attempt += 1) {
       if (receiver.list()[0]?.state === 'failed') break;
       await new Promise(resolve => setTimeout(resolve, 5));
