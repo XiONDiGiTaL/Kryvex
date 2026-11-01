@@ -1,6 +1,6 @@
 # Kryvex: Project Status
 
-**Product:** Kryvex Desktop 0.9.5-hotfix.8, a modular Electron workspace where web apps
+**Product:** Kryvex Desktop 0.9.5-hotfix.9, a modular Electron workspace where web apps
 become isolated, themed service apps, plus Kryvex Web, an installable PWA built
 from the same renderer: mounted once, kept running, with native
 desktop notifications, unread badges, sandboxed sign-in popups, persistent
@@ -27,6 +27,29 @@ vault, ~38 GitHub repos, a Play developer account and an unrelated salt-mill
 mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
+
+## Prepared (2026-11-01, 0.9.5-hotfix.9)
+
+`package.json` moves to `0.9.5-hotfix.9` and `public/sw.js` to
+`kryvex-web-0.9.5-hotfix.9-v1`. **The tag has not been cut**, so
+`releases/latest` still answers `v0.9.5-hotfix.8` and the live web client is
+still the hotfix.8 renderer: `https://xiondigital.net/Kryvex/` serves
+`assets/main-BFCFgqNb.js`, which was checked on 2026-11-01 and contains no
+`xiondigital.net Edition` string. Nothing on `main` is published until a tag runs
+the Release workflow, whose `windows` job builds the installers and whose `web`
+job republishes the renderer.
+
+The batch adds the **xiondigital.net Edition**, the eighty-first theme and third
+creator plugin: the site's own `#050607` ground and `#3F80FF` blue read from its
+live stylesheets, the Special XiØN Edition's glass sheen and liquid fills at a
+calmer pace, the site's real X mark bundled and recoloured through a CSS mask,
+and that blue repeated as hairline accents on the header, rail, hero, status bar
+and a small domain chip. Full record:
+[RELEASE_0.9.5-hotfix.9.md](docs/RELEASE_0.9.5-hotfix.9.md).
+
+Two steps remain before the cut, both on Windows: the installer wizard capture
+(`pnpm package:win`, then `pnpm release:wizard --archive`, committed under
+`docs/media/releases/0.9.5-hotfix.9-wizard/`) and the `v0.9.5-hotfix.9` tag push.
 
 ## Released (2026-10-31, 0.9.5-hotfix.8)
 
