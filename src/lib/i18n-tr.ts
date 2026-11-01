@@ -35,6 +35,8 @@ export const turkishCopy: Record<string, string> = {
   'The transfer failed.': 'Aktarım başarısız oldu.',
   'The file did not arrive intact. Try again.': 'Dosya bozulmadan ulaşmadı. Yeniden deneyin.',
   'The other peer left the room.': 'Karşıdaki kişi odadan ayrıldı.',
+  'The other side did not come back, so the transfer stopped.':
+    'Karşı taraf geri dönmediği için aktarım durduruldu.',
   'The other side cancelled the transfer.': 'Karşı taraf aktarımı iptal etti.',
   'The other side is busy with another transfer.': 'Karşı taraf başka bir aktarımla meşgul.',
   // Navigation and shell

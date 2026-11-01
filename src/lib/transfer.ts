@@ -1,6 +1,7 @@
 import {
   MAX_ACTIVE_TRANSFERS,
   TRANSFER_CHUNK_BYTES,
+  TRANSFER_PAUSE_MS,
   TRANSFER_WINDOW,
   clampTransferSize,
   isFinishedTransfer,
@@ -74,6 +75,8 @@ export interface TransferPorts {
   /** Close the file; resolves to its final path, or null. */
   finishSink?: (token: string) => Promise<string | null>;
   abortSink?: (token: string) => Promise<void>;
+  /** How long a paused transfer waits; tests use a short one. */
+  pauseTimeoutMs?: number;
   onChange?: (rows: TransferRow[]) => void;
 }
 
@@ -171,6 +174,7 @@ export class TransferEngine {
   private outbound = new Map<string, Outbound>();
   private inbound = new Map<string, Inbound>();
   private waiters = new Map<string, (() => void)[]>();
+  private pauseTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private disposed = false;
 
   constructor(private ports: TransferPorts) {}
@@ -192,8 +196,49 @@ export class TransferEngine {
   private patch(id: string, patch: Partial<TransferRow>): void {
     const row = this.rows.get(id);
     if (!row) return;
+    // Only a pause is on a clock; every other state ends that clock right here,
+    // so no caller has to remember to disarm it.
+    if (patch.state && patch.state !== 'paused') this.clearPauseTimeout(id);
     this.rows.set(id, { ...row, ...patch });
     this.emit();
+  }
+
+  /**
+   * Put a deadline on a pause.
+   *
+   * A pause keeps a partial file open and one of the twelve slots taken, so it
+   * is a wait with an end, not a promise. The sender and the receiver each keep
+   * their own clock, because either of them may be the one still waiting.
+   */
+  private armPauseTimeout(id: string): void {
+    this.clearPauseTimeout(id);
+    const timer = setTimeout(() => {
+      this.pauseTimers.delete(id);
+      this.expirePause(id);
+    }, this.ports.pauseTimeoutMs ?? TRANSFER_PAUSE_MS);
+    // Never hold a whole process open for a deadline the user is not watching.
+    (timer as unknown as { unref?: () => void }).unref?.();
+    this.pauseTimers.set(id, timer);
+  }
+
+  private clearPauseTimeout(id: string): void {
+    const timer = this.pauseTimers.get(id);
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    this.pauseTimers.delete(id);
+  }
+
+  /** The peer never came back: drop the partial and free the slot. */
+  private expirePause(id: string): void {
+    const row = this.rows.get(id);
+    if (!row || row.state !== 'paused') return;
+    const inbox = this.inbound.get(id);
+    if (inbox) {
+      this.inbound.delete(id);
+      void this.ports.abortSink?.(inbox.token).catch(() => undefined);
+    }
+    this.outbound.delete(id);
+    this.patch(id, { state: 'failed', error: 'pause-timeout', endedAt: Date.now(), rate: 0 });
   }
 
   private emit(): void {
@@ -359,6 +404,9 @@ export class TransferEngine {
   peerLeft(peerId: string): void {
     const affected = this.list().filter(row => row.peerId === peerId && !isFinishedTransfer(row));
     for (const row of affected) {
+      // A paused row already knows its peer is gone; its own deadline decides
+      // when to stop waiting, so an id it once had arriving again changes nothing.
+      if (row.state === 'paused') continue;
       const inbox = this.inbound.get(row.id);
       const job = this.outbound.get(row.id);
       if (row.state === 'active' && (inbox || job)) {
@@ -393,6 +441,7 @@ export class TransferEngine {
     }
     this.patch(id, { state: 'paused', rate: 0 });
     this.wake(id);
+    this.armPauseTimeout(id);
   }
 
   /**
@@ -421,6 +470,7 @@ export class TransferEngine {
 
   dispose(): void {
     this.disposed = true;
+    for (const id of [...this.pauseTimers.keys()]) this.clearPauseTimeout(id);
     for (const inbox of this.inbound.values()) {
       void this.ports.abortSink?.(inbox.token).catch(() => undefined);
     }

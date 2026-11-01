@@ -19,6 +19,15 @@ export const TRANSFER_CHUNK_BYTES = 256 * 1024;
  */
 export const TRANSFER_WINDOW = 8;
 
+/**
+ * How long a paused transfer waits for its peer before it gives up.
+ *
+ * A pause holds a partial file open and one of the twelve transfer slots, so it
+ * cannot be indefinite: five minutes is far longer than a reconnect takes and
+ * short enough that an abandoned file does not sit there for the session.
+ */
+export const TRANSFER_PAUSE_MS = 5 * 60 * 1000;
+
 export const MAX_TRANSFER_NAME = 180;
 export const MAX_ACTIVE_TRANSFERS = 12;
 
@@ -169,6 +178,7 @@ const ERROR_TEXT: Record<string, string> = {
   'out-of-order': 'The file did not arrive intact. Try again.',
   'size-mismatch': 'The file did not arrive intact. Try again.',
   'peer-left': 'The other peer left the room.',
+  'pause-timeout': 'The other side did not come back, so the transfer stopped.',
   cancelled: 'The other side cancelled the transfer.',
   busy: 'The other side is busy with another transfer.',
 };

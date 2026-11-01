@@ -207,6 +207,10 @@ disks.
   byte count it has on disk (`resume-accept`), so the stream continues from that
   offset and nothing is transferred twice. A transfer that never started still
   ends when its peer leaves: there is nothing to continue.
+- **A pause has a deadline.** A pause holds a partial file open and one of the
+  twelve transfer slots, so it waits `TRANSFER_PAUSE_MS` (5 minutes) and then
+  gives up: the partial file is removed, the slot is freed and the row says the
+  other side never came back. A transfer that resumes is taken off that clock.
 
 Wire: two actions. `xfer` is a JSON control frame (`offer`, `accept`, `decline`,
 `credit`, `end`, `done`, `cancel`, `fail`, `resume`, `resume-accept`);

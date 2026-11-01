@@ -213,6 +213,7 @@ describe('transfer engine', () => {
     let limit = 3;
 
     sender = new TransferEngine({
+      pauseTimeoutMs: 150,
       control: async (frame, peerId) => {
         void peerId;
         receiver.onControl(frame, senderId);
@@ -229,6 +230,7 @@ describe('transfer engine', () => {
       },
     });
     receiver = new TransferEngine({
+      pauseTimeoutMs: 150,
       control: async (frame, peerId) => {
         void peerId;
         sender.onControl(frame, receiverId);
@@ -293,6 +295,74 @@ describe('transfer engine', () => {
     );
     expect(written.length).toBe(payload.byteLength);
     expect(written).toEqual(Array.from(payload));
+
+    // A pause that was picked up is off the clock for good.
+    await new Promise(resolve => setTimeout(resolve, 250));
+    expect(receiver.list()[0]!.state).toBe('saved');
+    expect(sender.list()[0]!.state).toBe('done');
+  });
+
+  it('gives a pause up once the other side never comes back', async () => {
+    const payload = new Uint8Array(TRANSFER_CHUNK_BYTES * 4);
+    const sink = new Map<string, Uint8Array[]>();
+    const aborted: string[] = [];
+    let sender: TransferEngine;
+    let receiver: TransferEngine;
+    let fed = 0;
+
+    sender = new TransferEngine({
+      pauseTimeoutMs: 40,
+      control: async frame => receiver.onControl(frame, 'sender-1'),
+      chunk: async (bytes, meta) => {
+        if (fed >= 2) {
+          sender.peerLeft('receiver-1');
+          receiver.peerLeft('sender-1');
+          return;
+        }
+        fed += 1;
+        await receiver.onChunk(bytes, meta, 'sender-1');
+      },
+    });
+    receiver = new TransferEngine({
+      pauseTimeoutMs: 40,
+      control: async frame => sender.onControl(frame, 'receiver-1'),
+      chunk: async () => undefined,
+      openSink: async ({ name }) => ({ token: 'sink-1', path: `/tmp/${name}` }),
+      writeSink: async (token, bytes) => {
+        const list = sink.get(token) ?? [];
+        list.push(bytes.slice());
+        sink.set(token, list);
+        return bytes.byteLength;
+      },
+      finishSink: async () => '/saved/x',
+      abortSink: async token => {
+        aborted.push(token);
+        sink.delete(token);
+      },
+    });
+
+    expect(sender.offer([new File([payload], 'gone.bin')])).toBe(1);
+    const id = sender.list()[0]!.id;
+    expect(await receiver.accept(id)).toBe(true);
+
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      if (receiver.list()[0]?.state === 'paused') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    expect(receiver.list()[0]!.state).toBe('paused');
+
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      if (receiver.list()[0]?.state === 'failed') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+
+    expect(receiver.list()[0]!.state).toBe('failed');
+    expect(receiver.list()[0]!.error).toBe('pause-timeout');
+    expect(sender.list()[0]!.state).toBe('failed');
+    expect(sender.list()[0]!.error).toBe('pause-timeout');
+    // The partial file is deleted, so the slot is free again.
+    expect(aborted).toEqual(['sink-1']);
+    expect(sink.get('sink-1')).toBeUndefined();
   });
 
   it('finishes a paused transfer whose last end frame was lost', async () => {

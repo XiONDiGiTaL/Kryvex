@@ -33,6 +33,8 @@ export const transferCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = 
     'The transfer failed.': 'La transferencia falló.',
     'The file did not arrive intact. Try again.': 'El archivo no llegó intacto. Inténtalo de nuevo.',
     'The other peer left the room.': 'La otra persona salió de la sala.',
+    'The other side did not come back, so the transfer stopped.':
+      'La otra parte no volvió, así que la transferencia se detuvo.',
     'The other side cancelled the transfer.': 'La otra parte canceló la transferencia.',
     'The other side is busy with another transfer.':
       'La otra parte está ocupada con otra transferencia.',
@@ -64,6 +66,8 @@ export const transferCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = 
     'The transfer failed.': 'Die Übertragung ist fehlgeschlagen.',
     'The file did not arrive intact. Try again.': 'Die Datei kam nicht unversehrt an. Versuch es erneut.',
     'The other peer left the room.': 'Die andere Person hat den Raum verlassen.',
+    'The other side did not come back, so the transfer stopped.':
+      'Die andere Seite kam nicht zurück, also wurde die Übertragung beendet.',
     'The other side cancelled the transfer.': 'Die andere Seite hat die Übertragung abgebrochen.',
     'The other side is busy with another transfer.':
       'Die andere Seite ist mit einer anderen Übertragung beschäftigt.',
@@ -95,6 +99,8 @@ export const transferCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = 
     'The transfer failed.': 'Le transfert a échoué.',
     'The file did not arrive intact. Try again.': 'Le fichier n’est pas arrivé intact. Réessayez.',
     'The other peer left the room.': 'L’autre personne a quitté la salle.',
+    'The other side did not come back, so the transfer stopped.':
+      'L’autre côté n’est pas revenu, le transfert s’est arrêté.',
     'The other side cancelled the transfer.': 'L’autre côté a annulé le transfert.',
     'The other side is busy with another transfer.': 'L’autre côté est occupé par un autre transfert.',
   },
