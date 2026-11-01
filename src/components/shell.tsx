@@ -104,6 +104,11 @@ export function Header({
             /
           </span>
           <span className="view-name">{title}</span>
+          {mark === 'xiondigital' ? (
+            <span className="header-domain mono" aria-hidden="true">
+              xiondigital.net
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -548,7 +553,9 @@ export function StatusBar({
           ? t('DONKEY EDITION')
           : mark === 'xion'
             ? t('XIØN EDITION / FULL POWER')
-            : t('ELEMENT x529 / Kx')}
+            : mark === 'xiondigital'
+              ? t('XIONDIGITAL.NET / SIGNATURE BLUE')
+              : t('ELEMENT x529 / Kx')}
       </span>
       {media.length > 0 ? (
         <ServiceMediaDock

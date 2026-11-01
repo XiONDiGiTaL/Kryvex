@@ -3560,7 +3560,9 @@ export function Settings({
                   ? `${t('Special Donkey Edition')} · `
                   : mark === 'xion'
                     ? `${t('Special XiØN Edition')} · `
-                    : `${t('ELEMENT x529 · Kx')} · `}
+                    : mark === 'xiondigital'
+                      ? `${t('xiondigital.net Edition')} · `
+                      : `${t('ELEMENT x529 · Kx')} · `}
                 v{info?.version ?? '0.7.0'}
               </p>
             </div>

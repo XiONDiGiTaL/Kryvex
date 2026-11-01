@@ -42,7 +42,7 @@ calls, without asking you to trust a browser policy.
 [![Kryvex demo reel: modules instead of tabs](docs/media/kryvex-demo.gif)](docs/media/kryvex-demo.mp4)
 
 Twenty seconds, cut from the real app: modules instead of tabs, a persistent
-session behind every service, 78 themes, and no account in sight.
+session behind every service, 81 themes, and no account in sight.
 
 **[Open the full reel](docs/media/kryvex-demo.mp4)**: 1920×1080, 30 fps, with
 sound, 6.2 MB. The preview above is the same cut at 800×450 and 10 fps so it can
@@ -103,7 +103,7 @@ away.
   — a GitHub repository or issue, a Hacker News thread, an arXiv paper — and
   says so when the platform refuses.
 - **A real design system.** 78 catalogue themes in eight families (including
-  reds, pinks, birthstones and the solar system) plus two creator plugins and a
+  reds, pinks, birthstones and the solar system) plus three creator plugins and a
   **Custom** slot,
   organised as a periodic table with two-letter symbols and full HSV/RGB colour
   pickers. Density modes, brand tokens, visible focus rings and reduced-motion
@@ -542,7 +542,7 @@ a look instead of a list.
   fixed 1440×900, keeps a real 900×520 floor, and a layout sweep at ten sizes
   proves no panel clips its own content.
 - **Planets retuned:** Uranus is a pale, eerie ice teal, Turquoise a pale mint
-  and Neptune a vivid navy: 78 catalogue themes in eight families plus two
+  and Neptune a vivid navy: 78 catalogue themes in eight families plus three
   creator plugins and the Custom slot.
 
 ## What was new in 0.6.0
@@ -712,7 +712,7 @@ faster; the same actions remain available on screen.
 | **Fingerprint farbling** | A sandboxed frame preload perturbs canvas `getImageData`/`toDataURL`/`toBlob`, WebGL `readPixels` and `AnalyserNode` frequency data with stable per-site, per-launch noise. The trusted shell is never patched. |
 | **Extensions** | Install Chrome-compatible extensions from a Chrome Web Store detail page in one click, or from `.zip`, `.crx` or a folder; enable, disable, remove. Loaded into services and browser sessions. |
 | **Languages** | System language or English, Spanish, German, French and Turkish across the shell, browser library, dialogs, themes and extension messages, with a measured coverage ratchet rather than a claim. Spanish, German and French are complete apart from tokens and words already correct in the target language; Turkish is knowingly partial and documented as such in [Languages](#languages). |
-| **Themes** | 78 catalogue themes in eight periodic-table families (core, spectrum (reds and pinks included), elements, metals, **gems/birthstones**, **planets**, lights and terminal) plus the **Special Donkey Edition** and **Special XiØN Edition** plugins, and a **Custom** tile you build from five RGB/HSV colour pickers. XiØN is the creator skin: near-black glass, one electric blue, the blade mark and liquid progress fills. All token-driven from `brand/themes.json` and `src/plugins/`. |
+| **Themes** | 78 catalogue themes in eight periodic-table families (core, spectrum (reds and pinks included), elements, metals, **gems/birthstones**, **planets**, lights and terminal) plus the **Special Donkey Edition**, **Special XiØN Edition** and **xiondigital.net Edition** plugins, and a **Custom** tile you build from five RGB/HSV colour pickers. XiØN is the creator skin: near-black glass, one electric blue, the blade mark and liquid progress fills. xiondigital.net is his site skin: its `#050607` ground and `#3F80FF` blue, a glossier X mark and the same liquid fills. All token-driven from `brand/themes.json` and `src/plugins/`. |
 | **Theme gallery** | A preview-first route to the same catalogue: every family rendered on a miniature Kryvex workspace, opened once on a fresh install and kept below the periodic table in Settings. Picking a family previews its hero, clicking a theme applies it, and the skip button keeps the current look. |
 | **Layout** | Collapsible sidebar (rail ↔ expanded), comfortable/compact density, toggleable status bar, adjustable start view. |
 | **Usability** | Header Add / Settings / Help buttons, Home common-action cards, a clickable quick-help dialog, visible dialog buttons, and optional keyboard shortcuts. |
@@ -948,7 +948,7 @@ delivered a streamed reply in under a second. See
 ![Settings about panel](screenshots/settings-about.png)
 
 Theme, density, start view, search engine, sidebar behaviour, reset and runtime
-details. The picker groups all 80 themes by family, creator plugins included;
+details. The picker groups all 81 themes by family, creator plugins included;
 **Custom** opens the colour studio and the wallpaper panel sits underneath.
 
 ![Custom theme colour pickers](screenshots/settings-custom.png)
@@ -1138,8 +1138,8 @@ projects you trust. Kryvex does not audit or endorse them.
 ## Themes
 
 78 catalogue themes live in [`brand/themes.json`](brand/themes.json), the
-**Special Donkey Edition** and **Special XiØN Edition** ship as plugins, and
-**Custom** is generated from your own colours. The picker arranges them as a
+**Special Donkey Edition**, **Special XiØN Edition** and **xiondigital.net
+Edition** ship as plugins, and **Custom** is generated from your own colours. The picker arranges them as a
 periodic table: every tile carries a two-letter symbol, a family label, its
 mode and a palette strip, so the whole collection reads at a glance.
 
@@ -1153,7 +1153,7 @@ mode and a palette strip, so the whole collection reads at a glance.
 | **Planets** | Mercury (stone grey), Venus (cream), Earth (ocean blue/green), Mars (rust), Jupiter (banded cream with a red spot accent), Saturn (pale gold and ring silver), Uranus (eerie icy teal), Neptune (vibrant blue), Pluto (white with brown-red), Nibiru (near-black with a faint dark red), Sun (solar gold/orange), Moon (silver) |
 | **Lights** | Helium, Lithium, Oxygen |
 | **Terminal** | Terminal: pitch black with high-contrast phosphor green in the mono face |
-| **Plugin** | Special Donkey Edition: true black, gold outlines, donkey mark. Special XiØN Edition: near-black glass, one electric blue (`#33B5E5`), the XiØN blade mark, a soft glow and liquid progress fills. |
+| **Plugin** | Special Donkey Edition: true black, gold outlines, donkey mark. Special XiØN Edition: near-black glass, one electric blue (`#33B5E5`), the XiØN blade mark, a soft glow and liquid progress fills. xiondigital.net Edition: the live site’s `#050607` ground and `#3F80FF` blue, a sharper X mark, blue hairline accents and the same liquid fills. |
 | **Custom** | Five colour pickers (background, surface, accent, accent two, text) with a hue/saturation field, rainbow slider, HEX field and editable R/G/B channels; raised, line and muted tones are mixed automatically. |
 
 ![The spectrum band with the new reds and pinks](screenshots/settings-reds.png)
@@ -1186,14 +1186,30 @@ theme: click the tile, no separate activation card.
 
 ![XiØN theme active in Settings](screenshots/settings-xion.png)
 
+**xiondigital.net Edition** is the site skin. Its palette is read from the
+live site and its arcade, which share the same custom properties: `bg
+#050607`, `surface #0A0B0D`, `raised #101318`, `ink #ECEDEF`, `muted #8B9099`,
+`accent #3F80FF` and `accentSoft #79A8FF`. It keeps the glass sheen and
+liquid progress fills of the XiØN edition but drops the emission, so the
+shell reads sleeker and darker. The X mark is redrawn as three crisp
+polygons: the sharp upper-left blade, the upper-right flag and the long whip
+tail, split by a thin cut at the crossing. The signature blue only ever sits
+on edges: a header hairline, the brand chip, the rail’s section counts, the
+hero glow, the status bar and the small `xiondigital.net` chip beside the
+view name. Everything is scoped to `data-theme="xiondigital-net"`, and the
+glow plus motion stop under `prefers-reduced-motion`.
+
+![The xiondigital.net Edition X mark in the site's signature blue](docs/media/xiondigital-mark.png)
+
 [`brand/tokens.json`](brand/tokens.json) is the single source of truth for
 colour, spacing, radii, typography, motion and shell metrics. Themes apply CSS
 custom properties at runtime; there is no second palette to drift.
 
 ### Writing a theme plugin
 
-`src/plugins/donkey.tsx` and `src/plugins/xion.tsx` are the reference
-implementations: a theme object with
+`src/plugins/donkey.tsx`, `src/plugins/xion.tsx` and
+`src/plugins/xiondigital.tsx` are the reference implementations: a theme
+object with
 `plugin: true`, a `mark` hint, and any marks the theme wants. Register it in
 `src/plugins/index.ts`; the theme grid, command palette and persistence pick it
 up automatically. Plugin themes are validated by the same `isThemeId` path as

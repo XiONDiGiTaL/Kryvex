@@ -52,6 +52,7 @@ const TECHNICAL = [
   /^(Promise|Map|Set|Array|Object|String|Number|Boolean|Date|JSON|React|Element)$/,
   // Edition marks are brand names: identical in every locale.
   /^Special (Donkey|XiØN) Edition$/,
+  /^xiondigital\.net Edition$/
 ];
 
 /** Anything that reads like source code rather than copy. */

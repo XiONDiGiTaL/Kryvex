@@ -382,6 +382,8 @@ export const sweepEs: Record<string, string> = {
   Source: 'Fuente',
   'Special Donkey Edition': 'Edición especial Donkey',
   'Special XiØN Edition': 'Edición especial XiØN',
+  'xiondigital.net Edition': 'Edición xiondigital.net',
+  'XIONDIGITAL.NET / SIGNATURE BLUE': 'XIONDIGITAL.NET / AZUL FIRMA',
   'Sticky notes are local state, written to the same JSON file as everything else.':
     'Las notas son estado local, escrito en el mismo archivo JSON que todo lo demás.',
   'Stop scan': 'Detener análisis',

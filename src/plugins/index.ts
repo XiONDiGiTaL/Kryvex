@@ -1,6 +1,7 @@
 import type { Theme } from '../lib/themes';
 import { DONKEY_PLUGIN, SPECIAL_DONKEY_THEME } from './donkey';
 import { SPECIAL_XION_THEME, XION_PLUGIN } from './xion';
+import { XIONDIGITAL_PLUGIN, XIONDIGITAL_THEME } from './xiondigital';
 
 export interface ThemePlugin {
   id: string;
@@ -23,6 +24,10 @@ export const THEME_PLUGINS: ThemePlugin[] = [
   {
     ...XION_PLUGIN,
     theme: SPECIAL_XION_THEME,
+  },
+  {
+    ...XIONDIGITAL_PLUGIN,
+    theme: XIONDIGITAL_THEME,
   },
 ];
 

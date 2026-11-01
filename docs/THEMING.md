@@ -36,8 +36,8 @@ status bar 24px; module tabs 40px.
 
 ## Built-in themes (`brand/themes.json`, schema v3)
 
-78 themes in eight families, plus two creator plugins and the generated Custom
-tile. Each theme overrides `bg/surface/raised/line/ink/muted/accent/accentSoft`
+78 themes in eight families, plus three creator plugins and the generated
+Custom tile. Each theme overrides `bg/surface/raised/line/ink/muted/accent/accentSoft`
 plus status colours and `onAccent` where needed; spacing, radius, type and motion
 stay shared. Every entry also carries `symbol` (two letters), `family`,
 `number` (tile position, `0` reserved for Custom) and optional `gradient`,
@@ -89,8 +89,9 @@ so a theme stays one data object with no per-theme CSS.
 
 ## Creator plugins
 
-`src/plugins/donkey.tsx` (gold, hand-drawn donkey) and `src/plugins/xion.tsx`
-(near-black glass, electric blue, blade mark) are the two shipped plugins. Each
+`src/plugins/donkey.tsx` (gold, hand-drawn donkey), `src/plugins/xion.tsx`
+(near-black glass, electric blue, blade mark) and `src/plugins/xiondigital.tsx`
+(the site palette, sharper X mark) are the three shipped plugins. Each
 exports a `Theme` with `plugin: true` and a `mark` hint, plus a descriptor with
 `markColor` and `activatedMessage` (kept for provenance; the periodic table
 tile now applies the theme directly, so there is no separate activation card).
@@ -113,6 +114,24 @@ Motion is opt-in CSS scoped to `:root[data-theme='special-xion']`:
 All three stop under `prefers-reduced-motion: reduce`. No SVG filter ids are
 generated per instance, so the mark can repeat in the header, hero and status
 bar without id collisions.
+
+**xiondigital.net Edition** takes its palette from the live site and
+`/arcade`, which define the same custom properties: `--bg #050607`,
+`--panel #0c0e11`, `--ink #ecedef`, `--muted #8b9099`, `--blue #3f80ff` and
+`--blue-hi #79a8ff`. The theme carries `bg #050607`, `surface #0A0B0D`,
+`raised #101318`, `line #232A35`, `ink #ECEDEF`, `muted #8B9099`,
+`accent #3F80FF` and `accentSoft #79A8FF`, with `gradient` and `glass` on.
+It is deliberately darker and quieter than the XiØN edition: the same shine
+pipeline, no glow behind body copy, and one step slower liquid motion.
+
+Its mark is `src/plugins/xiondigital.tsx`: three flat polygons for the sharp
+upper-left blade, the upper-right flag and the whip tail, with the crossing
+split by a thin cut so the two strokes read as brush blades. It is a
+`currentColor` glyph, so the theme’s blue carries it and every other theme
+renders it flat. `data-theme="xiondigital-net"` also scopes the branding
+accents: a header hairline, a lit brand chip, the rail section counts, the
+hero glow, the status bar separators and the `.header-domain` chip that
+prints `xiondigital.net` beside the view name (it folds away under 1100px).
 
 ## Custom theme
 

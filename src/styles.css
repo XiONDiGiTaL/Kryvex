@@ -6720,6 +6720,189 @@ select:hover {
   }
 }
 
+/* ------------------------------------------- xiondigital.net edition --- */
+
+/* Taken from the live site: `--bg #050607`, `--panel #0c0e11`, `--blue
+   #3f80ff`, `--blue-hi #79a8ff`. It keeps the glass sheen and liquid motion of
+   the XiØN edition but drops the emission, so the shell reads sleek rather
+   than neon. Every rule below is an edge, a hairline or a glow: the signature
+   blue never fills body copy. */
+
+.xd-mark {
+  color: currentColor;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 42%, transparent));
+}
+
+/* 12px in the status bar is decorative; keep the glow off the silhouette. */
+.status-bar .xd-mark {
+  filter: drop-shadow(0 0 2px color-mix(in srgb, currentColor 34%, transparent));
+}
+
+:root[data-theme='xiondigital-net'] .xd-mark {
+  animation: xd-sheen 6s ease-in-out infinite;
+}
+
+@keyframes xd-sheen {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 3px color-mix(in srgb, currentColor 34%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, currentColor 62%, transparent))
+      drop-shadow(0 0 20px color-mix(in srgb, currentColor 22%, transparent));
+  }
+}
+
+/* A single hairline of site blue under the header, brightest at its centre. */
+:root[data-theme='xiondigital-net'] .app-header {
+  border-bottom-color: color-mix(in srgb, var(--accent) 26%, var(--line-soft));
+  background-image:
+    var(--shine),
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, transparent), transparent 64%);
+  background-blend-mode: screen, normal;
+}
+
+:root[data-theme='xiondigital-net'] .app-header::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent) 62%, transparent) 16%,
+    color-mix(in srgb, var(--accent-soft) 52%, transparent) 50%,
+    color-mix(in srgb, var(--accent) 42%, transparent) 82%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+:root[data-theme='xiondigital-net'] .brand-chip {
+  border-color: color-mix(in srgb, var(--accent) 46%, var(--line));
+  background:
+    radial-gradient(130% 130% at 30% 16%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 72%),
+    var(--accent-wash);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--accent-soft) 24%, transparent),
+    0 0 14px -7px color-mix(in srgb, var(--accent) 85%, transparent);
+}
+
+/* The one place the domain is written in the chrome; it folds away before the
+   header starts truncating the view name. */
+.header-domain {
+  display: inline-flex;
+  align-items: center;
+  height: 15px;
+  margin-left: 3px;
+  padding: 0 7px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line));
+  border-radius: 999px;
+  background: var(--accent-wash);
+  color: color-mix(in srgb, var(--accent) 78%, var(--ink));
+  font-size: 8px;
+  letter-spacing: 0.11em;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .header-domain {
+    display: none;
+  }
+}
+
+:root[data-theme='xiondigital-net'] .app-sidebar {
+  border-right-color: color-mix(in srgb, var(--accent) 18%, var(--line-soft));
+  background-image:
+    var(--shine),
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 5%, transparent), transparent 42%);
+  background-blend-mode: screen, normal;
+}
+
+/* Section counts are the only text that carries the blue in the rail. */
+:root[data-theme='xiondigital-net'] .sidebar-mono {
+  color: var(--accent);
+}
+
+:root[data-theme='xiondigital-net'] .nav-active-bar,
+:root[data-theme='xiondigital-net'] .theme-check,
+:root[data-theme='xiondigital-net'] .pinned-unread {
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 52%, transparent);
+}
+
+:root[data-theme='xiondigital-net'] .theme-card.is-active {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 58%, transparent),
+    0 0 20px -9px color-mix(in srgb, var(--accent) 92%, transparent);
+}
+
+:root[data-theme='xiondigital-net'] .hero-card::after {
+  content: '';
+  position: absolute;
+  right: -8%;
+  bottom: -60%;
+  width: 62%;
+  height: 240px;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 22%, transparent), transparent);
+  pointer-events: none;
+}
+
+/* Glossy chrome: a cool highlight rides the same fills the XiØN edition
+   animates, one step slower and tighter. */
+:root[data-theme='xiondigital-net'] .download-progress span,
+:root[data-theme='xiondigital-net'] .updates-panel .update-progress span,
+:root[data-theme='xiondigital-net'] .loading-bar {
+  background: linear-gradient(
+    100deg,
+    var(--accent) 0%,
+    var(--accent-soft) 18%,
+    var(--ink) 34%,
+    var(--accent-soft) 52%,
+    var(--accent) 72%,
+    var(--accent-soft) 100%
+  );
+  background-size: 240% 100%;
+  animation: xd-liquid 3.2s linear infinite;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 52%, transparent);
+}
+
+@keyframes xd-liquid {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: -240% 0;
+  }
+}
+
+:root[data-theme='xiondigital-net'] .status-bar {
+  border-top-color: color-mix(in srgb, var(--accent) 24%, var(--line-soft));
+  background-image: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 6%, transparent));
+}
+
+:root[data-theme='xiondigital-net'] .status-brand {
+  color: color-mix(in srgb, var(--accent) 68%, var(--ink-faint));
+}
+
+:root[data-theme='xiondigital-net'] .status-sep {
+  color: color-mix(in srgb, var(--accent) 52%, var(--ink-faint));
+}
+
+:root[data-theme='xiondigital-net'] .command-trigger:focus-visible {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent),
+    0 0 18px -6px color-mix(in srgb, var(--accent) 75%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme='xiondigital-net'] .xd-mark,
+  :root[data-theme='xiondigital-net'] .download-progress span,
+  :root[data-theme='xiondigital-net'] .updates-panel .update-progress span,
+  :root[data-theme='xiondigital-net'] .loading-bar {
+    animation: none;
+  }
+}
+
 /* ------------------------------------------------------------- Vexium --- */
 
 .assistant-view {

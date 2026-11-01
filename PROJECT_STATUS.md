@@ -301,8 +301,9 @@ a row.
   variants, `brand/BRAND.md`, `brand/tokens.json`, `brand/themes.json` (schema
   v3, 78 catalogue themes in eight families), PNG 16–512, 7-resolution
   `kryvex.ico`. App id `net.xiondigital.kryvex`.
-- [x] **M4: Theming (core).** 80 themes applied at runtime from
-  `brand/themes.json` and `src/plugins/` (78 catalogue + Donkey + XiØN), with
+- [x] **M4: Theming (core).** 81 themes applied at runtime from
+  `brand/themes.json` and `src/plugins/` (78 catalogue + Donkey + XiØN +
+  xiondigital.net), with
   reds and pinks in the spectrum band, flame-test elements, a 12-entry
   birthstone **gems** family and a 12-entry gradient **planets** family (the
   metal Mercury is now **Quicksilver** so the planet keeps the plain name), all

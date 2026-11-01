@@ -14,10 +14,10 @@ import { relativeLuminance } from '../src/lib/color';
 const REQUIRED = ['bg', 'surface', 'raised', 'line', 'ink', 'muted', 'accent', 'accentSoft'];
 
 describe('theme catalogue', () => {
-  it('ships a broad periodic catalogue plus the two creator plugins', () => {
-    expect(THEMES).toHaveLength(80);
+  it('ships a broad periodic catalogue plus the three creator plugins', () => {
+    expect(THEMES).toHaveLength(81);
     expect(THEMES.filter(theme => !theme.plugin)).toHaveLength(78);
-    expect(THEMES.filter(theme => theme.plugin)).toHaveLength(2);
+    expect(THEMES.filter(theme => theme.plugin)).toHaveLength(3);
     expect(THEMES.map(theme => theme.id)).toEqual(
       expect.arrayContaining([
         'kryvex-dark',
@@ -34,6 +34,7 @@ describe('theme catalogue', () => {
         'oxygen',
         'special-donkey',
         'special-xion',
+        'xiondigital-net',
         'crimson',
         'vermillion',
         'coral',
@@ -71,6 +72,21 @@ describe('theme catalogue', () => {
     expect(xion.gradient).toBe(true);
     expect(xion.glass).toBe(true);
     expect(relativeLuminance(xion.tokens.bg ?? '')).toBeLessThan(0.02);
+
+    const site = getTheme('xiondigital-net');
+    expect(site.plugin).toBe(true);
+    expect(site.mark).toBe('xiondigital');
+    expect(site.symbol).toBe('Xd');
+    expect(site.name).toBe('xiondigital.net Edition');
+    // These five are the live site's own custom properties.
+    expect(site.tokens.bg).toBe('#050607');
+    expect(site.tokens.ink).toBe('#ECEDEF');
+    expect(site.tokens.muted).toBe('#8B9099');
+    expect(site.tokens.accent).toBe('#3F80FF');
+    expect(site.tokens.accentSoft).toBe('#79A8FF');
+    expect(site.gradient).toBe(true);
+    expect(site.glass).toBe(true);
+    expect(relativeLuminance(site.tokens.bg ?? '')).toBeLessThan(0.01);
   });
 
   it('gives every theme a complete token set and a picker identity', () => {
@@ -162,6 +178,7 @@ describe('theme catalogue', () => {
       'platinum',
       'mercury',
       'special-xion',
+      'xiondigital-net',
     ]);
     expect(THEMES.find(theme => theme.id === 'terminal')?.mono).toBe(true);
     expect(THEMES.find(theme => theme.id === 'sunburst')?.gradient).toBe(true);

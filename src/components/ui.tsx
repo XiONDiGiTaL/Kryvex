@@ -4,6 +4,7 @@ import { BRAND_ICONS } from '../lib/brand-icons';
 import { useT } from '../lib/i18n';
 import { DonkeyMark } from '../plugins/donkey';
 import { XionMark } from '../plugins/xion';
+import { XionDigitalMark } from '../plugins/xiondigital';
 
 type IconName =
   | 'home'
@@ -471,7 +472,7 @@ export function KxMark({ size = 22, variant = 'solid' }: { size?: number; varian
   );
 }
 
-export type ThemeMarkKind = 'kx' | 'donkey' | 'xion';
+export type ThemeMarkKind = 'kx' | 'donkey' | 'xion' | 'xiondigital';
 
 /** The shell's brand mark follows the active theme (donkey for the plugin). */
 export function ThemeMark({
@@ -485,6 +486,7 @@ export function ThemeMark({
 }) {
   if (mark === 'donkey') return <DonkeyMark size={size} variant={variant} />;
   if (mark === 'xion') return <XionMark size={size} variant={variant} />;
+  if (mark === 'xiondigital') return <XionDigitalMark size={size} variant={variant} />;
   return <KxMark size={size} variant={variant} />;
 }
 

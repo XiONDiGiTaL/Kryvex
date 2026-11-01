@@ -34,7 +34,7 @@ export interface Theme {
   /** Theme shipped as a plugin rather than in the core theme file. */
   plugin?: boolean;
   /** Which brand mark the shell should show while this theme is active. */
-  mark?: 'kx' | 'donkey' | 'xion';
+  mark?: 'kx' | 'donkey' | 'xion' | 'xiondigital';
 }
 
 /** Short labels used by the periodic table and the preview gallery. */

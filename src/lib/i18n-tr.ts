@@ -639,6 +639,10 @@ export const turkishCopy: Record<string, string> = {
   'The Windows startup entry could not be changed.':
     'Windows başlangıç kaydı değiştirilemedi.',
 
+  // Theme editions
+  'xiondigital.net Edition': 'xiondigital.net Sürümü',
+  'XIONDIGITAL.NET / SIGNATURE BLUE': 'XIONDIGITAL.NET / İMZA MAVİSİ',
+
   // Arcade (x535)
   'x535 / ARCADE': 'x535 / SALON',
   'The xiondigital.net arcade, embedded here with its own saved session so scores and saves survive a restart.':
