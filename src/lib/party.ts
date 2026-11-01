@@ -10,6 +10,8 @@ import {
 import { sanitizeVlanShare } from './vlan-rules';
 import type { VlanEngine } from '../types';
 import { sanitizePad, type NetplayPad } from './netplay';
+import { TransferEngine, type TransferControl } from './transfer';
+import type { TransferRow } from './transfer-rules';
 
 /**
  * Rooms session.
@@ -67,6 +69,8 @@ export interface PartyState {
   vlan: Record<string, { ip: string; engine: VlanEngine }>;
   /** The address this client published, so the panel can offer to withdraw it. */
   myVlan: { ip: string; engine: VlanEngine } | null;
+  /** Files this client is sending or receiving, newest last. */
+  transfers: TransferRow[];
   error: string | null;
 }
 
@@ -203,6 +207,7 @@ const EMPTY: PartyState = {
   control: null,
   vlan: {},
   myVlan: null,
+  transfers: [],
   error: null,
 };
 
@@ -221,6 +226,7 @@ export class PartySession {
   private sendInput: ((payload: InputPayload) => Promise<void>) | null = null;
   private sendNetplayAction: ((payload: NetplayPayload) => Promise<void>) | null = null;
   private sendVlan: ((payload: VlanPayload) => Promise<void>) | null = null;
+  private transfers: TransferEngine | null = null;
   private names = new Map<string, HelloPayload>();
   private sharing = new Set<string>();
   private lastRoom: { id: string; settings: PartySettings; name: string } | null = null;
@@ -442,6 +448,67 @@ export class PartySession {
         },
       });
 
+      // Files. One JSON frame describes the transfer and carries its credits;
+      // one binary frame carries a chunk with `{id, seq}` metadata. The bytes
+      // go over the room's own data channels, so nothing is uploaded and there
+      // is no size limit, and the receiver picks the destination before the
+      // first chunk is accepted.
+      const xfer = room.makeAction<TransferControl>('xfer', {
+        onMessage: (payload, context) => {
+          this.transfers?.onControl(payload, context.peerId);
+        },
+      });
+      const xferChunk = room.makeAction<Uint8Array>('xfer-chunk', {
+        onMessage: (data, context) => {
+          const raw = data as unknown;
+          const bytes =
+            raw instanceof Uint8Array
+              ? raw
+              : raw instanceof ArrayBuffer
+                ? new Uint8Array(raw)
+                : null;
+          if (!bytes) return;
+          void this.transfers?.onChunk(bytes, context.metadata, context.peerId);
+        },
+      });
+      const bridge = typeof window !== 'undefined' ? window.kryvex : undefined;
+      const openSink = bridge?.transferBegin;
+      const writeSink = bridge?.transferWrite;
+      const finishSink = bridge?.transferFinish;
+      const abortSink = bridge?.transferAbort;
+      this.transfers = new TransferEngine({
+        control: (payload, peerId) =>
+          peerId ? xfer.send(payload, { target: peerId }) : xfer.send(payload),
+        chunk: (bytes, meta, peerId) =>
+          xferChunk.send(bytes, { target: peerId, metadata: meta }),
+        openSink: openSink
+          ? async ({ name, size }) => {
+              const result = await openSink({ name, size });
+              return result?.ok && result.token && result.path
+                ? { token: result.token, path: result.path }
+                : null;
+            }
+          : undefined,
+        writeSink: writeSink
+          ? async (token, bytes) => {
+              const result = await writeSink({ token, bytes });
+              return result?.ok ? result.received ?? 0 : 0;
+            }
+          : undefined,
+        finishSink: finishSink
+          ? async token => {
+              const result = await finishSink(token);
+              return result?.ok && result.path ? result.path : null;
+            }
+          : undefined,
+        abortSink: abortSink
+          ? async token => {
+              await abortSink(token);
+            }
+          : undefined,
+        onChange: rows => this.set({ transfers: rows }),
+      });
+
       this.sendHello = payload => hello.send(payload);
       this.sendChat = payload => chat.send(payload);
       this.sendPresence = payload => presence.send(payload);
@@ -477,6 +544,8 @@ export class PartySession {
       room.onPeerLeave = peerId => {
         this.names.delete(peerId);
         this.sharing.delete(peerId);
+        // A transfer cannot outlive the peer it was moving bytes with.
+        this.transfers?.peerLeft(peerId);
         const vlan = { ...this.state.vlan };
         delete vlan[peerId];
         this.set({
@@ -603,6 +672,28 @@ export class PartySession {
     return true;
   }
 
+  /** Offer files to the room. Returns how many offers left this client. */
+  sendFiles(files: File[]): number {
+    return this.transfers ? this.transfers.offer(files) : 0;
+  }
+
+  /** Receiver: pick a destination and let the sender start. */
+  acceptTransfer(id: string): Promise<boolean> {
+    return this.transfers ? this.transfers.accept(id) : Promise.resolve(false);
+  }
+
+  declineTransfer(id: string): boolean {
+    return this.transfers ? this.transfers.decline(id) : false;
+  }
+
+  cancelTransfer(id: string): boolean {
+    return this.transfers ? this.transfers.cancel(id) : false;
+  }
+
+  clearTransfers(): boolean {
+    return this.transfers ? this.transfers.clear() : false;
+  }
+
   requestControl(): boolean {
     if (this.state.local) return false; // the host does not ask itself
     if (!this.state.share) return false;
@@ -705,6 +796,8 @@ export class PartySession {
     this.sendInput = null;
     this.sendNetplayAction = null;
     this.sendVlan = null;
+    this.transfers?.dispose();
+    this.transfers = null;
     this.names.clear();
     this.sharing.clear();
     this.lastRoom = null;
@@ -721,6 +814,7 @@ export class PartySession {
       // A withdrawn room keeps no addresses: they belonged to the people in it.
       vlan: {},
       myVlan: null,
+      transfers: [],
       error: null,
     });
   }

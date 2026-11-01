@@ -10,6 +10,32 @@
  * remainder so this list can only grow.
  */
 export const turkishCopy: Record<string, string> = {
+  // Rooms file transfer
+  'File transfer': 'Dosya aktarımı',
+  'SEND FILES': 'DOSYA GÖNDER',
+  'Send files': 'Dosya gönder',
+  'Send the invite first: the files start when the other person is here.':
+    'Önce daveti gönder: dosyalar karşıdaki kişi geldiğinde başlar.',
+  'Files go straight to the other person over the room. Nothing is uploaded, there is no size limit, and the receiver chooses where it lands.':
+    'Dosyalar odanın üzerinden doğrudan karşıdaki kişiye gider. Hiçbir şey yüklenmez, boyut sınırı yoktur ve nereye kaydedileceğini alan kişi seçer.',
+  '{name} wants to send {size}.': '{name} sana {size} göndermek istiyor.',
+  'Decline': 'Reddet',
+  'SENDING': 'GÖNDERİLİYOR',
+  'RECEIVING': 'ALINIYOR',
+  'Waiting for the other side…': 'Karşı taraf bekleniyor…',
+  'Waiting for a destination…': 'Hedef klasör bekleniyor…',
+  'Sent.': 'Gönderildi.',
+  'Declined.': 'Reddedildi.',
+  'Cancelled.': 'İptal edildi.',
+  'Offering {count} file(s) to the room.': 'Odaya {count} dosya öneriliyor.',
+  'No file could be offered.': 'Hiçbir dosya önerilemedi.',
+  'No folder was chosen, so the transfer was cancelled.':
+    'Klasör seçilmediği için aktarım iptal edildi.',
+  'The transfer failed.': 'Aktarım başarısız oldu.',
+  'The file did not arrive intact. Try again.': 'Dosya bozulmadan ulaşmadı. Yeniden deneyin.',
+  'The other peer left the room.': 'Karşıdaki kişi odadan ayrıldı.',
+  'The other side cancelled the transfer.': 'Karşı taraf aktarımı iptal etti.',
+  'The other side is busy with another transfer.': 'Karşı taraf başka bir aktarımla meşgul.',
   // Navigation and shell
   Home: 'Ana sayfa',
   Services: 'Servisler',

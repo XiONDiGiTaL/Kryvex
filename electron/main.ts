@@ -38,6 +38,7 @@ import { emptyVlanStatus } from './vlan-rules';
 import { captureTools } from './capture-tools';
 import { captureWindow } from './capture-window';
 import { fileKit } from './file-kit';
+import { transferSink } from './transfers';
 import { playlistImporter } from './playlist';
 import { playerEmbed } from './player-embed';
 import * as lexiumProxy from './lexium-proxy';
@@ -899,6 +900,24 @@ function registerIpc(): void {
   ipcMain.handle('kryvex:files:copy-text', (event, text: unknown) =>
     isShellSender(event) ? fileKit.copyText(text) : false,
   );
+  // A file arriving from a room. The renderer holds the bytes; this is the only
+  // place they reach the disk, the destination came from a save dialog, and the
+  // file appears under its real name only once every declared byte has arrived.
+  ipcMain.handle('kryvex:transfer:begin', (event, request: unknown) =>
+    isShellSender(event) ? transferSink.begin(request) : { ok: false, code: 'untrusted' },
+  );
+  ipcMain.handle('kryvex:transfer:write', (event, request: unknown) =>
+    isShellSender(event) ? transferSink.write(request) : { ok: false, code: 'untrusted' },
+  );
+  ipcMain.handle('kryvex:transfer:finish', (event, token: unknown) =>
+    isShellSender(event) ? transferSink.finish(token) : { ok: false, code: 'untrusted' },
+  );
+  ipcMain.handle('kryvex:transfer:abort', (event, token: unknown) =>
+    isShellSender(event) ? transferSink.abort(token) : false,
+  );
+  ipcMain.handle('kryvex:transfer:reveal', (event, target: unknown) =>
+    isShellSender(event) ? transferSink.reveal(target) : false,
+  );
   // A preview gets a window of its own, built from the same bytes the save path
   // already validates. The window's own actions are registered by its module.
   captureWindow.registerIpc();
@@ -1395,6 +1414,7 @@ if (!gotLock) {
     link.attachWindow(mainWindow);
     captureTools.attachWindow(mainWindow);
     fileKit.attachWindow(mainWindow);
+    transferSink.attachWindow(mainWindow);
     partyAttachWindow(mainWindow);
     extensions.attachWindow(mainWindow);
     userscripts.attachWindow(mainWindow);
@@ -1429,6 +1449,7 @@ if (!gotLock) {
         notifications.attachWindow(mainWindow);
         captureTools.attachWindow(mainWindow);
         fileKit.attachWindow(mainWindow);
+    transferSink.attachWindow(mainWindow);
         partyAttachWindow(mainWindow);
         updater.attachWindow(mainWindow);
         modelManager.attachWindow(mainWindow);

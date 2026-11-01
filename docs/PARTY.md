@@ -109,7 +109,9 @@ the capture handler never ran. The fix is narrow and testable:
 ## 6. Phases
 
 **Phase 1: room, presence, chat, invites.** Done.
-**Phase 2: screen share + app share.** Done. File drop still open.
+**Phase 2: screen share + app share.** Done.
+**Phase 5: files.** Done. A member offers a file, the receiver picks a
+folder, and the bytes stream over the room's own data channels (section 11).
 **Phase 3: co-watch and host controls.** Not started.
 **Phase 4: voice, relay hardening.** Not started. TURN is configured but
 needs a user-supplied relay; a self-hosted signaling relay is a later option.
@@ -140,8 +142,8 @@ needs a user-supplied relay; a self-hosted signaling relay is a later option.
 
 ## 9. Still open
 
-1. File drop with an accept/decline prompt, size caps and saved copies in
-   `<download root>/Kryvex Rooms/<room>/`.
+1. Resuming an interrupted transfer: a peer that drops ends the transfer, and
+   the sender has to offer the file again.
 2. A self-hosted signaling relay, so rooms do not depend on public trackers.
 3. Co-watch with a host clock and drift correction.
 4. Room password, which derives the signaling key rather than encrypting media.
@@ -173,6 +175,42 @@ from the app producing it. Monitoring that plays every sound twice, a few
 hundred milliseconds apart, which is the doubling that was reported. The default
 now follows the source (`monitorShareByDefault` in `src/lib/party-rules.ts`),
 and the checkbox stays available for anyone who wants it.
+
+## 11. Files
+
+A room can carry files between its members with no upload and no size cap. The
+bytes travel as chunks over the WebRTC data channels the room already has, so
+no Kryvex service is in the path and nothing is stored anywhere but the two
+disks.
+
+- **Offer, then accept.** The sender picks files, and every member sees an offer
+  with the name and size. Nothing is read from disk until someone accepts.
+- **The receiver chooses the destination.** Accepting opens a native save dialog
+  in the main process; the path never comes from the wire.
+- **Credit window.** The receiver returns one credit per chunk it has written,
+  and the sender keeps at most `TRANSFER_WINDOW` (8) chunks in flight. A fast
+  sender is throttled to a slow disk instead of filling memory, and a full round
+  trip is not spent per chunk.
+- **Nothing half-written is visible.** Chunks go to `<name>.kryvexpart` and the
+  file is renamed only after every declared byte has arrived and been synced.
+  A cancelled or failed transfer removes the partial file.
+- **Untrusted names.** A peer picks the name, so it is stripped to a basename,
+  scrubbed of characters Windows cannot store, refused as a device name, and
+  capped at 180 characters with the extension kept.
+- **The sender cannot exceed the agreed size.** The sink refuses any chunk that
+  would take the file past the size the receiver accepted.
+
+Wire: two actions. `xfer` is a JSON control frame (`offer`, `accept`, `decline`,
+`credit`, `end`, `done`, `cancel`, `fail`); `xfer-chunk` is binary, 256 KiB per
+frame, with `{id, seq}` metadata. A chunk that arrives out of order, or a final
+byte count that disagrees with the offer, fails the transfer instead of saving a
+corrupt file.
+
+Code: `src/lib/transfer-rules.ts` (names, chunk plan, labels),
+`src/lib/transfer.ts` (the engine and the protocol), `electron/transfers.ts`
+(the sink: save dialog, append, sync, rename), `src/components/RoomFilesPanel.tsx`
+(the panel). Kryvex Links's phone relay is a separate mechanism and is not
+involved.
 
 Where the audio goes silent instead: system audio is captured through the OS's
 own loopback path, so a device held in exclusive mode by another application —

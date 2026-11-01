@@ -580,6 +580,32 @@ const ADDED = [
   'Coordinates',
   'Copy IP',
   'Resolving this site’s network…',
+  // Rooms file transfer: chunks over the room's own data channels, with the
+  // destination chosen by the receiver.
+  'File transfer',
+  'SEND FILES',
+  'Send files',
+  'Clear finished',
+  'Send the invite first: the files start when the other person is here.',
+  'Files go straight to the other person over the room. Nothing is uploaded, there is no size limit, and the receiver chooses where it lands.',
+  '{name} wants to send {size}.',
+  'Decline',
+  'SENDING',
+  'RECEIVING',
+  'Waiting for the other side…',
+  'Waiting for a destination…',
+  'Sent.',
+  'Declined.',
+  'Cancelled.',
+  'Offering {count} file(s) to the room.',
+  'No file could be offered.',
+  'No folder was chosen, so the transfer was cancelled.',
+  'The file could not be written.',
+  'The transfer failed.',
+  'The file did not arrive intact. Try again.',
+  'The other peer left the room.',
+  'The other side cancelled the transfer.',
+  'The other side is busy with another transfer.',
 ];
 
 describe('translation coverage', () => {

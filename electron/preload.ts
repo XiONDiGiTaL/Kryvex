@@ -469,6 +469,18 @@ const api = {
   vlanStatus: (): Promise<VlanStatus> => ipcRenderer.invoke('kryvex:vlan:status'),
   partySelectSource: (id: string, audio: boolean): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:party:select', id, audio),
+  // Rooms file transfer: a save dialog chooses the destination, then each chunk
+  // is appended to the one file this process opened for it.
+  transferBegin: (request: { name: string; size: number }): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:transfer:begin', request),
+  transferWrite: (request: { token: string; bytes: Uint8Array }): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:transfer:write', request),
+  transferFinish: (token: string): Promise<unknown> =>
+    ipcRenderer.invoke('kryvex:transfer:finish', token),
+  transferAbort: (token: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:transfer:abort', token),
+  transferReveal: (filePath: string): Promise<boolean> =>
+    ipcRenderer.invoke('kryvex:transfer:reveal', filePath),
   // Screen capture: the pixels stay in the renderer, the file write and the
   // save dialog happen here. No path is taken from the page.
   captureSave: (request: unknown): Promise<unknown> =>

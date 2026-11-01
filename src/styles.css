@@ -7529,6 +7529,141 @@ select:hover {
   color: var(--ink-faint);
 }
 
+/* Files in a room: an offer card, a live bar and the row of actions. */
+.room-files {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+.room-files.is-over {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.room-files-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.room-files-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.room-files-clear {
+  font-size: 11px;
+}
+
+.room-files-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.room-files-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-file {
+  display: grid;
+  gap: 7px;
+  padding: 9px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+}
+
+.room-file.is-failed,
+.room-file.is-declined,
+.room-file.is-cancelled {
+  border-color: var(--line);
+  opacity: 0.86;
+}
+
+.room-file-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.room-file-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-file-size {
+  color: var(--ink-faint);
+  font-size: 11px;
+  flex: none;
+}
+
+.room-file-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.room-file-note.is-error {
+  color: var(--danger);
+}
+
+.room-file-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+
+.room-file-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--motion-fast) var(--ease);
+}
+
+.room-file-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ink-faint);
+  font-size: 11px;
+}
+
+.room-file-path {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.room-file-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .room-shell {
   display: grid;
   gap: 12px;

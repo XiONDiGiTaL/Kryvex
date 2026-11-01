@@ -15,6 +15,7 @@ import {
 } from '../lib/party-rules';
 import { Icon } from '../components/ui';
 import { VirtualLanPanel } from '../components/VirtualLanPanel';
+import { RoomFilesPanel } from '../components/RoomFilesPanel';
 
 interface RoomsProps {
   settings: PartySettings;
@@ -667,6 +668,27 @@ export function Rooms({
             onShare={(ip, engine) => session.shareVlan(ip, engine)}
             onStop={() => session.stopVlan()}
             onToast={onToast}
+          />
+
+          {/* Files sit beside the virtual LAN: both are things a room is for
+              beyond watching a screen, and both stay optional. */}
+          <RoomFilesPanel
+            transfers={state.transfers}
+            peerCount={peerCount}
+            onSend={files => {
+              const offered = session.sendFiles(files);
+              onToast(
+                offered > 0
+                  ? t('Offering {count} file(s) to the room.', { count: offered })
+                  : t('No file could be offered.'),
+                offered > 0 ? 'success' : 'warning',
+              );
+            }}
+            onAccept={id => void session.acceptTransfer(id)}
+            onDecline={id => session.declineTransfer(id)}
+            onCancel={id => session.cancelTransfer(id)}
+            onClear={() => session.clearTransfers()}
+            onReveal={path => void window.kryvex?.transferReveal(path)}
           />
 
           <div className={`room-body ${theatre ? 'is-theatre' : ''}`}>

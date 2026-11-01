@@ -1234,6 +1234,29 @@ export type LinkCommandEvent =
   | { command: 'open-url'; url: string }
   | { command: 'rooms' | 'home' };
 
+/** A destination the user picked for an incoming room transfer. */
+export interface TransferBeginResult {
+  ok: boolean;
+  token?: string;
+  path?: string;
+  name?: string;
+  cancelled?: boolean;
+  code?: string;
+}
+
+export interface TransferWriteResult {
+  ok: boolean;
+  received?: number;
+  code?: string;
+}
+
+export interface TransferFinishResult {
+  ok: boolean;
+  path?: string;
+  size?: number;
+  code?: string;
+}
+
 export interface KryvexBridge {
   platform: string;
   /**
@@ -1475,6 +1498,16 @@ export interface KryvexBridge {
   chromiumSet: (settings: ChromiumSettings) => Promise<EngineInfo | null>;
   partySources: () => Promise<PartySource[]>;
   partySelectSource: (id: string, audio: boolean) => Promise<boolean>;
+  /**
+   * Rooms file transfer. The renderer holds the bytes as they arrive over the
+   * room's data channels; the save dialog, the chunk writes and the final
+   * rename happen in the main process, and only the dialog chooses a path.
+   */
+  transferBegin: (request: { name: string; size: number }) => Promise<TransferBeginResult>;
+  transferWrite: (request: { token: string; bytes: Uint8Array }) => Promise<TransferWriteResult>;
+  transferFinish: (token: string) => Promise<TransferFinishResult>;
+  transferAbort: (token: string) => Promise<boolean>;
+  transferReveal: (filePath: string) => Promise<boolean>;
   /** Tunnel addresses this machine already has; read-only, nothing is created. */
   vlanStatus: () => Promise<VlanStatusView>;
   /** Write a capture the renderer produced, after the user picks a folder. */
