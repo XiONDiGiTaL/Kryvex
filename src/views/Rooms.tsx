@@ -689,6 +689,7 @@ export function Rooms({
             onCancel={id => session.cancelTransfer(id)}
             onClear={() => session.clearTransfers()}
             onReveal={path => void window.kryvex?.transferReveal(path)}
+            onRepoint={id => void session.chooseTransferDestination(id)}
           />
 
           <div className={`room-body ${theatre ? 'is-theatre' : ''}`}>

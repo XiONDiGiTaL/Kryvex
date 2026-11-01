@@ -29,6 +29,7 @@ interface RoomFilesPanelProps {
   onCancel: (id: string) => void;
   onClear: () => void;
   onReveal: (path: string) => void;
+  onRepoint: (id: string) => void;
 }
 
 function TransferItem({
@@ -38,6 +39,7 @@ function TransferItem({
   onDecline,
   onCancel,
   onReveal,
+  onRepoint,
 }: {
   row: TransferRow;
   /** The panel's once-a-second clock, so a pause can count down. */
@@ -46,6 +48,7 @@ function TransferItem({
   onDecline: (id: string) => void;
   onCancel: (id: string) => void;
   onReveal: (path: string) => void;
+  onRepoint: (id: string) => void;
 }) {
   const { t } = useI18n();
   const percent = transferPercent(row.done, row.size);
@@ -143,6 +146,12 @@ function TransferItem({
               </button>
             </>
           ) : null}
+          {row.state === 'paused' && incoming ? (
+            <button className="btn ghost tiny" onClick={() => onRepoint(row.id)}>
+              <Icon name="folder" size={12} />
+              {t('Save somewhere else')}
+            </button>
+          ) : null}
           {!finished ? (
             <button className="btn ghost tiny" onClick={() => onCancel(row.id)}>
               <Icon name="close" size={12} />
@@ -170,6 +179,7 @@ export function RoomFilesPanel({
   onCancel,
   onClear,
   onReveal,
+  onRepoint,
 }: RoomFilesPanelProps) {
   const { t } = useI18n();
   const input = useRef<HTMLInputElement | null>(null);
@@ -252,6 +262,7 @@ export function RoomFilesPanel({
               onDecline={onDecline}
               onCancel={onCancel}
               onReveal={onReveal}
+              onRepoint={onRepoint}
             />
           ))}
         </ul>

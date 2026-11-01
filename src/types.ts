@@ -1503,7 +1503,12 @@ export interface KryvexBridge {
    * room's data channels; the save dialog, the chunk writes and the final
    * rename happen in the main process, and only the dialog chooses a path.
    */
-  transferBegin: (request: { name: string; size: number }) => Promise<TransferBeginResult>;
+  transferBegin: (request: {
+    name: string;
+    size: number;
+    /** Set when a paused transfer is choosing a different destination. */
+    previousToken?: string;
+  }) => Promise<TransferBeginResult>;
   transferWrite: (request: { token: string; bytes: Uint8Array }) => Promise<TransferWriteResult>;
   transferFinish: (token: string) => Promise<TransferFinishResult>;
   transferAbort: (token: string) => Promise<boolean>;

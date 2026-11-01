@@ -68,8 +68,17 @@ export interface TransferPorts {
   control: (payload: TransferControl, peerId: string) => Promise<void>;
   /** Send one chunk to one peer. */
   chunk: (bytes: Uint8Array, meta: TransferChunkMeta, peerId: string) => Promise<void>;
-  /** Ask the user where to keep this file; null when they close the dialog. */
-  openSink?: (request: { name: string; size: number }) => Promise<TransferSink | null>;
+  /**
+   * Ask the user where to keep this file; null when they close the dialog.
+   *
+   * `previousToken` names the sink a paused transfer is leaving, so the disk
+   * side can drop it only after the dialog has been answered.
+   */
+  openSink?: (request: {
+    name: string;
+    size: number;
+    previousToken?: string;
+  }) => Promise<TransferSink | null>;
   /** Append one chunk; resolves to the bytes now on disk, or 0. */
   writeSink?: (token: string, bytes: Uint8Array) => Promise<number>;
   /** Close the file; resolves to its final path, or null. */
@@ -351,6 +360,46 @@ export class TransferEngine {
       this.failInbound(id, 'send-failed', row.peerId);
       return false;
     }
+    return true;
+  }
+
+  /**
+   * Receiver side: choose a different place for a paused file.
+   *
+   * Nothing moves until a destination is picked, so closing the dialog leaves
+   * the pause exactly as it was. A file cannot be stitched together from two
+   * paths, so a new destination starts the bytes again from zero; the sender
+   * learns that from the next `resume-accept`, which reports no bytes held.
+   */
+  async chooseDestination(id: string): Promise<boolean> {
+    const row = this.rows.get(id);
+    if (!row || row.direction !== 'receive' || row.state !== 'paused') return false;
+    const inbox = this.inbound.get(id);
+    const openSink = this.ports.openSink;
+    if (!inbox || !openSink) return false;
+    let sink: TransferSink | null = null;
+    try {
+      sink = await openSink({ name: row.name, size: row.size, previousToken: inbox.token });
+    } catch {
+      sink = null;
+    }
+    if (!sink) return false;
+    this.inbound.set(id, {
+      token: sink.token,
+      path: sink.path,
+      next: 0,
+      bytes: 0,
+      total: transferChunks(row.size),
+    });
+    this.patch(id, {
+      state: 'paused',
+      path: sink.path,
+      done: 0,
+      rate: 0,
+      pausedUntil: Date.now() + (this.ports.pauseTimeoutMs ?? TRANSFER_PAUSE_MS),
+    });
+    // A fresh destination is a fresh wait, so the countdown starts again.
+    this.armPauseTimeout(id);
     return true;
   }
 

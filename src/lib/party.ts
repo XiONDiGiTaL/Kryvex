@@ -482,8 +482,8 @@ export class PartySession {
         chunk: (bytes, meta, peerId) =>
           xferChunk.send(bytes, { target: peerId, metadata: meta }),
         openSink: openSink
-          ? async ({ name, size }) => {
-              const result = await openSink({ name, size });
+          ? async ({ name, size, previousToken }) => {
+              const result = await openSink({ name, size, previousToken });
               return result?.ok && result.token && result.path
                 ? { token: result.token, path: result.path }
                 : null;
@@ -697,6 +697,11 @@ export class PartySession {
   /** Receiver: pick a destination and let the sender start. */
   acceptTransfer(id: string): Promise<boolean> {
     return this.transfers ? this.transfers.accept(id) : Promise.resolve(false);
+  }
+
+  /** A paused file the receiver wants somewhere else, picked with a dialog. */
+  chooseTransferDestination(id: string): Promise<boolean> {
+    return this.transfers ? this.transfers.chooseDestination(id) : Promise.resolve(false);
   }
 
   declineTransfer(id: string): boolean {

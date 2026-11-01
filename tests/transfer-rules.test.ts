@@ -429,6 +429,111 @@ describe('transfer engine', () => {
     expect(sender.list()[0]!.state).toBe('done');
   });
 
+  it('lets the receiver put a paused file somewhere else', async () => {
+    const payload = new Uint8Array(TRANSFER_CHUNK_BYTES * 3 + 321);
+    for (let index = 0; index < payload.length; index += 1) payload[index] = (index * 13) % 251;
+    const sink = new Map<string, Uint8Array[]>();
+    let sender: TransferEngine;
+    let receiver: TransferEngine;
+    let senderId = 'sender-1';
+    let receiverId = 'receiver-1';
+    let fed = 0;
+    let limit = 2;
+
+    sender = new TransferEngine({
+      control: async frame => receiver.onControl(frame, senderId),
+      chunk: async (bytes, meta) => {
+        if (fed >= limit) {
+          sender.peerLeft(receiverId);
+          receiver.peerLeft(senderId);
+          return;
+        }
+        fed += 1;
+        await receiver.onChunk(bytes, meta, senderId);
+      },
+    });
+    receiver = new TransferEngine({
+      control: async frame => sender.onControl(frame, receiverId),
+      chunk: async () => undefined,
+      openSink: async ({ name, previousToken }) => ({
+        token: previousToken ? 'sink-2' : 'sink-1',
+        path: previousToken ? `/second/${name}` : `/tmp/${name}`,
+      }),
+      writeSink: async (token, bytes) => {
+        const list = sink.get(token) ?? [];
+        list.push(bytes.slice());
+        sink.set(token, list);
+        return bytes.byteLength;
+      },
+      finishSink: async token => `/saved/${token}`,
+      abortSink: async token => {
+        sink.delete(token);
+      },
+    });
+
+    expect(sender.offer([new File([payload], 'moved.bin')])).toBe(1);
+    const id = sender.list()[0]!.id;
+    expect(await receiver.accept(id)).toBe(true);
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      if (receiver.list()[0]?.state === 'paused') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    expect(receiver.list()[0]!.state).toBe('paused');
+    expect(receiver.list()[0]!.path).toBe('/tmp/moved.bin');
+
+    // The receiver answers the new-folder dialog.
+    expect(await receiver.chooseDestination(id)).toBe(true);
+    expect(receiver.list()[0]!.path).toBe('/second/moved.bin');
+    // A file cannot be stitched across two paths, so it starts again.
+    expect(receiver.list()[0]!.done).toBe(0);
+
+    fed = 0;
+    limit = Number.MAX_SAFE_INTEGER;
+    expect(sender.announceResume()).toBe(1);
+    for (let attempt = 0; attempt < 400; attempt += 1) {
+      if (receiver.list()[0]?.state === 'saved') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+
+    expect(receiver.list()[0]!.state).toBe('saved');
+    expect(sender.list()[0]!.state).toBe('done');
+    const written = (sink.get('sink-2') ?? []).reduce<number[]>(
+      (all, part) => all.concat(Array.from(part)),
+      [],
+    );
+    expect(written).toEqual(Array.from(payload));
+  });
+
+  it('leaves a paused file alone when the new-folder dialog is closed', async () => {
+    const sink = new Map<string, Uint8Array[]>();
+    let receiver: TransferEngine;
+
+    receiver = new TransferEngine({
+      control: async () => undefined,
+      chunk: async (bytes, meta) => {
+        receiver.onChunk(bytes, meta, 'sender-1');
+      },
+      openSink: async ({ name, previousToken }) =>
+        previousToken ? null : { token: 'sink-1', path: `/tmp/${name}` },
+      writeSink: async token => {
+        sink.set(token, []);
+        return 0;
+      },
+      finishSink: async () => '/saved/x',
+      abortSink: async () => undefined,
+    });
+
+    receiver.onControl({ kind: 'offer', id: 't1', name: 'keep.bin', size: 10, chunks: 1 }, 'sender-1');
+    expect(await receiver.accept('t1')).toBe(true);
+    // Force the pause the way a dropped peer would, then answer nothing.
+    receiver.peerLeft('sender-1');
+    expect(receiver.list()[0]!.state).toBe('paused');
+
+    expect(await receiver.chooseDestination('t1')).toBe(false);
+    expect(receiver.list()[0]!.state).toBe('paused');
+    expect(receiver.list()[0]!.path).toBe('/tmp/keep.bin');
+  });
+
   it('ends a transfer that never started when the other peer leaves', () => {
     const engine = new TransferEngine({
       control: async () => undefined,

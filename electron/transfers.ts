@@ -101,7 +101,12 @@ class TransferSink {
 
   /** The save dialog is the only way a destination exists. */
   async begin(request: unknown): Promise<TransferBeginResult> {
-    const source = (request ?? {}) as { name?: unknown; size?: unknown };
+    const source = (request ?? {}) as {
+      name?: unknown;
+      size?: unknown;
+      /** A paused transfer that is choosing a new home for the same file. */
+      previousToken?: unknown;
+    };
     const name = plainName(source.name);
     const size = Number(source.size);
     if (!name || !Number.isSafeInteger(size) || size < 0) return { ok: false, code: 'invalid' };
@@ -117,6 +122,14 @@ class TransferSink {
       ? await dialog.showSaveDialog(window, options)
       : await dialog.showSaveDialog(options);
     if (choice.canceled || !choice.filePath) return { ok: false, cancelled: true };
+
+    // The old destination is given up only now, after the dialog has answered:
+    // closing it leaves the paused partial exactly where it was, and choosing
+    // the same path again is a clean restart instead of two handles on one file.
+    if (typeof source.previousToken === 'string') {
+      const previous = this.sinks.get(source.previousToken);
+      if (previous) this.discard(previous);
+    }
 
     const target = choice.filePath;
     const part = `${target}.kryvexpart`;
