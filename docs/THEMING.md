@@ -124,11 +124,12 @@ bar without id collisions.
 It is deliberately darker and quieter than the XiØN edition: the same shine
 pipeline, no glow behind body copy, and one step slower liquid motion.
 
-Its mark is `src/plugins/xiondigital.tsx`: three flat polygons for the sharp
-upper-left blade, the upper-right flag and the whip tail, with the crossing
-split by a thin cut so the two strokes read as brush blades. It is a
-`currentColor` glyph, so the theme’s blue carries it and every other theme
-renders it flat. `data-theme="xiondigital-net"` also scopes the branding
+Its mark is the creator’s own artwork, bundled as `src/assets/x-mark.png`: the
+site’s `images/x-mark.png`, trimmed of its empty margin and downscaled to 320px
+of alpha. The file stays colour-neutral and `src/plugins/xiondigital.tsx` paints
+it through a CSS mask (`background: currentColor`), so the theme’s blue fills
+the real logo and any other theme would tint it with its own accent. There is no
+second copy of the artwork per colour and no redrawn glyph. `data-theme="xiondigital-net"` also scopes the branding
 accents: a header hairline, a lit brand chip, the rail section counts, the
 hero glow, the status bar separators and the `.header-domain` chip that
 prints `xiondigital.net` beside the view name (it folds away under 1100px).

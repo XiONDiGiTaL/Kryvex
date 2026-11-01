@@ -1191,15 +1191,15 @@ live site and its arcade, which share the same custom properties: `bg
 #050607`, `surface #0A0B0D`, `raised #101318`, `ink #ECEDEF`, `muted #8B9099`,
 `accent #3F80FF` and `accentSoft #79A8FF`. It keeps the glass sheen and
 liquid progress fills of the XiØN edition but drops the emission, so the
-shell reads sleeker and darker. The X mark is redrawn as three crisp
-polygons: the sharp upper-left blade, the upper-right flag and the long whip
-tail, split by a thin cut at the crossing. The signature blue only ever sits
-on edges: a header hairline, the brand chip, the rail’s section counts, the
+shell reads sleeker and darker. The X mark is the site's own
+`images/x-mark.png`, trimmed, downscaled and painted through a CSS mask, so the
+signature blue fills your actual logo rather than a redrawn approximation. The
+signature blue only ever sits on edges: a header hairline, the brand chip, the rail’s section counts, the
 hero glow, the status bar and the small `xiondigital.net` chip beside the
 view name. Everything is scoped to `data-theme="xiondigital-net"`, and the
 glow plus motion stop under `prefers-reduced-motion`.
 
-![The xiondigital.net Edition X mark in the site's signature blue](docs/media/xiondigital-mark.png)
+![The site's X mark, recoloured to the xiondigital.net signature blue](docs/media/xiondigital-mark.png)
 
 [`brand/tokens.json`](brand/tokens.json) is the single source of truth for
 colour, spacing, radii, typography, motion and shell metrics. Themes apply CSS

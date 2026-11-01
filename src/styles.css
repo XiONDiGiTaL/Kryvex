@@ -6729,8 +6729,28 @@ select:hover {
    blue never fills body copy. */
 
 .xd-mark {
-  color: currentColor;
+  display: grid;
+  place-items: center;
+  color: inherit;
   filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 42%, transparent));
+}
+
+/* The site's own artwork, filled with the active colour through its alpha. */
+.xd-mark-glyph {
+  display: block;
+  background: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.xd-mark.is-tile {
+  border: 1px solid color-mix(in srgb, currentColor 38%, transparent);
+  border-radius: 18%;
+  background: color-mix(in srgb, currentColor 6%, transparent);
 }
 
 /* 12px in the status bar is decorative; keep the glow off the silhouette. */
