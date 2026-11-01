@@ -61,6 +61,8 @@ export interface TransferChunkMeta {
 export interface TransferSink {
   token: string;
   path: string;
+  /** Bytes this destination already holds, when a paused file moved here. */
+  bytes?: number;
 }
 
 export interface TransferPorts {
@@ -367,9 +369,9 @@ export class TransferEngine {
    * Receiver side: choose a different place for a paused file.
    *
    * Nothing moves until a destination is picked, so closing the dialog leaves
-   * the pause exactly as it was. A file cannot be stitched together from two
-   * paths, so a new destination starts the bytes again from zero; the sender
-   * learns that from the next `resume-accept`, which reports no bytes held.
+   * the pause exactly as it was. The bytes that already arrived move with the
+   * file, and the sink reports how many it kept, so the sender is told where to
+   * continue by the next `resume-accept` instead of starting again.
    */
   async chooseDestination(id: string): Promise<boolean> {
     const row = this.rows.get(id);
@@ -384,17 +386,20 @@ export class TransferEngine {
       sink = null;
     }
     if (!sink) return false;
+    const carried = Math.min(Math.max(0, sink.bytes ?? 0), row.size);
     this.inbound.set(id, {
       token: sink.token,
       path: sink.path,
-      next: 0,
-      bytes: 0,
+      // Chunks are written whole, so a carried partial always ends on a chunk
+      // boundary — the same thing the resume handshake already requires.
+      next: Math.floor(carried / TRANSFER_CHUNK_BYTES),
+      bytes: carried,
       total: transferChunks(row.size),
     });
     this.patch(id, {
       state: 'paused',
       path: sink.path,
-      done: 0,
+      done: carried,
       rate: 0,
       pausedUntil: Date.now() + (this.ports.pauseTimeoutMs ?? TRANSFER_PAUSE_MS),
     });

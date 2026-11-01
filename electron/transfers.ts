@@ -27,6 +27,8 @@ export interface TransferBeginResult {
   path?: string;
   name?: string;
   cancelled?: boolean;
+  /** Bytes a new destination already holds, carried over from a paused file. */
+  bytes?: number;
   code?: string;
 }
 
@@ -123,27 +125,31 @@ class TransferSink {
       : await dialog.showSaveDialog(options);
     if (choice.canceled || !choice.filePath) return { ok: false, cancelled: true };
 
-    // The old destination is given up only now, after the dialog has answered:
-    // closing it leaves the paused partial exactly where it was, and choosing
-    // the same path again is a clean restart instead of two handles on one file.
-    if (typeof source.previousToken === 'string') {
-      const previous = this.sinks.get(source.previousToken);
-      if (previous) this.discard(previous);
-    }
-
     const target = choice.filePath;
     const part = `${target}.kryvexpart`;
-    let fd: number;
+    // The old destination is given up only now, after the dialog has answered:
+    // closing it leaves the paused partial exactly where it was. Whatever had
+    // already arrived comes along, so a change of folder keeps the work done.
+    const previous =
+      typeof source.previousToken === 'string' ? this.sinks.get(source.previousToken) : undefined;
+    let carried = 0;
     try {
       fs.mkdirSync(path.dirname(target), { recursive: true });
-      fd = fs.openSync(part, 'w');
+      carried = previous ? this.carry(previous, part) : 0;
+    } catch {
+      return { ok: false, code: 'write-failed' };
+    }
+    let fd: number;
+    try {
+      // 'a' continues after the carried bytes; 'w' starts a file from nothing.
+      fd = fs.openSync(part, carried > 0 ? 'a' : 'w');
     } catch {
       return { ok: false, code: 'write-failed' };
     }
     const token = randomUUID();
     this.finished.delete(target);
-    this.sinks.set(token, { token, part, target, fd, declared: size, written: 0 });
-    return { ok: true, token, path: target, name: path.basename(target) };
+    this.sinks.set(token, { token, part, target, fd, declared: size, written: carried });
+    return { ok: true, token, path: target, name: path.basename(target), bytes: carried };
   }
 
   write(request: unknown): TransferWriteResult {
@@ -213,6 +219,56 @@ class TransferSink {
     }
     shell.showItemInFolder(raw);
     return true;
+  }
+
+  /**
+   * Move what has already arrived to the new destination.
+   *
+   * The partial file already is the prefix the transfer wants, so it is moved
+   * rather than rewritten: a rename costs nothing inside a volume, and a copy
+   * only happens when the new folder is on another one. Returns the bytes the
+   * new partial now holds; 0 means nothing could be kept and the file starts
+   * again from the beginning.
+   */
+  private carry(previous: Sink, nextPart: string): number {
+    const held = Math.min(previous.written, previous.declared);
+    this.sinks.delete(previous.token);
+    try {
+      fs.closeSync(previous.fd);
+    } catch {
+      /* already closed */
+    }
+    if (held === 0) {
+      this.remove(previous.part);
+      return 0;
+    }
+    if (path.resolve(previous.part) === path.resolve(nextPart)) {
+      // The same folder was picked again: the file is already where it belongs.
+      return held;
+    }
+    try {
+      this.remove(nextPart);
+      try {
+        fs.renameSync(previous.part, nextPart);
+      } catch {
+        // Another volume cannot be renamed across, so copy and then drop it.
+        fs.copyFileSync(previous.part, nextPart);
+        this.remove(previous.part);
+      }
+      return held;
+    } catch {
+      this.remove(previous.part);
+      this.remove(nextPart);
+      return 0;
+    }
+  }
+
+  private remove(target: string): void {
+    try {
+      fs.rmSync(target, { force: true });
+    } catch {
+      /* already gone */
+    }
   }
 
   private discard(sink: Sink): void {

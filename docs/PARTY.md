@@ -215,8 +215,10 @@ disks.
   resumes drops that deadline.
 - **A paused file can move.** The receiver can pick a different folder while a
   transfer waits. The old partial is released only once the dialog has been
-  answered, so closing it changes nothing; a new destination starts the file
-  again from zero, and the next `resume-accept` reports that to the sender.
+  answered, so closing it changes nothing. The bytes already on disk are moved
+  to the new destination — a rename inside one volume, a copy across volumes —
+  and the next `resume-accept` reports how many arrived there, so the transfer
+  continues where it stopped instead of sending them again.
 
 Wire: two actions. `xfer` is a JSON control frame (`offer`, `accept`, `decline`,
 `credit`, `end`, `done`, `cancel`, `fail`, `resume`, `resume-accept`);

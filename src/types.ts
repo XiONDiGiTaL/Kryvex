@@ -1241,6 +1241,8 @@ export interface TransferBeginResult {
   path?: string;
   name?: string;
   cancelled?: boolean;
+  /** Bytes a new destination already holds, carried over from a paused file. */
+  bytes?: number;
   code?: string;
 }
 

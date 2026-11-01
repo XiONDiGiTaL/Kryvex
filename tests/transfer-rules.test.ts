@@ -455,10 +455,17 @@ describe('transfer engine', () => {
     receiver = new TransferEngine({
       control: async frame => sender.onControl(frame, receiverId),
       chunk: async () => undefined,
-      openSink: async ({ name, previousToken }) => ({
-        token: previousToken ? 'sink-2' : 'sink-1',
-        path: previousToken ? `/second/${name}` : `/tmp/${name}`,
-      }),
+      openSink: async ({ name, previousToken }) => {
+        if (!previousToken) return { token: 'sink-1', path: `/tmp/${name}`, bytes: 0 };
+        // The disk side moves the partial, so the new sink starts with it.
+        const arrived = sink.get('sink-1') ?? [];
+        const held = arrived.reduce((total, part) => total + part.byteLength, 0);
+        sink.set(
+          'sink-2',
+          arrived.map(part => part.slice()),
+        );
+        return { token: 'sink-2', path: `/second/${name}`, bytes: held };
+      },
       writeSink: async (token, bytes) => {
         const list = sink.get(token) ?? [];
         list.push(bytes.slice());
@@ -484,8 +491,12 @@ describe('transfer engine', () => {
     // The receiver answers the new-folder dialog.
     expect(await receiver.chooseDestination(id)).toBe(true);
     expect(receiver.list()[0]!.path).toBe('/second/moved.bin');
-    // A file cannot be stitched across two paths, so it starts again.
-    expect(receiver.list()[0]!.done).toBe(0);
+    // What already arrived went with it, so those bytes are never sent twice.
+    const held = TRANSFER_CHUNK_BYTES * 2;
+    expect(receiver.list()[0]!.done).toBe(held);
+    expect(
+      (sink.get('sink-2') ?? []).reduce((total, part) => total + part.byteLength, 0),
+    ).toBe(held);
 
     fed = 0;
     limit = Number.MAX_SAFE_INTEGER;
