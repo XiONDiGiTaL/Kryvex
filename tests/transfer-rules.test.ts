@@ -178,6 +178,90 @@ describe('transfer engine', () => {
     expect(written).toEqual(Array.from(payload));
   });
 
+  it('keeps chunks in order when a frame arrives before the last write finished', async () => {
+    // The transport hands frames over without waiting for the previous one to be
+    // written, and the sender keeps a window of them in the air. Each write here
+    // takes a turn of the event loop, so the second frame lands mid-write — the
+    // exact shape that once made every real transfer fail as out of order.
+    const size = TRANSFER_CHUNK_BYTES * 2;
+    const first = new Uint8Array(TRANSFER_CHUNK_BYTES).fill(7);
+    const second = new Uint8Array(TRANSFER_CHUNK_BYTES).fill(9);
+    const frames: string[] = [];
+    let kept = 0;
+    const engine = new TransferEngine({
+      control: async frame => {
+        frames.push(frame.kind);
+      },
+      chunk: async () => undefined,
+      openSink: async ({ name }) => ({ token: 'sink-1', path: `/tmp/${name}` }),
+      writeSink: async (_token, bytes) => {
+        await new Promise(resolve => setTimeout(resolve, 5));
+        kept += bytes.byteLength;
+        return bytes.byteLength;
+      },
+      finishSink: async () => '/saved/whole.bin',
+    });
+
+    engine.onControl({ kind: 'offer', id: 't1', name: 'a.bin', size, chunks: 2 }, 'peer-a');
+    const id = engine.list()[0]!.id;
+    expect(await engine.accept(id)).toBe(true);
+
+    await Promise.all([
+      engine.onChunk(first, { id, seq: 0 }, 'peer-a'),
+      engine.onChunk(second, { id, seq: 1 }, 'peer-a'),
+    ]);
+
+    const [row] = engine.list();
+    expect(row!.state).toBe('active');
+    expect(row!.error).toBeUndefined();
+    expect(row!.done).toBe(size);
+    expect(kept).toBe(size);
+    expect(frames).not.toContain('fail');
+  });
+
+  it('waits for the last write before calling a file finished', async () => {
+    // The frame that ends a transfer is handled the moment it arrives, which is
+    // often while the final chunk is still being written. Finishing first would
+    // report a whole file as short and throw it away.
+    const size = TRANSFER_CHUNK_BYTES * 2;
+    const frames: string[] = [];
+    const engine = new TransferEngine({
+      control: async frame => {
+        frames.push(frame.kind);
+      },
+      chunk: async () => undefined,
+      openSink: async ({ name }) => ({ token: 'sink-1', path: `/tmp/${name}` }),
+      writeSink: async (_token, bytes) => {
+        await new Promise(resolve => setTimeout(resolve, 5));
+        return bytes.byteLength;
+      },
+      finishSink: async () => '/saved/whole.bin',
+    });
+
+    engine.onControl({ kind: 'offer', id: 't1', name: 'a.bin', size, chunks: 2 }, 'peer-a');
+    const id = engine.list()[0]!.id;
+    expect(await engine.accept(id)).toBe(true);
+
+    // Both frames are handed over, then the end arrives immediately.
+    const halves = [
+      new Uint8Array(TRANSFER_CHUNK_BYTES).fill(3),
+      new Uint8Array(TRANSFER_CHUNK_BYTES).fill(4),
+    ];
+    void engine.onChunk(halves[0]!, { id, seq: 0 }, 'peer-a');
+    void engine.onChunk(halves[1]!, { id, seq: 1 }, 'peer-a');
+    engine.onControl({ kind: 'end', id, chunks: 2 }, 'peer-a');
+
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (engine.list()[0]?.state === 'saved') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+
+    const [row] = engine.list();
+    expect(row!.state).toBe('saved');
+    expect(row!.done).toBe(size);
+    expect(frames).not.toContain('fail');
+  });
+
   it('declines past the open-transfer limit instead of queueing silently', async () => {
     const frames: string[] = [];
     const engine = new TransferEngine({

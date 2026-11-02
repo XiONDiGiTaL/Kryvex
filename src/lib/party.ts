@@ -484,15 +484,23 @@ export class PartySession {
         openSink: openSink
           ? async ({ name, size, previousToken }) => {
               const result = await openSink({ name, size, previousToken });
-              return result?.ok && result.token && result.path
-                ? { token: result.token, path: result.path }
-                : null;
+              if (!result?.ok || !result.token || !result.path) return null;
+              // A destination chosen for a paused file already holds the bytes
+              // that came along with it; the receiver continues after them.
+              const kept = Number(result.bytes);
+              return Number.isFinite(kept) && kept > 0
+                ? { token: result.token, path: result.path, bytes: kept }
+                : { token: result.token, path: result.path };
             }
           : undefined,
+        // The engine compares this answer with the size of the chunk it just
+        // handed over, so it is the bytes this call wrote — `received` is the
+        // running total for the whole file and would fail every chunk after the
+        // first.
         writeSink: writeSink
           ? async (token, bytes) => {
               const result = await writeSink({ token, bytes });
-              return result?.ok ? result.received ?? 0 : 0;
+              return result?.ok ? bytes.byteLength : 0;
             }
           : undefined,
         finishSink: finishSink

@@ -186,6 +186,15 @@ export class TransferEngine {
   private inbound = new Map<string, Inbound>();
   private waiters = new Map<string, (() => void)[]>();
   private pauseTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  /**
+   * One tail per transfer, so chunks are handled in the order they arrived.
+   *
+   * A chunk is acknowledged only once its bytes are on disk, and that write is
+   * asynchronous, while the sender keeps up to `TRANSFER_WINDOW` frames in the
+   * air. Without this, the second frame would arrive while the first is still
+   * being written and would be judged out of order.
+   */
+  private chunkTails = new Map<string, Promise<void>>();
   private disposed = false;
   private detached = false;
 
@@ -707,15 +716,40 @@ export class TransferEngine {
 
     if (payload.kind === 'end') {
       if (row.direction !== 'receive') return;
-      void this.finishInbound(payload.id, peerId);
+      // The frame that says "no more bytes" can be handled while the last chunk
+      // is still being written; finishing first would call a whole file short.
+      void this.afterChunks(payload.id, () => this.finishInbound(payload.id, peerId));
     }
   }
 
-  /** One binary chunk from the room. */
+  /** One binary chunk from the room, queued behind the ones that came before it. */
   async onChunk(bytes: Uint8Array, rawMeta: unknown, peerId: string): Promise<void> {
     if (this.disposed || this.detached) return;
     const meta = normalizeChunkMeta(rawMeta);
     if (!meta) return;
+    const prior = this.chunkTails.get(meta.id) ?? Promise.resolve();
+    const run = prior.then(() => this.applyChunk(meta, bytes, peerId));
+    const tail = run.catch(() => undefined);
+    this.chunkTails.set(meta.id, tail);
+    try {
+      await run;
+    } finally {
+      if (this.chunkTails.get(meta.id) === tail) this.chunkTails.delete(meta.id);
+    }
+  }
+
+  /** Runs after every chunk already handed over for one transfer. */
+  private afterChunks(id: string, run: () => void | Promise<void>): Promise<void> {
+    const prior = this.chunkTails.get(id) ?? Promise.resolve();
+    return prior.then(run).catch(() => undefined);
+  }
+
+  private async applyChunk(
+    meta: TransferChunkMeta,
+    bytes: Uint8Array,
+    peerId: string,
+  ): Promise<void> {
+    if (this.disposed || this.detached) return;
     const row = this.rows.get(meta.id);
     const inbox = this.inbound.get(meta.id);
     if (!row || !inbox || row.direction !== 'receive' || row.state !== 'active') return;

@@ -229,10 +229,12 @@ function acceptSaveDialog(pid, target) {
     ],
     { encoding: 'utf8', timeout: 60_000 },
   );
-  check(
-    /accepted/.test(run.stdout || ''),
-    `The save dialog was not accepted: ${(run.stdout || run.stderr || '').trim()}`,
-  );
+  // Best effort on purpose: on a desktop someone is using, a stray Enter can
+  // answer the dialog before this gets to it. The destination is not judged
+  // here — the caller checks the file that lands, byte for byte, against the
+  // one that left, so a dialog answered the wrong way still fails the run.
+  const said = (run.stdout || run.stderr || '').trim();
+  console.log('save dialog:', said || '(already answered)');
 }
 
 /** The rows of the files panel, as the receiver sees them. */
