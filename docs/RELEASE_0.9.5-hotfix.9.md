@@ -127,8 +127,13 @@ native Windows dialog. The manifest records the installer's exit code and each
 page's title and text, and this record links the archive as
 `docs/media/releases/0.9.5-hotfix.9-wizard`.
 
-Until step 4, `releases/latest` answers `v0.9.5-hotfix.8` and
-`https://xiondigital.net/Kryvex/` still serves the hotfix.8 renderer.
+Until step 4, `releases/latest` answered `v0.9.5-hotfix.8` and
+`https://xiondigital.net/Kryvex/` served the hotfix.8 renderer. Both moved at
+2026-11-02T03:25:05Z: the release and its digests are in `PROJECT_STATUS.md`, and
+the served `assets/main-ChjyKzae.js` carries the `xiondigital.net Edition`
+entry. The tag's first push was made without this capture and stopped at the gate
+above, so nothing was published until the tag was moved onto the commit that
+carries it.
 
 ## Upgrading
 

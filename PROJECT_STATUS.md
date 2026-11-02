@@ -28,16 +28,22 @@ mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
-## Prepared (2026-11-01, 0.9.5-hotfix.9)
+## Released (2026-11-02, 0.9.5-hotfix.9)
 
-`package.json` moves to `0.9.5-hotfix.9` and `public/sw.js` to
-`kryvex-web-0.9.5-hotfix.9-v1`. **The tag has not been cut**, so
-`releases/latest` still answers `v0.9.5-hotfix.8` and the live web client is
-still the hotfix.8 renderer: `https://xiondigital.net/Kryvex/` serves
-`assets/main-BFCFgqNb.js`, which was checked on 2026-11-01 and contains no
-`xiondigital.net Edition` string. Nothing on `main` is published until a tag runs
-the Release workflow, whose `windows` job builds the installers and whose `web`
-job republishes the renderer.
+The `v0.9.5-hotfix.9` tag ran the Release workflow to completion — both jobs
+succeeded — and published a stable release, not a draft or a prerelease, at
+2026-11-02T03:25:05Z. `releases/latest` answers `v0.9.5-hotfix.9`.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.5-hotfix.9-x64.exe` | 138,319,761 B | `94e44b5381dfc61db52ac7d0f75d88bcade9d767996d08a42d9aef33f7034b4e` |
+| `Kryvex-Portable-0.9.5-hotfix.9-x64.exe` | 138,075,929 B | `7c71518eb039e1293d5c742507d3de88485c0d58a67bd3318f31ce09884b8b3d` |
+
+`SHA256SUMS.txt` (207 B) travels with them and matches both digests, so the
+in-app updater accepts this release. `gh-pages` was force-pushed from the same
+tag: `https://xiondigital.net/Kryvex/` answers HTTP 200 and the bundle it serves,
+`assets/main-ChjyKzae.js`, carries the `xiondigital.net Edition` entry, so the
+web client is the hotfix.9 renderer.
 
 The batch adds the **xiondigital.net Edition**, the eighty-first theme and third
 creator plugin: the site's own `#050607` ground and `#3F80FF` blue read from its
@@ -47,9 +53,16 @@ and that blue repeated as hairline accents on the header, rail, hero, status bar
 and a small domain chip. Full record:
 [RELEASE_0.9.5-hotfix.9.md](docs/RELEASE_0.9.5-hotfix.9.md).
 
-Two steps remain before the cut, both on Windows: the installer wizard capture
-(`pnpm package:win`, then `pnpm release:wizard --archive`, committed under
-`docs/media/releases/0.9.5-hotfix.9-wizard/`) and the `v0.9.5-hotfix.9` tag push.
+The tag's first push published nothing. It went out before the installer wizard
+had been captured, so run 28 stopped at `scripts/check-release-record.cjs` — the
+record linked a capture directory that did not exist — and every step after it,
+including both jobs' deliverables, was skipped. The capture was then taken from
+the Setup EXE built at that commit (four pages, installer exit 0, the install
+page naming `Kryvex 0.9.5-hotfix.9` out of the dialog's own controls),
+`pnpm release:check` passed, and the tag was moved onto the commit carrying it.
+A first capture attempt recorded three pages: the install-location page rewrites
+its space-available text while the picture is settling, which read as the page
+having advanced, and a second run recorded all four.
 
 ## Released (2026-10-31, 0.9.5-hotfix.8)
 
