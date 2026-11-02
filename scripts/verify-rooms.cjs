@@ -5,12 +5,15 @@
  * Instance A seeds a service, opens Rooms, creates a room and shares a screen;
  * instance B joins through the invite link. The check asserts both see each
  * other, a chat message crosses, and B receives a video track with frames.
+ * A then sends a real 12 MiB file: B accepts it through the native save dialog
+ * and the bytes that land on disk are compared with the ones that left.
  * Signaling uses the public WebTorrent trackers the app ships with, so this
  * also proves the default configuration, not a test-only path.
  *
  * Run `pnpm build` first (or use `pnpm verify:rooms`).
  */
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
@@ -20,6 +23,8 @@ const root = path.resolve(__dirname, '..');
 const PORT_A = Number(process.env.KRYVEX_ROOMS_PORT_A || 9351);
 const PORT_B = Number(process.env.KRYVEX_ROOMS_PORT_B || 9352);
 const FIXTURE_PORT = 8151;
+/** Big enough to take real chunks, small enough to hash in a moment. */
+const SENT_BYTES = 12 * 1024 * 1024;
 
 const SERVICE = {
   id: 's-fixture',
@@ -156,6 +161,56 @@ function check(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+/** Bytes that are cheap to build and impossible to produce by accident. */
+function pattern(bytes) {
+  const data = Buffer.alloc(bytes);
+  for (let index = 0; index < bytes; index += 1) data[index] = (index * 7 + 11) % 251;
+  return data;
+}
+
+function digest(file) {
+  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
+
+/** Hands real paths to a file input, which is what the picker would do. */
+async function setFiles(client, selector, files) {
+  const document = await client.send('DOM.getDocument', { depth: 1 });
+  const node = await client.send('DOM.querySelector', { nodeId: document.root.nodeId, selector });
+  check(node.nodeId, `No ${selector} to put files into.`);
+  await client.send('DOM.setFileInputFiles', { nodeId: node.nodeId, files });
+}
+
+/** Accepts the native save dialog of one app process, as a person would. */
+function acceptSaveDialog(pid, target) {
+  check(process.platform === 'win32', 'The native save dialog is only automated on Windows.');
+  const run = spawnSync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-File',
+      path.join(__dirname, 'save-dialog.ps1'),
+      '-AppPid',
+      String(pid),
+      '-TargetPath',
+      target,
+    ],
+    { encoding: 'utf8', timeout: 60_000 },
+  );
+  check(
+    /accepted/.test(run.stdout || ''),
+    `The save dialog was not accepted: ${(run.stdout || run.stderr || '').trim()}`,
+  );
+}
+
+/** The rows of the files panel, as the receiver sees them. */
+const fileRow = name => `(() => {
+  const row = Array.from(document.querySelectorAll('.room-file'))
+    .find(node => node.textContent.includes(${JSON.stringify(name)}));
+  return row ?? null;
+})()`;
+
 async function stop() {
   for (const child of children) {
     if (child.exitCode !== null) continue;
@@ -216,7 +271,7 @@ server.listen(FIXTURE_PORT, '127.0.0.1');
     check(/^[0-9a-hjkmnp-tv-z]{26}$/.test(room), `Unexpected room code: ${room}`);
 
     // B joins through the invite the UI shows.
-    launch('b', PORT_B);
+    const childB = launch('b', PORT_B);
     const pageB = await target(PORT_B);
     const b = await connect(pageB.webSocketDebuggerUrl);
     await waitFor(b.evaluate, `Boolean(document.querySelector('.app'))`, 'shell B');
@@ -297,6 +352,68 @@ server.listen(FIXTURE_PORT, '127.0.0.1');
       'remote video frames',
     );
     console.log('screen share:', JSON.stringify(remote));
+
+    // Files: A offers one real file, B accepts it through the native dialog,
+    // and the bytes that reach the disk are compared with the ones sent.
+    const sentFile = path.join(profiles.a, 'send', 'quarter.bin');
+    fs.mkdirSync(path.dirname(sentFile), { recursive: true });
+    fs.writeFileSync(sentFile, pattern(SENT_BYTES));
+    await setFiles(a, '.room-files input[type=file]', [sentFile]);
+    await waitFor(
+      a.evaluate,
+      `${fileRow('quarter.bin')} ? true : null`,
+      'A lists the offer',
+    );
+    await waitFor(
+      b.evaluate,
+      `(() => {
+        const row = ${fileRow('quarter.bin')};
+        return row && row.classList.contains('is-offered') ? row.textContent.trim() : null;
+      })()`,
+      'B is offered the file',
+    );
+
+    const savedFile = path.join(profiles.b, 'recv', 'quarter.bin');
+    fs.mkdirSync(path.dirname(savedFile), { recursive: true });
+    const pressed = await b.evaluate(`(() => {
+      const row = ${fileRow('quarter.bin')};
+      const save = Array.from(row.querySelectorAll('button'))
+        .find(node => node.textContent.trim() === 'Save as…');
+      if (!save) return false;
+      save.click();
+      return true;
+    })()`);
+    check(pressed === true, 'The offer had no button to choose a destination.');
+    acceptSaveDialog(childB.pid, savedFile);
+
+    const savedPath = await waitFor(
+      b.evaluate,
+      `(() => {
+        const row = ${fileRow('quarter.bin')};
+        if (!row || !row.classList.contains('is-saved')) return null;
+        return row.querySelector('.room-file-path')?.textContent?.trim() || null;
+      })()`,
+      'B saves the file',
+      900,
+    );
+    console.log('file saved:', savedPath);
+    check(fs.existsSync(savedFile), `The receiver wrote nothing to ${savedFile}.`);
+    const written = fs.statSync(savedFile).size;
+    check(written === SENT_BYTES, `The saved file is ${written} bytes, not ${SENT_BYTES}.`);
+    check(digest(savedFile) === digest(sentFile), 'The saved bytes differ from the file that left.');
+    check(
+      !fs.existsSync(`${savedFile}.kryvexpart`),
+      'A finished transfer left its partial file behind.',
+    );
+    await waitFor(
+      a.evaluate,
+      `(() => {
+        const row = ${fileRow('quarter.bin')};
+        return row && row.classList.contains('is-done') ? row.textContent.trim() : null;
+      })()`,
+      'A sees the transfer finish',
+    );
+    console.log('file transfer:', SENT_BYTES, 'bytes, SHA-256 matches');
 
     a.close();
     b.close();

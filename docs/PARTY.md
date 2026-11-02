@@ -137,6 +137,17 @@ needs a user-supplied relay; a self-hosted signaling relay is a later option.
   then shares the screen through the real picker and waits for B to decode
   remote frames. Last run: room `akdmedtsegg3kxm9rkzsz85grv`, remote video
   2560×1440, pass.
+- Files end to end: the same harness now drops a real 12 MiB file on A's send
+  input, accepts the receiver's native save dialog through
+  `scripts/save-dialog.ps1`, and compares the SHA-256 of the file that landed
+  with the one that left, refusing to pass if a `.kryvexpart` partial is left
+  behind. **Added 2026-11-02, not yet run**: it needs Windows for the dialog
+  automation.
+- Pause, "Save somewhere else" and resuming after a drop are not driven by that
+  harness. A pause only happens when the sender's session drops while both
+  processes keep running, which one machine cannot stage. The state machine and
+  the partial-file move are covered by `tests/transfer-rules.test.ts` and
+  `tests/transfer-sink.test.ts`; the end-to-end path is still manual.
 - Not executed: two machines on different networks, forced-TURN sessions, a
   room with more than two peers. Do not treat those as proven.
 
