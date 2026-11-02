@@ -187,6 +187,7 @@ export class TransferEngine {
   private waiters = new Map<string, (() => void)[]>();
   private pauseTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private disposed = false;
+  private detached = false;
 
   constructor(private ports: TransferPorts) {}
 
@@ -256,6 +257,9 @@ export class TransferEngine {
   }
 
   private emit(): void {
+    // A detached engine belongs to no panel; its rows are published again when
+    // it is bound to a room.
+    if (this.detached) return;
     this.ports.onChange?.(this.list());
   }
 
@@ -517,7 +521,7 @@ export class TransferEngine {
    * so a join can announce twice without a transfer starting twice.
    */
   announceResume(): number {
-    if (this.disposed) return 0;
+    if (this.disposed || this.detached) return 0;
     let sent = 0;
     for (const row of this.list()) {
       if (row.state !== 'paused' || row.direction !== 'send') continue;
@@ -531,8 +535,46 @@ export class TransferEngine {
     return sent;
   }
 
+  /**
+   * Stop using the room's channels without throwing the transfers away.
+   *
+   * Leaving a room closes its data channels, but a file that has already moved
+   * bytes is not lost with them: the sender still holds its `File` and the
+   * receiver still holds the bytes it wrote. Every transfer that can continue is
+   * parked on the same deadline a dropped peer gets, and the ports are replaced
+   * by ones that go nowhere, so a pump still unwinding cannot reach a room that
+   * has closed. `attach` binds these rows to the room that comes next.
+   */
+  detach(): void {
+    if (this.disposed || this.detached) return;
+    this.detached = true;
+    this.ports = {
+      ...this.ports,
+      control: async () => undefined,
+      chunk: async () => undefined,
+    };
+    for (const row of this.list()) {
+      if (isFinishedTransfer(row)) continue;
+      if (this.inbound.has(row.id) || this.outbound.has(row.id)) {
+        this.pause(row.id);
+        continue;
+      }
+      // Nothing had moved and nothing is held, so there is nothing to continue.
+      this.patch(row.id, { state: 'failed', error: 'peer-left', endedAt: Date.now(), rate: 0 });
+    }
+  }
+
+  /** Bind these rows to a room again; anything parked may now continue. */
+  attach(ports: TransferPorts): void {
+    if (this.disposed) return;
+    this.detached = false;
+    this.ports = ports;
+    this.emit();
+  }
+
   dispose(): void {
     this.disposed = true;
+    this.detached = true;
     for (const id of [...this.pauseTimers.keys()]) this.clearPauseTimeout(id);
     for (const inbox of this.inbound.values()) {
       void this.ports.abortSink?.(inbox.token).catch(() => undefined);
@@ -546,7 +588,7 @@ export class TransferEngine {
 
   /** One control frame from the room. */
   onControl(raw: unknown, peerId: string): void {
-    if (this.disposed) return;
+    if (this.disposed || this.detached) return;
     const payload = normalizeControl(raw);
     if (!payload) return;
     if (payload.kind === 'offer') {
@@ -671,7 +713,7 @@ export class TransferEngine {
 
   /** One binary chunk from the room. */
   async onChunk(bytes: Uint8Array, rawMeta: unknown, peerId: string): Promise<void> {
-    if (this.disposed) return;
+    if (this.disposed || this.detached) return;
     const meta = normalizeChunkMeta(rawMeta);
     if (!meta) return;
     const row = this.rows.get(meta.id);

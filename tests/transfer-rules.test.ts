@@ -13,7 +13,7 @@ import {
   transferPercent,
   type TransferRow,
 } from '../src/lib/transfer-rules';
-import { TransferEngine } from '../src/lib/transfer';
+import { TransferEngine, type TransferPorts } from '../src/lib/transfer';
 
 function row(patch: Partial<TransferRow> = {}): TransferRow {
   return {
@@ -366,6 +366,119 @@ describe('transfer engine', () => {
     // The partial file is deleted, so the slot is free again.
     expect(aborted).toEqual(['sink-1']);
     expect(sink.get('sink-1')).toBeUndefined();
+  });
+
+  it('parks a transfer across a leave and continues it in the same room', async () => {
+    const payload = new Uint8Array(TRANSFER_CHUNK_BYTES * 4 + 99);
+    for (let index = 0; index < payload.length; index += 1) payload[index] = (index * 13) % 251;
+
+    const sink = new Map<string, Uint8Array[]>();
+    const aborted: string[] = [];
+    const published: string[] = [];
+    let sender!: TransferEngine;
+    let receiver!: TransferEngine;
+    // Leaving closes the channels, and both ends come back with new ids.
+    let senderId = 'sender-1';
+    let receiverId = 'receiver-1';
+    let fed = 0;
+    let limit = 2;
+
+    const senderPorts: TransferPorts = {
+      pauseTimeoutMs: 5000,
+      control: async (frame, peerId) => {
+        void peerId;
+        receiver.onControl(frame, senderId);
+      },
+      chunk: async (bytes, meta) => {
+        if (fed >= limit) {
+          // The leave lands mid-stream: both ends park, neither is disposed.
+          sender.detach();
+          receiver.detach();
+          return;
+        }
+        fed += 1;
+        await receiver.onChunk(bytes, meta, senderId);
+      },
+      onChange: rows => published.push(rows.map(row => row.state).join(',')),
+    };
+    const receiverPorts: TransferPorts = {
+      pauseTimeoutMs: 5000,
+      control: async (frame, peerId) => {
+        void peerId;
+        sender.onControl(frame, receiverId);
+      },
+      chunk: async () => {
+        throw new Error('the receiver never sends chunks');
+      },
+      openSink: async ({ name }) => ({ token: 'sink-1', path: `/tmp/${name}` }),
+      writeSink: async (token, bytes) => {
+        const list = sink.get(token) ?? [];
+        list.push(bytes.slice());
+        sink.set(token, list);
+        return bytes.byteLength;
+      },
+      finishSink: async () => '/saved/parked.bin',
+      abortSink: async token => {
+        aborted.push(token);
+        sink.delete(token);
+      },
+      onChange: rows => published.push(rows.map(row => row.state).join(',')),
+    };
+    sender = new TransferEngine(senderPorts);
+    receiver = new TransferEngine(receiverPorts);
+
+    expect(sender.offer([new File([payload], 'parked.bin')])).toBe(1);
+    const id = sender.list()[0]!.id;
+    expect(await receiver.accept(id)).toBe(true);
+
+    for (let attempt = 0; attempt < 300; attempt += 1) {
+      if (sender.list()[0]?.state === 'paused' && receiver.list()[0]?.state === 'paused') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+
+    // Leaving parks both ends with their bytes and their deadline; nothing is
+    // thrown away and nothing is closed.
+    expect(sender.list()[0]!.state).toBe('paused');
+    expect(receiver.list()[0]!.state).toBe('paused');
+    expect(sender.list()[0]!.pausedUntil).toBeGreaterThan(Date.now());
+    expect(receiver.list()[0]!.pausedUntil).toBeGreaterThan(Date.now());
+    expect(aborted).toEqual([]);
+
+    // A detached engine reaches no room and publishes to no panel.
+    const quiet = published.length;
+    expect(sender.announceResume()).toBe(0);
+    sender.detach();
+    receiver.detach();
+    expect(published.length).toBe(quiet);
+
+    // The same room again: new channels, new ids, the same bytes on disk.
+    senderId = 'sender-2';
+    receiverId = 'receiver-2';
+    fed = 0;
+    limit = Number.MAX_SAFE_INTEGER;
+    sender.attach(senderPorts);
+    receiver.attach(receiverPorts);
+
+    const onDisk = (sink.get('sink-1') ?? []).reduce((total, part) => total + part.byteLength, 0);
+    expect(onDisk).toBe(2 * TRANSFER_CHUNK_BYTES);
+    expect(sender.announceResume()).toBe(1);
+
+    for (let attempt = 0; attempt < 600; attempt += 1) {
+      if (receiver.list()[0]?.state === 'saved') break;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+
+    expect(receiver.list()[0]!.state).toBe('saved');
+    expect(sender.list()[0]!.state).toBe('done');
+    expect(receiver.list()[0]!.pausedUntil).toBeUndefined();
+
+    // Nothing arrived twice: the stream continued from the byte on disk.
+    const written = (sink.get('sink-1') ?? []).reduce<number[]>(
+      (all, part) => all.concat(Array.from(part)),
+      [],
+    );
+    expect(written.length).toBe(payload.byteLength);
+    expect(written).toEqual(Array.from(payload));
   });
 
   it('finishes a paused transfer whose last end frame was lost', async () => {

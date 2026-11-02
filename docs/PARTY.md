@@ -143,18 +143,23 @@ needs a user-supplied relay; a self-hosted signaling relay is a later option.
   with the one that left, refusing to pass if a `.kryvexpart` partial is left
   behind. **Added 2026-11-02, not yet run**: it needs Windows for the dialog
   automation.
-- Pause, "Save somewhere else" and resuming after a drop are not driven by that
-  harness. A pause only happens when the sender's session drops while both
-  processes keep running, which one machine cannot stage. The state machine and
-  the partial-file move are covered by `tests/transfer-rules.test.ts` and
-  `tests/transfer-sink.test.ts`; the end-to-end path is still manual.
+- Pause, re-point and resume end to end: A offers a 128 MiB file and the
+  harness presses **Leave** on A as soon as B has written the first chunks, which
+  parks both ends. B's row must go to `paused` with a deadline, the partial must
+  still be on disk, B presses **Save somewhere else**, the dialog answers a
+  second folder, and the check requires the old partial to be gone and the same
+  byte count to be sitting in the new one. A then rejoins through the lobby's
+  join field, and the transfer must finish into that second folder with a
+  matching SHA-256 and no partial left. **Added 2026-11-02, not yet run**: Windows
+  only, for the dialog automation.
 - Not executed: two machines on different networks, forced-TURN sessions, a
   room with more than two peers. Do not treat those as proven.
 
 ## 9. Still open
 
-1. Resuming an interrupted transfer: a peer that drops ends the transfer, and
-   the sender has to offer the file again.
+1. A transfer whose sender process ends, or whose pause outlives its deadline,
+   cannot be resumed: only the sender holds the file, so it has to be offered
+   again.
 2. A self-hosted signaling relay, so rooms do not depend on public trackers.
 3. Co-watch with a host clock and drift correction.
 4. Room password, which derives the signaling key rather than encrypting media.
@@ -218,6 +223,10 @@ disks.
   byte count it has on disk (`resume-accept`), so the stream continues from that
   offset and nothing is transferred twice. A transfer that never started still
   ends when its peer leaves: there is nothing to continue.
+- **Leaving parks, it does not discard.** A file already moving survives its
+  client leaving the room, at both ends, and continues if the same room is
+  joined again before the deadline. Joining a different room drops the parked
+  rows, so nothing is ever resumed into a room it was not meant for.
 - **A pause has a deadline.** A pause holds a partial file open and one of the
   twelve transfer slots, so it waits `TRANSFER_PAUSE_MS` (5 minutes) and then
   gives up: the partial file is removed, the slot is freed and the row says the

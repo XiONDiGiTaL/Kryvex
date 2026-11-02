@@ -6,7 +6,10 @@
  * instance B joins through the invite link. The check asserts both see each
  * other, a chat message crosses, and B receives a video track with frames.
  * A then sends a real 12 MiB file: B accepts it through the native save dialog
- * and the bytes that land on disk are compared with the ones that left.
+ * and the bytes that land on disk are compared with the ones that left. A
+ * second, larger file is sent so that A can leave mid-transfer: the row must
+ * park with its partial on disk, B moves that partial to another folder, and A
+ * rejoins so the file finishes where B moved it, byte for byte.
  * Signaling uses the public WebTorrent trackers the app ships with, so this
  * also proves the default configuration, not a test-only path.
  *
@@ -25,6 +28,8 @@ const PORT_B = Number(process.env.KRYVEX_ROOMS_PORT_B || 9352);
 const FIXTURE_PORT = 8151;
 /** Big enough to take real chunks, small enough to hash in a moment. */
 const SENT_BYTES = 12 * 1024 * 1024;
+/** Too big to finish before the Leave below lands, small enough to hash. */
+const PARKED_BYTES = 128 * 1024 * 1024;
 
 const SERVICE = {
   id: 's-fixture',
@@ -170,6 +175,32 @@ function pattern(bytes) {
 
 function digest(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
+
+/** A large file without a busy loop per byte: one block, written again. */
+function writePattern(file, bytes) {
+  const block = pattern(Math.min(bytes, 1024 * 1024));
+  const handle = fs.openSync(file, 'w');
+  try {
+    let left = bytes;
+    while (left > 0) {
+      const take = Math.min(left, block.length);
+      fs.writeSync(handle, block, 0, take);
+      left -= take;
+    }
+  } finally {
+    fs.closeSync(handle);
+  }
+}
+
+/** `waitFor` for the leg where a fast disk is the enemy: a few ms apart. */
+async function poll(evaluate, expression, label, attempts = 900, interval = 10) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const value = await evaluate(expression);
+    if (value) return value;
+    await sleep(interval);
+  }
+  throw new Error(`Timed out waiting for ${label}.`);
 }
 
 /** Hands real paths to a file input, which is what the picker would do. */
@@ -414,6 +445,171 @@ server.listen(FIXTURE_PORT, '127.0.0.1');
       'A sees the transfer finish',
     );
     console.log('file transfer:', SENT_BYTES, 'bytes, SHA-256 matches');
+
+    // Pause, re-point and resume. A leaves while B is still writing, which parks
+    // both ends; B moves the partial to a second folder; A comes back to the
+    // same room and the file finishes where B moved it.
+    const longFile = path.join(profiles.a, 'send', 'half.bin');
+    const firstTarget = path.join(profiles.b, 'recv', 'half.bin');
+    const firstPartial = `${firstTarget}.kryvexpart`;
+    const secondDir = path.join(profiles.b, 'recv2');
+    const secondTarget = path.join(secondDir, 'half.bin');
+    const secondPartial = `${secondTarget}.kryvexpart`;
+    writePattern(longFile, PARKED_BYTES);
+    fs.mkdirSync(secondDir, { recursive: true });
+
+    await setFiles(a, '.room-files input[type=file]', [longFile]);
+    await waitFor(
+      b.evaluate,
+      `(() => {
+        const row = ${fileRow('half.bin')};
+        return row && row.classList.contains('is-offered') ? true : null;
+      })()`,
+      'B is offered the long file',
+    );
+    const pressedLong = await b.evaluate(`(() => {
+      const row = ${fileRow('half.bin')};
+      const save = Array.from(row.querySelectorAll('button'))
+        .find(node => node.textContent.trim() === 'Save as…');
+      if (!save) return false;
+      save.click();
+      return true;
+    })()`);
+    check(pressedLong === true, 'The long offer had no button to choose a destination.');
+    acceptSaveDialog(childB.pid, firstTarget);
+
+    // Leave A the moment bytes are on disk: a pause needs a transfer that is
+    // really moving, and a file this size cannot finish before the click lands.
+    const moving = await poll(
+      b.evaluate,
+      `(() => {
+        const row = ${fileRow('half.bin')};
+        if (!row) return null;
+        if (row.classList.contains('is-saved') || row.classList.contains('is-done')) {
+          return { tooLate: true };
+        }
+        if (!row.classList.contains('is-active')) return null;
+        const percent = Number((/(\\d+)%/.exec(row.textContent) || [])[1] || 0);
+        return percent > 0 && percent < 100 ? { percent } : null;
+      })()`,
+      'the long file to start moving',
+    );
+    check(
+      moving.tooLate !== true,
+      `The ${PARKED_BYTES}-byte file finished before it could be paused; raise PARKED_BYTES.`,
+    );
+
+    const left = await a.evaluate(`(() => {
+      const leave = Array.from(document.querySelectorAll('.room-head-actions button'))
+        .find(node => node.textContent.trim() === 'Leave');
+      if (!leave) return false;
+      leave.click();
+      return true;
+    })()`);
+    check(left === true, 'A had no Leave button to press.');
+    await waitFor(a.evaluate, `Boolean(document.querySelector('.rooms-lobby'))`, 'A to leave the room');
+
+    const parked = await waitFor(
+      b.evaluate,
+      `(() => {
+        const row = ${fileRow('half.bin')};
+        if (!row || !row.classList.contains('is-paused')) return null;
+        return row.textContent.trim();
+      })()`,
+      'B to park the transfer',
+      600,
+    );
+    check(/Gives up in/.test(parked), `B parked without a deadline to count down: ${parked}`);
+
+    // A pause that drops what it wrote is a restart in disguise: the partial has
+    // to still be there, with the bytes that had arrived.
+    await sleep(600);
+    check(fs.existsSync(firstPartial), `The pause left no partial at ${firstPartial}.`);
+    const keptBytes = fs.statSync(firstPartial).size;
+    check(
+      keptBytes > 0 && keptBytes < PARKED_BYTES,
+      `The pause kept ${keptBytes} of ${PARKED_BYTES} bytes, so nothing had arrived.`,
+    );
+
+    // Re-point: the partial moves to the second folder, and the bytes go with it.
+    const repointed = await b.evaluate(`(() => {
+      const row = ${fileRow('half.bin')};
+      const button = Array.from(row.querySelectorAll('button'))
+        .find(node => node.textContent.trim() === 'Save somewhere else');
+      if (!button) return false;
+      button.click();
+      return true;
+    })()`);
+    check(repointed === true, 'A parked row offered no way to save somewhere else.');
+    acceptSaveDialog(childB.pid, secondTarget);
+    await waitFor(
+      b.evaluate,
+      `(() => {
+        const row = ${fileRow('half.bin')};
+        return row && row.classList.contains('is-paused') ? row.textContent.trim() : null;
+      })()`,
+      'B to stay parked after moving the file',
+      300,
+    );
+    await sleep(600);
+    check(!fs.existsSync(firstPartial), `The moved file left ${firstPartial} behind.`);
+    check(fs.existsSync(secondPartial), `Nothing moved to ${secondPartial}.`);
+    const movedBytes = fs.statSync(secondPartial).size;
+    check(
+      movedBytes === keptBytes,
+      `The move carried ${movedBytes} bytes instead of the ${keptBytes} already on disk.`,
+    );
+    console.log('pause:', keptBytes, 'bytes parked, then moved to', secondTarget);
+
+    // Resume: A rejoins the same room through the lobby, and the sender re-asks.
+    await a.evaluate(`(() => {
+      const input = document.querySelector('.room-join-row input');
+      if (!input) return false;
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      setter.call(input, ${JSON.stringify(room)});
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    const rejoined = await a.evaluate(`(() => {
+      const join = Array.from(document.querySelectorAll('.room-join-row button'))
+        .find(node => node.textContent.trim() === 'Join');
+      if (!join) return false;
+      join.click();
+      return true;
+    })()`);
+    check(rejoined === true, 'A had no Join button to come back with.');
+
+    const parkedPath = await waitFor(
+      b.evaluate,
+      `(() => {
+        const row = ${fileRow('half.bin')};
+        if (!row || !row.classList.contains('is-saved')) return null;
+        return row.querySelector('.room-file-path')?.textContent?.trim() || null;
+      })()`,
+      'the parked transfer to finish',
+      2400,
+    );
+    check(
+      parkedPath.includes('recv2'),
+      `The transfer finished at ${parkedPath} instead of the folder B moved it to.`,
+    );
+    check(fs.existsSync(secondTarget), `The resumed transfer wrote nothing to ${secondTarget}.`);
+    const resumedBytes = fs.statSync(secondTarget).size;
+    check(
+      resumedBytes === PARKED_BYTES,
+      `The resumed file is ${resumedBytes} bytes, not ${PARKED_BYTES}.`,
+    );
+    check(digest(secondTarget) === digest(longFile), 'The resumed bytes differ from the file that left.');
+    check(!fs.existsSync(secondPartial), 'The resumed transfer left its partial file behind.');
+    await waitFor(
+      a.evaluate,
+      `(() => {
+        const row = ${fileRow('half.bin')};
+        return row && row.classList.contains('is-done') ? row.textContent.trim() : null;
+      })()`,
+      'A to see the parked transfer finish',
+    );
+    console.log('resume:', PARKED_BYTES, 'bytes after a leave, SHA-256 matches');
 
     a.close();
     b.close();

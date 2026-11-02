@@ -10,7 +10,7 @@ import {
 import { sanitizeVlanShare } from './vlan-rules';
 import type { VlanEngine } from '../types';
 import { sanitizePad, type NetplayPad } from './netplay';
-import { TransferEngine, type TransferControl } from './transfer';
+import { TransferEngine, type TransferControl, type TransferPorts } from './transfer';
 import type { TransferRow } from './transfer-rules';
 
 /**
@@ -476,7 +476,7 @@ export class PartySession {
       const writeSink = bridge?.transferWrite;
       const finishSink = bridge?.transferFinish;
       const abortSink = bridge?.transferAbort;
-      this.transfers = new TransferEngine({
+      const transferPorts: TransferPorts = {
         control: (payload, peerId) =>
           peerId ? xfer.send(payload, { target: peerId }) : xfer.send(payload),
         chunk: (bytes, meta, peerId) =>
@@ -507,7 +507,19 @@ export class PartySession {
             }
           : undefined,
         onChange: rows => this.set({ transfers: rows }),
-      });
+      };
+      // The same room again keeps what the leave parked: those rows still hold
+      // their bytes on both ends, so they continue on the new channel instead of
+      // being offered again from zero.
+      const parked = this.parkedTransfers;
+      this.parkedTransfers = null;
+      if (parked && parked.roomId === roomId) {
+        parked.engine.attach(transferPorts);
+        this.transfers = parked.engine;
+      } else {
+        if (parked) parked.engine.dispose();
+        this.transfers = new TransferEngine(transferPorts);
+      }
 
       this.sendHello = payload => hello.send(payload);
       this.sendChat = payload => chat.send(payload);
@@ -800,7 +812,11 @@ export class PartySession {
     return true;
   }
 
+  /** Transfers parked by a leave, waiting for the same room to come back. */
+  private parkedTransfers: { roomId: string; engine: TransferEngine } | null = null;
+
   leave(): void {
+    const roomId = this.state.roomId;
     const local = this.state.local;
     if (local) local.stream.getTracks().forEach(track => track.stop());
     if (this.room) {
@@ -818,7 +834,19 @@ export class PartySession {
     this.sendInput = null;
     this.sendNetplayAction = null;
     this.sendVlan = null;
-    this.transfers?.dispose();
+    // A file that is already moving is not part of the channel: the sender still
+    // holds its `File` and the receiver still holds its bytes, so leaving parks
+    // it on the pause deadline and coming back to the same room finishes it.
+    // Joining anywhere else drops it, so nothing resumes into a room it was not
+    // meant for.
+    if (this.transfers) {
+      if (roomId) {
+        this.transfers.detach();
+        this.parkedTransfers = { roomId, engine: this.transfers };
+      } else {
+        this.transfers.dispose();
+      }
+    }
     this.transfers = null;
     this.names.clear();
     this.sharing.clear();
