@@ -1199,8 +1199,6 @@ hero glow, the status bar and the small `xiondigital.net` chip beside the
 view name. Everything is scoped to `data-theme="xiondigital-net"`, and the
 glow plus motion stop under `prefers-reduced-motion`.
 
-![The site's X mark, recoloured to the xiondigital.net signature blue](docs/media/xiondigital-mark.png)
-
 [`brand/tokens.json`](brand/tokens.json) is the single source of truth for
 colour, spacing, radii, typography, motion and shell metrics. Themes apply CSS
 custom properties at runtime; there is no second palette to drift.

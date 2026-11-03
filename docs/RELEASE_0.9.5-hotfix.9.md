@@ -68,8 +68,9 @@ colour. It reads at 12px in the status bar and at 320px on the About tile.
   and Turkish, so the coverage ratchet does not move. `scripts/audit-i18n.cjs`
   classifies the edition name as technical alongside the other two editions.
 - README, `docs/THEMING.md` and `PROJECT_STATUS.md` record the eighty-first
-  theme and the third plugin, and `docs/media/xiondigital-mark.png` shows the
-  mark in the signature blue.
+  theme and the third plugin. The mark is bundled once as
+  `src/assets/x-mark.png` for the app and is deliberately not reproduced as a
+  standalone image in the README.
 
 ## Verification
 
