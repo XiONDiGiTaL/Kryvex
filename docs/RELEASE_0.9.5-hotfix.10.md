@@ -146,12 +146,17 @@ stopped at this gate. The capture cannot be produced anywhere but the Windows
 machine that cuts the tag — it is a native installer dialog, not a page Kryvex
 renders, so no screenshot of the app can stand in for it.
 
-The cut, in order:
+The cut, in order. `scripts/cut-release.ps1` (`pnpm release:cut`) runs all of
+it on Windows and stops at the first failure:
 
 1. `pnpm package:win` builds the Setup and Portable EXEs into `release/`.
-2. `pnpm release:wizard --archive` runs the Setup EXE through its own wizard,
-   records each page's controls in visual order, and writes `wizard.json` plus
-   `pages/*.png` and `capture.md` under `0.9.5-hotfix.10-wizard/`.
+2. `node scripts/verify-self-update.cjs --no-app --installer release/Kryvex-Setup-0.9.5-hotfix.10-x64.exe --version 0.9.5-hotfix.10 --archive`
+   runs that EXE through its own wizard, records each page's controls in visual
+   order, and writes `wizard.json` plus `pages/*.png` and `capture.md` under
+   `0.9.5-hotfix.10-wizard/`. The installer and the version are named because
+   bare `pnpm release:wizard` captures whatever `releases/latest` serves — the
+   previous release — and a hotfix shares the numeric version of the release it
+   patches, so an implicit run would archive over `0.9.5-wizard` instead.
 3. `pnpm release:check` reports PASS for 0.9.5-hotfix.10.
 4. Commit the capture, push `main`, then push the `v0.9.5-hotfix.10` tag.
 5. Once the workflow publishes, make the doc pass in [UPDATES.md](UPDATES.md),

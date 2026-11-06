@@ -93,17 +93,24 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    pnpm verify:updater
    ```
 
-3. Capture the installer wizard and archive it beside the release record. With
-   the previous release installed, this drives the app's own update and records
-   every page of the wizard it hands over to:
+3. Capture the installer wizard and archive it beside the release record. The
+   wizard is the installer's own native dialog, so this has to run on Windows,
+   and it must be pointed at the EXE you just built:
 
-   ```bash
-   pnpm release:wizard
+   ```powershell
+   node scripts/verify-self-update.cjs --no-app --installer "release\Kryvex-Setup-<version>-x64.exe" --version <version> --archive
    ```
 
    The pages, their text and the installer's exit code land in
    `docs/media/releases/<version>-wizard/`. Reference that directory from a
    `## Wizard capture` section in `docs/RELEASE_<version>.md` before committing.
+
+   Don't reach for bare `pnpm release:wizard` here: without `--installer` it
+   captures whatever `releases/latest` serves, which is the previous release,
+   and a hotfix keeps the numeric version of the release it patches — so its
+   capture would be archived over that release's directory and this one would
+   still be missing. `scripts/cut-release.ps1` (`pnpm release:cut`) runs steps
+   1–4 in order and stops at the first failure.
 
 4. Commit and push a tag:
 
