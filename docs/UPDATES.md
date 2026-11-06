@@ -127,6 +127,26 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    `https://xiondigital.net/Kryvex/` and the phone's installable client carry the
    same release. It runs after the Windows job, so a tag that fails its checks
    never replaces the live site, and nothing needs republishing by hand.
+7. **After it publishes, close the record.** A release is not finished when the
+   workflow goes green: the docs still have to name the files people can
+   download. Doing this before the tag advertises artifacts that do not exist
+   yet, and skipping it leaves the front page pointing at the previous build.
+   Four places move together:
+
+   | File | What changes |
+   | --- | --- |
+   | `README.md`, **Install on Windows** | Both artifact names take the new version: `Kryvex-Setup-<version>-x64.exe` and `Kryvex-Portable-<version>-x64.exe`, with the published size |
+   | `README.md`, **Release history** | A new first row for `<version>` linking `docs/RELEASE_<version>.md`, above the previous release |
+   | `docs/RELEASE_<version>.md`, **Artifacts** | Replace the `recorded after the cut` placeholder with the published size in bytes and SHA-256 of each EXE |
+   | `PROJECT_STATUS.md` | The version's `## Prepared (<date>, <version>)` section becomes `## Released (<date>, <version>)`, above the previous release's section, naming the publish time, the tag `releases/latest` now answers, and the same artifact table |
+
+   Read the digests from the release's own asset metadata or the published
+   `SHA256SUMS.txt`, and the sizes from the uploaded assets. A local build hashes
+   differently from the CI build, so it is never a substitute for either.
+
+   Nothing enforces these four edits: `pnpm release:check` runs before the tag
+   and the workflow never reads `README.md` or `PROJECT_STATUS.md`. That is why
+   the pass is written down here instead of being remembered.
 
 The GitHub release must remain **stable** (not a draft or prerelease) for the
 updater to see it, and it must be the latest stable release.

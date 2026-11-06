@@ -154,6 +154,12 @@ The cut, in order:
    `pages/*.png` and `capture.md` under `0.9.5-hotfix.10-wizard/`.
 3. `pnpm release:check` reports PASS for 0.9.5-hotfix.10.
 4. Commit the capture, push `main`, then push the `v0.9.5-hotfix.10` tag.
+5. Once the workflow publishes, make the doc pass in [UPDATES.md](UPDATES.md),
+   step 7 of **Release procedure**: the README's install table and
+   release-history row, the published sizes and digests in **Artifacts** below,
+   and `PROJECT_STATUS.md` moving from `## Prepared` to `## Released`. Nothing
+   checks those edits, which is why this record names them instead of leaving
+   them to be remembered.
 
 Until step 4, `releases/latest` answers `v0.9.5-hotfix.9` and
 `https://xiondigital.net/Kryvex/` serves the hotfix.9 renderer. The web job
