@@ -135,6 +135,12 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    older record with `node scripts/check-release-record.cjs --all`, so a
    historical capture that lost a page or a screenshot fails this cut instead of
    sitting broken — the single-version check only ever reads the tag being cut.
+
+   The same gate refuses a cut whose previous release was never closed: that
+   record must have no `recorded after the cut` row, both of its Artifacts
+   digests, a `## Released` section in `PROJECT_STATUS.md`, and its installers
+   named on the README's front page. `pnpm release:sync` is what fills those
+   four, so the next cut cannot ship on top of last release's stale docs.
 6. A second job, `web`, then builds `dist-web/` and force-pushes it to
    `gh-pages`, so the site at
    `https://xiondigital.net/Kryvex/` and the phone's installable client carry the
