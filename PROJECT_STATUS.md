@@ -28,6 +28,37 @@ mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
+## Prepared (2026-11-06, 0.9.5-hotfix.10)
+
+`package.json` is at **0.9.5-hotfix.10** and its record exists, but nothing is
+published: no tag has been pushed and no installer has been built. `main`
+carries this version; `releases/latest` still answers `v0.9.5-hotfix.9`.
+
+The batch is about the phone link's first-run failure. The pairing code is
+re-rolled when it expires instead of being displayed after it can no longer
+pair; a **Connection check** card reports what Windows Firewall says about the
+link and probes `/api/hello` on each advertised address from this machine;
+**Allow through the firewall** adds one inbound TCP rule for 43110–43129 scoped
+to `remoteip=LocalSubnet` on any profile, so a Wi-Fi Windows classifies as
+Public is no longer a silent block; a paired phone reports its battery as
+`82% ⚡`; **Google Messages** joins the catalogue as a preset
+(`messages.google.com/web`, taking it to 180 presets) and **Phone Link** gets a
+launcher that opens Microsoft's own app, which cannot be embedded. Full record:
+[RELEASE_0.9.5-hotfix.10.md](docs/RELEASE_0.9.5-hotfix.10.md).
+
+`node scripts/check-release-record.cjs` therefore **fails** for this version:
+the record has its `## Wizard capture` section and links
+`docs/media/releases/0.9.5-hotfix.10-wizard`, but no capture is committed. That
+is deliberate. The same gate is what stopped the first hotfix.9 tag from
+publishing, so this time the record says so up front: the capture must be made
+on the Windows machine that cuts the tag and committed, and only then may
+`v0.9.5-hotfix.10` be pushed.
+
+No suite was run for this record. The change was prepared on a Linux runner with
+no pnpm and no registry access, so `pnpm typecheck`, `pnpm test` and
+`pnpm verify:link` are recorded as not run, not as passing; the tag's workflow
+runs all three before it packages anything.
+
 ## Released (2026-11-02, 0.9.5-hotfix.9)
 
 The `v0.9.5-hotfix.9` tag ran the Release workflow to completion — both jobs
