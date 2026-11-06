@@ -1,18 +1,21 @@
 <#
 .SYNOPSIS
-Cuts a Kryvex release on Windows: build, capture the wizard, gate, tag.
+Cuts a Kryvex release on Windows: checks, build, capture the wizard, gate, tag.
 
 .DESCRIPTION
 Runs the cut from docs/UPDATES.md in order and stops at the first failure, so a
-release cannot be tagged without the installer capture its tag gates on, and
-cannot be tagged from a tree that is behind origin/main.
+release cannot be tagged without the installer capture its tag gates on, cannot
+be tagged from a tree that is behind origin/main, and cannot be tagged with a
+red suite.
 
-  1. package:win        builds release/Kryvex-Setup-<version>-x64.exe and
+  1. checks             pnpm typecheck and pnpm test, before anything is built:
+                        a broken suite should not cost a ten-minute package run
+  2. package:win        builds release/Kryvex-Setup-<version>-x64.exe and
                         release/Kryvex-Portable-<version>-x64.exe
-  2. wizard capture     runs the installer just built through its own wizard and
+  3. wizard capture     runs the installer just built through its own wizard and
                         archives docs/media/releases/<version>-wizard/
-  3. record gate        check-release-record.cjs for this version, then --all
-  4. commit, push, tag  capture committed and pushed to main first, because the
+  4. record gate        check-release-record.cjs for this version, then --all
+  5. commit, push, tag  capture committed and pushed to main first, because the
                         Release workflow checks out the tag, not the branch
 
 The wizard step names the installer explicitly. `pnpm release:wizard` on its own
@@ -22,11 +25,19 @@ therefore archives over that release's capture and still leaves this one
 missing.
 
 Nothing here publishes anything. Pushing the tag starts the Release workflow,
-which builds on windows-latest and publishes; the doc pass that follows a
-publish is step 7 of the release procedure and is not automated.
+which re-runs typecheck and the suite on windows-latest, packages and publishes;
+the doc pass that follows a publish is `pnpm release:sync`.
 
-Typecheck and the unit suite are not run here: the tag's workflow runs them
-before it packages, and a failure there publishes nothing.
+-Preflight runs before all of it: Node, pnpm and git on PATH, on main, a clean
+tree, HEAD equal to origin/main, no tag locally or on origin, the service-worker
+cache name, a `## Prepared` section, and a README that does not name installers
+that do not exist yet.
+
+.PARAMETER DryRun
+Run every guard, print its verdict, then print the ordered plan and stop.
+Nothing is typechecked, built, captured, gated or tagged, and nothing is
+written: no fetch, no commit, no tag. Exit code is 1 if a guard failed, because
+a real cut would stop there.
 
 .PARAMETER SkipBuild
 Use the EXEs already in release/ instead of running package:win.
@@ -43,6 +54,9 @@ commands to push. The tag is not created.
 pnpm release:cut
 
 .EXAMPLE
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/cut-release.ps1 -DryRun
+
+.EXAMPLE
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/cut-release.ps1 -SkipPush
 
 .EXAMPLE
@@ -52,11 +66,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/cut-release.ps1 -Reu
 param(
   [switch]$SkipBuild,
   [switch]$ReuseCapture,
-  [switch]$SkipPush
+  [switch]$SkipPush,
+  [switch]$DryRun
 )
 
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
+$script:problems = 0
 
 function Write-Step([string]$text) {
   Write-Host ''
@@ -71,6 +87,19 @@ function Fail([string]$text) {
   Write-Host ''
   Write-Host "cut: FAIL $text" -ForegroundColor Red
   exit 1
+}
+
+# A guard is a question with a verdict, not an instruction to die: in -DryRun
+# every one of them is asked and reported, so the answer is "these five things
+# are wrong" instead of "the first thing is wrong".
+function Assert([bool]$condition, [string]$ok, [string]$problem) {
+  if ($condition) {
+    Write-Detail "ok    $ok"
+    return
+  }
+  $script:problems += 1
+  if (-not $DryRun) { Fail $problem }
+  Write-Detail "FAIL  $problem"
 }
 
 function Invoke-Checked([string]$label, [string]$exe, [string[]]$arguments) {
@@ -91,75 +120,134 @@ function Get-Command-Sha([string]$command, [string[]]$arguments) {
 
 Write-Step 'Preflight'
 
+$missing = @()
 foreach ($tool in @('node', 'pnpm', 'git')) {
-  if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
-    Fail "$tool is not on PATH; the cut needs Node 22+, pnpm 10 and git."
-  }
+  if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { $missing += $tool }
 }
+Assert ($missing.Count -eq 0) 'node, pnpm and git are on PATH' "$($missing -join ', ') is not on PATH; the cut needs Node 22+, pnpm 10 and git."
 
 $package = Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json
 $version = [string]$package.version
-if (-not $version) { Fail 'package.json has no version.' }
+Assert (-not [string]::IsNullOrWhiteSpace($version)) "package.json names $version" 'package.json has no version.'
 $tag = "v$version"
-Write-Detail "version $version, tag $tag"
 
 $record = "docs/RELEASE_$version.md"
 $capture = "docs/media/releases/$version-wizard"
 $setup = "release/Kryvex-Setup-$version-x64.exe"
 $portable = "release/Kryvex-Portable-$version-x64.exe"
+Write-Detail "version $version, tag $tag"
 
-if (-not (Test-Path -LiteralPath $record)) {
-  Fail "$record does not exist; a release needs its record before its tag."
-}
+Assert (Test-Path -LiteralPath $record) "$record exists" "$record does not exist; a release needs its record before its tag."
 
 $branch = Get-Command-Sha git @('rev-parse', '--abbrev-ref', 'HEAD')
-if ($branch -ne 'main') { Fail "on branch '$branch'; the tag must be cut from main." }
+Assert ($branch -eq 'main') 'on main' "on branch '$branch'; the tag must be cut from main."
 
 $dirty = & git status --porcelain
-if ($LASTEXITCODE -ne 0) { Fail 'git status failed.' }
-if (($dirty | Measure-Object).Count -gt 0) {
-  Write-Host $dirty
-  Fail 'the tree has uncommitted changes; commit or stash them first.'
-}
+Assert ($LASTEXITCODE -eq 0) 'git reads the tree' 'git status failed.'
+if (($dirty | Measure-Object).Count -gt 0) { Write-Host $dirty }
+Assert ((($dirty | Measure-Object).Count -eq 0)) 'the tree is clean' 'the tree has uncommitted changes; commit or stash them first.'
 
-& git fetch --quiet origin main
-if ($LASTEXITCODE -ne 0) { Fail 'git fetch origin main failed.' }
+# -DryRun leaves .git alone, so it compares against the remote directly.
+if (-not $DryRun) {
+  & git fetch --quiet origin main
+  Assert ($LASTEXITCODE -eq 0) 'fetched origin/main' 'git fetch origin main failed.'
+}
 
 $head = Get-Command-Sha git @('rev-parse', 'HEAD')
-$remote = (& git ls-remote origin refs/heads/main | Select-Object -First 1)
-if ($LASTEXITCODE -ne 0 -or -not $remote) { Fail 'could not read origin/main.' }
-$remote = ($remote -split '\s+')[0]
-if ($remote -ne $head) {
-  Fail "HEAD $head is not origin/main $remote; push or pull first."
-}
+$remoteLine = (& git ls-remote origin refs/heads/main | Select-Object -First 1)
+$remote = ''
+if ($remoteLine) { $remote = ($remoteLine -split '\s+')[0] }
+$remoteText = 'unreadable'
+if ($remote) { $remoteText = $remote }
+Assert ($remote -and $remote -eq $head) "HEAD is origin/main ($head)" "HEAD $head is not origin/main $remoteText; push or pull first."
 
-if (& git tag --list $tag) { Fail "tag $tag already exists locally." }
+Assert (-not (& git tag --list $tag)) "tag $tag does not exist locally" "tag $tag already exists locally."
 $remoteTag = & git ls-remote --tags origin "refs/tags/$tag"
-if ($LASTEXITCODE -ne 0) { Fail 'could not list remote tags.' }
-if (($remoteTag | Measure-Object).Count -gt 0) {
-  Fail "tag $tag already exists on origin; a published tag cannot be re-cut."
-}
+Assert ($LASTEXITCODE -eq 0) 'origin tags are readable' 'could not list remote tags.'
+Assert (($remoteTag | Measure-Object).Count -eq 0) "tag $tag does not exist on origin" "tag $tag already exists on origin; a published tag cannot be re-cut."
 
 $sw = Get-Content -LiteralPath 'public/sw.js' -Raw
-if ($sw -notmatch [regex]::Escape("kryvex-web-$version-")) {
-  Fail "public/sw.js does not carry the kryvex-web-$version cache name; the web job publishes from this tag."
-}
+Assert ($sw -match [regex]::Escape("kryvex-web-$version-")) "public/sw.js carries kryvex-web-$version-" "public/sw.js does not carry the kryvex-web-$version cache name; the web job publishes from this tag."
 
 $status = Get-Content -LiteralPath 'PROJECT_STATUS.md' -Raw
-if ($status -notmatch [regex]::Escape($version)) {
-  Fail "PROJECT_STATUS.md does not mention $version."
-}
 $prepared = '(?m)^## Prepared\s*\([^)]*' + [regex]::Escape($version) + '\)'
-if ($status -notmatch $prepared) {
-  Fail "PROJECT_STATUS.md has no '## Prepared (..., $version)' section; the record stage is missing or already flipped to Released."
-}
+Assert ($status -match $prepared) "PROJECT_STATUS.md has a '## Prepared (..., $version)' section" "PROJECT_STATUS.md has no '## Prepared (..., $version)' section; the record stage is missing or already flipped to Released."
 
 $readme = Get-Content -LiteralPath 'README.md' -Raw
-if ($readme -match [regex]::Escape("Kryvex-Setup-$version-x64.exe")) {
-  Fail "README.md already names the $version installers, which do not exist yet. That is the post-publish doc pass (UPDATES.md step 7)."
+Assert ($readme -notmatch [regex]::Escape("Kryvex-Setup-$version-x64.exe")) "README.md does not name the $version installers yet" "README.md already names the $version installers, which do not exist yet. That is the post-publish doc pass (pnpm release:sync)."
+
+# ------------------------------------------------------------------- dry run
+
+function Show-Plan {
+  Write-Host ''
+  Write-Host 'Plan: what a real cut would run, in this order. Nothing below ran.' -ForegroundColor Cyan
+
+  Write-Host ''
+  Write-Host '  1. checks'
+  Write-Host '       pnpm typecheck'
+  Write-Host '       pnpm test'
+
+  Write-Host ''
+  Write-Host "  2. build ($version)"
+  if ($SkipBuild) {
+    Write-Host "       skipped: -SkipBuild, using $setup and $portable"
+  } else {
+    Write-Host '       pnpm package:win'
+    Write-Host "       then $setup and $portable are checked for size"
+  }
+
+  Write-Host ''
+  Write-Host '  3. capture the installer wizard'
+  if ($ReuseCapture -and (Test-Path -LiteralPath (Join-Path $capture 'wizard.json'))) {
+    Write-Host "       skipped: -ReuseCapture, keeping $capture"
+  } else {
+    Write-Host "       node scripts/verify-self-update.cjs --no-app --installer $setup --version $version --archive"
+    Write-Host "       then $capture/wizard.json is read: version, exit code and every page image"
+  }
+
+  Write-Host ''
+  Write-Host '  4. record gate'
+  Write-Host '       node scripts/check-release-record.cjs'
+  Write-Host '       node scripts/check-release-record.cjs --all'
+
+  Write-Host ''
+  Write-Host '  5. commit the capture'
+  Write-Host "       git add -- $capture $record"
+  Write-Host "       git commit -F <capture message>   (only if something is staged)"
+
+  if ($SkipPush) {
+    Write-Host ''
+    Write-Host '  6. push and tag'
+    Write-Host '       stopped: -SkipPush, prints the three push commands instead'
+  } else {
+    Write-Host ''
+    Write-Host '  6. push main'
+    Write-Host '       git push origin main'
+    Write-Host ''
+    Write-Host "  7. tag $tag"
+    Write-Host "       git tag -a $tag -m `"Kryvex $version`""
+    Write-Host "       git push origin $tag"
+    Write-Host ''
+    Write-Host '       that push starts the Release workflow, which publishes.'
+  }
 }
 
-Write-Detail 'preflight passed'
+if ($DryRun) {
+  Show-Plan
+  Write-Host ''
+  if ($script:problems -gt 0) {
+    Write-Host "dry run: $($script:problems) guard(s) failed, so a real cut would stop in preflight and run none of the above." -ForegroundColor Yellow
+    exit 1
+  }
+  Write-Host 'dry run: every guard passed. Nothing was typechecked, built, captured or tagged.' -ForegroundColor Green
+  exit 0
+}
+
+# ------------------------------------------------------------------ checks
+
+Write-Step 'Typecheck and the unit suite'
+Invoke-Checked 'typecheck' 'pnpm' @('typecheck')
+Invoke-Checked 'test' 'pnpm' @('test')
 
 # -------------------------------------------------------------------- build
 
@@ -286,15 +374,13 @@ if (-not $pushedTag) { Fail "tag $tag is not on origin after the push." }
 
 Write-Host ''
 Write-Host "Cut: $tag pushed." -ForegroundColor Green
-Write-Host 'The Release workflow now typechecks, tests, packages and publishes;'
-Write-Host 'the web job republishes gh-pages after it succeeds.'
+Write-Host 'The Release workflow now re-runs typecheck and the suite, packages and'
+Write-Host 'publishes; the web job republishes gh-pages after it succeeds.'
 Write-Host '  https://github.com/XiONDiGiTaL/Kryvex/actions/workflows/release.yml'
 Write-Host ''
 Write-Host 'Nothing is published until that run finishes. Once it does, close the'
-Write-Host 'record (docs/UPDATES.md, step 7) - nothing checks these four edits:'
-Write-Host '  README.md, Install on Windows      both artifact names and the published size'
-Write-Host '  README.md, Release history         a new first row for this version'
-Write-Host "  $record"
-Write-Host '                                     replace "recorded after the cut" with the'
-Write-Host '                                     published size and SHA-256 of each EXE'
-Write-Host '  PROJECT_STATUS.md                  ## Prepared -> ## Released'
+Write-Host 'record from the release itself:'
+Write-Host '  pnpm release:sync'
+Write-Host '    fills the README install table and history row, the record Artifacts'
+Write-Host '    sizes and digests, and the PROJECT_STATUS flip, from the release'
+Write-Host '    assets; read the notes it prints, the prose was written pre-tag'

@@ -109,8 +109,10 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    captures whatever `releases/latest` serves, which is the previous release,
    and a hotfix keeps the numeric version of the release it patches — so its
    capture would be archived over that release's directory and this one would
-   still be missing. `scripts/cut-release.ps1` (`pnpm release:cut`) runs steps
-   1–4 in order and stops at the first failure.
+   still be missing. `scripts/cut-release.ps1` (`pnpm release:cut`) runs
+   `pnpm typecheck` and `pnpm test`, then steps 1–4, in order, and stops at the
+   first failure. `-DryRun` prints every preflight guard's verdict and the
+   ordered plan without building, capturing or tagging.
 
 4. Commit and push a tag:
 
