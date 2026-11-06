@@ -155,9 +155,16 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    `SHA256SUMS.txt`, and the sizes from the uploaded assets. A local build hashes
    differently from the CI build, so it is never a substitute for either.
 
+   `node scripts/sync-published-release.cjs` (`pnpm release:sync`) makes all
+   four edits from the tag's own release payload: it reads the sizes and
+   digests off the assets, takes the date from `published_at`, and flips the
+   `## Prepared` section itself. It refuses to write a digest the API did not
+   report, and it prints whatever it cannot settle — a sentence further down a
+   `## Released` section that still says nothing is published needs a person.
+
    Nothing enforces these four edits: `pnpm release:check` runs before the tag
    and the workflow never reads `README.md` or `PROJECT_STATUS.md`. That is why
-   the pass is written down here instead of being remembered.
+   the pass is written down here and scripted, instead of being remembered.
 
 The GitHub release must remain **stable** (not a draft or prerelease) for the
 updater to see it, and it must be the latest stable release.

@@ -33,6 +33,7 @@
     "release:wizard": "node scripts/verify-self-update.cjs --wizard --archive",
     "release:check": "node scripts/check-release-record.cjs",
     "release:cut": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/cut-release.ps1",
+    "release:sync": "node scripts/sync-published-release.cjs",
     "verify:restart": "pnpm build && node scripts/verify-restart.cjs",
     "verify:downloads": "pnpm build && electron scripts/verify-download-history.cjs",
     "verify:location-ui": "pnpm build && node scripts/verify-download-location-ui.cjs",

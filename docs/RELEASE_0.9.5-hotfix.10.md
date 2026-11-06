@@ -162,9 +162,10 @@ it on Windows and stops at the first failure:
 5. Once the workflow publishes, make the doc pass in [UPDATES.md](UPDATES.md),
    step 7 of **Release procedure**: the README's install table and
    release-history row, the published sizes and digests in **Artifacts** below,
-   and `PROJECT_STATUS.md` moving from `## Prepared` to `## Released`. Nothing
-   checks those edits, which is why this record names them instead of leaving
-   them to be remembered.
+   and `PROJECT_STATUS.md` moving from `## Prepared` to `## Released`.
+   `node scripts/sync-published-release.cjs` (`pnpm release:sync`) makes those
+   four edits from the published assets; read the notes it prints, because the
+   prose above this record's `## Artifacts` table was written before the tag.
 
 Until step 4, `releases/latest` answers `v0.9.5-hotfix.9` and
 `https://xiondigital.net/Kryvex/` serves the hotfix.9 renderer. The web job
