@@ -377,7 +377,8 @@ pnpm package:win    # Setup and Portable EXEs into release/
 ```
 
 Node 22+ and pnpm 10+, which is the pair CI packages the shipped installers
-with; `package.json`'s `engines` says the same. The renderer alone can be
+with; `package.json`'s `engines` says the same, and `pnpm release:cut` refuses
+to run below it. The renderer alone can be
 previewed with `pnpm dev`, and the PWA with `pnpm build:web`. `pnpm run fetch:runtime` pulls the pinned llama.cpp
 runtime for local packaging; `runtime/` is never committed.
 

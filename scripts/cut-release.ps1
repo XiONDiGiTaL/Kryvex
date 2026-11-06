@@ -28,10 +28,11 @@ Nothing here publishes anything. Pushing the tag starts the Release workflow,
 which re-runs typecheck and the suite on windows-latest, packages and publishes;
 the doc pass that follows a publish is `pnpm release:sync`.
 
--Preflight runs before all of it: Node, pnpm and git on PATH, on main, a clean
-tree, HEAD equal to origin/main, no tag locally or on origin, the service-worker
-cache name, a `## Prepared` section, and a README that does not name installers
-that do not exist yet.
+-Preflight runs before all of it: Node, pnpm and git on PATH, Node and pnpm at
+the minimums `package.json`'s `engines` states, on main, a clean tree, HEAD equal
+to origin/main, no tag locally or on origin, the service-worker cache name, a
+`## Prepared` section, and a README that does not name installers that do not
+exist yet.
 
 .PARAMETER DryRun
 Run every guard, print its verdict, then print the ordered plan and stop.
@@ -116,6 +117,60 @@ function Get-Command-Sha([string]$command, [string[]]$arguments) {
   return (($value | Out-String).Trim())
 }
 
+# Node 22 and pnpm 10 are the pair the Release workflow packages the shipped
+# installers with, and package.json's `engines` is where that is written down;
+# the README points at it instead of repeating numbers a second time. Being on
+# PATH is not the same as being new enough: an old Node gets as far as
+# electron-builder and fails at something that reads like a build bug.
+function ConvertTo-VersionParts([string]$text) {
+  $match = [regex]::Match([string]$text, '(?<!\d)(\d+)\.(\d+)\.(\d+)')
+  if (-not $match.Success) { return $null }
+  return [int[]]@([int]$match.Groups[1].Value, [int]$match.Groups[2].Value, [int]$match.Groups[3].Value)
+}
+
+function ConvertFrom-MinimumRange([string]$range) {
+  $match = [regex]::Match([string]$range, '^\s*>=\s*(\d+)\.(\d+)\.(\d+)\s*$')
+  if (-not $match.Success) { return $null }
+  return [int[]]@([int]$match.Groups[1].Value, [int]$match.Groups[2].Value, [int]$match.Groups[3].Value)
+}
+
+function Compare-VersionParts([int[]]$left, [int[]]$right) {
+  for ($index = 0; $index -lt 3; $index += 1) {
+    if ($left[$index] -lt $right[$index]) { return -1 }
+    if ($left[$index] -gt $right[$index]) { return 1 }
+  }
+  return 0
+}
+
+function Get-EngineRange($engines, [string]$tool) {
+  if ($null -eq $engines) { return '' }
+  $property = $engines.PSObject.Properties[$tool]
+  if ($null -eq $property) { return '' }
+  return [string]$property.Value
+}
+
+# A verdict, not a verdict plus a print: -DryRun has to be able to report this
+# like every other guard, and the message has to say which of the three things is
+# wrong (no engines entry, a range this check cannot read, a version too old).
+function Get-ToolchainVerdict([string]$tool, [string]$reported, [string]$range, [string]$hint) {
+  if ([string]::IsNullOrWhiteSpace($range)) {
+    return @{ Ok = $false; OkText = ''; Problem = "package.json has no engines.$tool, so the cut cannot check the version it packages with." }
+  }
+  $wanted = ConvertFrom-MinimumRange $range
+  if (-not $wanted) {
+    return @{ Ok = $false; OkText = ''; Problem = "package.json's engines.$tool is '$range'; this check reads a minimum such as '>=22.0.0'." }
+  }
+  $have = ConvertTo-VersionParts $reported
+  if (-not $have) {
+    return @{ Ok = $false; OkText = ''; Problem = "$tool on PATH printed no version ('$reported'); reinstall it or fix PATH." }
+  }
+  $haveText = $have -join '.'
+  if ((Compare-VersionParts $have $wanted) -lt 0) {
+    return @{ Ok = $false; OkText = ''; Problem = "$tool $haveText is below engines.$tool $range, the pair the shipped installers are packaged with; $hint." }
+  }
+  return @{ Ok = $true; OkText = "$tool $haveText satisfies engines.$tool $range"; Problem = '' }
+}
+
 # ---------------------------------------------------------------- preflight
 
 Write-Step 'Preflight'
@@ -129,6 +184,20 @@ Assert ($missing.Count -eq 0) 'node, pnpm and git are on PATH' "$($missing -join
 $package = Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json
 $version = [string]$package.version
 Assert (-not [string]::IsNullOrWhiteSpace($version)) "package.json names $version" 'package.json has no version.'
+
+foreach ($requirement in @(
+    @{ tool = 'node'; hint = 'upgrade Node (fnm, nvm or the installer) to the version CI builds with' },
+    @{ tool = 'pnpm'; hint = 'activate the pinned major with `corepack prepare pnpm@10 --activate`' }
+  )) {
+  # A tool that is not on PATH is already the guard above; asking it --version
+  # would only fail again with a worse message.
+  if ($missing -contains $requirement.tool) { continue }
+  $reported = Get-Command-Sha $requirement.tool @('--version')
+  $range = Get-EngineRange $package.engines $requirement.tool
+  $verdict = Get-ToolchainVerdict $requirement.tool $reported $range $requirement.hint
+  Assert $verdict.Ok $verdict.OkText $verdict.Problem
+}
+
 $tag = "v$version"
 
 $record = "docs/RELEASE_$version.md"
