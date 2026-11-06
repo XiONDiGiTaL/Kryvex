@@ -1056,6 +1056,19 @@ function registerIpc(): void {
     link.notify(typeof title === 'string' ? title : '', typeof body === 'string' ? body : '');
     return true;
   });
+  ipcMain.handle('kryvex:link:diagnose', (event) =>
+    isShellSender(event)
+      ? link.diagnose()
+      : { firewall: 'unknown', firewallSupported: false, probes: [] },
+  );
+  ipcMain.handle('kryvex:link:allow-firewall', (event) =>
+    isShellSender(event)
+      ? link.allowFirewall()
+      : { firewall: 'unknown', firewallSupported: false, probes: [] },
+  );
+  ipcMain.handle('kryvex:link:open-phone-link', (event) =>
+    isShellSender(event) ? link.openPhoneLink() : false,
+  );
   ipcMain.handle('kryvex:resources:sample', (event, services: unknown) =>
     isShellSender(event) ? resources.sample(services) : null,
   );

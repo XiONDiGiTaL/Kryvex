@@ -435,6 +435,11 @@ const api = {
   linkOpen: (id: string): Promise<boolean> => ipcRenderer.invoke('kryvex:link:open', id),
   linkNotify: (title: string, body: string): Promise<boolean> =>
     ipcRenderer.invoke('kryvex:link:notify', title, body),
+  linkDiagnose: (): Promise<import('./types').LinkDiagnosis> =>
+    ipcRenderer.invoke('kryvex:link:diagnose'),
+  linkAllowFirewall: (): Promise<import('./types').LinkDiagnosis> =>
+    ipcRenderer.invoke('kryvex:link:allow-firewall'),
+  linkOpenPhoneLink: (): Promise<boolean> => ipcRenderer.invoke('kryvex:link:open-phone-link'),
   onLinkNotice: (listener: (notice: LinkNotice) => void): (() => void) => {
     const wrapped = (_event: IpcRendererEvent, notice: LinkNotice) => listener(notice);
     ipcRenderer.on('kryvex:link:notice', wrapped);

@@ -324,6 +324,8 @@ export interface LinkDeviceInfo {
   address: string;
   pairedAt: number;
   lastSeenAt: number;
+  /** The phone's own battery, when its page reported one. */
+  battery?: { level: number; charging: boolean };
 }
 
 /** Everything the phone may know about a file: never a path on this machine. */
@@ -352,6 +354,17 @@ export interface LinkStatus {
   received: LinkFileInfo[];
   offered: LinkFileInfo[];
   error?: string;
+}
+
+/**
+ * The connection check the view can ask for: what the Windows firewall says
+ * about the link, and whether this machine answers on each advertised address.
+ */
+export interface LinkDiagnosis {
+  firewall: 'open' | 'rule-disabled' | 'no-rule' | 'unknown';
+  /** False off Windows, where there is no rule to read or add. */
+  firewallSupported: boolean;
+  probes: Array<{ url: string; reachable: boolean }>;
 }
 
 /** A toast the main process asks the shell to show on the link's behalf. */

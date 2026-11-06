@@ -5,7 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { media } from './media';
 import { LinkServer } from './link-server';
-import type { LinkFileInfo, LinkStatus } from './types';
+import type { LinkDiagnosis, LinkFileInfo, LinkStatus } from './types';
+import { allowThroughFirewall, probeAddresses, readFirewall } from './link-firewall';
 import {
   LINK_CODE_TTL_MS,
   LINK_MAX_DEVICES,
@@ -21,6 +22,7 @@ import {
   makePairCode,
   uniqueFileName,
   type LinkCommand,
+  type LinkPhoneStatus,
 } from './link-rules';
 
 /**
@@ -91,6 +93,11 @@ class LinkService {
   private volume = 1;
   private muted = false;
   private error = '';
+  /**
+   * Battery readings from paired phones. This is live device status, not state:
+   * it is never written to the pairing file and never restored stale on launch.
+   */
+  private batteryByDevice = new Map<string, LinkPhoneStatus>();
 
   get folder(): string {
     return path.join(app.getPath('downloads'), 'Kryvex Link');
@@ -226,6 +233,9 @@ class LinkService {
   }
 
   status(): LinkStatus {
+    // A code that expires while the view sits open would still be displayed but
+    // refused on the phone. Rolling it here keeps the digits on screen usable.
+    if (this.enabled && this.code && nowMs() - this.codeAt > LINK_CODE_TTL_MS) this.rollCode();
     const port = this.server?.boundPort ?? LINK_PORT_FIRST;
     const links = describeLinkAddresses(this.localAddresses(), port);
     return {
@@ -237,13 +247,7 @@ class LinkService {
       urls: links.map(link => link.url),
       links,
       folder: this.folder,
-      devices: this.devices.map(device => ({
-        id: device.id || deviceId(device.token),
-        label: device.label,
-        address: device.address,
-        pairedAt: device.pairedAt,
-        lastSeenAt: device.lastSeenAt,
-      })),
+      devices: this.devices.map(device => this.publicDevice(device)),
       received: this.files.filter(file => file.direction === 'received').map(this.publicFile),
       offered: this.files.filter(file => file.direction === 'offered').map(this.publicFile),
       error: this.error || undefined,
@@ -252,6 +256,19 @@ class LinkService {
 
   private publicFile(file: LinkFile): LinkFileInfo {
     return { id: file.id, name: file.name, size: file.size, at: file.at };
+  }
+
+  /** A device as the view sees it: a digest for a handle, plus its battery. */
+  private publicDevice(device: LinkDevice) {
+    const battery = this.batteryByDevice.get(device.token);
+    return {
+      id: device.id || deviceId(device.token),
+      label: device.label,
+      address: device.address,
+      pairedAt: device.pairedAt,
+      lastSeenAt: device.lastSeenAt,
+      ...(battery ? { battery: { level: battery.level, charging: battery.charging } } : {}),
+    };
   }
 
   /**
@@ -280,6 +297,7 @@ class LinkService {
     );
     if (!target) return false;
     this.devices = this.devices.filter(device => device.token !== target.token);
+    this.batteryByDevice.delete(target.token);
     this.server?.disconnect(target.token);
     this.save();
     this.announceDevices();
@@ -288,6 +306,7 @@ class LinkService {
 
   revokeAll(): boolean {
     for (const device of this.devices) this.server?.disconnect(device.token);
+    this.batteryByDevice.clear();
     this.devices = [];
     this.save();
     this.announceDevices();
@@ -374,6 +393,43 @@ class LinkService {
     if (!file) return false;
     const error = await shell.openPath(file.path);
     return error === '';
+  }
+
+  /**
+   * The connection check behind "the phone will not load the page".
+   *
+   * It answers two separate questions: whether Windows has a firewall rule that
+   * lets the phone in, and whether this machine actually serves the link on each
+   * address the view advertises. Neither one needs the phone to be present.
+   */
+  async diagnose(): Promise<LinkDiagnosis> {
+    const firewall = await readFirewall();
+    return {
+      firewall: firewall.verdict,
+      firewallSupported: firewall.supported,
+      probes: this.server?.listening ? await probeAddresses(this.status().urls) : [],
+    };
+  }
+
+  /** Adds the rule after Windows asks for consent, then reads the state again. */
+  async allowFirewall(): Promise<LinkDiagnosis> {
+    await allowThroughFirewall();
+    return this.diagnose();
+  }
+
+  /**
+   * Microsoft Phone Link is a packaged Windows app with no web surface, so it
+   * cannot be embedded the way a service module is. Kryvex can open it, which is
+   * the only honest integration: its messages, calls and photos stay in it.
+   */
+  async openPhoneLink(): Promise<boolean> {
+    if (process.platform !== 'win32') return false;
+    try {
+      await shell.openExternal('ms-settings:mobile-devices-addphone-direct');
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** Kryvex's own events (a transfer, a pairing) reach the phone as a notice. */
@@ -500,6 +556,7 @@ class LinkService {
     },
     unpair: (token: string) => {
       this.devices = this.devices.filter(device => device.token !== token);
+      this.batteryByDevice.delete(token);
       this.save();
       this.announceDevices();
     },
@@ -574,6 +631,14 @@ class LinkService {
       const done = await this.run(command);
       this.server?.broadcast('remote', { state: this.snapshot(), ok: done });
       return done;
+    },
+    // The phone's battery, replaced whenever its page reports a change. It is
+    // kept in memory only: a stale reading is worse than no reading.
+    receiveStatus: (token: string, status: LinkPhoneStatus | null) => {
+      if (!this.devices.some(device => device.token === token)) return;
+      if (status) this.batteryByDevice.set(token, status);
+      else this.batteryByDevice.delete(token);
+      this.announceDevices();
     },
     outbox: () =>
       this.files.filter(file => file.direction === 'offered').map(this.publicFile),

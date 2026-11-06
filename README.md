@@ -55,7 +55,7 @@ required.
 
 ### Your apps, as installed things
 
-Pick a preset from **179 services across 16 categories** — Discord, Steam,
+Pick a preset from **180 services across 16 categories** — Discord, Steam,
 Gmail, Slack-shaped internal tools, Linear, Notion, Figma, Spotify, YouTube,
 GitHub, ChatGPT, banking, travel, news desks — or point Kryvex at any URL.
 Each module gets a permanent tile, an isolated Chromium partition

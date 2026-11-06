@@ -132,3 +132,54 @@ switched on, and drives the real server: pairing, a wrong code, a
 too-large/odd file name, the clipboard round trip over the event stream, an
 allowed and a refused command, a link landing in the browser, the rate limit and
 unpairing. Results are recorded in [TESTING.md](TESTING.md).
+
+## The connection check
+
+A phone that never loads the page is the normal failure, and it is almost never
+the pairing code. **Connection check** in the view answers the two questions in
+order:
+
+| Reading | What it means |
+| --- | --- |
+| *Windows Firewall allows the link from your local network* | A rule named `Kryvex Link` exists and is enabled, or the private profile is not filtering inbound traffic at all. |
+| *Windows Firewall has no rule for Kryvex Link…* | The app was started for the first time and the Windows prompt was dismissed, or the Wi-Fi is classified as Public. **Allow through the firewall** adds one inbound TCP rule for ports 43110–43129, scoped to `remoteip=LocalSubnet` and applied on any profile — a private-only rule would still block the many home networks Windows calls Public. Windows shows its own consent dialog. |
+| *A firewall rule… exists but is switched off* | Something disabled it. The same button re-enables it. |
+| *Nothing answered on `http://…`* | The listener is not serving on that adapter, which points at the bind or the address rather than at the phone. |
+
+The per-address probe fetches `/api/hello` from this machine on each advertised
+address. It proves the listener answers on that interface; it does not prove the
+phone is on the same network, because Windows treats traffic from this machine to
+its own address as local. The view says so instead of implying the phone will
+work.
+
+A pairing code that expires while the view is open is now replaced on the next
+status read, so the digits on screen are always the digits that will pair.
+
+## Phone status
+
+A paired phone reports its battery once, then on `levelchange` and
+`chargingchange`. That is the only device state a web page can read without a
+native app. It is kept in memory, shown beside the device (`82% ⚡`), and dropped
+when the phone is unpaired or Kryvex exits — a stale reading is worse than none.
+
+## Phone Link and Google Messages
+
+Two things people expect from a phone link are not things a web page can do, so
+they are handled honestly instead of being faked:
+
+- **Google Messages** is a catalogue preset (`messages.google.com/web`). The page
+  pairs through Google's own QR flow, keeps its own persistent session, and
+  carries SMS, MMS and RCS. Texting therefore works without Kryvex touching the
+  phone's message store.
+- **Microsoft Phone Link** is a packaged Windows app with no web surface, so it
+  cannot be embedded the way a service module is. Kryvex opens it from the link
+  view (`ms-settings:mobile-devices-addphone-direct`) and keeps its own link for
+  clipboard, files and the remote. Messages, calls and photos stay in Phone Link.
+
+## What still needs a native app
+
+Stated because it is asked for: reading Android's notification stream, reading
+and sending SMS without Google's web client, browsing the phone's storage, and
+screen mirroring all need code running on the phone or an ADB connection. The
+companion page is a browser page, so it cannot do any of them; the fixes above
+cover what a page can measure and what Windows can be asked to allow.

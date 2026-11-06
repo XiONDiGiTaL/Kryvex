@@ -69,6 +69,31 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
       'Kryvex Link is listening. Open its page on the phone.':
       'Kryvex Link está a la escucha. Abre su página en el teléfono.',
     'Kryvex Link stopped listening.': 'Kryvex Link ha dejado de escuchar.',
+    'CONNECTION CHECK': 'COMPROBACIÓN DE CONEXIÓN',
+    'Allowed': 'Permitido',
+    'Needs a rule': 'Falta una regla',
+    'Check why the phone cannot reach this computer.':
+      'Comprueba por qué el teléfono no llega a este equipo.',
+    'Windows Firewall allows the link from your local network.':
+      'El Firewall de Windows permite el enlace desde tu red local.',
+    'A firewall rule for Kryvex Link exists but is switched off.':
+      'Existe una regla de firewall para Kryvex Link, pero está desactivada.',
+    'Windows Firewall has no rule for Kryvex Link, so a phone on your network is likely blocked.':
+      'El Firewall de Windows no tiene ninguna regla para Kryvex Link, así que es probable que se bloquee un teléfono de tu red.',
+    'The firewall state could not be read.': 'No se ha podido leer el estado del firewall.',
+    'This system has no Windows Firewall to check.':
+      'Este sistema no tiene Firewall de Windows que comprobar.',
+    'Answered here': 'Respondió aquí',
+    'Nothing answered': 'No respondió',
+    'Checking…': 'Comprobando…',
+    'Run the check': 'Ejecutar la comprobación',
+    'Allow through the firewall': 'Permitir en el firewall',
+    'Being able to reach this machine is not the same as the phone being on the same network: both devices must share a Wi-Fi or Ethernet network.':
+      'Poder llegar a esta máquina no significa que el teléfono esté en la misma red: ambos dispositivos deben compartir una red Wi-Fi o Ethernet.',
+    'PHONE LINK': 'VÍNCULO CON EL TELÉFONO',
+    'Microsoft Phone Link is its own Windows app: messages, calls and photos live there, not in Kryvex. Kryvex opens it for you and keeps its own link for clipboard, files and the remote.':
+      'Microsoft Phone Link es una aplicación propia de Windows: los mensajes, las llamadas y las fotos están ahí, no en Kryvex. Kryvex la abre por ti y mantiene su propio enlace para el portapapeles, los archivos y el mando.',
+    'Open Phone Link': 'Abrir Phone Link',
   },
   de: {
     'x534 / LINK': 'x534 / VERBINDUNG',
@@ -133,6 +158,31 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
       'Kryvex Link is listening. Open its page on the phone.':
       'Kryvex Link wartet auf Verbindungen. Öffne die Seite am Telefon.',
     'Kryvex Link stopped listening.': 'Kryvex Link wartet nicht mehr auf Verbindungen.',
+    'CONNECTION CHECK': 'VERBINDUNGSPRÜFUNG',
+    'Allowed': 'Erlaubt',
+    'Needs a rule': 'Regel fehlt',
+    'Check why the phone cannot reach this computer.':
+      'Prüfe, warum das Telefon diesen Computer nicht erreicht.',
+    'Windows Firewall allows the link from your local network.':
+      'Die Windows-Firewall erlaubt die Verbindung aus deinem lokalen Netz.',
+    'A firewall rule for Kryvex Link exists but is switched off.':
+      'Für Kryvex Link gibt es eine Firewall-Regel, sie ist aber deaktiviert.',
+    'Windows Firewall has no rule for Kryvex Link, so a phone on your network is likely blocked.':
+      'Die Windows-Firewall hat keine Regel für Kryvex Link, deshalb wird ein Telefon in deinem Netz wahrscheinlich blockiert.',
+    'The firewall state could not be read.': 'Der Firewall-Status konnte nicht gelesen werden.',
+    'This system has no Windows Firewall to check.':
+      'Auf diesem System gibt es keine Windows-Firewall zu prüfen.',
+    'Answered here': 'Hier erreichbar',
+    'Nothing answered': 'Keine Antwort',
+    'Checking…': 'Prüfe…',
+    'Run the check': 'Prüfung starten',
+    'Allow through the firewall': 'In der Firewall zulassen',
+    'Being able to reach this machine is not the same as the phone being on the same network: both devices must share a Wi-Fi or Ethernet network.':
+      'Diesen Rechner erreichen zu können heißt nicht, dass das Telefon im selben Netz ist: Beide Geräte müssen ein WLAN- oder Ethernet-Netz teilen.',
+    'PHONE LINK': 'TELEFON-VERBINDUNG',
+    'Microsoft Phone Link is its own Windows app: messages, calls and photos live there, not in Kryvex. Kryvex opens it for you and keeps its own link for clipboard, files and the remote.':
+      'Microsoft Phone Link ist eine eigene Windows-App: Nachrichten, Anrufe und Fotos liegen dort, nicht in Kryvex. Kryvex öffnet sie für dich und behält seine eigene Verbindung für Zwischenablage, Dateien und Fernbedienung.',
+    'Open Phone Link': 'Phone Link öffnen',
   },
   fr: {
     'x534 / LINK': 'x534 / LIEN',
@@ -197,5 +247,30 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
       'Kryvex Link is listening. Open its page on the phone.':
       'Kryvex Link est à l’écoute. Ouvrez sa page sur le téléphone.',
     'Kryvex Link stopped listening.': 'Kryvex Link n’est plus à l’écoute.',
+    'CONNECTION CHECK': 'VÉRIFICATION DE LA CONNEXION',
+    'Allowed': 'Autorisé',
+    'Needs a rule': 'Règle manquante',
+    'Check why the phone cannot reach this computer.':
+      'Vérifiez pourquoi le téléphone n’atteint pas cet ordinateur.',
+    'Windows Firewall allows the link from your local network.':
+      'Le pare-feu Windows autorise le lien depuis votre réseau local.',
+    'A firewall rule for Kryvex Link exists but is switched off.':
+      'Une règle de pare-feu pour Kryvex Link existe mais elle est désactivée.',
+    'Windows Firewall has no rule for Kryvex Link, so a phone on your network is likely blocked.':
+      'Le pare-feu Windows n’a aucune règle pour Kryvex Link : un téléphone de votre réseau est probablement bloqué.',
+    'The firewall state could not be read.': 'L’état du pare-feu n’a pas pu être lu.',
+    'This system has no Windows Firewall to check.':
+      'Ce système n’a pas de pare-feu Windows à vérifier.',
+    'Answered here': 'A répondu ici',
+    'Nothing answered': 'Aucune réponse',
+    'Checking…': 'Vérification…',
+    'Run the check': 'Lancer la vérification',
+    'Allow through the firewall': 'Autoriser dans le pare-feu',
+    'Being able to reach this machine is not the same as the phone being on the same network: both devices must share a Wi-Fi or Ethernet network.':
+      'Pouvoir atteindre cet ordinateur ne signifie pas que le téléphone est sur le même réseau : les deux appareils doivent partager un réseau Wi-Fi ou Ethernet.',
+    'PHONE LINK': 'LIEN TÉLÉPHONE',
+    'Microsoft Phone Link is its own Windows app: messages, calls and photos live there, not in Kryvex. Kryvex opens it for you and keeps its own link for clipboard, files and the remote.':
+      'Microsoft Phone Link est une application Windows à part : les messages, les appels et les photos y restent, pas dans Kryvex. Kryvex l’ouvre pour vous et garde son propre lien pour le presse-papiers, les fichiers et la télécommande.',
+    'Open Phone Link': 'Ouvrir Phone Link',
   },
 };

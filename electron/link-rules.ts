@@ -328,3 +328,65 @@ export function describeBytes(bytes: number): string {
   }
   return `${unit === 0 ? value : Math.round(value * 10) / 10} ${units[unit]}`;
 }
+
+/**
+ * The battery a phone reports about itself.
+ *
+ * A page can read `navigator.getBattery()`, which makes this the one piece of
+ * device state a paired phone can offer without a native app. It is validated
+ * like everything else the phone sends: a level outside 0..1 is clamped, and a
+ * malformed payload is dropped rather than shown as an alarming 0%.
+ */
+export interface LinkPhoneStatus {
+  level: number;
+  charging: boolean;
+}
+
+export function phoneStatus(raw: unknown): LinkPhoneStatus | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const data = raw as { level?: unknown; charging?: unknown };
+  if (typeof data.level !== 'number' || !Number.isFinite(data.level)) return null;
+  return {
+    level: Math.min(1, Math.max(0, data.level)),
+    charging: data.charging === true,
+  };
+}
+
+/** The Windows firewall rule this app creates for the link's port range. */
+export const LINK_RULE_NAME = 'Kryvex Link';
+
+/**
+ * What the firewall says, in the terms that change what the user does: the link
+ * is reachable, a rule exists but is switched off, or no rule exists at all.
+ *
+ * Both readings are tri-state because `Get-NetFirewallRule` prints nothing when
+ * there is no rule and PowerShell may not answer at all. `unknown` is a real
+ * answer: the app says it cannot tell rather than claiming the network is fine.
+ */
+export type FirewallVerdict = 'open' | 'rule-disabled' | 'no-rule' | 'unknown';
+
+export function parseFirewallReading(
+  rule: string,
+  profile: string,
+): { ruleEnabled: boolean | null; privateFiltering: boolean | null } {
+  const tri = (value: string): boolean | null => {
+    const text = value.trim().toLowerCase();
+    if (text === 'true') return true;
+    if (text === 'false') return false;
+    return null;
+  };
+  return { ruleEnabled: tri(rule), privateFiltering: tri(profile) };
+}
+
+/**
+ * `privateFiltering === false` means Windows is not filtering inbound traffic on
+ * the private profile at all, so a missing rule cannot be the cause.
+ */
+export function firewallVerdict(reading: {
+  ruleEnabled: boolean | null;
+  privateFiltering: boolean | null;
+}): FirewallVerdict {
+  if (reading.privateFiltering === false) return 'open';
+  if (reading.ruleEnabled === null) return reading.privateFiltering === null ? 'unknown' : 'no-rule';
+  return reading.ruleEnabled ? 'open' : 'rule-disabled';
+}

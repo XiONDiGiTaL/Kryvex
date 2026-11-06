@@ -20,7 +20,9 @@ import {
   isPrivateAddress,
   linkableUrl,
   normalizePairCode,
+  phoneStatus,
   safeFileName,
+  type LinkPhoneStatus,
 } from './link-rules';
 
 /**
@@ -54,6 +56,8 @@ export interface LinkBackend {
   receiveSend(token: string, value: string): void;
   receiveUpload(token: string, name: string, data: Buffer): Promise<LinkFileInfo | null>;
   receiveCommand(token: string, command: string): Promise<boolean>;
+  /** The phone's own battery, or null when it can no longer be read. */
+  receiveStatus(token: string, status: LinkPhoneStatus | null): void;
   /** Files the desktop offers to the phone, newest first. */
   outbox(): LinkFileInfo[];
   /** The absolute path behind an offered file id, or null. */
@@ -407,6 +411,15 @@ export class LinkServer {
 
     if (route === '/api/state' && method === 'GET') {
       this.json(response, 200, { ok: true, state: this.backend.snapshot() });
+      return;
+    }
+
+    // Device status the page can measure itself. It is not trusted either: the
+    // payload is rebuilt from a validated level, and anything else is dropped.
+    if (route === '/api/status' && method === 'POST') {
+      const body = await this.readJson(request);
+      this.backend.receiveStatus(token, phoneStatus(body));
+      this.json(response, 200, { ok: true });
       return;
     }
 

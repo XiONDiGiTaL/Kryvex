@@ -9,6 +9,7 @@ import {
   pair,
   readName,
   readToken,
+  reportStatus,
   sendCommand,
   sendText,
   sendToDesktop,
@@ -501,6 +502,35 @@ export function Companion() {
       setLive,
     );
   }, [health, flash, notifyPhone]);
+
+  // A page can read its own battery, so a paired phone reports it to the desktop.
+  // It is the one piece of device status a browser can offer without an app.
+  useEffect(() => {
+    if (health !== 'paired') return undefined;
+    interface BatteryLike {
+      level: number;
+      charging: boolean;
+      addEventListener: (type: 'levelchange' | 'chargingchange', listener: () => void) => void;
+    }
+    const read = (navigator as Navigator & { getBattery?: () => Promise<BatteryLike> }).getBattery;
+    if (!read) return undefined;
+    let cancelled = false;
+    const push = (battery: BatteryLike) => {
+      if (!cancelled) void reportStatus(battery.level, battery.charging);
+    };
+    void read
+      .call(navigator)
+      .then(battery => {
+        if (cancelled) return;
+        push(battery);
+        battery.addEventListener('levelchange', () => push(battery));
+        battery.addEventListener('chargingchange', () => push(battery));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [health]);
 
   const onUpload = useCallback(
     async (files: FileList) => {

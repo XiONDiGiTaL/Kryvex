@@ -57,6 +57,10 @@ export function Link({
   const [status, setStatus] = useState<LinkStatus | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
+  const [diagnosis, setDiagnosis] = useState<import('../../electron/types').LinkDiagnosis | null>(
+    null,
+  );
+  const [checking, setChecking] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!bridge?.linkStatus) return;
@@ -116,6 +120,33 @@ export function Link({
     },
     [onToast, refresh],
   );
+
+  /** Two questions in one answer: is Windows letting it in, and is it serving. */
+  const runDiagnosis = useCallback(async () => {
+    if (!bridge?.linkDiagnose) return;
+    setChecking(true);
+    try {
+      setDiagnosis(await bridge.linkDiagnose());
+    } finally {
+      setChecking(false);
+    }
+  }, [bridge]);
+
+  const allowFirewall = useCallback(async () => {
+    if (!bridge?.linkAllowFirewall) return;
+    setChecking(true);
+    try {
+      setDiagnosis(await bridge.linkAllowFirewall());
+    } finally {
+      setChecking(false);
+    }
+  }, [bridge]);
+
+  // Phone Link is Microsoft's app. Kryvex can open it, not draw it.
+  const openPhoneLink = useCallback(async () => {
+    if (!bridge?.linkOpenPhoneLink) return;
+    await bridge.linkOpenPhoneLink();
+  }, [bridge]);
 
   if (!bridge?.linkStatus) {
     return (
@@ -262,6 +293,84 @@ export function Link({
 
         <article className="link-card">
           <div className="link-card-head">
+            <p className="mono link-kicker">{t('CONNECTION CHECK')}</p>
+            {diagnosis ? (
+              <span className="mono muted-label">
+                {diagnosis.firewall === 'open' ? t('Allowed') : t('Needs a rule')}
+              </span>
+            ) : null}
+          </div>
+          <p className="hint">{t('Check why the phone cannot reach this computer.')}</p>
+          {diagnosis ? (
+            <ul className="link-list">
+              <li>
+                <span className="link-name">
+                  {!diagnosis.firewallSupported
+                    ? t('This system has no Windows Firewall to check.')
+                    : diagnosis.firewall === 'open'
+                      ? t('Windows Firewall allows the link from your local network.')
+                      : diagnosis.firewall === 'rule-disabled'
+                        ? t('A firewall rule for Kryvex Link exists but is switched off.')
+                        : diagnosis.firewall === 'no-rule'
+                          ? t('Windows Firewall has no rule for Kryvex Link, so a phone on your network is likely blocked.')
+                          : t('The firewall state could not be read.')}
+                </span>
+              </li>
+              {diagnosis.probes.map(probe => (
+                <li key={probe.url}>
+                  <span className="link-name mono">{probe.url}</span>
+                  <span className={`link-tag ${probe.reachable ? 'is-primary' : ''}`}>
+                    {probe.reachable ? t('Answered here') : t('Nothing answered')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="link-row">
+            <button
+              className="btn small"
+              disabled={busy || checking}
+              onClick={() => void runDiagnosis()}
+            >
+              <Icon name="reload" size={14} />
+              {checking ? t('Checking…') : t('Run the check')}
+            </button>
+            {diagnosis?.firewallSupported && diagnosis.firewall !== 'open' ? (
+              <button
+                className="btn small primary"
+                disabled={busy || checking}
+                onClick={() => void allowFirewall()}
+              >
+                {t('Allow through the firewall')}
+              </button>
+            ) : null}
+          </div>
+          <p className="hint">
+            {t(
+              'Being able to reach this machine is not the same as the phone being on the same network: both devices must share a Wi-Fi or Ethernet network.',
+            )}
+          </p>
+        </article>
+
+        <article className="link-card">
+          <div className="link-card-head">
+            <p className="mono link-kicker">{t('PHONE LINK')}</p>
+          </div>
+          <p className="hint">
+            {t(
+              'Microsoft Phone Link is its own Windows app: messages, calls and photos live there, not in Kryvex. Kryvex opens it for you and keeps its own link for clipboard, files and the remote.',
+            )}
+          </p>
+          <div className="link-row">
+            <button className="btn small" disabled={busy} onClick={() => void openPhoneLink()}>
+              <Icon name="link" size={14} />
+              {t('Open Phone Link')}
+            </button>
+          </div>
+        </article>
+
+        <article className="link-card">
+          <div className="link-card-head">
             <p className="mono link-kicker">{t('PAIRED PHONES')}</p>
             <span className="mono muted-label">{devices.length}</span>
           </div>
@@ -274,6 +383,9 @@ export function Link({
                   <span className="link-name">{device.label}</span>
                   <span className="mono link-meta">
                     {device.address} · {t('seen {ago} ago', { ago: ago(device.lastSeenAt, now) })}
+                    {device.battery
+                      ? ` · ${Math.round(device.battery.level * 100)}%${device.battery.charging ? ' ⚡' : ''}`
+                      : ''}
                   </span>
                   <button
                     className="btn small ghost"

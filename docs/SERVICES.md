@@ -263,7 +263,7 @@ model and the limits.
 
 ## Service presets
 
-`src/lib/catalog.ts` lists web endpoints only: **179 presets across 16
+`src/lib/catalog.ts` lists web endpoints only: **180 presets across 16
 categories** — communication, productivity, development, AI, resources, media,
 news, education, career, finance, travel, language, design, music, utilities and
 other. Links that exist only as research material for the app's own build (the

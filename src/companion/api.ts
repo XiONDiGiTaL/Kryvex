@@ -267,3 +267,13 @@ export function subscribe(handlers: Events, onStatus?: (live: boolean) => void):
   }
   return () => source.close();
 }
+
+/**
+ * The phone's battery, so the desktop can show device status beside the pairing.
+ * The browser exposes it without a permission prompt; a phone that does not
+ * support the API simply never sends one.
+ */
+export async function reportStatus(level: number, charging: boolean): Promise<boolean> {
+  const answer = await call('/api/status', { body: { level, charging } });
+  return answer.ok;
+}
