@@ -76,6 +76,80 @@ jobs:
             release/Kryvex-Portable-*-x64.exe
             release/SHA256SUMS.txt
 
+  # A release is not finished when it goes live. The README's install table and
+  # history row, the record's Artifacts sizes and digests, and PROJECT_STATUS all
+  # describe what people can actually download, and they can only be filled from
+  # the published assets. Doing that close here is what stops it depending on
+  # whoever cut the release remembering to run `pnpm release:sync` — the same
+  # forgetting that left hotfix.9's Artifacts table at `recorded after the cut`
+  # for four days, and which the next cut's gate now refuses outright.
+  #
+  # `ref: main` because the record has to be closed on the branch that carries
+  # the next cut, not on the detached tag. If `main` is ever protected against
+  # bot pushes this step fails loudly: run `pnpm release:sync <version>` by hand,
+  # commit, and push, rather than making the job best-effort.
+  docs:
+    needs: windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          # The job rebases onto main before pushing; a depth-1 clone has no
+          # base to rebase onto once another push lands during the run.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Publishing the release and moving `releases/latest` are two API facts,
+      # and the sync reads the second to decide whether the README's table may
+      # move, so wait for them to agree rather than race the publish below.
+      - name: Wait for the release to become the latest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          target="${GITHUB_REF_NAME}"
+          for attempt in $(seq 1 12); do
+            latest=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name 2>/dev/null || true)
+            if [ "$latest" = "$target" ]; then
+              echo "releases/latest is ${target}"
+              exit 0
+            fi
+            echo "releases/latest is '${latest:-none}', waiting for ${target} (${attempt}/12)"
+            sleep 10
+          done
+          echo "::error::releases/latest never became ${target}"
+          exit 1
+
+      - name: Fill the four post-publish places
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          node scripts/sync-published-release.cjs "${GITHUB_REF_NAME#v}"
+
+      - name: Commit the paperwork to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          if git diff --quiet -- README.md PROJECT_STATUS.md "docs/RELEASE_${version}.md"; then
+            echo "the docs already name ${version}; nothing to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- README.md PROJECT_STATUS.md "docs/RELEASE_${version}.md"
+          git commit -q -m "Close the ${version} release paperwork"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
   # The web client is the same renderer, so a tag must publish it too; it used to
   # be rebuilt by hand after each release. It runs after the Windows job so a tag
   # that fails its checks never replaces the live site.

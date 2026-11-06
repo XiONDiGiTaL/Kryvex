@@ -141,16 +141,19 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    digests, a `## Released` section in `PROJECT_STATUS.md`, and its installers
    named on the README's front page. `pnpm release:sync` is what fills those
    four, so the next cut cannot ship on top of last release's stale docs.
-6. A second job, `web`, then builds `dist-web/` and force-pushes it to
-   `gh-pages`, so the site at
+6. Two jobs follow the Windows one. `docs` closes the record (step 7) from the
+   release it just published, and `web` builds `dist-web/` and force-pushes it
+   to `gh-pages`, so the site at
    `https://xiondigital.net/Kryvex/` and the phone's installable client carry the
-   same release. It runs after the Windows job, so a tag that fails its checks
-   never replaces the live site, and nothing needs republishing by hand.
-7. **After it publishes, close the record.** A release is not finished when the
-   workflow goes green: the docs still have to name the files people can
-   download. Doing this before the tag advertises artifacts that do not exist
-   yet, and skipping it leaves the front page pointing at the previous build.
-   Four places move together:
+   same release. Both run after the Windows job, so a tag that fails its checks
+   neither closes an unpublished release nor replaces the live site, and
+   nothing needs doing by hand.
+7. **Closing the record is a job, not a memory.** A release is not finished when
+   the workflow goes green: the docs still have to name the files people can
+   download. Doing this before the tag would advertise artifacts that do not
+   exist yet. The `docs` job waits for `releases/latest` to answer with the new
+   tag, runs `pnpm release:sync` against the release that job just uploaded, and
+   commits the result to `main`. Four places move together:
 
    | File | What changes |
    | --- | --- |
@@ -170,9 +173,12 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    report, and it prints whatever it cannot settle — a sentence further down a
    `## Released` section that still says nothing is published needs a person.
 
-   Nothing enforces these four edits: `pnpm release:check` runs before the tag
-   and the workflow never reads `README.md` or `PROJECT_STATUS.md`. That is why
-   the pass is written down here and scripted, instead of being remembered.
+   Run this by hand when the job could not: a release published before the job
+   existed, a `main` that refuses the bot's push, or a re-sync after an asset
+   was corrected (`pnpm release:sync 0.9.5-hotfix.9`). `pnpm release:check` is
+   the other half of the rule: it runs before the next tag, and in the workflow,
+   and fails when the previous release's four facts are still unwritten, so a
+   close that never happened stops the next cut instead of looking fine.
 
 The GitHub release must remain **stable** (not a draft or prerelease) for the
 updater to see it, and it must be the latest stable release.
