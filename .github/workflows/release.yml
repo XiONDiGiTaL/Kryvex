@@ -39,6 +39,14 @@ jobs:
       - name: Check the release record carries its wizard capture
         run: node scripts/check-release-record.cjs
 
+      # The check above guards this tag only. An older record whose capture lost
+      # a page or a screenshot would stay broken forever, because nothing else
+      # ever opens those archives; `docs/UPDATES.md` promises this sweep, so it
+      # has to run somewhere. Every record is committed by the time its tag is
+      # pushed, so a failure here means a real regression, not a pending cut.
+      - name: Check every older record still fits its capture
+        run: node scripts/check-release-record.cjs --all
+
       - run: pnpm install --frozen-lockfile
 
       # A tag can be cut days after main was last green, so the advisories are

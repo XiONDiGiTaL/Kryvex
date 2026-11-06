@@ -122,6 +122,10 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
 
    It fails if the tag does not match `package.json`, if the record has no
    wizard capture (`pnpm release:check`), or if an expected artifact is missing.
+   Before it builds anything it also re-runs `pnpm audit:deps` and sweeps every
+   older record with `node scripts/check-release-record.cjs --all`, so a
+   historical capture that lost a page or a screenshot fails this cut instead of
+   sitting broken — the single-version check only ever reads the tag being cut.
 6. A second job, `web`, then builds `dist-web/` and force-pushes it to
    `gh-pages`, so the site at
    `https://xiondigital.net/Kryvex/` and the phone's installable client carry the

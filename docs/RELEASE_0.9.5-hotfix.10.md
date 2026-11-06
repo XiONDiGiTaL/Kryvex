@@ -100,8 +100,8 @@ French (`src/lib/i18n-link.ts`), so the coverage ratchet does not move.
 without pnpm and without registry access, so `pnpm install`, `pnpm typecheck`,
 `pnpm test`, `pnpm build` and `pnpm verify:link` could not be executed here and
 are recorded as **not run**, not as passing. The tag's workflow runs typecheck,
-the unit suite, the one-time-code relay and the Electron harnesses before it
-packages anything.
+the unit suite and the one-time-code relay before it packages anything; the
+Electron harnesses run in CI on pushes to `main`, not on the tag.
 
 What was checked statically, and how:
 

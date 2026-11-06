@@ -99,14 +99,17 @@ Produced by the Release workflow on the `v0.9.5-hotfix.9` tag
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.9.5-hotfix.9-x64.exe` | recorded after the cut | recorded after the cut |
-| `Kryvex-Portable-0.9.5-hotfix.9-x64.exe` | recorded after the cut | recorded after the cut |
+| `Kryvex-Setup-0.9.5-hotfix.9-x64.exe` | 138,319,761 B | `94e44b5381dfc61db52ac7d0f75d88bcade9d767996d08a42d9aef33f7034b4e` |
+| `Kryvex-Portable-0.9.5-hotfix.9-x64.exe` | 138,075,929 B | `7c71518eb039e1293d5c742507d3de88485c0d58a67bd3318f31ce09884b8b3d` |
 
-This record was written before the tag, so the digests are filled into
-`PROJECT_STATUS.md` from GitHub's own asset digests once the workflow publishes;
-`SHA256SUMS.txt` travels with the pair and the in-app updater verifies against
-it. Both EXEs are **unsigned**, so Windows SmartScreen still shows its
-unknown-publisher prompt on first run.
+These are the published artifacts' own sizes and digests, read from the release
+on 2026-11-06. This table said `recorded after the cut` for four days after the
+release went live — the placeholder survived the cut because nothing reads it,
+which is why the post-publish pass is now written down in
+[UPDATES.md](UPDATES.md). `SHA256SUMS.txt` (207 B) travels with the pair and
+matches both digests, so the in-app updater accepts this release. Both EXEs are
+**unsigned**, so Windows SmartScreen still shows its unknown-publisher prompt on
+first run.
 
 ## Wizard capture
 
@@ -130,8 +133,9 @@ page's title and text, and this record links the archive as
 
 Until step 4, `releases/latest` answered `v0.9.5-hotfix.8` and
 `https://xiondigital.net/Kryvex/` served the hotfix.8 renderer. Both moved at
-2026-11-02T03:25:05Z: the release and its digests are in `PROJECT_STATUS.md`, and
-the served `assets/main-ChjyKzae.js` carries the `xiondigital.net Edition`
+2026-11-02T03:25:05Z: the digests are in the table above and in
+`PROJECT_STATUS.md`, and the served `assets/main-ChjyKzae.js` carries the
+`xiondigital.net Edition`
 entry. The tag's first push was made without this capture and stopped at the gate
 above, so nothing was published until the tag was moved onto the commit that
 carries it.
