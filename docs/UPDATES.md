@@ -173,6 +173,13 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    report, and it prints whatever it cannot settle — a sentence further down a
    `## Released` section that still says nothing is published needs a person.
 
+   Those notes do not stay in the run log. The `docs` job hands them to
+   `gh issue create`, so prose that still says nothing is published becomes an
+   open issue titled *Release paperwork that still needs a human* — a later
+   release comments on that issue instead of filing a second — and the run's own
+   summary carries the same list. Working the issue down is part of closing the
+   release; it is the one part no script can defer for you.
+
    Run this by hand when the job could not: a release published before the job
    existed, a `main` that refuses the bot's push, or a re-sync after an asset
    was corrected (`pnpm release:sync 0.9.5-hotfix.9`). `pnpm release:check` is

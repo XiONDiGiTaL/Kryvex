@@ -17,10 +17,18 @@
  * script rather than writing a guess.
  *
  * Usage: `node scripts/sync-published-release.cjs [version] [--dry-run]
- * [--release-json <file>]`. The version defaults to `package.json`; `--dry-run`
- * prints the edits without writing them; `--release-json` reads a saved payload
- * (`{ "release": …, "latest": …, "sums": "…" }`, or a bare release) instead of
- * the API, which is how the transform is exercised offline.
+ * [--release-json <file>] [--notes-file <file>]`. The version defaults to
+ * `package.json`; `--dry-run` prints the edits without writing them;
+ * `--release-json` reads a saved payload (`{ "release": …, "latest": …,
+ * "sums": "…" }`, or a bare release) instead of the API, which is how the
+ * transform is exercised offline.
+ *
+ * The prose beside those four facts was also written before the tag, and the
+ * script can see it going stale ("nothing is published", "the gate fails for
+ * this version") without being able to decide what it should say instead. Those
+ * come out as notes: printed, written to `--notes-file` for the Release workflow
+ * to turn into an issue, appended to `GITHUB_STEP_SUMMARY` and, in Actions,
+ * raised as warnings on the run. A log is read once; an open issue is not.
  *
  * `GITHUB_TOKEN` (or `GH_TOKEN`) is optional and only raises the rate limit.
  */
@@ -32,7 +40,12 @@ const argv = process.argv.slice(2);
 const dryRun = argv.includes('--dry-run');
 const jsonIndex = argv.indexOf('--release-json');
 const jsonPath = jsonIndex >= 0 ? argv[jsonIndex + 1] : null;
-const explicit = argv.find(argument => !argument.startsWith('--') && argument !== jsonPath);
+const notesIndex = argv.indexOf('--notes-file');
+const notesFile = notesIndex >= 0 ? argv[notesIndex + 1] : null;
+if (notesIndex >= 0 && !notesFile) fail('--notes-file needs a path.');
+const explicit = argv.find(
+  argument => !argument.startsWith('--') && argument !== jsonPath && argument !== notesFile,
+);
 const packageJson = require(path.join(root, 'package.json'));
 const version = (explicit || packageJson.version).replace(/^v/, '');
 const tag = `v${version}`;
@@ -56,6 +69,47 @@ function change(file, message) {
 
 function note(message) {
   notes.push(message);
+}
+
+// ------------------------------------------------------------------- the notes
+
+function workflowEscape(text) {
+  return String(text).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+}
+
+function notesMarkdown() {
+  const lines = [
+    `\`${tag}\` is published and the four record facts were filled from the release itself.`,
+    'These sentences were written before the tag, and this run could not tell whether they are still true:',
+    '',
+    ...notes.map(message => `- ${message}`),
+    '',
+    `Fix the prose where it is wrong, then re-run \`pnpm release:sync ${version}\`: the list shrinks as the tree catches up.`,
+  ];
+  return `${lines.join('\n')}\n`;
+}
+
+function reportNotes() {
+  if (notes.length === 0) {
+    // A file left by an earlier run would make the workflow post a list that has
+    // since been answered.
+    if (notesFile) fs.rmSync(path.resolve(notesFile), { force: true });
+    return;
+  }
+
+  console.log('\nneeds a human:');
+  for (const message of notes) console.log(`  ${message}`);
+
+  const markdown = notesMarkdown();
+  if (notesFile) fs.writeFileSync(path.resolve(notesFile), markdown, 'utf8');
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Needs a human\n\n${markdown}`, 'utf8');
+  }
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    for (const message of notes) {
+      console.log(`::warning title=Release paperwork::${workflowEscape(message)}`);
+    }
+  }
 }
 
 // ------------------------------------------------------------------ the source
@@ -394,10 +448,7 @@ async function main() {
     console.log(dryRun ? '\nsync: dry run, nothing written' : `\nsync: wrote ${touched.length} file(s)`);
   }
 
-  if (notes.length > 0) {
-    console.log('\nneeds a human:');
-    for (const message of notes) console.log(`  ${message}`);
-  }
+  reportNotes();
 }
 
 main().catch(error => {

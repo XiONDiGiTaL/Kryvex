@@ -10,6 +10,9 @@ on:
 
 permissions:
   contents: write
+  # The docs job turns the sync's leftover-prose notes into an issue; the prose
+  # is the one part of closing a release a script cannot settle by itself.
+  issues: write
 
 jobs:
   windows:
@@ -130,9 +133,37 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOTES_FILE: ${{ runner.temp }}/kryvex-sync-notes.md
         run: |
           set -euo pipefail
-          node scripts/sync-published-release.cjs "${GITHUB_REF_NAME#v}"
+          node scripts/sync-published-release.cjs "${GITHUB_REF_NAME#v}" --notes-file "${NOTES_FILE}"
+
+      # The four facts are scripted. The sentences around them are not: a record
+      # that still says nothing is published, or a status line that says the gate
+      # fails for this version, is prose written before the tag, and the run that
+      # fills the table is the last time anything reads it. So a note becomes an
+      # issue — one open issue, commented again whenever there is more to say —
+      # instead of a line in a log nobody reopens.
+      - name: Surface the prose only a human can settle
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOTES_FILE: ${{ runner.temp }}/kryvex-sync-notes.md
+        run: |
+          set -euo pipefail
+          if [ ! -s "$NOTES_FILE" ]; then
+            echo "nothing left for a human to confirm"
+            exit 0
+          fi
+          title="Release paperwork that still needs a human"
+          existing=$(gh issue list --state open --limit 100 --search "in:title \"$title\"" \
+            --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file "$NOTES_FILE"
+            echo "commented on #$existing"
+          else
+            gh issue create --title "$title" --body-file "$NOTES_FILE"
+          fi
 
       - name: Commit the paperwork to main
         shell: bash
