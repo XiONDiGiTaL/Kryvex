@@ -135,9 +135,15 @@ function checkDocs(version) {
     `docs: README's release history lists ${previous}`,
     readme.includes(`| ${previous} | [RELEASE_${previous}.md](docs/RELEASE_${previous}.md) |`),
   );
-  const named = ['Setup', 'Portable'].filter(kind => readme.includes(`Kryvex-${kind}-${previous}-x64.exe`));
+  // The install table names one build at a time: `previous` until the release
+  // being cut is published, this version once `release:sync` moves it there.
+  // Either is a released pair, so accept both; an empty or half-filled table
+  // still fails.
+  const named = ['Setup', 'Portable'].filter(kind =>
+    [previous, version].some(candidate => readme.includes(`Kryvex-${kind}-${candidate}-x64.exe`)),
+  );
   check(
-    `docs: README's install table names ${previous}'s installers`,
+    `docs: README's install table names ${previous}'s or ${version}'s installers`,
     named.length === 2,
     `${named.length}/2`,
   );
