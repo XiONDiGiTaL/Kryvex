@@ -24,6 +24,9 @@ permissions:
 jobs:
   capture:
     runs-on: windows-latest
+    # The build takes about ten minutes and the wizard gives up after seven; a
+    # hung installer should not hold a runner for the default six hours.
+    timeout-minutes: 45
     env:
       # Both EXEs are unsigned; without this electron-builder looks for a
       # certificate on the runner and fails before it packages anything.

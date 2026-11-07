@@ -497,11 +497,16 @@ async function stopNewApps(before) {
     console.log(`installed: ${exe} (${report.installation.versionBefore})`);
   }
 
-  const release = await releaseInfo();
-  report.release = { version: release.version, url: release.url };
-  console.log(`latest published: ${release.version}`);
-
   const requestedInstaller = option('installer');
+  // A capture of a local installer needs nothing from the release feed: with
+  // --no-app --installer the feed is only reported, and asking it anyway makes a
+  // step whose input is a file on disk depend on api.github.com answering — a
+  // different proposition from a shared runner's address than from a desk.
+  const release = wizardOnly && requestedInstaller ? null : await releaseInfo();
+  if (release) {
+    report.release = { version: release.version, url: release.url };
+    console.log(`latest published: ${release.version}`);
+  }
   let installerToCapture = requestedInstaller ? path.resolve(requestedInstaller) : undefined;
   let versionAfter = null;
 
@@ -700,9 +705,9 @@ async function stopNewApps(before) {
     // A local installer can be captured before its release exists, which is how
     // a tag carries a wizard capture the workflow can check. --version names
     // that release; otherwise the installer's own version or the live feed.
-    const archiveVersion = (option('version') || report.installerVersion || release.version)
-      .replace(/^v/, '')
-      .replace(/^(\d+\.\d+\.\d+)\.0$/, '$1');
+    const named = option('version') || report.installerVersion || (release ? release.version : null);
+    if (!named) throw new Error('nothing names this capture; pass --version <version>.');
+    const archiveVersion = String(named).replace(/^v/, '').replace(/^(\d+\.\d+\.\d+)\.0$/, '$1');
     const archived = archiveCapture(archiveVersion);
     if (archived) {
       report.archive = path.relative(root, archived).split(path.sep).join('/');
