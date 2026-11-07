@@ -18,11 +18,11 @@ fixed rather than papered over:
 3. The view offered no way to tell "Kryvex is not serving" from "the network is
    the problem".
 
-> **Not published yet.** `package.json` is at `0.9.5-hotfix.10` and this record
-> exists, but no tag has been pushed and no installer has been built.
-> `releases/latest` still answers `v0.9.5-hotfix.9`. See
-> [Wizard capture](#wizard-capture): the gate fails for this version until the
-> capture is committed on the machine that cuts the tag, and that is deliberate.
+> **Nothing on `main` is live until this tag runs the Release workflow.** The
+> `windows` job builds the two installers and attaches them to the release; the
+> web job publishes the renderer to `gh-pages`, and no push to `main` publishes
+> either. [Wizard capture](#wizard-capture) covers the one artefact only the
+> Windows machine that cuts the tag can produce.
 
 ## What changed
 
@@ -127,11 +127,11 @@ Produced by the Release workflow on the `v0.9.5-hotfix.10` tag
 | `Kryvex-Setup-0.9.5-hotfix.10-x64.exe` | recorded after the cut | recorded after the cut |
 | `Kryvex-Portable-0.9.5-hotfix.10-x64.exe` | recorded after the cut | recorded after the cut |
 
-This record was written before the tag, so the digests are filled into
-`PROJECT_STATUS.md` from GitHub's own asset digests once the workflow publishes;
-`SHA256SUMS.txt` travels with the pair and the in-app updater verifies against
-it. Both EXEs are **unsigned**, so Windows SmartScreen still shows its
-unknown-publisher prompt on first run.
+`pnpm release:sync` copies both sizes and digests into this table and into
+`PROJECT_STATUS.md` from the release's own asset facts, so neither is typed from
+a terminal or copied by hand. `SHA256SUMS.txt` travels with the pair, and the
+in-app updater verifies the download against it. Both EXEs are **unsigned**, so
+Windows SmartScreen still shows its unknown-publisher prompt on first run.
 
 ## Wizard capture
 
@@ -159,13 +159,13 @@ it on Windows and stops at the first failure:
    patches, so an implicit run would archive over `0.9.5-wizard` instead.
 3. `pnpm release:check` reports PASS for 0.9.5-hotfix.10.
 4. Commit the capture, push `main`, then push the `v0.9.5-hotfix.10` tag.
-5. Once the workflow publishes, make the doc pass in [UPDATES.md](UPDATES.md),
+5. After the tag publishes, make the doc pass in [UPDATES.md](UPDATES.md),
    step 7 of **Release procedure**: the README's install table and
    release-history row, the published sizes and digests in **Artifacts** below,
    and `PROJECT_STATUS.md` moving from `## Prepared` to `## Released`.
    `node scripts/sync-published-release.cjs` (`pnpm release:sync`) makes those
-   four edits from the published assets; read the notes it prints, because the
-   prose above this record's `## Artifacts` table was written before the tag.
+   four edits from the published assets and files anything it cannot settle as
+   an issue, so no sentence here waits on somebody re-reading the log.
 
 Until step 4, `releases/latest` answers `v0.9.5-hotfix.9` and
 `https://xiondigital.net/Kryvex/` serves the hotfix.9 renderer. The web job

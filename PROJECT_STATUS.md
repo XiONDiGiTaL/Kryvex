@@ -46,13 +46,14 @@ Public is no longer a silent block; a paired phone reports its battery as
 launcher that opens Microsoft's own app, which cannot be embedded. Full record:
 [RELEASE_0.9.5-hotfix.10.md](docs/RELEASE_0.9.5-hotfix.10.md).
 
-`node scripts/check-release-record.cjs` therefore **fails** for this version:
-the record has its `## Wizard capture` section and links
-`docs/media/releases/0.9.5-hotfix.10-wizard`, but no capture is committed. That
-is deliberate. The same gate is what stopped the first hotfix.9 tag from
-publishing, so this time the record says so up front: the capture must be made
-on the Windows machine that cuts the tag and committed, and only then may
-`v0.9.5-hotfix.10` be pushed.
+`node scripts/check-release-record.cjs` gates the tag on the wizard capture: the
+record's `## Wizard capture` section, the
+`docs/media/releases/0.9.5-hotfix.10-wizard` page images it links, and a
+`wizard.json` beside them. That capture can only be made on the Windows machine
+that cuts the tag — it is a native installer dialog, not a page Kryvex renders —
+so the gate holds a tag back instead of letting it go out ahead of its own
+record. It is the same check that stopped the first `v0.9.5-hotfix.9` push from
+publishing anything.
 
 No suite was run for this record. The change was prepared on a Linux runner with
 no pnpm and no registry access, so `pnpm typecheck`, `pnpm test` and
