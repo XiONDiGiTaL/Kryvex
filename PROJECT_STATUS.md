@@ -31,7 +31,7 @@ See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 ## Prepared (2026-11-06, 0.9.5-hotfix.10)
 
 `package.json` is at **0.9.5-hotfix.10** and its record exists, but nothing is
-published: no tag has been pushed and no installer has been built. `main`
+published: no tag has been pushed and no installer has been published. `main`
 carries this version; `releases/latest` still answers `v0.9.5-hotfix.9`.
 
 The batch is about the phone link's first-run failure. The pairing code is
@@ -50,10 +50,14 @@ launcher that opens Microsoft's own app, which cannot be embedded. Full record:
 record's `## Wizard capture` section, the
 `docs/media/releases/0.9.5-hotfix.10-wizard` page images it links, and a
 `wizard.json` beside them. That capture has to be recorded on Windows — it is a
-native installer dialog, not a page Kryvex renders — by `pnpm release:cut` on the
-machine that cuts the tag or by the **Wizard capture** workflow, so the gate
-holds a tag back instead of letting it go out ahead of its own record. It is the same check that stopped the first `v0.9.5-hotfix.9` push from
-publishing anything.
+native installer dialog, not a page Kryvex renders — by `pnpm release:cut` on
+the machine that cuts the tag or by the **Wizard capture** workflow, which
+builds the Setup EXE on a Windows runner and commits the archive to `main`. The
+gate is what makes a tag wait for it, and it is the same check that stopped the
+first `v0.9.5-hotfix.9` push from publishing anything. That workflow recorded
+this version's capture on 2026-11-07 — four pages, installer exit 0, under
+`docs/media/releases/0.9.5-hotfix.10-wizard` — so the gate passes for
+`0.9.5-hotfix.10`.
 
 No suite was run for this record. The change was prepared on a Linux runner with
 no pnpm and no registry access, so `pnpm typecheck`, `pnpm test` and
