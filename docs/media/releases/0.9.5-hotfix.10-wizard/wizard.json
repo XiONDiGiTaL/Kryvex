@@ -2,11 +2,11 @@
   "version": "0.9.5-hotfix.10",
   "installerVersion": "0.9.5-hotfix.10",
   "installer": "Kryvex-Setup-0.9.5-hotfix.10-x64.exe",
-  "recordedAt": "2026-11-07T06:40:24.166Z",
+  "recordedAt": "2026-11-07T06:48:14.328Z",
   "startedHere": true,
   "exitCode": 0,
   "pageCount": 4,
-  "durationMs": 35939,
+  "durationMs": 37550,
   "pages": [
     {
       "index": 1,
@@ -26,7 +26,7 @@
         "Cancel"
       ],
       "image": "pages/01-Choose Installation Options.png",
-      "at": "2026-11-07T06:39:49.5982848Z"
+      "at": "2026-11-07T06:47:38.3498726Z"
     },
     {
       "index": 2,
@@ -48,7 +48,7 @@
         "Cancel"
       ],
       "image": "pages/02-Choose Install Location.png",
-      "at": "2026-11-07T06:39:53.4624650Z"
+      "at": "2026-11-07T06:47:42.4686872Z"
     },
     {
       "index": 3,
@@ -65,7 +65,7 @@
         "Cancel"
       ],
       "image": "pages/03-Installing.png",
-      "at": "2026-11-07T06:39:57.3915864Z"
+      "at": "2026-11-07T06:47:46.4582009Z"
     },
     {
       "index": 4,
@@ -82,7 +82,7 @@
         "Cancel"
       ],
       "image": "pages/04-Completing Kryvex Setup.png",
-      "at": "2026-11-07T06:40:18.9953243Z"
+      "at": "2026-11-07T06:48:08.8730380Z"
     }
   ]
 }

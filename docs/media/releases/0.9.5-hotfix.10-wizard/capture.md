@@ -1,6 +1,6 @@
 # Wizard capture: Kryvex 0.9.5-hotfix.10
 
-Recorded 2026-11-07T06:40:24.166Z by `pnpm verify:self-update --wizard --archive`.
+Recorded 2026-11-07T06:48:14.328Z by `pnpm verify:self-update --wizard --archive`.
 
 | Field | Value |
 | --- | --- |
@@ -27,6 +27,6 @@ was alive.
 - PASS the wizard showed more than one page, 4 pages: Choose Installation Options → Choose Install Location → Installing → Completing Kryvex Setup
 - PASS the installer exited 0, exit code 0
 - PASS the wizard opened an install progress page, "Installing"
-- PASS the install page ran instead of being skipped, 21604 ms between "Installing" and "Completing Kryvex Setup"
+- PASS the install page ran instead of being skipped, 22415 ms between "Installing" and "Completing Kryvex Setup"
 - PASS the wizard reached its finish page, "Completing Kryvex Setup"
 - PASS every page was photographed, 4/4 pages
