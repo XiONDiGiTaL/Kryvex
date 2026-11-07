@@ -124,8 +124,8 @@ Produced by the Release workflow on the `v0.9.5-hotfix.10` tag
 
 | File | Size | SHA-256 |
 | --- | --- | --- |
-| `Kryvex-Setup-0.9.5-hotfix.10-x64.exe` | recorded after the cut | recorded after the cut |
-| `Kryvex-Portable-0.9.5-hotfix.10-x64.exe` | recorded after the cut | recorded after the cut |
+| `Kryvex-Setup-0.9.5-hotfix.10-x64.exe` | 138,325,261 B | `ae1f87d935f8cd0f53b7ce22663d4598e94eafe2320c9d2ad99541b21e20cc61` |
+| `Kryvex-Portable-0.9.5-hotfix.10-x64.exe` | 138,081,374 B | `2559ecb446f77255c68ea85534fa09be99ab3d20d7b7b8edd6e34bdf789d93e8` |
 
 `pnpm release:sync` copies both sizes and digests into this table and into
 `PROJECT_STATUS.md` from the release's own asset facts, so neither is typed from

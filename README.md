@@ -210,8 +210,8 @@ Kryvex targets Windows 10/11 x64. Download the current release from the
 
 | Artifact | Use |
 | --- | --- |
-| `Kryvex-Setup-0.9.5-hotfix.9-x64.exe` | Standard per-user installer. Choose the folder, get Desktop and Start Menu shortcuts, uninstall from Windows Settings. No admin rights for the default location. |
-| `Kryvex-Portable-0.9.5-hotfix.9-x64.exe` | Run without installing. State still lives in `%APPDATA%\Kryvex`. |
+| `Kryvex-Setup-0.9.5-hotfix.10-x64.exe` | Standard per-user installer. Choose the folder, get Desktop and Start Menu shortcuts, uninstall from Windows Settings. No admin rights for the default location. |
+| `Kryvex-Portable-0.9.5-hotfix.10-x64.exe` | Run without installing. State still lives in `%APPDATA%\Kryvex`. |
 
 About 138 MB each. `SHA256SUMS.txt` travels with the pair and the in-app updater
 verifies against it.
@@ -349,6 +349,7 @@ issues:
 
 | Release | Record |
 | --- | --- |
+| 0.9.5-hotfix.10 | [RELEASE_0.9.5-hotfix.10.md](docs/RELEASE_0.9.5-hotfix.10.md) |
 | 0.9.5-hotfix.9 | [RELEASE_0.9.5-hotfix.9.md](docs/RELEASE_0.9.5-hotfix.9.md) |
 | 0.9.5-hotfix.8 | [RELEASE_0.9.5-hotfix.8.md](docs/RELEASE_0.9.5-hotfix.8.md) |
 | 0.9.5-hotfix.7 | [RELEASE_0.9.5-hotfix.7.md](docs/RELEASE_0.9.5-hotfix.7.md) |

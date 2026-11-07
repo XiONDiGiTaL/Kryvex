@@ -28,11 +28,19 @@ mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
-## Prepared (2026-11-06, 0.9.5-hotfix.10)
+## Released (2026-11-07, 0.9.5-hotfix.10)
 
-`package.json` is at **0.9.5-hotfix.10** and its record exists, but nothing is
-published: no tag has been pushed and no installer has been published. `main`
-carries this version; `releases/latest` still answers `v0.9.5-hotfix.9`.
+The `v0.9.5-hotfix.10` tag ran the Release workflow and published a stable
+release, not a draft or a prerelease, at 2026-11-07T06:59:10Z.
+`releases/latest` answers `v0.9.5-hotfix.10`.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `Kryvex-Setup-0.9.5-hotfix.10-x64.exe` | 138,325,261 B | `ae1f87d935f8cd0f53b7ce22663d4598e94eafe2320c9d2ad99541b21e20cc61` |
+| `Kryvex-Portable-0.9.5-hotfix.10-x64.exe` | 138,081,374 B | `2559ecb446f77255c68ea85534fa09be99ab3d20d7b7b8edd6e34bdf789d93e8` |
+
+`SHA256SUMS.txt` (209 B) travels with them and matches both digests, so
+the in-app updater accepts this release.
 
 The batch is about the phone link's first-run failure. The pairing code is
 re-rolled when it expires instead of being displayed after it can no longer
