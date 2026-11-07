@@ -112,6 +112,7 @@ export const SERVICE_PRESETS: ServicePreset[] = [
     url: 'https://messages.google.com/web/',
     category: 'communication',
     color: '#1A73E8',
+    icon: 'googlemessages',
     note: 'Pair the Google Messages app on your phone and text from this PC: SMS, MMS and RCS in their own session. Signed out, it shows a QR code to scan with the phone.',
     aliases: ['SMS', 'Texts', 'Android Messages', 'Messages by Google'],
   },
