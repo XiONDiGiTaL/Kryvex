@@ -1,0 +1,128 @@
+name: Wizard capture
+
+# A release cannot be tagged until its installer wizard is archived, because
+# `scripts/check-release-record.cjs` runs before the Release workflow builds
+# anything. Recording that wizard used to mean having a Windows machine with the
+# checkout on it, which is the one part of a cut that tied the release to a desk.
+#
+# This job is that part, and only that part: the same three steps
+# `pnpm release:cut` runs there — package, capture, gate — with the archive
+# committed to `main` so the tag that follows carries it. It deliberately does
+# not tag or publish. A capture is a fact about an installer; publishing is a
+# decision, and it stays a push somebody makes on purpose.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to capture; defaults to the one in package.json
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: windows-latest
+    env:
+      # Both EXEs are unsigned; without this electron-builder looks for a
+      # certificate on the runner and fails before it packages anything.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          # The commit at the end rebases onto main; a depth-1 clone has no base
+          # to rebase onto once another push lands during the build.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # A capture is archived beside a record, and the gate checks that the
+      # record links it, so both have to already exist on main.
+      - name: Decide the version to capture
+        id: target
+        shell: bash
+        env:
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          version="${REQUESTED:-$(node -e "process.stdout.write(require('./package.json').version)")}"
+          version="${version#v}"
+          record="docs/RELEASE_${version}.md"
+          if [ ! -f "$record" ]; then
+            echo "::error::$record does not exist; a capture belongs to a record that is already written."
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "capturing ${version}"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build the installers
+        run: pnpm package:win
+
+      # The same command `pnpm release:cut` runs, pointed at the EXE this job
+      # just built. Bare `pnpm release:wizard` is not used: without --installer
+      # it captures whatever `releases/latest` serves, and a hotfix keeps the
+      # numeric version of the release it patches, so it would archive over that
+      # release's capture and leave this one missing.
+      - name: Capture the installer wizard
+        shell: bash
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+        run: |
+          set -euo pipefail
+          setup="release/Kryvex-Setup-${VERSION}-x64.exe"
+          if [ ! -f "$setup" ]; then
+            echo "::error::${setup} was not built; the capture has nothing to drive."
+            exit 1
+          fi
+          node scripts/verify-self-update.cjs --no-app --installer "$setup" --version "$VERSION" --archive
+
+      # Committing a capture the gate would reject only moves the failure to the
+      # tag, where it costs a run and leaves a tag that has to be moved.
+      - name: Refuse a capture the record gate would not accept
+        shell: bash
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+        run: |
+          set -euo pipefail
+          node scripts/check-release-record.cjs "$VERSION"
+
+      - name: Commit the capture to main
+        shell: bash
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+        run: |
+          set -euo pipefail
+          archive="docs/media/releases/${VERSION}-wizard"
+          if [ -z "$(git status --porcelain -- "$archive")" ]; then
+            echo "the ${VERSION} capture is already committed; nothing to do"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "$archive"
+          git commit -q -m "Capture the ${VERSION} installer wizard"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Say what was archived
+        shell: bash
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+        run: |
+          set -euo pipefail
+          node -e "
+          const manifest = require('./docs/media/releases/${VERSION}-wizard/wizard.json');
+          console.log('${VERSION}: ' + manifest.pageCount + ' pages, installer exit ' + manifest.exitCode);
+          "
+          echo "::notice::${VERSION} wizard archived under docs/media/releases/${VERSION}-wizard; push the tag when you are ready to publish."

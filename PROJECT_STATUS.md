@@ -49,10 +49,10 @@ launcher that opens Microsoft's own app, which cannot be embedded. Full record:
 `node scripts/check-release-record.cjs` gates the tag on the wizard capture: the
 record's `## Wizard capture` section, the
 `docs/media/releases/0.9.5-hotfix.10-wizard` page images it links, and a
-`wizard.json` beside them. That capture can only be made on the Windows machine
-that cuts the tag — it is a native installer dialog, not a page Kryvex renders —
-so the gate holds a tag back instead of letting it go out ahead of its own
-record. It is the same check that stopped the first `v0.9.5-hotfix.9` push from
+`wizard.json` beside them. That capture has to be recorded on Windows — it is a
+native installer dialog, not a page Kryvex renders — by `pnpm release:cut` on the
+machine that cuts the tag or by the **Wizard capture** workflow, so the gate
+holds a tag back instead of letting it go out ahead of its own record. It is the same check that stopped the first `v0.9.5-hotfix.9` push from
 publishing anything.
 
 No suite was run for this record. The change was prepared on a Linux runner with

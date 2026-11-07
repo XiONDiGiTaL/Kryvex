@@ -114,6 +114,15 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
    first failure. `-DryRun` prints every preflight guard's verdict and the
    ordered plan without building, capturing or tagging.
 
+   No Windows machine at hand is no longer a dead end: run the **Wizard
+   capture** workflow (`.github/workflows/capture.yml`, from the Actions tab).
+   It builds the installers on a `windows-latest` runner, runs the same command
+   above against the Setup EXE it just built, refuses the result unless
+   `pnpm release:check` accepts it, and commits
+   `docs/media/releases/<version>-wizard/` to `main`. It does not tag or publish
+   — the tag stays a push you make on purpose — so the capture can come from a
+   runner while the decision to release stays yours.
+
 4. Commit and push a tag:
 
    ```bash

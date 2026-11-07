@@ -21,8 +21,8 @@ fixed rather than papered over:
 > **Nothing on `main` is live until this tag runs the Release workflow.** The
 > `windows` job builds the two installers and attaches them to the release; the
 > web job publishes the renderer to `gh-pages`, and no push to `main` publishes
-> either. [Wizard capture](#wizard-capture) covers the one artefact only the
-> Windows machine that cuts the tag can produce.
+> either. [Wizard capture](#wizard-capture) covers the one artefact that records
+> what the installer itself displayed, on a real Windows run.
 
 ## What changed
 
@@ -138,13 +138,17 @@ Windows SmartScreen still shows its unknown-publisher prompt on first run.
 The Release workflow runs `node scripts/check-release-record.cjs` before it
 builds, and that gate fails a tag whose record has no installer wizard capture.
 
-**No capture is committed for 0.9.5-hotfix.10, so `pnpm release:check` fails for
-this version as the repository stands.** That is deliberate and stated here
-rather than discovered by a green-looking tag: the first `v0.9.5-hotfix.9` push
-published nothing because it went out before its capture existed, and the run
-stopped at this gate. The capture cannot be produced anywhere but the Windows
-machine that cuts the tag — it is a native installer dialog, not a page Kryvex
-renders, so no screenshot of the app can stand in for it.
+**The gate is what makes the tag wait for the capture.**
+`scripts/check-release-record.cjs` wants a `wizard.json` and its pages under
+`docs/media/releases/0.9.5-hotfix.10-wizard` before it accepts
+`v0.9.5-hotfix.10`, and it runs before the build rather than after the publish:
+the first `v0.9.5-hotfix.9` push went out without its capture, published
+nothing, and had to be moved onto the commit carrying it. The capture has to be
+recorded on Windows — it is a native installer dialog, not a page Kryvex
+renders, so no screenshot of the app can stand in for it — either by
+`pnpm release:cut` on the machine that cuts the tag or by the **Wizard capture**
+workflow, which builds the Setup EXE on a Windows runner, runs it through its
+own wizard and commits the archive to `main`.
 
 The cut, in order. `scripts/cut-release.ps1` (`pnpm release:cut`) runs all of
 it on Windows and stops at the first failure:
