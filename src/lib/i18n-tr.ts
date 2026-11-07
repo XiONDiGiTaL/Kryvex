@@ -1228,4 +1228,29 @@ export const turkishCopy: Record<string, string> = {
     "Every script runs once the page's markup is ready. @run-at document-start is treated as document-end, because nothing is injected before the page has loaded.": 'Her betik sayfanın işaretlemesi hazır olduğunda bir kez çalışır. @run-at document-start, document-end gibi ele alınır; çünkü sayfa yüklenmeden hiçbir şey eklenmez.',
     "A user script is third-party code running inside the page with that page's own access. Install only scripts you trust, and switch one off before visiting a site where it changes something you rely on.": 'Kullanıcı betiği, sayfanın kendi erişimiyle sayfa içinde çalışan üçüncü taraf kodudur. Yalnızca güvendiğin betikleri yükle ve güvendiğin bir şeyi değiştirdiği bir siteye girmeden önce betiği kapat.',
     'No user scripts installed. The sources below are libraries other people publish to; Kryvex hosts none of them and audits none of them.': 'Kullanıcı betiği yüklü değil. Aşağıdaki kaynaklar başkalarının betik yayımladığı kütüphanelerdir; Kryvex hiçbirini barındırmaz ve denetlemez.',
+  // 0.9.5-hotfix.10: the connection check that explains why a phone cannot
+  // reach this computer, the firewall states it reports, and Phone Link.
+  'CONNECTION CHECK': 'BAĞLANTI DENETİMİ',
+  'Allowed': 'İzin verildi',
+  'Needs a rule': 'Kural gerekiyor',
+  'Check why the phone cannot reach this computer.':
+    'Telefonun bu bilgisayara neden ulaşamadığını denetle.',
+  'This system has no Windows Firewall to check.':
+    'Bu sistemde denetlenecek bir Windows Güvenlik Duvarı yok.',
+  'Windows Firewall allows the link from your local network.':
+    'Windows Güvenlik Duvarı bağlantıya yerel ağından izin veriyor.',
+  'A firewall rule for Kryvex Link exists but is switched off.':
+    'Kryvex Link için bir güvenlik duvarı kuralı var ama kapalı.',
+  'Windows Firewall has no rule for Kryvex Link, so a phone on your network is likely blocked.':
+    'Windows Güvenlik Duvarı’nda Kryvex Link için kural yok; bu yüzden ağındaki bir telefon büyük olasılıkla engelleniyor.',
+  'The firewall state could not be read.': 'Güvenlik duvarının durumu okunamadı.',
+  'Allow through the firewall': 'Güvenlik duvarından izin ver',
+  'Answered here': 'Burada yanıt verdi',
+  'Nothing answered': 'Hiçbir yanıt yok',
+  'Run the check': 'Denetimi çalıştır',
+  'PHONE LINK': 'TELEFON BAĞLANTISI',
+  'Open Phone Link': 'Phone Link’i aç',
+  '{count} INSTALLED': '{count} KURULU',
+  'Saved to {path}': 'Kaydedildi: {path}',
+  'Save as…': 'Farklı kaydet…',
 };
