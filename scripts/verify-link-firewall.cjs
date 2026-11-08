@@ -327,10 +327,11 @@ async function main() {
 
     // The same fact, read out of Windows rather than out of the app.
     const written = await readRule();
+    const held = scopesHeld(written.remote);
     record(
       'Windows holds the rule with both scopes',
-      written.remote.includes('LocalSubnet') && written.remote.includes(FIRST_NETWORK),
-      written.remote,
+      held.includes('LocalSubnet') && held.includes(FIRST_NETWORK),
+      held.join(' '),
     );
     record('the rule is enabled after the write', written.enabled === true, String(written.enabled));
 
@@ -395,3 +396,26 @@ main().catch(async error => {
   await stop();
   process.exitCode = 1;
 });
+
+/**
+ * The rule's remote list from Windows, in the CIDR form this app speaks.
+ *
+ * Windows stores a subnet as `192.168.222.0/255.255.255.0`, so comparing its raw
+ * output against `192.168.222.0/24` fails on a rule that is written correctly.
+ * This decodes the mask itself rather than asking the app, so the check still
+ * reads the rule out of Windows.
+ */
+function scopesHeld(raw) {
+  return String(raw ?? '')
+    .split(/[,\r\n]+/)
+    .map(entry => entry.trim())
+    .filter(Boolean)
+    .map(entry => {
+      const dotted = /^(\d{1,3}(?:\.\d{1,3}){3})\/(\d{1,3}(?:\.\d{1,3}){3})$/.exec(entry);
+      if (!dotted) return entry;
+      const bits = dotted[2]
+        .split('.')
+        .reduce((count, part) => count + (Number(part).toString(2).split('1').length - 1), 0);
+      return `${dotted[1]}/${bits}`;
+    });
+}
