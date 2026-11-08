@@ -183,9 +183,18 @@ let cdp = null;
     const enter = () => key('Enter', 'Enter', 13);
     const escape = () => key('Escape', 'Escape', 27);
     const openPalette = async () => {
-      if (!(await cdp.evaluate(`Boolean(document.querySelector('.palette-layer'))`))) {
+      // One press normally, but a press that lands in the same frame as the
+      // window losing focus can be dropped by the renderer, and a person who
+      // saw nothing happen would press again. Retrying is what makes this
+      // harness about the shortcut rather than about input timing.
+      let presses = 0;
+      while (presses < 4) {
+        if (await cdp.evaluate(`Boolean(document.querySelector('.palette-layer'))`)) break;
         await key('k', 'KeyK', 75, 2);
+        presses += 1;
+        await sleep(450);
       }
+      if (presses > 1) console.log(`palette opened after ${presses} Ctrl+K presses`);
       await waitUntil(
         `Boolean(document.querySelector('.palette-layer'))`,
         'the palette to open on Ctrl+K',
@@ -201,6 +210,8 @@ let cdp = null;
         `!document.querySelector('.palette-layer')`,
         'the palette to close on Escape',
       );
+      // Let the unmount settle before the next key, as a person's hands do.
+      await sleep(250);
     };
     const type = text => cdp.send('Input.insertText', { text });
     const rows = () =>
@@ -417,9 +428,14 @@ let cdp = null;
     console.log('after reload:', JSON.stringify(survived));
 
     if (cdp.exceptions.length > 0) console.log('exceptions:', JSON.stringify(cdp.exceptions.slice(0, 5)));
+    console.log(`::notice title=Palette harness::${first.length} rows, ${new Set(first.map(row => row.opens)).size} verbs, ${kept.length} remembered queries, all checks passed`);
     cdp.close();
     console.log('palette harness: PASS');
   } catch (error) {
+    const message = String(error?.message || error).replace(/\r?\n/g, ' ').slice(0, 900);
+    // The batch runs this inside a long job log; an annotation is the only part
+    // of a CI run that reports the reason without scrolling.
+    console.error(`::error title=Palette harness::${message}`);
     console.error('palette harness: FAIL', error.stack || error);
     process.exitCode = 1;
   } finally {
