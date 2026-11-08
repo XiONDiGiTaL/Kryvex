@@ -112,6 +112,7 @@ const MODULE_PAGE = `<!doctype html>
       return false;
     }
     if (state && String(state) !== String(expected)) {
+      // A code minted for another sign-in is not this page's to spend.
       window.__flow.error = 'state-mismatch';
       return false;
     }
@@ -144,8 +145,13 @@ const MODULE_PAGE = `<!doctype html>
     // instance must attempt the exchange at most once or it refuses its own
     // second arrival.
     if (!code || window.__flow.attempted || window.__flow.token) return;
+    if (window.__flow.exchanges >= 3) return;
     window.__flow.attempted = true;
-    void window.__exchange(String(code), String(state || ''));
+    // A refused code reopens the attempt: the module's own backend lookup asks
+    // by state, so it can still hand over the code that belongs to this page.
+    void window.__exchange(String(code), String(state || '')).then(ok => {
+      if (!ok && !window.__flow.token) window.__flow.attempted = false;
+    });
   };
   // Whichever instance won that exchange, every instance reads the session from
   // the module's own cookie, which is where a session lives.
@@ -185,8 +191,9 @@ const MODULE_PAGE = `<!doctype html>
   const params = new URLSearchParams(location.search);
   if (params.get('code')) {
     window.__flow.code = params.get('code');
-    window.__flow.state = params.get('state');
-    window.__exchangeOnce(window.__flow.code, window.__flow.state);
+    window.__flow.callbackState = params.get('state');
+    if (!window.__flow.state) window.__flow.state = params.get('state');
+    window.__exchangeOnce(window.__flow.code, window.__flow.callbackState);
   }
   setInterval(window.__askForResult, 400);
 </script>
@@ -256,6 +263,12 @@ const codes = new Map();
 /** state -> code, so a module can ask for the result without a transport. */
 const flows = new Map();
 let codeSequence = 0;
+/** What the fixture saw, newest last: a refusal has to be able to name itself. */
+const flowLog = [];
+function logFlow(entry) {
+  flowLog.push(entry);
+  if (flowLog.length > 12) flowLog.shift();
+}
 
 function readBody(request) {
   return new Promise(resolve => {
@@ -318,6 +331,7 @@ const fixture = http.createServer(async (request, response) => {
     const code = `code-${codeSequence}`;
     codes.set(code, { state, used: false });
     flows.set(state, code);
+    logFlow({ at: 'approve', state, code, codes: codes.size });
     response.writeHead(303, {
       Location: `/return?code=${code}&state=${encodeURIComponent(state)}`,
       'Cache-Control': 'no-store',
@@ -333,6 +347,7 @@ const fixture = http.createServer(async (request, response) => {
 
   if (url.pathname === '/flow') {
     const code = flows.get(state);
+    logFlow({ at: 'flow', state, code: code ?? null, hit: Boolean(code) });
     if (!code) {
       json(response, 404, { error: 'not_ready' });
       return;
@@ -345,9 +360,18 @@ const fixture = http.createServer(async (request, response) => {
     const code = url.searchParams.get('code') ?? '';
     const issued = codes.get(code);
     if (!issued || issued.used || issued.state !== state) {
+      logFlow({
+        at: 'token',
+        code,
+        state,
+        verdict: 'invalid_grant',
+        issued: issued ? { state: issued.state, used: issued.used } : null,
+        codes: codes.size,
+      });
       json(response, 400, { error: 'invalid_grant' });
       return;
     }
+    logFlow({ at: 'token', code, state, verdict: 'ok' });
     issued.used = true;
     json(response, 200, { access_token: `kx-access-${code}` });
     return;
@@ -770,7 +794,7 @@ async function selfTest() {
       const fromModule = await guest.evaluate(`window.__flow`).catch(() => null);
       const where = await flow.evaluate(`location.href`).catch(() => 'the window is gone');
       throw new Error(
-        `${error instanceof Error ? error.message : error} | module ${JSON.stringify(fromModule)} | window ${where}`,
+        `${error instanceof Error ? error.message : error} | module ${JSON.stringify(fromModule)} | window ${where} | fixture ${JSON.stringify(flowLog)}`,
       );
     }
     check(
@@ -790,7 +814,7 @@ async function selfTest() {
       const fromModule = await guest.evaluate(`window.__flow`).catch(() => null);
       const cookies = await guest.evaluate(`document.cookie`).catch(() => 'unknown');
       throw new Error(
-        `${error instanceof Error ? error.message : error} | module ${JSON.stringify(fromModule)} | cookies ${cookies}`,
+        `${error instanceof Error ? error.message : error} | module ${JSON.stringify(fromModule)} | cookies ${cookies} | fixture ${JSON.stringify(flowLog)}`,
       );
     }
     check(
@@ -943,6 +967,6 @@ async function selfTest() {
   // A workflow command turns this into an annotation: the whole job log is too
   // long to read where the harness lives, and the annotation is not.
   const line = `${message}${failed ? ` | failed: ${failed}` : ''}`.replace(/\s+/g, ' ');
-  console.log(`::error::${line.slice(0, 900)}`);
+  console.log(`::error::${line.slice(0, 1800)}`);
   process.exitCode = 1;
 });
