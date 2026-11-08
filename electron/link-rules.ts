@@ -436,6 +436,47 @@ export interface LinkRuleScope {
  * an error: the caller already knows from the same reading whether a rule is
  * there. A scope this parser cannot represent is left out instead of guessed.
  */
+/**
+ * A dotted IPv4 mask as a prefix length, or null when it is not a contiguous
+ * one.
+ *
+ * Windows does not hand a subnet back the way it was written: a rule set to
+ * `192.168.222.0/24` reads back as `192.168.222.0/255.255.255.0`. Reading that
+ * as an unrepresentable scope meant the app reported a rule it had just widened
+ * correctly as still covering only `LocalSubnet`, which is how this was found.
+ */
+function maskToPrefix(mask: string): number | null {
+  const parts = mask.split('.');
+  if (parts.length !== 4) return null;
+  let bits = 0;
+  let padded = false;
+  for (const part of parts) {
+    if (!/^\d{1,3}$/.test(part) || Number(part) > 255) return null;
+    const value = Number(part);
+    for (let bit = 7; bit >= 0; bit -= 1) {
+      if ((value & (1 << bit)) !== 0) {
+        // A bit set after a clear one is a mask with a hole in it, which no
+        // prefix length can express.
+        if (padded) return null;
+        bits += 1;
+      } else {
+        padded = true;
+      }
+    }
+  }
+  return bits;
+}
+
+/** The same network in the CIDR form this app speaks, whatever form it arrived in. */
+function asCidr(value: string): string {
+  const dotted = /^(\d{1,3}(?:\.\d{1,3}){3})\/(\d{1,3}(?:\.\d{1,3}){3})$/.exec(value);
+  const address = dotted?.[1];
+  const mask = dotted?.[2];
+  if (!address || !mask) return value;
+  const bits = maskToPrefix(mask);
+  return bits === null ? value : `${address}/${bits}`;
+}
+
 export function parseRemoteAddresses(raw: unknown): LinkRuleScope {
   const scope: LinkRuleScope = { localSubnet: false, subnets: [] };
   if (typeof raw !== 'string') return scope;
@@ -446,7 +487,7 @@ export function parseRemoteAddresses(raw: unknown): LinkRuleScope {
       scope.localSubnet = true;
       continue;
     }
-    const network = parseNetworkScope(value);
+    const network = parseNetworkScope(asCidr(value));
     if (network && !scope.subnets.includes(network)) scope.subnets.push(network);
   }
   return scope;

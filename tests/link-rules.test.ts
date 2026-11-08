@@ -291,4 +291,21 @@ describe('the networks the firewall rule covers', () => {
     // Any is not a scope this app writes; it is not reported as one.
     expect(parseRemoteAddresses('Any').subnets).toEqual([]);
   });
+
+  it('reads the netmask form Windows hands back, not just CIDR', () => {
+    // A rule widened to 192.168.222.0/24 reads back as a dotted mask. If the
+    // parser cannot express that, a correct write looks like a lost one.
+    expect(parseRemoteAddresses('LocalSubnet\r\n192.168.222.0/255.255.255.0')).toEqual({
+      localSubnet: true,
+      subnets: ['192.168.222.0/24'],
+    });
+    expect(parseRemoteAddresses('172.29.0.0/255.255.0.0')).toEqual({
+      localSubnet: false,
+      subnets: ['172.29.0.0/16'],
+    });
+    // A mask with a hole in it is not a prefix length, so it is left out
+    // rather than guessed at.
+    expect(parseRemoteAddresses('192.168.0.0/255.0.255.0').subnets).toEqual([]);
+    expect(parseRemoteAddresses('10.1.2.0/255.255.255.0').subnets).toEqual(['10.1.2.0/24']);
+  });
 });
