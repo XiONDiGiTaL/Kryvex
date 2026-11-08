@@ -3,7 +3,7 @@
  * Kryvex Link's firewall scope, checked against a real Windows Firewall.
  *
  * The unit tests cover the parser and the merge; what they cannot cover is the
- * half that matters when a phone will not connect — that `netsh` actually writes
+ * half that matters when a phone will not connect — that Windows actually keeps
  * `LocalSubnet,<network>` into the rule, that the rule survives the write still
  * enabled, and that Windows reads the scope back the way the app then displays
  * it. This harness drives the app's own path (the bridge method the view calls),
@@ -63,7 +63,7 @@ function powershell(script, timeout = 20_000) {
   });
 }
 
-/** Runs netsh elevated, the way the app does, and waits for it. */
+/** Runs netsh elevated, for the setup and teardown around the pass. */
 function netsh(argument, timeout = 60_000) {
   return new Promise(resolve => {
     execFile(

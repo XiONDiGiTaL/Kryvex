@@ -77,7 +77,7 @@ The scope is deliberately narrow:
   range, and a prefix between /8 and /32. A bare address is a /32, which is what
   a phone with a fixed lease needs; `/24` is what a phone whose address moves
   needs. The string is parsed in the main process before it goes near an
-  elevated command line, because it becomes part of a `netsh` argument.
+  elevated command line, because it becomes part of an elevated firewall command.
 - **`LocalSubnet` is never removed** when the rule is widened, so the address
   that already worked keeps working, and widening twice keeps both networks.
 - **A guest network that isolates its clients cannot be bridged here.** That is

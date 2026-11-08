@@ -365,7 +365,7 @@ export const LINK_MAX_SCOPES = 8;
  * routes between them and Windows still drops the packet, because the rule's
  * remote scope does not include the phone's network.
  *
- * This string ends up in an elevated `netsh` command line, so it is parsed here
+ * This string ends up in an elevated firewall command, so it is parsed here
  * and nowhere else: four octets, a private range only, a prefix between /8 and
  * /32, and no characters beyond digits, dots and one slash. A bare address is
  * a /32, which is what a phone with a fixed lease needs; the /24 form is what a
@@ -418,7 +418,7 @@ export function mergeNetworkScopes(existing: unknown, extra: unknown): string[] 
   return scopes;
 }
 
-/** `LocalSubnet` plus the extra networks, which is what `netsh` takes. */
+/** `LocalSubnet` plus the extra networks, one entry each. */
 export function ruleRemoteAddresses(scopes: unknown): string {
   return ['LocalSubnet', ...mergeNetworkScopes(scopes, [])].join(',');
 }
