@@ -91,7 +91,7 @@ const MODULE_PAGE = `<!doctype html>
   // The SDK flow: reserve a window, send it to the provider, and let the
   // provider hand a code back here. This page is the module, so the exchange
   // below is the module's own return leg, not the provider's.
-  window.__flow = { state: null, code: null, token: null, error: null, exchanges: 0 };
+  window.__flow = { state: null, code: null, token: null, error: null, exchanges: 0, attempted: false };
   window.__startSignIn = () => {
     const state = 'st-' + Math.random().toString(36).slice(2, 10);
     window.__flow.state = state;
@@ -126,9 +126,23 @@ const MODULE_PAGE = `<!doctype html>
     document.getElementById('state').textContent = 'signed in';
   }
   window.__exchangeOnce = (code, state) => {
-    if (window.__flow.token || !code) return;
+    // A provider spends a code once. Three transports carry it here, so a page
+    // instance must attempt the exchange at most once or it refuses its own
+    // second arrival.
+    if (!code || window.__flow.attempted || window.__flow.token) return;
+    window.__flow.attempted = true;
     void window.__exchange(String(code), String(state || ''));
   };
+  // Whichever instance won that exchange, every instance reads the session from
+  // the module's own cookie, which is where a session lives.
+  setInterval(() => {
+    if (window.__flow.token) return;
+    const match = document.cookie.match(/(?:^|; )kx_module=([^;]+)/);
+    if (!match) return;
+    window.__flow.token = match[1];
+    document.getElementById('headline').textContent = 'Signed in';
+    document.getElementById('state').textContent = 'signed in';
+  }, 300);
   // A pop-up that has the code can hand it over three ways, and a real SDK may
   // use any of them: navigating this window, a same-origin message, or nothing
   // at all — in which case the module asks its own backend for the outcome. All
@@ -158,7 +172,7 @@ const MODULE_PAGE = `<!doctype html>
   if (params.get('code')) {
     window.__flow.code = params.get('code');
     window.__flow.state = params.get('state');
-    window.__exchange(window.__flow.code, window.__flow.state);
+    window.__exchangeOnce(window.__flow.code, window.__flow.state);
   }
   setInterval(window.__askForResult, 400);
 </script>
@@ -751,11 +765,20 @@ async function selfTest() {
       String(code),
     );
 
-    const session = await waitFor(
-      guest.evaluate,
-      `window.__flow && window.__flow.token`,
-      'the exchanged session',
-    );
+    let session;
+    try {
+      session = await waitFor(
+        guest.evaluate,
+        `window.__flow && window.__flow.token`,
+        'the exchanged session',
+      );
+    } catch (error) {
+      const fromModule = await guest.evaluate(`window.__flow`).catch(() => null);
+      const cookies = await guest.evaluate(`document.cookie`).catch(() => 'unknown');
+      throw new Error(
+        `${error instanceof Error ? error.message : error} | module ${JSON.stringify(fromModule)} | cookies ${cookies}`,
+      );
+    }
     check(
       'the module exchanged the code for a session',
       typeof session === 'string' && session.startsWith('kx-access-'),
