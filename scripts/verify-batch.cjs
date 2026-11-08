@@ -45,6 +45,7 @@ const BATCHES = {
   shell: [
     'verify:restart',
     'verify:gallery',
+    'verify:palette',
     'verify:wallpaper',
     'verify:guards',
     'verify:canvas',

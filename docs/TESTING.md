@@ -3797,8 +3797,21 @@ profile. Each row also says what Enter will do with it — open the view, run th
 action, open the module, open in the Browser, show the file, switch the theme,
 search again. The rules are unit-tested (`rememberSearch`,
 `sanitizeRecentSearches`: order, deduplication, the cap, junk input, whitespace,
-the 120-character cap); the rows themselves are not, and no harness drives the
-palette.
+the 120-character cap).
+
+`scripts/verify-palette.cjs` (`pnpm verify:palette`, and part of the `shell` batch
+that runs on every push) drives the palette in the built app over the DevTools
+protocol, so the input events are real ones rather than a script reaching into
+state. It opens the palette with Ctrl+K, checks that every row carries the verb
+its group promises and that the verb is actually drawn, then presses Enter on a
+navigate row, an action row and a theme row and checks the thing the verb named
+happened (the route, the captured event, the applied theme). It then proves the
+memory: the three queries come back newest first once the field is empty, Enter on
+one puts it back in the field without closing the palette, a repeat moves its entry
+up instead of adding a twin, the same query in another case is the same entry, and
+the list is still there after a reload. What it does not produce is a row from the
+local index — history, bookmarks and downloads — because a disposable profile has
+none and the harness does not invent a profile to get them.
 
 ### The Activity Center (`tests/activity-rules.test.ts`)
 

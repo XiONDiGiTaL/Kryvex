@@ -60,6 +60,7 @@
     "verify:signin-trace": "pnpm build && electron scripts/verify-signin-trace.cjs",
     "verify:signin-popup": "pnpm build && electron scripts/verify-signin-popup.cjs",
     "verify:signin-return": "pnpm build && electron scripts/verify-signin-popup.cjs --local-only",
+    "verify:palette": "pnpm build && node scripts/verify-palette.cjs",
     "verify:identity-matrix": "pnpm build && electron scripts/verify-identity-matrix.cjs",
     "verify:shield-filters": "pnpm build && electron scripts/verify-shield-filters.cjs",
     "verify:service-ux": "pnpm build && node scripts/verify-service-ux.cjs",
