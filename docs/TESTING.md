@@ -3817,6 +3817,14 @@ takes the Browser back to that page. What it does not produce is a bookmark or a
 download row, because a disposable profile has none and the harness does not write
 a state file by hand to make them.
 
+That last step passed on Windows at `a7fe664` (CI run 42518210534, the
+`Harnesses (shell)` job): the visited page led the list, its row promised "Opens in
+Browser", carried the host as its hint, drew its verb, and Enter left the palette
+closed on `#/browser?url=…` with the Browser loading that page again. Its first
+attempt failed on the harness rather than the app — it asked for a row labelled
+`127.0.0.1`, while the app titles a history entry with the host it was served from,
+port included.
+
 It passed on Windows at `c0107e3` (CI run 42506818554, the `Harnesses (shell)`
 job): 93 rows in the palette, every one of them carrying one of four verbs and
 each verb matching its group; Enter navigated to Settings, dispatched the capture

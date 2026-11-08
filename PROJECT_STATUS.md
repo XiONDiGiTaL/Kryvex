@@ -1996,3 +1996,9 @@ its own tabs — and nothing from BetterDiscord is being bundled.
   change; then the recent searches: newest first, re-run in place by Enter, a
   repeat moved up rather than duplicated, the same query in another case kept one
   entry, and the list survived a reload.
+  The same harness also visits a page: it serves one from a loopback port nobody
+  else has, opens it through the deep link the Browser already uses, waits for the
+  visit to reach the local index, and checks the History row that appears — the
+  "Opens in Browser" verb, the host as its hint, the verb drawn, and Enter leaving
+  the palette on `#/browser?url=…` with the Browser loading that page again. That
+  passed on Windows at `a7fe664` (CI run 42518210534).
