@@ -1221,6 +1221,13 @@ account sign-in, a captcha solve, or another provider.
   separate, reviewed download.
 - Notifications are all-or-nothing for service modules; there is no per-service
   mute or notification history in the shell yet.
+- There is no unified search. The command palette reaches views, services,
+  actions and themes; history, bookmarks, downloads and saved pages are each
+  searched inside their own list.
+- There is no backup or restore. The state file can be copied by hand, but there
+  is no snapshot, preview or recovery path, and no versioned export.
+- There is no knowledge store: no notes, collections, highlights or vault, and
+  Vexium's context is one page at a time.
 - “Kryvex” clearance unresolved (above).
 
 ## Next concrete action

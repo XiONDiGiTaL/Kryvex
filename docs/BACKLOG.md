@@ -42,6 +42,32 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
 - [ ] Safe Browsing equivalent. Electron does not expose Chromium's protocol, so
   this needs a deliberate reputation provider and privacy review before work.
 
+## Integration queue (audited in [INTEGRATION_AUDIT.md](INTEGRATION_AUDIT.md))
+
+Ordered by dependency, not by size: the first item is what the next two build on.
+
+- [ ] Unified search: one main-process query over services, commands, history,
+  bookmarks, downloads, workspaces and user scripts, with categories, filters,
+  keyboard navigation and direct opening. The command palette becomes one
+  surface over it rather than a second implementation.
+- [ ] Activity center: capture service notifications in the guest preload,
+  keep history, per-service mute and priority, unread indicators, click-through
+  to the originating module, retention. Replaces the all-or-nothing behaviour
+  recorded in `PROJECT_STATUS.md`.
+- [ ] Hibernation: opt-in per service, exemptible, on top of the existing
+  resource sampler and service lifecycle; never clears a partition or a session.
+- [ ] Backup and restore: versioned local snapshots, integrity check, preview
+  before restoring, and no silent overwrite of live state.
+- [ ] Reading Room and Knowledge Vault: saved pages, extracted articles,
+  collections, highlights, tags, and collections selectable as Vexium context.
+- [ ] Extension API and review process: one permission shape shared with the
+  existing user-script and Web Store paths, documented before any third-party
+  module runs.
+
+Smaller items still open from earlier batches: per-site zoom memory and
+per-site privacy exceptions (browser), audio conversion and PDF page export
+(File Forge), and a measured performance pass.
+
 ## Done (M2 baseline: record)
 - [x] pnpm 12.3.4 via local `.tools/pnpm`; Node 24.19.0 delta recorded.
 - [x] `pnpm install` exit 0 (2m15s); `typecheck` exit 0; `test` exit 0
