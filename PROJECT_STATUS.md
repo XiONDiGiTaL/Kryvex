@@ -1217,7 +1217,9 @@ window a provider SDK actually uses: a blank `window.open` is created, shares
 the module's session, is navigated afterwards by its opener, and loads Google's
 and Microsoft's own sign-in pages; a pop-up to a non-web address is still
 refused. It is opt-in (`pnpm verify:signin-popup`, or the CI `signin_popup`
-input) because it reaches the internet.
+input) because it reaches the internet, and on a Windows runner it passes all
+eleven checks against Google's and Microsoft's own sign-in pages — the output and
+the run id are in `docs/TESTING.md`.
 
 ## Known gaps
 

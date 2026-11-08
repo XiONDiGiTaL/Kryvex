@@ -3711,6 +3711,47 @@ internet, so it is **not** in a push batch — it has its own alias
 pnpm build && electron scripts/verify-signin-popup.cjs
 ```
 
+### Result on Windows
+
+| Date | Commit | Where | Result |
+| --- | --- | --- | --- |
+| 2026-11-08 | `840f0a5` | Windows runner, opt-in `signin-popup` job, run `42447417921` | **PASS**, 11 checks |
+
+```text
+PASS a service may open a window with no page yet — true
+PASS the window starts at about:blank — about:blank
+PASS the pop-up shares the module's session — kx_popup=shared
+PASS the opener can navigate that window afterwards — true
+PASS Google's own sign-in host answered — https://accounts.google.com/v3/signin/identifier?service=mail&flowName=GlifWebSignIn&flowEntry=ServiceLogin
+PASS the Google page kept the browser — Loading
+PASS the Google sign-in surface rendered — 218 characters, with an input
+PASS Microsoft's own sign-in host answered — https://login.live.com/
+PASS the Microsoft page kept the browser — Sign in
+PASS the Microsoft sign-in surface rendered — 231 characters, with an input
+PASS a pop-up to a non-web address is still refused — false
+sign-in pop-up harness: PASS
+```
+
+The first run of this harness failed, and the failure was real: closing the
+Google pop-up reconciled the module — the pop-up fix doing its job — the frame
+reloaded, and the guest execution context went with it, so the Microsoft step
+opened its window in a page that no longer existed and the run died on a bare
+"Uncaught". The windows now stay open until every provider has been checked, a
+guest call that does lose its context waits for the fixture and retries once,
+and an evaluate failure carries Chromium's own description instead of that bare
+word.
+
+What this proves: on Windows, a service module's blank `window.open` produces a
+window, the window shares the module's session, its opener can navigate it
+afterwards, and both Google's and Microsoft's own sign-in pages render in it with
+their identifier field present — while a non-web pop-up stays refused.
+
+What it does not prove: that a person completes a sign-in. No credentials are
+used, so the run stops at the identifier field; the password step, the return leg
+and the resulting session are not exercised here. The Google body was still
+reading "Loading" when it was sampled, so the host, the browser it accepted and
+the identifier field are the evidence, not a finished page.
+
 ## Unified search (`tests/search-rules.test.ts`)
 
 `electron/search-rules.ts` holds the query rules, scoring, ranking and the
