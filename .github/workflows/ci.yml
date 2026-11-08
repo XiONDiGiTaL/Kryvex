@@ -6,6 +6,11 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+    inputs:
+      link_firewall:
+        description: 'Run the firewall-scope harness, which writes and restores the Kryvex Link rule'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -113,3 +118,47 @@ jobs:
 
       - name: Run the ${{ matrix.batch }} batch
         run: node scripts/verify-batch.cjs ${{ matrix.batch }}
+
+  # The firewall-scope pass is opt-in, and it is the one job that changes the
+  # machine it runs on: it creates the Kryvex Link rule, widens it to a named
+  # network, and puts it back. That is why it is not on every push — dispatch
+  # this workflow with `link_firewall` ticked to run it.
+  #
+  # It also answers a question the local pass cannot: whether a runner's token is
+  # elevated, because the app writes the rule through `Start-Process -Verb RunAs`.
+  # The harness skips (exit 0) when it is not, so a green job whose log carries
+  # no PASS lines is the runner saying it could not run — which is an answer too.
+  link-firewall:
+    name: Link firewall scope
+    if: github.event_name == 'workflow_dispatch' && inputs.link_firewall == true
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the desktop app
+        run: pnpm build
+
+      - name: Verify the firewall scope
+        run: node scripts/verify-link-firewall.cjs
+
+      # The report is the evidence, including the skip reason when it never ran.
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-firewall-report
+          path: .tmp-link-firewall-report.txt
+          if-no-files-found: warn
