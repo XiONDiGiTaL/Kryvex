@@ -423,8 +423,11 @@ class LinkService {
    */
   async allowFirewall(networks?: unknown): Promise<LinkDiagnosis> {
     const reading = await readFirewall();
-    await allowThroughFirewall(mergeNetworkScopes(reading.remote?.subnets, networks));
-    return this.diagnose();
+    const written = await allowThroughFirewall(mergeNetworkScopes(reading.remote?.subnets, networks));
+    const diagnosis = await this.diagnose();
+    // The elevated command's own output rides along: without it a write that
+    // half applied looks identical to one that worked.
+    return { ...diagnosis, detail: written.detail ?? '' };
   }
 
   /**

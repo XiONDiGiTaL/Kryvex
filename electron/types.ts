@@ -370,6 +370,8 @@ export interface LinkDiagnosis {
    * lets a phone on a second segment of the same router in.
    */
   remote: { localSubnet: boolean; subnets: string[] } | null;
+  /** What the elevated firewall command said, when one ran. */
+  detail?: string;
   probes: Array<{ url: string; reachable: boolean }>;
 }
 

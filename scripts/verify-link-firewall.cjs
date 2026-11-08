@@ -322,6 +322,8 @@ async function main() {
       'the local subnet is kept, so the address that already worked still does',
       allowed?.remote?.localSubnet === true,
     );
+    // The elevated command's own words: `OK`, or the message it threw.
+    if (allowed?.detail) note(`elevated command said: ${allowed.detail}`);
 
     // The same fact, read out of Windows rather than out of the app.
     const written = await readRule();

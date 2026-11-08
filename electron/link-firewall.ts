@@ -1,4 +1,8 @@
 import { execFile } from 'node:child_process';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {
   LINK_PORT_FIRST,
   LINK_PORT_LAST,
@@ -25,12 +29,21 @@ import {
  * so the packet dies at the firewall. That is why the rule's remote scope is
  * read and can be widened to a network the user names.
  *
- * Reading the state needs no privilege. Changing it does, so it goes through
- * `Start-Process -Verb RunAs`, which shows the normal Windows consent dialog. A
- * refused dialog is answered as "still not open", never as success.
+ * Reading the state needs no privilege. Changing it does, so the write goes
+ * through `Start-Process -Verb RunAs`, which shows the normal Windows consent
+ * dialog. A refused dialog is answered as "still not open", never as success.
+ *
+ * The write itself uses `New-NetFirewallRule` / `Set-NetFirewallRule` rather
+ * than `netsh`, and not for style. `netsh` takes `remoteip` as one string and
+ * silently keeps only the first entry of a comma list: asked for
+ * `LocalSubnet,192.168.222.0/24` it created an enabled rule scoped to
+ * `LocalSubnet`, exit code zero, no warning — the phone's network left blocked
+ * with every sign of success. A GitHub runner caught that. The cmdlets take the
+ * scope as an array, so there is no list to misparse, and their errors are
+ * captured instead of discarded.
  */
 
-function powershell(script: string, timeout = 15_000): Promise<string> {
+function powershell(script: string, timeout = 20_000): Promise<string> {
   return new Promise(resolve => {
     execFile(
       'powershell.exe',
@@ -51,6 +64,8 @@ export interface FirewallReading {
    * covers anything yet.
    */
   remote: LinkRuleScope | null;
+  /** What the elevated command said — `OK`, or the message it threw. */
+  detail?: string;
 }
 
 /**
@@ -77,46 +92,83 @@ export async function readFirewall(): Promise<FirewallReading> {
 }
 
 /**
+ * Runs one script elevated and hands back what it printed.
+ *
+ * `Start-Process -Verb RunAs` gives the child its own console, so its output
+ * would otherwise be lost — which is how a half-applied rule stays invisible.
+ * The script is written to a `.ps1` and launched with `-File`, so neither a
+ * path with spaces nor the script's own quoting is re-parsed on the way in, and
+ * its output is read back from a file afterwards.
+ */
+async function runElevated(body: string): Promise<string> {
+  const token = crypto.randomBytes(6).toString('hex');
+  const scriptPath = path.join(os.tmpdir(), `kryvex-link-fw-${token}.ps1`);
+  const outputPath = path.join(os.tmpdir(), `kryvex-link-fw-${token}.txt`);
+  const lines = [
+    '& {',
+    '  try {',
+    `    ${body}`,
+    "    'OK'",
+    '  } catch {',
+    "    'ERROR: ' + $_.Exception.Message",
+    '  }',
+    `} *>&1 | Out-File -FilePath '${outputPath}' -Encoding utf8`,
+    '',
+  ];
+  fs.writeFileSync(scriptPath, lines.join('\n'), 'utf8');
+  try {
+    await new Promise<void>(resolve => {
+      execFile(
+        'powershell.exe',
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          `Start-Process -FilePath powershell.exe -Verb RunAs -Wait -WindowStyle Hidden -ArgumentList '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${scriptPath}"'`,
+        ],
+        { timeout: 90_000, windowsHide: true },
+        () => resolve(),
+      );
+    });
+    try {
+      return fs.readFileSync(outputPath, 'utf8').trim();
+    } catch {
+      // No file means the consent dialog was dismissed or the child never ran.
+      return '';
+    }
+  } finally {
+    fs.rmSync(scriptPath, { force: true });
+    fs.rmSync(outputPath, { force: true });
+  }
+}
+
+/**
  * Creates, widens or re-enables the inbound rule for the link's port range.
  *
  * `scopes` are networks beyond this machine's own subnet, already validated by
- * `mergeNetworkScopes`; nothing raw reaches the command line. `LocalSubnet` is
- * always kept, so widening the rule cannot narrow the case that already worked.
- *
- * When the rule exists this uses `set`, not `add`: `add` on a name that is
- * already there leaves a switched-off rule switched off, and a second rule with
- * the same name, which is why the re-enable path needed its own verb.
+ * `mergeNetworkScopes`; nothing raw reaches the elevated script. `LocalSubnet`
+ * is always kept, so widening the rule cannot narrow the case that already
+ * worked. The addresses go in as an array — one element per scope — which is
+ * what makes the scope land intact.
  */
 export async function allowThroughFirewall(scopes: readonly string[] = []): Promise<FirewallReading> {
-  if (process.platform !== 'win32') return { supported: false, verdict: 'unknown', remote: null };
+  if (process.platform !== 'win32') {
+    return { supported: false, verdict: 'unknown', remote: null, detail: '' };
+  }
   const reading = await readFirewall();
-  const remote = ruleRemoteAddresses(scopes);
-  // Scoped to the local subnet and applied on any profile: Windows classifies
-  // plenty of home Wi-Fi as Public, and a private-only rule would leave the
-  // phone blocked for exactly the people who need this button.
-  // The list is quoted for `netsh`, not for PowerShell. An unquoted
-  // `remoteip=LocalSubnet,192.168.2.0/24` is parsed as `LocalSubnet` and a stray
-  // token that netsh drops without a word: the rule is created, enabled and
-  // scoped to the local subnet only, which looks exactly like success. A GitHub
-  // runner found that; the harness now fails if it comes back.
-  const argument =
+  const remote = ruleRemoteAddresses(scopes)
+    .split(',')
+    .map(value => `'${value}'`)
+    .join(',');
+  // Scoped to `LocalSubnet` (plus anything named) and applied on any profile:
+  // Windows classifies plenty of home Wi-Fi as Public, and a private-only rule
+  // would leave the phone blocked for exactly the people who need this button.
+  const body =
     reading.verdict === 'no-rule'
-      ? `advfirewall firewall add rule name="${LINK_RULE_NAME}" dir=in action=allow protocol=TCP localport=${LINK_PORT_FIRST}-${LINK_PORT_LAST} remoteip="${remote}" profile=any`
-      : `advfirewall firewall set rule name="${LINK_RULE_NAME}" new remoteip="${remote}" enable=yes`;
-  await new Promise<void>(resolve => {
-    execFile(
-      'powershell.exe',
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        `Start-Process -FilePath netsh.exe -Verb RunAs -Wait -ArgumentList '${argument}'`,
-      ],
-      { timeout: 60_000, windowsHide: true },
-      () => resolve(),
-    );
-  });
-  return readFirewall();
+      ? `New-NetFirewallRule -DisplayName '${LINK_RULE_NAME}' -Direction Inbound -Action Allow -Protocol TCP -LocalPort ${LINK_PORT_FIRST}-${LINK_PORT_LAST} -RemoteAddress @(${remote}) -Profile Any -Enabled True -ErrorAction Stop`
+      : `Set-NetFirewallRule -DisplayName '${LINK_RULE_NAME}' -RemoteAddress @(${remote}) -Enabled True -Profile Any -ErrorAction Stop`;
+  const detail = await runElevated(body);
+  return { ...(await readFirewall()), detail };
 }
 
 /**
