@@ -79,6 +79,13 @@ jobs:
       - name: Verify Kryvex Link
         run: node scripts/verify-link.cjs
 
+      # The other half of the sign-in harness needs the internet and is opt-in;
+      # this half stays on loopback, so it runs where every push lands. It drives
+      # a sign-in past the identifier field: the test account, consent, the code
+      # handed back to the module, the exchange, the session and its refusals.
+      - name: Verify the sign-in return leg
+        run: node scripts/verify-signin-popup.cjs --local-only
+
   # The rest of the Electron harnesses, in batches.
   #
   # They all boot the built app in a disposable profile and take the same ports

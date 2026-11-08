@@ -10,23 +10,24 @@
  * button looked dead. A unit test proves the rule; only the real window proves
  * the button.
  *
- * The harness runs the built app against a loopback service module and checks:
+ * Two halves, and they prove different things.
  *
- * - `window.open('')` from a service module produces a real window;
- * - that window starts at `about:blank`, shares the module's session (it reads
- *   the module's own cookie) and can be navigated by its opener — the three
- *   things the SDK path depends on;
- * - Google's own sign-in page loads in that window, keeps the browser, and
- *   shows its identifier field;
- * - Microsoft's own sign-in page loads in the same kind of window;
- * - a pop-up to a non-web address is still refused.
+ * **The provider half** loads Google's and Microsoft's own sign-in pages in a
+ * window a service reserved. It needs the internet, so it is neither in the
+ * push batch nor implied by a local run: `pnpm verify:signin-popup`, or the CI
+ * `signin_popup` input. No credentials are used, so it stops where an
+ * unauthenticated run honestly must — at the identifier field.
  *
- * The provider steps need the internet by design, which is why this file is not
- * in a push batch: it runs from `pnpm verify:signin-popup` or the opt-in CI job.
- * No credentials are used: the flow is followed as far as the identifier field,
- * which is as far as an unauthenticated run can honestly go.
+ * **The return half** is a provider fixture on loopback, and it runs the whole
+ * flow: a test account, a consent step, a code handed back to the module by the
+ * window that closed itself, the module exchanging that code for a session, a
+ * session that survives the module reloading, and the two refusals the boundary
+ * owes (a replay, a forged state). It needs no network, so it runs on every
+ * push: `pnpm verify:signin-return`, or the Windows job's own step.
  *
- * Run `pnpm build` first. Usage: `node scripts/verify-signin-popup.cjs`.
+ * Run `pnpm build` first.
+ *   node scripts/verify-signin-popup.cjs              both halves
+ *   node scripts/verify-signin-popup.cjs --local-only return half only
  */
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
@@ -43,6 +44,14 @@ const origin = `http://127.0.0.1:${fixturePort}`;
 const GOOGLE = 'https://accounts.google.com/ServiceLogin?service=mail';
 const MICROSOFT = 'https://login.live.com/';
 const PROVIDER_TIMEOUT = 75_000;
+/** The provider half reaches the internet; the return half never leaves this box. */
+const LOCAL_ONLY = process.argv.includes('--local-only') || process.env.KRYVEX_SIGNIN_LOCAL === '1';
+
+/**
+ * The fixture account. Not a secret and not a credential: it exists only in this
+ * file and only the loopback provider started below accepts it.
+ */
+const ACCOUNT = { email: 'fixture@example.test', password: 'fixture-password-2026' };
 
 let child = null;
 const checks = [];
@@ -52,10 +61,16 @@ function check(name, ok, detail) {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
 }
 
-const OPENERS = `<!doctype html>
+/**
+ * The service module: it holds a session, reserves a window for a provider, and
+ * exchanges the code that comes back. Everything a real module does around a
+ * sign-in lives here, in one page, because the point is to test Kryvex's window
+ * and session plumbing rather than to write an OAuth library.
+ */
+const MODULE_PAGE = `<!doctype html>
 <html><head><meta charset="utf-8"><title>Service fixture</title></head>
 <body style="margin:0;padding:40px;background:#0b0e12;color:#eaf2ff;font:16px sans-serif">
-<h1>Signed out</h1>
+<h1 id="headline" style="font-size:20px">Signed out</h1>
 <button id="signin" style="padding:12px 20px;font:16px sans-serif">Sign in</button>
 <p id="state">ready</p>
 <script>
@@ -70,12 +85,192 @@ const OPENERS = `<!doctype html>
     window.__blank = window.__openBlank('kx-fixed-name');
     document.getElementById('state').textContent = window.__blank ? 'window open' : 'window refused';
   };
+
+  // The SDK flow: reserve a window, send it to the provider, and let the
+  // provider hand a code back here. This page is the module, so the exchange
+  // below is the module's own return leg, not the provider's.
+  window.__flow = { state: null, code: null, token: null, error: null, exchanges: 0 };
+  window.__startSignIn = () => {
+    const state = 'st-' + Math.random().toString(36).slice(2, 10);
+    window.__flow.state = state;
+    window.__signinPopup = window.__openBlank('kx-oauth');
+    if (!window.__signinPopup) return null;
+    window.__signinPopup.location.replace('/authorize?client=fixture&state=' + encodeURIComponent(state));
+    return state;
+  };
+  window.__exchange = async (code, state) => {
+    window.__flow.exchanges += 1;
+    const response = await fetch('/token?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state));
+    const body = await response.json().catch(() => ({}));
+    if (response.ok && body.access_token) {
+      document.cookie = 'kx_module=' + body.access_token + '; path=/';
+      window.__flow.token = body.access_token;
+      window.__flow.error = null;
+      document.getElementById('headline').textContent = 'Signed in';
+      document.getElementById('state').textContent = 'signed in';
+      return true;
+    }
+    // A refused exchange leaves the session that already exists alone: a module
+    // reloading with a spent code must not sign its user out.
+    window.__flow.error = body.error || ('HTTP ' + response.status);
+    return false;
+  };
+  const stored = document.cookie.match(/(?:^|; )kx_module=([^;]+)/);
+  if (stored) {
+    window.__flow.token = stored[1];
+    document.getElementById('headline').textContent = 'Signed in';
+    document.getElementById('state').textContent = 'signed in';
+  }
+  const params = new URLSearchParams(location.search);
+  if (params.get('code')) {
+    window.__flow.code = params.get('code');
+    window.__flow.state = params.get('state');
+    window.__exchange(window.__flow.code, window.__flow.state);
+  }
 </script>
 </body></html>`;
 
-const fixture = http.createServer((request, response) => {
-  response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-  response.end(OPENERS);
+function providerPage(state, error = '') {
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><title>Fixture provider</title></head>
+<body style="margin:0;padding:40px;background:#fff;color:#111;font:16px sans-serif">
+<h1 style="font-size:20px">Sign in</h1>
+<p style="font-size:13px">Fixture provider · the test account only</p>
+<form id="provider-form" method="post" action="/authorize?state=${encodeURIComponent(state)}">
+  <p><label for="account">Email</label><br>
+    <input id="account" name="account" type="email" autocomplete="off" style="width:280px;padding:8px"></p>
+  <p><label for="password">Password</label><br>
+    <input id="password" name="password" type="password" style="width:280px;padding:8px"></p>
+  <button type="submit" style="padding:10px 18px">Continue</button>
+</form>
+<p id="error" style="color:#b00020">${error}</p>
+</body></html>`;
+}
+
+function consentPage(state) {
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><title>Allow access</title></head>
+<body style="margin:0;padding:40px;background:#fff;color:#111;font:16px sans-serif">
+<h1 style="font-size:20px">Allow this module?</h1>
+<p style="font-size:13px">The fixture account would share its name with this module.</p>
+<button id="allow" style="padding:10px 18px" onclick="location.href='/approve?state=${encodeURIComponent(state)}'">Allow</button>
+</body></html>`;
+}
+
+/**
+ * The window's last page. A real SDK's pop-up does not navigate the module back
+ * itself: it hands the code to its opener and closes, and the opener — which is
+ * same-origin here — is the one that ends up at the callback.
+ */
+const RETURN_PAGE = `<!doctype html>
+<html><head><meta charset="utf-8"><title>Returning to the module</title></head>
+<body style="margin:0;padding:40px;font:16px sans-serif">
+<p id="state">Handing the code back…</p>
+<script>
+  const params = new URLSearchParams(location.search);
+  if (window.opener) {
+    window.opener.location.replace(
+      '/product?code=' + encodeURIComponent(params.get('code') || '') +
+        '&state=' + encodeURIComponent(params.get('state') || ''),
+    );
+  }
+  document.getElementById('state').textContent = 'Handed back';
+  setTimeout(() => window.close(), 0);
+</script>
+</body></html>`;
+
+/** Issued codes, and whether they have been spent. */
+const codes = new Map();
+let codeSequence = 0;
+
+function readBody(request) {
+  return new Promise(resolve => {
+    let body = '';
+    request.on('data', chunk => {
+      body += chunk;
+      if (body.length > 4096) request.destroy();
+    });
+    request.on('end', () => resolve(body));
+  });
+}
+
+function html(response, body, status = 200, headers = {}) {
+  response.writeHead(status, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store',
+    ...headers,
+  });
+  response.end(body);
+}
+
+function json(response, status, body) {
+  response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+  response.end(JSON.stringify(body));
+}
+
+const fixture = http.createServer(async (request, response) => {
+  const url = new URL(request.url ?? '/', origin);
+  const state = url.searchParams.get('state') ?? '';
+
+  if (url.pathname === '/authorize') {
+    if (request.method === 'POST') {
+      const form = new URLSearchParams(await readBody(request));
+      if (form.get('account') === ACCOUNT.email && form.get('password') === ACCOUNT.password) {
+        // A real provider keeps this HttpOnly; the harness leaves it readable so
+        // the module can prove it shares the pop-up's session, which is the
+        // property Kryvex has to get right.
+        response.writeHead(303, {
+          Location: `/consent?state=${encodeURIComponent(state)}`,
+          'Set-Cookie': 'kx_provider=fixture; Path=/',
+          'Cache-Control': 'no-store',
+        });
+        response.end();
+        return;
+      }
+      html(response, providerPage(state, 'That account was not recognised.'), 401);
+      return;
+    }
+    html(response, providerPage(state));
+    return;
+  }
+
+  if (url.pathname === '/consent') {
+    html(response, consentPage(state));
+    return;
+  }
+
+  if (url.pathname === '/approve') {
+    codeSequence += 1;
+    const code = `code-${codeSequence}`;
+    codes.set(code, { state, used: false });
+    response.writeHead(303, {
+      Location: `/return?code=${code}&state=${encodeURIComponent(state)}`,
+      'Cache-Control': 'no-store',
+    });
+    response.end();
+    return;
+  }
+
+  if (url.pathname === '/return') {
+    html(response, RETURN_PAGE);
+    return;
+  }
+
+  if (url.pathname === '/token') {
+    const code = url.searchParams.get('code') ?? '';
+    const issued = codes.get(code);
+    if (!issued || issued.used || issued.state !== state) {
+      json(response, 400, { error: 'invalid_grant' });
+      return;
+    }
+    issued.used = true;
+    json(response, 200, { access_token: `kx-access-${code}` });
+    return;
+  }
+
+  // Everything else is the module, so a callback lands on the page that owns
+  // the exchange.
+  html(response, MODULE_PAGE);
 });
 
 fs.rmSync(profile, { recursive: true, force: true });
@@ -194,8 +389,8 @@ async function connect(url) {
  * Closing a service pop-up makes the module reload — that is the feature the
  * pop-up fix belongs to — and a reload destroys the execution context the CDP
  * session was using, which reads as a bare "Uncaught". Waiting for the fixture
- * and asking once more is what keeps the next provider's check honest instead
- * of failing the run on Kryvex doing exactly what it should.
+ * and asking once more is what keeps the next check honest instead of failing
+ * the run on Kryvex doing exactly what it should.
  */
 async function guestEval(guest, expression) {
   try {
@@ -309,7 +504,8 @@ fixture.listen(fixturePort, '127.0.0.1');
     await waitFor(guest.evaluate, `Boolean(document.getElementById('signin'))`, 'the fixture page');
 
     // 1. The window a sign-in SDK opens first, with no address at all.
-    const opened = await guestEval(guest, 
+    const opened = await guestEval(
+      guest,
       `Boolean(window.__blank = window.__blank || window.__openBlank('kx-blank-first'))`,
     );
     check('a service may open a window with no page yet', opened === true, String(opened));
@@ -331,75 +527,193 @@ fixture.listen(fixturePort, '127.0.0.1');
       String(cookie) || 'no cookie visible',
     );
 
-    // 3. The opener may write the provider's address into it afterwards.
-    const written = await guestEval(guest, 
+    // 3. The opener may write the provider's address into it afterwards. A local
+    //    run stays on the fixture rather than reaching Google to prove it.
+    const address = LOCAL_ONLY ? `${origin}/product` : GOOGLE;
+    const written = await guestEval(
+      guest,
       `(() => {
-        try { window.__blank.location.replace(${JSON.stringify(GOOGLE)}); return true; }
+        try { window.__blank.location.replace(${JSON.stringify(address)}); return true; }
         catch (error) { return String(error); }
       })()`,
     );
     check('the opener can navigate that window afterwards', written === true, String(written));
 
-    // 4. Each provider, in its own blank window, opened the way an SDK opens it.
+    // 4. The return leg, on this machine only: a provider page, the test
+    //    account, consent, the code handed back, the exchange, the session.
+    const flowState = await guestEval(guest, `window.__startSignIn()`);
+    check(
+      'the module reserved a window for the provider',
+      typeof flowState === 'string' && flowState.startsWith('st-'),
+      String(flowState),
+    );
+
+    const authorizeTarget = await waitForTarget(
+      item => item.type === 'page' && String(item.url).includes('/authorize'),
+      'the provider sign-in page',
+    );
+    const flow = await connect(authorizeTarget.webSocketDebuggerUrl);
+    await waitFor(flow.evaluate, `Boolean(document.getElementById('provider-form'))`, 'the provider form');
+    check('the provider page opened in that window', true, authorizeTarget.url);
+
+    await flow.evaluate(`(() => {
+      document.getElementById('account').value = ${JSON.stringify(ACCOUNT.email)};
+      document.getElementById('password').value = ${JSON.stringify(ACCOUNT.password)};
+      document.getElementById('provider-form').submit();
+      return true;
+    })()`);
+    await waitFor(flow.evaluate, `location.pathname === '/consent'`, 'the consent step');
+    check('the test account signed in and reached the consent step', true, 'consent');
+
+    const providerCookie = await flow.evaluate(`document.cookie`);
+    check(
+      'the provider set its own session cookie in that window',
+      typeof providerCookie === 'string' && providerCookie.includes('kx_provider=fixture'),
+      String(providerCookie) || 'no cookie visible',
+    );
+
+    await flow.evaluate(`document.getElementById('allow').click(); true`);
+    const code = await waitFor(
+      guest.evaluate,
+      `window.__flow && window.__flow.code`,
+      'the code to reach the module',
+    );
+    check(
+      'the provider handed the code back to the module',
+      typeof code === 'string' && code.startsWith('code-'),
+      String(code),
+    );
+
+    const session = await waitFor(
+      guest.evaluate,
+      `window.__flow && window.__flow.token`,
+      'the exchanged session',
+    );
+    check(
+      'the module exchanged the code for a session',
+      typeof session === 'string' && session.startsWith('kx-access-'),
+      String(session),
+    );
+
+    const sameState = await guest.evaluate(`window.__flow.state === ${JSON.stringify(flowState)}`);
+    check('the state parameter came back unchanged', sameState === true, String(flowState));
+
+    const moduleCookies = await guest.evaluate(`document.cookie`);
+    check(
+      'the module holds the session the pop-up signed in',
+      typeof moduleCookies === 'string' &&
+        moduleCookies.includes('kx_module=') &&
+        moduleCookies.includes('kx_provider=fixture'),
+      String(moduleCookies),
+    );
+
+    // The window that returned the code closes itself, the way an SDK's does.
+    await sleep(700);
+    const leftover = (await listTargets()).some(item => String(item.url).includes('/return'));
+    check('the sign-in window closed itself after returning', !leftover, leftover ? 'still open' : 'closed');
+
+    // The code is single-use and bound to the state it was issued for. Both
+    // refusals are checked where the module lives, not in the fixture's own code.
+    const replay = await guestEval(
+      guest,
+      `(async () => {
+        const response = await fetch('/token?code=' + encodeURIComponent(window.__flow.code) + '&state=' + encodeURIComponent(window.__flow.state));
+        return response.status;
+      })()`,
+    );
+    check('a code cannot be exchanged twice', replay === 400, `HTTP ${replay}`);
+
+    const forged = await guestEval(
+      guest,
+      `(async () => {
+        const response = await fetch('/token?code=forged&state=forged');
+        return response.status;
+      })()`,
+    );
+    check('a forged code and state are refused', forged === 400, `HTTP ${forged}`);
+
+    // A reload must find the session where the module left it: the cookie is the
+    // session, and it outlives the page that received it.
+    await guest.evaluate(`location.reload(); true`).catch(() => undefined);
+    const afterReload = await waitFor(
+      guest.evaluate,
+      `window.__flow && window.__flow.token`,
+      'the session after a reload',
+    );
+    check('the session survives the module reloading', afterReload === session, String(afterReload));
+
+    flow.close();
+
+    // 5. Each real provider, in its own blank window, opened the way an SDK
+    //    opens it. Skip-only: this is the half that needs the internet.
     const report = {};
     const popups = [];
-    for (const provider of PROVIDERS) {
-      const name = `kx-${provider.id}`;
-      const created = await guestEval(guest, 
-        `Boolean(window['__${provider.id}'] = window['__${provider.id}'] || window.__openBlank(${JSON.stringify(name)}))`,
-      );
-      if (!created) {
-        check(`the ${provider.label} pop-up was created`, false, 'window.open returned nothing');
-        continue;
+    if (LOCAL_ONLY) {
+      console.log('skipping Google and Microsoft: --local-only');
+    } else {
+      for (const provider of PROVIDERS) {
+        const name = `kx-${provider.id}`;
+        const created = await guestEval(
+          guest,
+          `Boolean(window['__${provider.id}'] = window['__${provider.id}'] || window.__openBlank(${JSON.stringify(name)}))`,
+        );
+        if (!created) {
+          check(`the ${provider.label} pop-up was created`, false, 'window.open returned nothing');
+          continue;
+        }
+
+        // A second blank window exists now; find the one that is not the window
+        // already in flight.
+        const target = await waitForTarget(
+          item =>
+            item.type === 'page' &&
+            item.url === 'about:blank' &&
+            item.webSocketDebuggerUrl !== blankTarget.webSocketDebuggerUrl,
+          `the ${provider.label} pop-up`,
+        );
+        const popup = await connect(target.webSocketDebuggerUrl);
+        await guestEval(
+          guest,
+          `window['__${provider.id}'].location.replace(${JSON.stringify(provider.url)}); true`,
+        );
+
+        const state = await untilPage(popup, provider.host, provider.label);
+        report[provider.id] = {
+          url: state.url,
+          title: state.title,
+          input: state.input,
+          chars: state.text.length,
+        };
+        console.log(`[${provider.id}] ${state.url} · ${state.title}`);
+
+        check(
+          `${provider.label}'s own sign-in host answered`,
+          provider.host.test(new URL(state.url).hostname),
+          state.url,
+        );
+        check(
+          `the ${provider.label} page kept the browser`,
+          !provider.refusal.test(state.text),
+          state.text.split('\n')[0]?.slice(0, 140) ?? '',
+        );
+        check(
+          `the ${provider.label} sign-in surface rendered`,
+          state.text.trim().length > 40 && (!provider.wantsInput || state.input),
+          `${state.text.trim().length} characters${state.input ? ', with an input' : ', no input'}`,
+        );
+
+        // Left open until both providers have been checked: closing a service
+        // pop-up reconciles the module, and a reload half-way through the loop
+        // would destroy the guest context the next provider still needs.
+        popups.push(popup);
       }
-
-      // A second blank window exists now; find the one that is not the Google
-      // window already in flight.
-      const target = await waitForTarget(
-        item =>
-          item.type === 'page' &&
-          item.url === 'about:blank' &&
-          item.webSocketDebuggerUrl !== blankTarget.webSocketDebuggerUrl,
-        `the ${provider.label} pop-up`,
-      );
-      const popup = await connect(target.webSocketDebuggerUrl);
-      await guestEval(guest, 
-        `window['__${provider.id}'].location.replace(${JSON.stringify(provider.url)}); true`,
-      );
-
-      const state = await untilPage(popup, provider.host, provider.label);
-      report[provider.id] = { url: state.url, title: state.title, input: state.input, chars: state.text.length };
-      console.log(`[${provider.id}] ${state.url} · ${state.title}`);
-
-      check(
-        `${provider.label}'s own sign-in host answered`,
-        provider.host.test(new URL(state.url).hostname),
-        state.url,
-      );
-      check(
-        `the ${provider.label} page kept the browser`,
-        !provider.refusal.test(state.text),
-        state.text.split('\n')[0]?.slice(0, 140) ?? '',
-      );
-      check(
-        `the ${provider.label} sign-in surface rendered`,
-        state.text.trim().length > 40 && (!provider.wantsInput || state.input),
-        `${state.text.trim().length} characters${state.input ? ', with an input' : ', no input'}`,
-      );
-
-      // Left open until both providers have been checked: closing a service
-      // pop-up reconciles the module, and a reload half-way through the loop
-      // would destroy the guest context the next provider still needs.
-      popups.push(popup);
     }
 
-    // 5. The window that was allowed is still only allowed to show a web page.
-    const refused = await guestEval(guest, 
-      `Boolean(window.__refused('file:///C:/Windows/win.ini'))`,
-    );
+    // 6. The window that was allowed is still only allowed to show a web page.
+    const refused = await guestEval(guest, `Boolean(window.__refused('file:///C:/Windows/win.ini'))`);
     check('a pop-up to a non-web address is still refused', refused === false, String(refused));
 
-    // 6. Close the windows the way a page does. The module is reconciled after
+    // 7. Close the windows the way a page does. The module is reconciled after
     //    them, which is the behaviour the pop-up fix exists for; nothing is
     //    checked past this point, so the reload cannot disturb the run.
     for (const popup of popups) {
@@ -410,7 +724,7 @@ fixture.listen(fixturePort, '127.0.0.1');
 
     const passed = checks.every(item => item.ok);
     console.log(passed ? 'sign-in pop-up harness: PASS' : 'sign-in pop-up harness: FAIL');
-    console.log(JSON.stringify({ providers: report, checks: checks.length }, null, 2));
+    console.log(JSON.stringify({ localOnly: LOCAL_ONLY, providers: report, checks: checks.length }, null, 2));
     guest.close();
     shell.close();
     if (!passed) process.exitCode = 1;
