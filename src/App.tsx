@@ -27,6 +27,7 @@ import type {
 import { applyBaseTokens, applyTheme, getTheme, isThemeId } from './lib/themes';
 import { applyTypography } from './lib/typography';
 import {
+  rememberSearchQuery,
   addBookmark as addBookmarkToState,
   addFeeds as addFeedsToState,
   addHistory as addHistoryToState,
@@ -43,6 +44,10 @@ import {
   toggleToolPin,
   updateService as updateServiceInState,
   updateSettings,
+  clearActivityLog,
+  readActivity,
+  recordActivityEntry,
+  updateService,
 } from './lib/store';
 import { loadState, saveState, saveStateNow } from './lib/storage';
 import { shouldAutoStartCore } from './lib/vexium-core';
@@ -61,6 +66,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { EmptyState, Icon, Modal, ToastHost } from './components/ui';
 import { ThemeGallery } from './components/ThemeGallery';
 import { Home } from './views/Home';
+import { Activity } from './views/Activity';
 import { Services } from './views/Services';
 import { Emulator } from './views/Emulator';
 import { Lexium } from './views/Lexium';
@@ -129,6 +135,7 @@ function parseHash(hash: string): Route {
     return { view: 'services', serviceId: segments[1], query, key: raw };
   }
   const view: ViewId =
+    head === 'activity' ||
     head === 'services' ||
     head === 'browser' ||
     head === 'workspace' ||
@@ -1485,6 +1492,8 @@ export default function App() {
   const title = useMemo(() => {
     if (route.serviceId) return activeService?.name ?? t('Missing module');
     switch (route.view) {
+      case 'activity':
+        return t('Activity');
       case 'services':
         return t('Services');
       case 'browser':
@@ -1642,6 +1651,26 @@ export default function App() {
           onDelete={deleteService}
           onClearSession={clearServiceSession}
           onSendToVexium={sendToVexium}
+          onActivity={(service, raised) =>
+            setState(current =>
+              recordActivityEntry(current, {
+                serviceId: service.id,
+                serviceName: service.name,
+                // A row has to say where it came from; a bad URL says nothing
+                // rather than stopping the entry.
+                host: (() => {
+                  try {
+                    return new URL(service.url).hostname;
+                  } catch {
+                    return '';
+                  }
+                })(),
+                title: raised.title,
+                body: raised.body,
+                at: raised.at,
+              }),
+            )
+          }
           onTitle={handleServiceTitle}
           onUpdateService={updateServiceFlags}
           onToast={pushToast}
@@ -1877,6 +1906,19 @@ export default function App() {
             onNavigate={view => navigate(view)}
             onUpdateHome={updateHome}
           />
+        ) : route.view === 'activity' ? (
+          <Activity
+            state={state}
+            onOpenService={id => {
+              const service = state.services.find(item => item.id === id);
+              if (service) openService(service);
+            }}
+            onMarkRead={id => setState(current => readActivity(current, id))}
+            onClear={id => setState(current => clearActivityLog(current, id))}
+            onSetService={(service, patch) =>
+              setState(current => updateService(current, { ...service, ...patch }))
+            }
+          />
         ) : route.view === 'services' ? (
           <Services
             state={state}
@@ -2101,6 +2143,9 @@ export default function App() {
       {paletteOpen ? (
         <CommandPalette
           state={state}
+          recentSearches={state.search?.recent ?? []}
+          // A query that led somewhere is worth offering again next time.
+          onRememberSearch={query => setState(current => rememberSearchQuery(current, query))}
           onClose={() => setPaletteOpen(false)}
           onNavigate={view => navigate(view)}
           onOpenService={openService}

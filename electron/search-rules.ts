@@ -33,6 +33,8 @@ export interface SearchHit extends SearchItem {
 }
 
 export const SEARCH_RESULT_LIMIT = 40;
+/** How many past queries the palette keeps to offer again. */
+export const MAX_RECENT_SEARCHES = 8;
 export const MAX_SEARCH_QUERY = 120;
 const MAX_TERMS = 8;
 const MAX_TITLE = 200;
@@ -170,4 +172,38 @@ export function sanitizeSearchHits(raw: unknown, limit = SEARCH_RESULT_LIMIT): S
     hits.push(hit);
   }
   return hits.slice(0, Math.max(1, Math.min(limit, SEARCH_RESULT_LIMIT)));
+}
+
+/**
+ * The queries worth offering again, newest first.
+ *
+ * A query is remembered because someone ran it, so the list is a record of
+ * intent rather than of typing: it is deduplicated case-insensitively (typing
+ * `Krita` again moves the old entry up instead of adding a twin), trimmed, and
+ * capped, so it cannot grow into a second history file.
+ */
+export function sanitizeRecentSearches(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== 'string') continue;
+    const value = entry.replace(/\s+/g, ' ').trim().slice(0, MAX_SEARCH_QUERY);
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value);
+    if (out.length >= MAX_RECENT_SEARCHES) break;
+  }
+  return out;
+}
+
+/** The list after running `query`: the query moves to the front, once. */
+export function rememberSearch(raw: unknown, query: unknown): string[] {
+  const existing = sanitizeRecentSearches(raw);
+  if (typeof query !== 'string') return existing;
+  const value = query.replace(/\s+/g, ' ').trim().slice(0, MAX_SEARCH_QUERY);
+  if (!value) return existing;
+  return sanitizeRecentSearches([value, ...existing]);
 }

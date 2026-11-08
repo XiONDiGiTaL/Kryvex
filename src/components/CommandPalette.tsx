@@ -25,26 +25,39 @@ interface Row {
   label: string;
   hint: string;
   group: string;
+  /** What Enter does with this row, in a word or two. */
+  opens: string;
   icon?: React.ReactNode;
+  /** A row that stays in the palette: re-running a saved query, not leaving. */
+  keepOpen?: boolean;
   run: () => void;
 }
 
 export function CommandPalette({
   state,
+  recentSearches,
   onClose,
   onNavigate,
   onOpenService,
   onOpenUrl,
   onAdd,
   onSetTheme,
+  onRememberSearch,
 }: {
   state: PersistedState;
+  /**
+   * The queries already run, newest first. The palette only offers them when
+   * the field is empty, so they can never crowd out an answer to typing.
+   */
+  recentSearches?: string[];
   onClose: () => void;
   onNavigate: (view: ViewId) => void;
   onOpenService: (service: Service) => void;
   onOpenUrl: (url: string) => void;
   onAdd: () => void;
   onSetTheme: (id: string) => void;
+  /** Called with the query when a row is run, so the list stays a memory. */
+  onRememberSearch?: (query: string) => void;
 }) {
   const t = useT();
   const [query, setQuery] = useState('');
@@ -125,16 +138,39 @@ export function CommandPalette({
     };
   }, [query]);
 
+  /** What a command's group means for Enter, so every row can say it. */
+  const opensFor = (group: Command['group']): string => {
+    if (group === 'Navigate') return t('Opens the view');
+    if (group === 'Actions') return t('Runs the action');
+    if (group === 'Services') return t('Opens the module');
+    return t('Switches the theme');
+  };
+
   const rows = useMemo<Row[]>(() => {
     const local = commands.map(command => ({
       key: command.id,
       label: command.label,
       hint: command.hint,
       group: command.group as string,
+      opens: opensFor(command.group),
       icon: command.icon,
       run: command.run,
     }));
-    if (!terms) return local;
+    if (!terms) {
+      // An empty field is the one place past queries are useful: they replace
+      // the typing they were typed from, and Enter runs the search again.
+      const remembered: Row[] = (recentSearches ?? []).map(term => ({
+        key: `recent-${term.toLowerCase()}`,
+        label: term,
+        hint: t('Recent search'),
+        group: t('Recent searches'),
+        opens: t('Searches again'),
+        keepOpen: true,
+        icon: <Icon name="search" size={15} />,
+        run: () => setQuery(term),
+      }));
+      return [...remembered, ...local];
+    }
 
     const sourceLabel = (source: SearchHit['source']): string =>
       source === 'service'
@@ -152,6 +188,12 @@ export function CommandPalette({
       return <Icon name="search" size={15} />;
     };
 
+    const sourceOpens = (source: SearchHit['source']): string => {
+      if (source === 'service') return t('Opens the module');
+      if (source === 'download') return t('Shows the file');
+      return t('Opens in Browser');
+    };
+
     const fromIndex = (hit: SearchHit): Row => {
       const id = hit.id.replace(/^[a-z]+:/, '');
       return {
@@ -159,6 +201,7 @@ export function CommandPalette({
         label: hit.title,
         hint: hit.subtitle ?? hit.url ?? '',
         group: sourceLabel(hit.source),
+        opens: sourceOpens(hit.source),
         icon: sourceIcon(hit.source),
         run: () => {
           if (hit.source === 'service') {
@@ -195,7 +238,7 @@ export function CommandPalette({
         a.key.localeCompare(b.key),
     );
     return ranked;
-  }, [commands, terms, remote, state.services, onOpenService, onOpenUrl, t]);
+  }, [commands, terms, remote, state.services, recentSearches, onOpenService, onOpenUrl, t]);
 
   // Groups keep the ranking's shape: the group holding the best row leads.
   const groups = useMemo(() => {
@@ -215,8 +258,12 @@ export function CommandPalette({
 
   function run(row: Row | undefined) {
     if (!row) return;
+    // A row that was picked out of a search teaches the palette the query that
+    // led there; the remembered list is therefore about real searches only.
+    const asked = terms ? query.trim() : '';
+    if (asked && onRememberSearch) onRememberSearch(asked);
     row.run();
-    onClose();
+    if (!row.keepOpen) onClose();
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -275,6 +322,7 @@ export function CommandPalette({
                       >
                         <span className="palette-icon">{row.icon}</span>
                         <span className="palette-label">{row.label}</span>
+                        <span className="palette-opens mono">{row.opens}</span>
                         <span className="palette-hint mono">{row.hint}</span>
                       </button>
                     );

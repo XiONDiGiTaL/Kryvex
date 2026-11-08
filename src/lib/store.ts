@@ -1,3 +1,14 @@
+import {
+  rememberSearch,
+  sanitizeRecentSearches,
+} from '../../electron/search-rules';
+import {
+  clearActivity,
+  markActivityRead,
+  recordActivity,
+  sanitizeActivity,
+  type ActivityInput,
+} from '../../electron/activity-rules';
 import type {
   Bookmark,
   BrowserTab,
@@ -693,7 +704,12 @@ export function sanitizeState(
 ): PersistedState {
   if (!isRecord(raw)) {
     const fresh = starterState();
-    return { ...fresh, settings: speechDefault(fresh.settings, options) };
+    return {
+      ...fresh,
+      search: { recent: [] },
+      activity: [],
+      settings: speechDefault(fresh.settings, options),
+    };
   }
   const defaults = starterState();
 
@@ -741,6 +757,8 @@ export function sanitizeState(
     history,
     settings: sanitizeSettings(raw.settings, options),
     recent,
+    search: { recent: sanitizeRecentSearches(isRecord(raw.search) ? raw.search.recent : null) },
+    activity: sanitizeActivity(raw.activity),
     browser: sanitizeBrowser(raw.browser),
     feeds: sanitizeFeeds(raw.feeds),
   };
@@ -905,4 +923,30 @@ export function updateSettings(state: PersistedState, patch: Partial<Settings>):
 
 export function startHash(state: PersistedState): string {
   return `#/${state.settings.startView}`;
+}
+
+/**
+ * The palette ran a query: it moves to the front of the list offered again.
+ *
+ * Kept in the state file, beside the rest of the profile, so a restart does not
+ * forget what someone was looking for. Nothing leaves the machine.
+ */
+export function rememberSearchQuery(state: PersistedState, query: string): PersistedState {
+  const recent = rememberSearch(state.search?.recent, query);
+  return { ...state, search: { recent } };
+}
+
+/** One notification a module raised, into the bounded local log. */
+export function recordActivityEntry(state: PersistedState, input: ActivityInput): PersistedState {
+  return { ...state, activity: recordActivity(state.activity ?? [], input) };
+}
+
+/** Mark one entry read, or all of them. */
+export function readActivity(state: PersistedState, id?: string | null): PersistedState {
+  return { ...state, activity: markActivityRead(state.activity ?? [], id) };
+}
+
+/** Drop the log, or one module's part of it. */
+export function clearActivityLog(state: PersistedState, serviceId?: string | null): PersistedState {
+  return { ...state, activity: clearActivity(state.activity ?? [], serviceId) };
 }

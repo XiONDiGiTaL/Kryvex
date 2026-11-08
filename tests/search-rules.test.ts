@@ -1,3 +1,8 @@
+import {
+  MAX_RECENT_SEARCHES,
+  rememberSearch,
+  sanitizeRecentSearches,
+} from '../electron/search-rules';
 import { describe, expect, it } from 'vitest';
 import {
   MAX_SEARCH_QUERY,
@@ -170,5 +175,42 @@ describe('the local index', () => {
     const [hit] = searchLocal({ state, downloads }, 'vexium');
     expect(hit?.path).toBe('C:\\Users\\tester\\Downloads\\vexium-core.gguf');
     expect(hit?.subtitle).toBe('github.com');
+  });
+});
+
+describe('remembered searches', () => {
+  it('puts the newest query first, once', () => {
+    expect(rememberSearch([], 'krita')).toEqual(['krita']);
+    expect(rememberSearch(['krita'], 'godot')).toEqual(['godot', 'krita']);
+    expect(rememberSearch(['godot', 'krita'], 'krita')).toEqual(['krita', 'godot']);
+  });
+
+  it('does not keep two spellings of the same query', () => {
+    expect(rememberSearch(['Krita'], 'krita')).toEqual(['krita']);
+    expect(rememberSearch(['  krita  '], 'KRITA')).toEqual(['KRITA']);
+  });
+
+  it('caps the list, dropping the oldest', () => {
+    let list: string[] = [];
+    for (let index = 0; index < MAX_RECENT_SEARCHES + 4; index += 1) {
+      list = rememberSearch(list, `query ${index}`);
+    }
+    expect(list).toHaveLength(MAX_RECENT_SEARCHES);
+    expect(list[0]).toBe(`query ${MAX_RECENT_SEARCHES + 3}`);
+    expect(list).not.toContain('query 0');
+  });
+
+  it('ignores what is not a query', () => {
+    expect(sanitizeRecentSearches(null)).toEqual([]);
+    expect(sanitizeRecentSearches('krita')).toEqual([]);
+    expect(sanitizeRecentSearches([1, null, {}, '  ', 'ok'])).toEqual(['ok']);
+    expect(rememberSearch(['ok'], '   ')).toEqual(['ok']);
+    expect(rememberSearch(['ok'], 42)).toEqual(['ok']);
+  });
+
+  it('collapses whitespace and caps a long query', () => {
+    expect(rememberSearch([], '  alpha   beta ')).toEqual(['alpha beta']);
+    const long = rememberSearch([], 'x'.repeat(400));
+    expect(long[0]?.length).toBe(120);
   });
 });

@@ -18,6 +18,8 @@ import { lexiumDictationCopy } from './i18n-lexium';
 import { speechCopy } from './i18n-speech';
 import { secretServicesCopy } from './i18n-secret';
 import { captureCopy } from './i18n-capture';
+import { searchCopy } from './i18n-search';
+import { activityCopy } from './i18n-activity';
 import { flycastCopy } from './i18n-flycast';
 import { netplayCopy } from './i18n-netplay';
 import { couchCopy } from './i18n-couch';
@@ -2974,6 +2976,8 @@ export function makeI18n(language: ResolvedLanguage): I18nValue {
           ...pick(engineCopy, language),
           ...pick(roomsCopy, language),
           ...pick(galleryCopy, language),
+          ...pick(searchCopy, language),
+          ...pick(activityCopy, language),
           // Newest feature copy wins: a key added here is defined once, not in
           // every language block above.
           ...pick(featureCopy, language),

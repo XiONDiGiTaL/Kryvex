@@ -47,6 +47,7 @@ export type {
 
 export type ViewId =
   | 'home'
+  | 'activity'
   | 'services'
   | 'browser'
   | 'workspace'
@@ -1043,6 +1044,16 @@ export interface PersistedState {
   history: HistoryEntry[];
   settings: Settings;
   recent: string[];
+  /**
+   * Queries the palette has run, newest first. Absent in a profile written
+   * before it existed, which is why it is optional rather than a migration.
+   */
+  search?: { recent: string[] };
+  /**
+   * What the modules raised: a bounded log, newest first. Optional for the same
+   * reason as `search`.
+   */
+  activity?: import('../electron/activity-rules').ActivityEntry[];
   browser: BrowserSession;
   /** Feeds shown on the browser start page. */
   feeds: RssFeed[];
