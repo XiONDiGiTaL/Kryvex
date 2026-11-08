@@ -342,14 +342,17 @@ async function main() {
       `[${(twice?.remote?.subnets ?? []).join(' ')}]`,
     );
 
-    // Nothing invalid reaches an elevated command line.
+    // Nothing invalid reaches an elevated command line. Each refusal is judged
+    // against the scope the rule held a moment earlier, so this stands on its
+    // own even when the widening above is what broke.
+    const kept = (twice?.remote?.subnets ?? []).join(' ');
     for (const bad of REFUSED) {
       const answer = await allow(cdp, [bad]);
       const scope = (answer?.remote?.subnets ?? []).join(' ');
       record(
         `refuses ${JSON.stringify(bad)} and leaves the rule alone`,
-        !answer?.error && !scope.includes(bad) && scope.includes(FIRST_NETWORK),
-        scope,
+        !answer?.error && !scope.includes(bad) && scope === kept,
+        `kept [${scope}]`,
       );
     }
     const notAnArray = await allow(cdp, 'junk');

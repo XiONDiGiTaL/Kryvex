@@ -94,10 +94,15 @@ export async function allowThroughFirewall(scopes: readonly string[] = []): Prom
   // Scoped to the local subnet and applied on any profile: Windows classifies
   // plenty of home Wi-Fi as Public, and a private-only rule would leave the
   // phone blocked for exactly the people who need this button.
+  // The list is quoted for `netsh`, not for PowerShell. An unquoted
+  // `remoteip=LocalSubnet,192.168.2.0/24` is parsed as `LocalSubnet` and a stray
+  // token that netsh drops without a word: the rule is created, enabled and
+  // scoped to the local subnet only, which looks exactly like success. A GitHub
+  // runner found that; the harness now fails if it comes back.
   const argument =
     reading.verdict === 'no-rule'
-      ? `advfirewall firewall add rule name="${LINK_RULE_NAME}" dir=in action=allow protocol=TCP localport=${LINK_PORT_FIRST}-${LINK_PORT_LAST} remoteip=${remote} profile=any`
-      : `advfirewall firewall set rule name="${LINK_RULE_NAME}" new remoteip=${remote} enable=yes`;
+      ? `advfirewall firewall add rule name="${LINK_RULE_NAME}" dir=in action=allow protocol=TCP localport=${LINK_PORT_FIRST}-${LINK_PORT_LAST} remoteip="${remote}" profile=any`
+      : `advfirewall firewall set rule name="${LINK_RULE_NAME}" new remoteip="${remote}" enable=yes`;
   await new Promise<void>(resolve => {
     execFile(
       'powershell.exe',
