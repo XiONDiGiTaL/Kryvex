@@ -364,6 +364,12 @@ export interface LinkDiagnosis {
   firewall: 'open' | 'rule-disabled' | 'no-rule' | 'unknown';
   /** False off Windows, where there is no rule to read or add. */
   firewallSupported: boolean;
+  /**
+   * Which remote addresses the rule covers. `localSubnet` is this machine's own
+   * network; `subnets` are the extra networks the user allowed, which is what
+   * lets a phone on a second segment of the same router in.
+   */
+  remote: { localSubnet: boolean; subnets: string[] } | null;
   probes: Array<{ url: string; reachable: boolean }>;
 }
 

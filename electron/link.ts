@@ -20,6 +20,7 @@ import {
   isPrivateAddress,
   linkableUrl,
   makePairCode,
+  mergeNetworkScopes,
   uniqueFileName,
   type LinkCommand,
   type LinkPhoneStatus,
@@ -407,13 +408,22 @@ class LinkService {
     return {
       firewall: firewall.verdict,
       firewallSupported: firewall.supported,
+      remote: firewall.remote,
       probes: this.server?.listening ? await probeAddresses(this.status().urls) : [],
     };
   }
 
-  /** Adds the rule after Windows asks for consent, then reads the state again. */
-  async allowFirewall(): Promise<LinkDiagnosis> {
-    await allowThroughFirewall();
+  /**
+   * Adds, widens or re-enables the rule after Windows asks for consent.
+   *
+   * `networks` is whatever the view typed — a phone's network, for the case a
+   * phone on Wi-Fi and a PC on Ethernet sit on two subnets of one router. Each
+   * entry is validated here, and the scopes the rule already covers are kept, so
+   * this can widen the rule but never narrow it back.
+   */
+  async allowFirewall(networks?: unknown): Promise<LinkDiagnosis> {
+    const reading = await readFirewall();
+    await allowThroughFirewall(mergeNetworkScopes(reading.remote?.subnets, networks));
     return this.diagnose();
   }
 

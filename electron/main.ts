@@ -1059,12 +1059,12 @@ function registerIpc(): void {
   ipcMain.handle('kryvex:link:diagnose', (event) =>
     isShellSender(event)
       ? link.diagnose()
-      : { firewall: 'unknown', firewallSupported: false, probes: [] },
+      : { firewall: 'unknown', firewallSupported: false, remote: null, probes: [] },
   );
-  ipcMain.handle('kryvex:link:allow-firewall', (event) =>
+  ipcMain.handle('kryvex:link:allow-firewall', (event, networks: unknown) =>
     isShellSender(event)
-      ? link.allowFirewall()
-      : { firewall: 'unknown', firewallSupported: false, probes: [] },
+      ? link.allowFirewall(networks)
+      : { firewall: 'unknown', firewallSupported: false, remote: null, probes: [] },
   );
   ipcMain.handle('kryvex:link:open-phone-link', (event) =>
     isShellSender(event) ? link.openPhoneLink() : false,

@@ -1253,4 +1253,18 @@ export const turkishCopy: Record<string, string> = {
   '{count} INSTALLED': '{count} KURULU',
   'Saved to {path}': 'Kaydedildi: {path}',
   'Save as…': 'Farklı kaydet…',
+  // 0.9.5-hotfix.10: the phone's own network, for a phone on a second segment of
+  // the same router (Wi-Fi against Ethernet), which LocalSubnet does not cover.
+  'Network to allow': 'İzin verilecek ağ',
+  'Allow this network': 'Bu ağa izin ver',
+  'That is not a private network. Enter something like 192.168.2.0/24.':
+    'Bu özel bir ağ değil. 192.168.2.0/24 gibi bir değer yazın.',
+  '{network} is allowed now.': '{network} artık izinli.',
+  'Allowed besides your local subnet: {list}':
+    'Yerel alt ağınıza ek olarak izinli: {list}',
+  'A phone on a separate segment stays blocked even when the router routes between them, because the rule only covers this machine’s local subnet.':
+    'Ayrı bir segmentteki telefon, yönlendirici arada yönlendirse bile engellenir; çünkü kural yalnızca bu makinenin yerel alt ağını kapsar.',
+  'A guest network that isolates its clients cannot be bridged here: that is the router’s setting, not this firewall.':
+    'İstemcilerini yalıtan bir misafir ağı burada köprülenemez: bu, bu güvenlik duvarının değil yönlendiricinin ayarıdır.',
+
 };

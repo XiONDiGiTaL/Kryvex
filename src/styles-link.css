@@ -239,3 +239,27 @@
     align-items: flex-start;
   }
 }
+
+/* The rule's remote scope: a network field and its button on one line. */
+.link-scope {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.link-scope input {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.link-scope input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

@@ -11,8 +11,12 @@ import {
   linkUrl,
   linkableUrl,
   makePairCode,
+  mergeNetworkScopes,
   normalizePairCode,
+  parseNetworkScope,
+  parseRemoteAddresses,
   rankLinkAddresses,
+  ruleRemoteAddresses,
   safeFileName,
   uniqueFileName,
 } from '../electron/link-rules';
@@ -218,5 +222,73 @@ describe('byte labels', () => {
     expect(describeBytes(512)).toBe('512 B');
     expect(describeBytes(2048)).toBe('2 KB');
     expect(describeBytes(5 * 1024 * 1024)).toBe('5 MB');
+  });
+});
+
+describe('the networks the firewall rule covers', () => {
+  /**
+   * A phone on Wi-Fi and a PC on Ethernet can sit on two subnets of one router.
+   * The rule is written with `LocalSubnet`, so the phone's own network has to be
+   * nameable — and the string ends up in an elevated `netsh` command, so the
+   * parser is the security boundary, not a convenience.
+   */
+  it('accepts a private network in either form', () => {
+    expect(parseNetworkScope('192.168.2.0/24')).toBe('192.168.2.0/24');
+    expect(parseNetworkScope(' 10.0.0.0/8 ')).toBe('10.0.0.0/8');
+    expect(parseNetworkScope('172.16.0.0/12')).toBe('172.16.0.0/12');
+    expect(parseNetworkScope('100.64.0.0/10')).toBe('100.64.0.0/10');
+    // A bare address is one host, which is what a fixed lease needs.
+    expect(parseNetworkScope('192.168.2.37')).toBe('192.168.2.37/32');
+  });
+
+  it('refuses anything that is not a private network', () => {
+    for (const raw of [
+      '8.8.8.8/32',
+      '172.32.0.0/16',
+      '192.169.0.0/24',
+      '0.0.0.0/0',
+      '127.0.0.0/8',
+      '192.168.2.0/7',
+      '192.168.2.0/33',
+      '192.168.2/24',
+      '192.168.2.0/24; rm -rf /',
+      '192.168.2.0/-1',
+      '192.168.02.0/24',
+      'localhost',
+      '',
+      null,
+      42,
+    ]) {
+      expect(parseNetworkScope(raw as string), String(raw)).toBeNull();
+    }
+  });
+
+  it('keeps what the rule already covers and drops duplicates', () => {
+    expect(mergeNetworkScopes(['192.168.2.0/24'], ['192.168.2.0/24', '10.0.0.0/8'])).toEqual([
+      '192.168.2.0/24',
+      '10.0.0.0/8',
+    ]);
+    // An invalid entry is dropped, which is what keeps it out of the command.
+    expect(mergeNetworkScopes(null, ['junk', '192.168.9.0/24'])).toEqual(['192.168.9.0/24']);
+    expect(mergeNetworkScopes(undefined, undefined)).toEqual([]);
+  });
+
+  it('always writes LocalSubnet into the rule', () => {
+    expect(ruleRemoteAddresses([])).toBe('LocalSubnet');
+    expect(ruleRemoteAddresses(['192.168.2.0/24'])).toBe('LocalSubnet,192.168.2.0/24');
+    expect(ruleRemoteAddresses(['junk'])).toBe('LocalSubnet');
+  });
+
+  it('reads the scope PowerShell prints back', () => {
+    expect(parseRemoteAddresses('LocalSubnet,192.168.2.0/24\n')).toEqual({
+      localSubnet: true,
+      subnets: ['192.168.2.0/24'],
+    });
+    expect(parseRemoteAddresses('LocalSubnet')).toEqual({ localSubnet: true, subnets: [] });
+    // No rule prints nothing: that covers nothing, it is not an error.
+    expect(parseRemoteAddresses('')).toEqual({ localSubnet: false, subnets: [] });
+    expect(parseRemoteAddresses(null)).toEqual({ localSubnet: false, subnets: [] });
+    // Any is not a scope this app writes; it is not reported as one.
+    expect(parseRemoteAddresses('Any').subnets).toEqual([]);
   });
 });

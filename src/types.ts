@@ -1365,8 +1365,12 @@ export interface KryvexBridge {
   linkNotify: (title: string, body: string) => Promise<boolean>;
   /** Firewall state plus a reachability probe from this machine. */
   linkDiagnose: () => Promise<import('../electron/types').LinkDiagnosis>;
-  /** Asks Windows to add the inbound rule, then re-reads the state. */
-  linkAllowFirewall: () => Promise<import('../electron/types').LinkDiagnosis>;
+  /**
+   * Asks Windows to add, widen or re-enable the inbound rule, then re-reads the
+   * state. `networks` are extra networks (a phone's subnet on another segment);
+   * the main process validates them and keeps the scopes already allowed.
+   */
+  linkAllowFirewall: (networks?: string[]) => Promise<import('../electron/types').LinkDiagnosis>;
   /** Opens Microsoft's Phone Link app, which cannot be embedded. */
   linkOpenPhoneLink: () => Promise<boolean>;
   onLinkNotice: (listener: (notice: LinkNotice) => void) => () => void;

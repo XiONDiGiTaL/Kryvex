@@ -5,7 +5,10 @@ import {
   LINK_RULE_NAME,
   firewallVerdict,
   parseFirewallReading,
+  parseRemoteAddresses,
+  ruleRemoteAddresses,
   type FirewallVerdict,
+  type LinkRuleScope,
 } from './link-rules';
 
 /**
@@ -16,7 +19,13 @@ import {
  * because no rule was ever allowed for the app. The first launch shows a prompt,
  * and a prompt that was dismissed is a block that lasts until a rule is added.
  *
- * Reading the state needs no privilege. Adding the rule does, so it goes through
+ * The second way it fails is subtler: a laptop on Ethernet and a phone on Wi-Fi
+ * can sit on one router and still be on two subnets. The router routes between
+ * them, but a rule scoped to `LocalSubnet` does not include the phone's network,
+ * so the packet dies at the firewall. That is why the rule's remote scope is
+ * read and can be widened to a network the user names.
+ *
+ * Reading the state needs no privilege. Changing it does, so it goes through
  * `Start-Process -Verb RunAs`, which shows the normal Windows consent dialog. A
  * refused dialog is answered as "still not open", never as success.
  */
@@ -36,34 +45,59 @@ export interface FirewallReading {
   /** False on macOS and Linux: there is no Windows rule to read or add. */
   supported: boolean;
   verdict: FirewallVerdict;
+  /**
+   * The remote scope the rule carries, or null where there is nothing to read.
+   * `{ localSubnet: false, subnets: [] }` with no rule is truthful: no rule
+   * covers anything yet.
+   */
+  remote: LinkRuleScope | null;
 }
 
 /**
- * Reads the rule this app creates and whether the private profile filters at
- * all. Both reads are cheap and neither changes anything.
+ * Reads the rule this app creates, whether the private profile filters at all,
+ * and which remote addresses the rule covers. None of the three changes
+ * anything.
  */
 export async function readFirewall(): Promise<FirewallReading> {
-  if (process.platform !== 'win32') return { supported: false, verdict: 'unknown' };
+  if (process.platform !== 'win32') return { supported: false, verdict: 'unknown', remote: null };
   const rule = await powershell(
     `(Get-NetFirewallRule -DisplayName '${LINK_RULE_NAME}' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Enabled | Out-String).Trim()`,
   );
   const profile = await powershell(
     `(Get-NetFirewallProfile -Name Private -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Enabled | Out-String).Trim()`,
   );
-  return { supported: true, verdict: firewallVerdict(parseFirewallReading(rule, profile)) };
+  const remote = await powershell(
+    `(Get-NetFirewallRule -DisplayName '${LINK_RULE_NAME}' -ErrorAction SilentlyContinue | Select-Object -First 1 | Get-NetFirewallAddressFilter | Select-Object -ExpandProperty RemoteAddress | Out-String).Trim()`,
+  );
+  return {
+    supported: true,
+    verdict: firewallVerdict(parseFirewallReading(rule, profile)),
+    remote: parseRemoteAddresses(remote),
+  };
 }
 
 /**
- * Adds one inbound TCP rule for the link's port range on the private profile.
- * The consent dialog belongs to Windows; if it is dismissed this returns the
- * state it found afterwards, which is still not open.
+ * Creates, widens or re-enables the inbound rule for the link's port range.
+ *
+ * `scopes` are networks beyond this machine's own subnet, already validated by
+ * `mergeNetworkScopes`; nothing raw reaches the command line. `LocalSubnet` is
+ * always kept, so widening the rule cannot narrow the case that already worked.
+ *
+ * When the rule exists this uses `set`, not `add`: `add` on a name that is
+ * already there leaves a switched-off rule switched off, and a second rule with
+ * the same name, which is why the re-enable path needed its own verb.
  */
-export async function allowThroughFirewall(): Promise<FirewallReading> {
-  if (process.platform !== 'win32') return { supported: false, verdict: 'unknown' };
+export async function allowThroughFirewall(scopes: readonly string[] = []): Promise<FirewallReading> {
+  if (process.platform !== 'win32') return { supported: false, verdict: 'unknown', remote: null };
+  const reading = await readFirewall();
+  const remote = ruleRemoteAddresses(scopes);
   // Scoped to the local subnet and applied on any profile: Windows classifies
   // plenty of home Wi-Fi as Public, and a private-only rule would leave the
   // phone blocked for exactly the people who need this button.
-  const argument = `advfirewall firewall add rule name="${LINK_RULE_NAME}" dir=in action=allow protocol=TCP localport=${LINK_PORT_FIRST}-${LINK_PORT_LAST} remoteip=LocalSubnet profile=any`;
+  const argument =
+    reading.verdict === 'no-rule'
+      ? `advfirewall firewall add rule name="${LINK_RULE_NAME}" dir=in action=allow protocol=TCP localport=${LINK_PORT_FIRST}-${LINK_PORT_LAST} remoteip=${remote} profile=any`
+      : `advfirewall firewall set rule name="${LINK_RULE_NAME}" new remoteip=${remote} enable=yes`;
   await new Promise<void>(resolve => {
     execFile(
       'powershell.exe',

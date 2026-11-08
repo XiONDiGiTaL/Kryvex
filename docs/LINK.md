@@ -43,8 +43,46 @@ rest, so the fix is to use the tagged address rather than any address.
 | Loads, then the code is refused | The code expires after five minutes; issue a new one. |
 | Works, then stops after a restart | The switch is off, or the app reopened on a different network. The link only listens while its switch is on. |
 
-There is no relay, tunnel or port forwarding, so a phone on a different network
-cannot connect at all — that is the design, not a bug to work around.
+There is no relay and no port forwarding, so a phone on a different network
+cannot connect at all — that is the design, not a bug to work around. A phone on
+a second segment of the *same* router is a different case, and it is covered
+below.
+
+## Phone on Wi-Fi, PC on Ethernet
+
+This is the setup most people have, and it usually just works: a home router
+bridges its Wi-Fi and its LAN ports into one subnet, so the phone reaches the
+Ethernet address directly and the `Likely your network` tag points at it.
+
+It stops working when the router keeps the two segments apart — a guest SSID, a
+router that hands each band its own subnet, a mesh node in router mode. The
+router routes between them, but the rule Kryvex writes is scoped to
+`remoteip=LocalSubnet`, which means *this* machine's subnet and no other, so the
+phone's packets are dropped before anything reaches the listener. Kryvex could
+not see that from inside, which is what made it look like the link needed a
+bridge.
+
+Enter the phone's network under **Connection check → Network to allow** and
+press **Allow this network**.
+
+| Reading | What it means |
+| --- | --- |
+| `Allowed besides your local subnet: 192.168.2.0/24` | The rule now covers that network as well as this machine's own. |
+| Nothing changes and the list stays empty | Windows refused the consent dialog, or the string was not a private network. |
+| Still nothing answers with the network allowed | The router is not routing between the segments, or it isolates clients. |
+
+The scope is deliberately narrow:
+
+- **A private network only**: four octets in an RFC 1918 or carrier-grade NAT
+  range, and a prefix between /8 and /32. A bare address is a /32, which is what
+  a phone with a fixed lease needs; `/24` is what a phone whose address moves
+  needs. The string is parsed in the main process before it goes near an
+  elevated command line, because it becomes part of a `netsh` argument.
+- **`LocalSubnet` is never removed** when the rule is widened, so the address
+  that already worked keeps working, and widening twice keeps both networks.
+- **A guest network that isolates its clients cannot be bridged here.** That is
+  the router's setting, not the firewall, and Kryvex still installs no relay to
+  work around it.
 
 ## What a paired phone can do
 
@@ -87,8 +125,10 @@ door, not an account.
 
 ## Limits, stated plainly
 
-- **Same network only.** The phone must share a network with the desktop. There
-  is no relay, no tunnel and no port forwarding, by design.
+- **One network, or two segments of one router.** The phone must share a network
+  with the desktop, or sit on a second subnet of the same router with that subnet
+  allowed through the firewall. There is no relay, no tunnel and no port
+  forwarding, by design.
 - **Text clipboard only.** Images and rich content do not cross; a copied image
   is not sent, and nothing is written to the desktop clipboard except text.
 - **No phone → desktop notifications.** A browser page cannot read Android's
@@ -142,7 +182,7 @@ order:
 | Reading | What it means |
 | --- | --- |
 | *Windows Firewall allows the link from your local network* | A rule named `Kryvex Link` exists and is enabled, or the private profile is not filtering inbound traffic at all. |
-| *Windows Firewall has no rule for Kryvex Link…* | The app was started for the first time and the Windows prompt was dismissed, or the Wi-Fi is classified as Public. **Allow through the firewall** adds one inbound TCP rule for ports 43110–43129, scoped to `remoteip=LocalSubnet` and applied on any profile — a private-only rule would still block the many home networks Windows calls Public. Windows shows its own consent dialog. |
+| *Windows Firewall has no rule for Kryvex Link…* | The app was started for the first time and the Windows prompt was dismissed, or the Wi-Fi is classified as Public. **Allow through the firewall** adds one inbound TCP rule for ports 43110–43129, scoped to `remoteip=LocalSubnet` plus any network named under *Network to allow*, and applied on any profile — a private-only rule would still block the many home networks Windows calls Public. Windows shows its own consent dialog. |
 | *A firewall rule… exists but is switched off* | Something disabled it. The same button re-enables it. |
 | *Nothing answered on `http://…`* | The listener is not serving on that adapter, which points at the bind or the address rather than at the phone. |
 

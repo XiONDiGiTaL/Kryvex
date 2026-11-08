@@ -90,6 +90,17 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
     'Allow through the firewall': 'Permitir en el firewall',
     'Being able to reach this machine is not the same as the phone being on the same network: both devices must share a Wi-Fi or Ethernet network.':
       'Poder llegar a esta máquina no significa que el teléfono esté en la misma red: ambos dispositivos deben compartir una red Wi-Fi o Ethernet.',
+    'Network to allow': 'Red que permitir',
+    'Allow this network': 'Permitir esta red',
+    'That is not a private network. Enter something like 192.168.2.0/24.':
+      'Eso no es una red privada. Escribe algo como 192.168.2.0/24.',
+    '{network} is allowed now.': 'Ahora se permite {network}.',
+    'Allowed besides your local subnet: {list}':
+      'Permitido además de tu subred local: {list}',
+    'A phone on a separate segment stays blocked even when the router routes between them, because the rule only covers this machine’s local subnet.':
+      'Un teléfono en otro segmento sigue bloqueado aunque el router enrute entre ellos, porque la regla solo cubre la subred local de este equipo.',
+    'A guest network that isolates its clients cannot be bridged here: that is the router’s setting, not this firewall.':
+      'Una red para invitados que aísla a sus clientes no se puede puentear aquí: es un ajuste del router, no de este firewall.',
     'PHONE LINK': 'VÍNCULO CON EL TELÉFONO',
     'Microsoft Phone Link is its own Windows app: messages, calls and photos live there, not in Kryvex. Kryvex opens it for you and keeps its own link for clipboard, files and the remote.':
       'Microsoft Phone Link es una aplicación propia de Windows: los mensajes, las llamadas y las fotos están ahí, no en Kryvex. Kryvex la abre por ti y mantiene su propio enlace para el portapapeles, los archivos y el mando.',
@@ -179,6 +190,17 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
     'Allow through the firewall': 'In der Firewall zulassen',
     'Being able to reach this machine is not the same as the phone being on the same network: both devices must share a Wi-Fi or Ethernet network.':
       'Diesen Rechner erreichen zu können heißt nicht, dass das Telefon im selben Netz ist: Beide Geräte müssen ein WLAN- oder Ethernet-Netz teilen.',
+    'Network to allow': 'Netzwerk zum Zulassen',
+    'Allow this network': 'Dieses Netzwerk zulassen',
+    'That is not a private network. Enter something like 192.168.2.0/24.':
+      'Das ist kein privates Netzwerk. Gib etwas wie 192.168.2.0/24 ein.',
+    '{network} is allowed now.': '{network} ist jetzt zugelassen.',
+    'Allowed besides your local subnet: {list}':
+      'Zusätzlich zum lokalen Subnetz zugelassen: {list}',
+    'A phone on a separate segment stays blocked even when the router routes between them, because the rule only covers this machine’s local subnet.':
+      'Ein Telefon in einem anderen Segment bleibt blockiert, auch wenn der Router dazwischen routet, weil die Regel nur das lokale Subnetz dieses Rechners abdeckt.',
+    'A guest network that isolates its clients cannot be bridged here: that is the router’s setting, not this firewall.':
+      'Ein Gästenetz, das seine Clients isoliert, lässt sich hier nicht überbrücken: Das ist eine Einstellung des Routers, nicht dieser Firewall.',
     'PHONE LINK': 'TELEFON-VERBINDUNG',
     'Microsoft Phone Link is its own Windows app: messages, calls and photos live there, not in Kryvex. Kryvex opens it for you and keeps its own link for clipboard, files and the remote.':
       'Microsoft Phone Link ist eine eigene Windows-App: Nachrichten, Anrufe und Fotos liegen dort, nicht in Kryvex. Kryvex öffnet sie für dich und behält seine eigene Verbindung für Zwischenablage, Dateien und Fernbedienung.',
@@ -268,6 +290,17 @@ export const linkCopy: Record<'es' | 'de' | 'fr', Record<string, string>> = {
     'Allow through the firewall': 'Autoriser dans le pare-feu',
     'Being able to reach this machine is not the same as the phone being on the same network: both devices must share a Wi-Fi or Ethernet network.':
       'Pouvoir atteindre cet ordinateur ne signifie pas que le téléphone est sur le même réseau : les deux appareils doivent partager un réseau Wi-Fi ou Ethernet.',
+    'Network to allow': 'Réseau à autoriser',
+    'Allow this network': 'Autoriser ce réseau',
+    'That is not a private network. Enter something like 192.168.2.0/24.':
+      'Ce n’est pas un réseau privé. Saisissez par exemple 192.168.2.0/24.',
+    '{network} is allowed now.': '{network} est désormais autorisé.',
+    'Allowed besides your local subnet: {list}':
+      'Autorisé en plus de votre sous-réseau local : {list}',
+    'A phone on a separate segment stays blocked even when the router routes between them, because the rule only covers this machine’s local subnet.':
+      'Un téléphone sur un autre segment reste bloqué même si le routeur fait le routage, car la règle ne couvre que le sous-réseau local de cet ordinateur.',
+    'A guest network that isolates its clients cannot be bridged here: that is the router’s setting, not this firewall.':
+      'Un réseau invité qui isole ses clients ne peut pas être ponté ici : c’est un réglage du routeur, pas de ce pare-feu.',
     'PHONE LINK': 'LIEN TÉLÉPHONE',
     'Microsoft Phone Link is its own Windows app: messages, calls and photos live there, not in Kryvex. Kryvex opens it for you and keeps its own link for clipboard, files and the remote.':
       'Microsoft Phone Link est une application Windows à part : les messages, les appels et les photos y restent, pas dans Kryvex. Kryvex l’ouvre pour vous et garde son propre lien pour le presse-papiers, les fichiers et la télécommande.',

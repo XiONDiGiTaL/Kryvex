@@ -352,6 +352,106 @@ export function phoneStatus(raw: unknown): LinkPhoneStatus | null {
   };
 }
 
+/** How many networks outside the local subnet the rule may also cover. */
+export const LINK_MAX_SCOPES = 8;
+
+/**
+ * A network a phone might be on, as a firewall scope.
+ *
+ * The rule this app writes is scoped to `LocalSubnet`, which is the wrong scope
+ * for the case that actually fails: a laptop on Ethernet and a phone on Wi-Fi
+ * are usually one network, but plenty of routers put the two segments on
+ * different subnets (a guest SSID, a per-band subnet, a mesh node). The router
+ * routes between them and Windows still drops the packet, because the rule's
+ * remote scope does not include the phone's network.
+ *
+ * This string ends up in an elevated `netsh` command line, so it is parsed here
+ * and nowhere else: four octets, a private range only, a prefix between /8 and
+ * /32, and no characters beyond digits, dots and one slash. A bare address is
+ * a /32, which is what a phone with a fixed lease needs; the /24 form is what a
+ * phone whose address moves needs.
+ */
+export function parseNetworkScope(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const value = raw.trim();
+  if (!value || value.length > 18) return null;
+  const slash = value.indexOf('/');
+  const host = slash === -1 ? value : value.slice(0, slash);
+  const prefix = slash === -1 ? '' : value.slice(slash + 1);
+  const parts = host.split('.');
+  if (parts.length !== 4) return null;
+  if (!parts.every(part => /^\d{1,3}$/.test(part) && String(Number(part)) === part && Number(part) <= 255)) {
+    return null;
+  }
+  const octets = parts.map(Number) as [number, number, number, number];
+  const [a, b] = octets;
+  const privateHost =
+    a === 10 ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127);
+  if (!privateHost) return null;
+  if (slash !== -1 && !/^\d{1,2}$/.test(prefix)) return null;
+  const bits = slash === -1 ? 32 : Number(prefix);
+  if (bits < 8 || bits > 32) return null;
+  return `${octets.join('.')}/${bits}`;
+}
+
+/**
+ * The scopes the rule should carry: what it covers already, then what was typed.
+ *
+ * A narrower prefix is a different scope, so both survive; a repeat collapses.
+ * Anything that fails the parser is dropped, which is what keeps a typed string
+ * out of the command line below.
+ */
+export function mergeNetworkScopes(existing: unknown, extra: unknown): string[] {
+  const scopes: string[] = [];
+  for (const list of [existing, extra]) {
+    if (!Array.isArray(list)) continue;
+    for (const item of list) {
+      const scope = parseNetworkScope(item);
+      if (!scope || scopes.includes(scope)) continue;
+      scopes.push(scope);
+      if (scopes.length >= LINK_MAX_SCOPES) return scopes;
+    }
+  }
+  return scopes;
+}
+
+/** `LocalSubnet` plus the extra networks, which is what `netsh` takes. */
+export function ruleRemoteAddresses(scopes: unknown): string {
+  return ['LocalSubnet', ...mergeNetworkScopes(scopes, [])].join(',');
+}
+
+/** What a rule's remote-address filter covers. */
+export interface LinkRuleScope {
+  localSubnet: boolean;
+  subnets: string[];
+}
+
+/**
+ * What `Get-NetFirewallAddressFilter -ExpandProperty RemoteAddress` printed.
+ *
+ * A missing rule prints nothing, which reads as "covers nothing" rather than as
+ * an error: the caller already knows from the same reading whether a rule is
+ * there. A scope this parser cannot represent is left out instead of guessed.
+ */
+export function parseRemoteAddresses(raw: unknown): LinkRuleScope {
+  const scope: LinkRuleScope = { localSubnet: false, subnets: [] };
+  if (typeof raw !== 'string') return scope;
+  for (const entry of raw.split(/[,\r\n]+/)) {
+    const value = entry.trim();
+    if (!value) continue;
+    if (/^local\s*subnet$/i.test(value)) {
+      scope.localSubnet = true;
+      continue;
+    }
+    const network = parseNetworkScope(value);
+    if (network && !scope.subnets.includes(network)) scope.subnets.push(network);
+  }
+  return scope;
+}
+
 /** The Windows firewall rule this app creates for the link's port range. */
 export const LINK_RULE_NAME = 'Kryvex Link';
 

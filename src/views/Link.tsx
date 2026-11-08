@@ -61,6 +61,8 @@ export function Link({
     null,
   );
   const [checking, setChecking] = useState(false);
+  /** The phone's own network, for a phone that is not on this machine's subnet. */
+  const [network, setNetwork] = useState('');
 
   const refresh = useCallback(async () => {
     if (!bridge?.linkStatus) return;
@@ -141,6 +143,33 @@ export function Link({
       setChecking(false);
     }
   }, [bridge]);
+
+  /**
+   * Lets the phone's network through the rule.
+   *
+   * This is the case a firewall rule scoped to `LocalSubnet` cannot cover: a
+   * phone on Wi-Fi and a PC on Ethernet behind one router that puts the two on
+   * different subnets. The router already routes between them; only the rule's
+   * scope is in the way. The main process validates the string again and keeps
+   * the networks the rule already covers.
+   */
+  const allowNetwork = useCallback(async () => {
+    if (!bridge?.linkAllowFirewall) return;
+    const value = network.trim();
+    if (!/^\d{1,3}(\.\d{1,3}){3}(\/\d{1,2})?$/.test(value)) {
+      onToast(t('That is not a private network. Enter something like 192.168.2.0/24.'), 'warning');
+      return;
+    }
+    setChecking(true);
+    try {
+      const next = await bridge.linkAllowFirewall([value]);
+      if (next) setDiagnosis(next);
+      setNetwork('');
+      onToast(t('{network} is allowed now.', { network: value }), 'success');
+    } finally {
+      setChecking(false);
+    }
+  }, [bridge, network, onToast, t]);
 
   // Phone Link is Microsoft's app. Kryvex can open it, not draw it.
   const openPhoneLink = useCallback(async () => {
@@ -348,6 +377,42 @@ export function Link({
           <p className="hint">
             {t(
               'Being able to reach this machine is not the same as the phone being on the same network: both devices must share a Wi-Fi or Ethernet network.',
+            )}
+          </p>
+          {diagnosis?.remote?.subnets.length ? (
+            <p className="hint mono">
+              {t('Allowed besides your local subnet: {list}', {
+                list: diagnosis.remote.subnets.join(', '),
+              })}
+            </p>
+          ) : null}
+          <p className="hint">
+            {t(
+              'A phone on a separate segment stays blocked even when the router routes between them, because the rule only covers this machine’s local subnet.',
+            )}
+          </p>
+          <div className="link-scope">
+            <input
+              className="mono"
+              aria-label={t('Network to allow')}
+              placeholder="192.168.2.0/24"
+              value={network}
+              onChange={event => setNetwork(event.target.value)}
+              onKeyDown={event => {
+                if (event.key === 'Enter') void allowNetwork();
+              }}
+            />
+            <button
+              className="btn small"
+              disabled={busy || checking}
+              onClick={() => void allowNetwork()}
+            >
+              {t('Allow this network')}
+            </button>
+          </div>
+          <p className="hint">
+            {t(
+              'A guest network that isolates its clients cannot be bridged here: that is the router’s setting, not this firewall.',
             )}
           </p>
         </article>
