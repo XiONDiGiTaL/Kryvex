@@ -11,6 +11,10 @@ on:
         description: 'Run the firewall-scope harness, which writes and restores the Kryvex Link rule'
         type: boolean
         default: false
+      signin_popup:
+        description: 'Run the sign-in pop-up harness, which reaches Google and Microsoft on the internet'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -118,6 +122,40 @@ jobs:
 
       - name: Run the ${{ matrix.batch }} batch
         run: node scripts/verify-batch.cjs ${{ matrix.batch }}
+
+  # The service sign-in pop-up, against Google's and Microsoft's own pages.
+  #
+  # Opt-in for the same reason `scripts/verify-google-signin.cjs` stays out of
+  # the push batches: it needs the internet, and a provider that rate-limits a
+  # runner's address would fail a job about this repository's own code. The
+  # harness still fails on a real regression: a pop-up that is refused, a window
+  # that does not share the module's session, or a provider page that does not
+  # render.
+  signin-popup:
+    name: Service sign-in pop-up
+    if: github.event_name == 'workflow_dispatch' && inputs.signin_popup == true
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the desktop app
+        run: pnpm build
+
+      - name: Verify the sign-in pop-up
+        run: node scripts/verify-signin-popup.cjs
 
   # The firewall-scope pass is opt-in, and it is the one job that changes the
   # machine it runs on: it creates the Kryvex Link rule, widens it to a named

@@ -1192,6 +1192,33 @@ account sign-in, a captcha solve, or another provider.
   printed its DevTools endpoint. Renderer content in dev was **not** captured
   visually (production captures are the visual evidence).
 
+## Batch: unified search, path rules, sign-in pop-up (2026-11-08)
+
+`electron/search-rules.ts` and `electron/search.ts` add Kryvex's first unified
+search: one query in the main process over the services, browser history,
+bookmarks and downloads the app already keeps, ranked by rules the renderer
+shares for its own commands. The command palette is the surface — with a query
+typed it merges those commands with the index's records into one ranked list,
+grouped by source, and Ctrl+K opens it — and a result opens the module, a
+Browser tab or the downloaded file. Nothing is indexed to a second file, and
+nothing is sent anywhere. 14 unit tests in `tests/search-rules.test.ts`.
+
+The disk and model path rules now choose the path implementation from the value
+itself (`electron/disk-rules.ts`, `electron/model-rules.ts`). On Windows nothing
+changes; elsewhere a Windows path is read as the Windows path it is, so the
+containment, drive-root and deletion guards are the same rules everywhere
+instead of silently answering "outside" on another platform. That is also why
+the seven Linux-only failures in `tests/disk-rules.test.ts` and
+`tests/model-rules.test.ts` are gone: the suite is **1,221 passing in 103
+files** in this workspace, typecheck clean.
+
+`scripts/verify-signin-popup.cjs` checks the service sign-in pop-up in the
+window a provider SDK actually uses: a blank `window.open` is created, shares
+the module's session, is navigated afterwards by its opener, and loads Google's
+and Microsoft's own sign-in pages; a pop-up to a non-web address is still
+refused. It is opt-in (`pnpm verify:signin-popup`, or the CI `signin_popup`
+input) because it reaches the internet.
+
 ## Known gaps
 
 - Windows only; no macOS/Linux run or platform icon sets.
@@ -1221,9 +1248,10 @@ account sign-in, a captcha solve, or another provider.
   separate, reviewed download.
 - Notifications are all-or-nothing for service modules; there is no per-service
   mute or notification history in the shell yet.
-- There is no unified search. The command palette reaches views, services,
-  actions and themes; history, bookmarks, downloads and saved pages are each
-  searched inside their own list.
+- Unified search reaches services, browser history, bookmarks and downloads
+  from the palette. Workspaces, saved settings and user-script records are not
+  in the index, there are no per-source filters, and there is no dedicated
+  results view with more room than a palette row.
 - There is no backup or restore. The state file can be copied by hand, but there
   is no snapshot, preview or recovery path, and no versioned export.
 - There is no knowledge store: no notes, collections, highlights or vault, and

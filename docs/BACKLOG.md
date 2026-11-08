@@ -46,10 +46,14 @@ M1/M2 are complete (see `PROJECT_STATUS.md`); this list is the live queue.
 
 Ordered by dependency, not by size: the first item is what the next two build on.
 
-- [ ] Unified search: one main-process query over services, commands, history,
-  bookmarks, downloads, workspaces and user scripts, with categories, filters,
-  keyboard navigation and direct opening. The command palette becomes one
-  surface over it rather than a second implementation.
+- [x] Unified search, first slice: one main-process query over services,
+  browser history, bookmarks and downloads, ranked by rules the renderer shares
+  for its own commands, with the command palette as its single surface and
+  `Ctrl+K` over all of it (`electron/search-rules.ts`, `electron/search.ts`,
+  `tests/search-rules.test.ts`). Opening a result goes to the module, the
+  Browser tab or the downloaded file.
+- [ ] Search the rest: workspaces, saved settings and user-script records into
+  the same index, plus per-source filters and a dedicated results view.
 - [ ] Activity center: capture service notifications in the guest preload,
   keep history, per-service mute and priority, unread indicators, click-through
   to the originating module, retention. Replaces the all-or-nothing behaviour

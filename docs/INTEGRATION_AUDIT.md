@@ -103,16 +103,27 @@ else; a grep for `backup`, `vault`, `knowledge` and `reading-room` across
 6. **Extension API and review process** (last: it packages the surfaces above
    and needs them stable).
 
-## Milestone 1, not started
+## Milestone 1, shipped (8 Nov 2026)
 
-Universal search. New `electron/search.ts` with its pure rules in
-`electron/search-rules.ts`, one preload channel, and a search view that reuses
-the palette's visual language. Sources: services and their last URLs, palette
-commands, browser history and bookmarks, downloads (including files on disk),
-workspaces and saved settings, and user-script records. Filters per source,
-`Ctrl+K` to open, arrow/Enter navigation, and a result that opens straight into
-the module, tab, file or setting it names. Local only: it queries main and the
-renderer, never a network.
+Universal search, first slice. `electron/search-rules.ts` holds the pure rules
+(query terms, scoring, ranking, and the sanitising the renderer applies to what
+it is handed); `electron/search.ts` builds the index and answers one query from
+the state file and the download manager. One IPC channel
+(`kryvex:search:query`) and one bridge method (`searchQuery`) carry it, and the
+command palette became the surface rather than a second implementation beside
+it: with a query typed, its own commands are scored by the same function and
+merged with the index's services, history, bookmarks and downloads into one
+ranked list, grouped by source, with arrow/Enter navigation and `Ctrl+K` over
+all of it.
+
+What a result opens: a service goes to its module, a history entry or bookmark
+to a Browser tab (`#/browser?url=…`), a download to the file the download
+manager already tracks. Nothing leaves the machine: the query is answered from
+records the app already keeps, and there is no second index on disk.
+
+Not in this slice, and therefore still on the queue: workspaces, saved settings
+and user-script records as sources; per-source filter chips; and a dedicated
+results view with more room than a palette row.
 
 ## In this batch
 
@@ -126,6 +137,10 @@ renderer, never a network.
 
 ## What this audit does not claim
 
-Search, the Activity Center, hibernation, backup and the vault do not exist yet.
-Nothing in this batch was exercised in a running Windows build here; the claims
-above are code reading plus the unit tests named where they exist.
+The first search slice exists; the Activity Center, hibernation, backup and the
+vault do not. Search is exercised by unit tests over the rules and the index,
+and by nothing else yet: no harness drives a query through the running app.
+Nothing here was exercised in a running Windows build. The pop-up fix is
+unit-tested, and `scripts/verify-signin-popup.cjs` is the harness that proves it
+in a real window; it needs the internet and an opt-in CI job, so its result is
+recorded where it ran, not assumed here.

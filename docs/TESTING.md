@@ -3676,3 +3676,50 @@ The typecheck, the unit tests and CI's *Verify Kryvex Link* step all pass, and
 none of them touches the firewall. The rows above are the only evidence about
 Windows, and they are why the second-subnet claim no longer rests on a
 documented `netsh` behaviour.
+
+## The service sign-in pop-up (`scripts/verify-signin-popup.cjs`)
+
+Why it exists: a service's "Sign in with Google" button calls `window.open('')`
+and writes the provider's address into that window afterwards — Google Identity
+Services, Apple and several OAuth SDKs all do it, because a browser blocks the
+second `window.open` a click did not authorise. Kryvex used to require an http(s)
+URL before creating the window, so the window never existed and the button
+looked dead. `electron/popup-rules.ts` is unit-tested
+(`tests/popup-rules.test.ts`), but only a real window proves the button.
+
+The harness runs the built app against a loopback service module and checks, in
+order:
+
+- `window.open('')` from a service module returns a real window;
+- the window starts at `about:blank` and reads the module's own cookie, so it
+  shares the module's session — which is what makes a sign-in performed there
+  sign the module in;
+- the opener can write the provider's address into it afterwards;
+- Google's `accounts.google.com/ServiceLogin` page loads in that window, keeps
+  the browser (no `disallowed_useragent` / "may not be secure" page) and shows
+  its identifier field;
+- Microsoft's `login.live.com` sign-in page loads in the same kind of window;
+- `window.open('file:///...')` from the module is still refused.
+
+No credentials are used: the run follows each flow as far as the identifier
+field, which is as far as an unauthenticated run can honestly go. It needs the
+internet, so it is **not** in a push batch — it has its own alias
+(`pnpm verify:signin-popup`) and its own opt-in CI job (dispatch CI with
+`signin_popup` ticked), the same treatment `verify-google-signin.cjs` gets.
+
+```text
+pnpm build && electron scripts/verify-signin-popup.cjs
+```
+
+## Unified search (`tests/search-rules.test.ts`)
+
+`electron/search-rules.ts` holds the query rules, scoring, ranking and the
+sanitising the renderer applies to what the bridge returns; `electron/search.ts`
+builds the index from the state file and the download manager. The unit tests
+cover both, including the records that must be refused (`javascript:` and
+`file:` URLs, a service with no URL, a download with no name) and the case that
+matters most: a second term narrows the list instead of widening it.
+
+What they do not cover: the palette's own rendering, and a query travelling
+through IPC into the running app. No harness drives that yet; the palette change
+is typechecked and unit-tested at the rule level only.
