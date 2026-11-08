@@ -141,11 +141,17 @@ const MODULE_PAGE = `<!doctype html>
   window.__askForResult = () => {
     if (window.__flow.token) return true;
     fetch('/flow?state=' + encodeURIComponent(window.__flow.state))
-      .then(response => (response.ok ? response.json() : null))
+      .then(response => {
+        const seen = window.__flow.poll || { count: 0, status: 0 };
+        window.__flow.poll = { count: seen.count + 1, status: response.status };
+        return response.ok ? response.json() : null;
+      })
       .then(body => {
         if (body && body.code) window.__exchangeOnce(body.code, window.__flow.state);
       })
-      .catch(() => undefined);
+      .catch(error => {
+        window.__flow.poll = { count: 1, status: String(error).slice(0, 80) };
+      });
     return Boolean(window.__flow.token);
   };
   const params = new URLSearchParams(location.search);
@@ -725,11 +731,20 @@ async function selfTest() {
     console.log('· return leg: granting consent');
     await flow.evaluate(`document.getElementById('allow').click(); true`).catch(() => undefined);
     console.log('· return leg: waiting for the code to reach the module');
-    const code = await waitFor(
-      guest.evaluate,
-      `window.__flow && window.__flow.code`,
-      'the code to reach the module',
-    );
+    let code;
+    try {
+      code = await waitFor(
+        guest.evaluate,
+        `window.__flow && window.__flow.code`,
+        'the code to reach the module',
+      );
+    } catch (error) {
+      const fromModule = await guest.evaluate(`window.__flow`).catch(() => null);
+      const where = await flow.evaluate(`location.href`).catch(() => 'the window is gone');
+      throw new Error(
+        `${error instanceof Error ? error.message : error} | module ${JSON.stringify(fromModule)} | window ${where}`,
+      );
+    }
     check(
       'the provider handed the code back to the module',
       typeof code === 'string' && code.startsWith('code-'),
@@ -885,6 +900,12 @@ async function selfTest() {
     fixture.close();
   }
 })().catch(error => {
+  const message = error instanceof Error ? error.message : String(error);
   console.error('sign-in pop-up harness: FAIL', error instanceof Error ? error.stack : error);
+  const failed = checks.filter(item => !item.ok).map(item => item.name).join('; ');
+  // A workflow command turns this into an annotation: the whole job log is too
+  // long to read where the harness lives, and the annotation is not.
+  const line = `${message}${failed ? ` | failed: ${failed}` : ''}`.replace(/\s+/g, ' ');
+  console.log(`::error::${line.slice(0, 900)}`);
   process.exitCode = 1;
 });
