@@ -121,12 +121,36 @@ const MODULE_PAGE = `<!doctype html>
     document.getElementById('headline').textContent = 'Signed in';
     document.getElementById('state').textContent = 'signed in';
   }
+  window.__exchangeOnce = (code, state) => {
+    if (window.__flow.token || !code) return;
+    void window.__exchange(String(code), String(state || ''));
+  };
+  // A pop-up that has the code can hand it over three ways, and a real SDK may
+  // use any of them: navigating this window, a same-origin message, or nothing
+  // at all — in which case the module asks its own backend for the outcome. All
+  // three are wired, so the harness tests the session, not one transport.
+  window.addEventListener('message', event => {
+    if (event.origin !== location.origin) return;
+    const data = event.data || {};
+    if (data.kind === 'kx-signin') window.__exchangeOnce(data.code, data.state);
+  });
+  window.__askForResult = () => {
+    if (window.__flow.token) return true;
+    fetch('/flow?state=' + encodeURIComponent(window.__flow.state))
+      .then(response => (response.ok ? response.json() : null))
+      .then(body => {
+        if (body && body.code) window.__exchangeOnce(body.code, window.__flow.state);
+      })
+      .catch(() => undefined);
+    return Boolean(window.__flow.token);
+  };
   const params = new URLSearchParams(location.search);
   if (params.get('code')) {
     window.__flow.code = params.get('code');
     window.__flow.state = params.get('state');
     window.__exchange(window.__flow.code, window.__flow.state);
   }
+  setInterval(window.__askForResult, 400);
 </script>
 </body></html>`;
 
@@ -168,19 +192,31 @@ const RETURN_PAGE = `<!doctype html>
 <p id="state">Handing the code back…</p>
 <script>
   const params = new URLSearchParams(location.search);
-  if (window.opener) {
-    window.opener.location.replace(
-      '/product?code=' + encodeURIComponent(params.get('code') || '') +
-        '&state=' + encodeURIComponent(params.get('state') || ''),
-    );
-  }
+  const code = params.get('code') || '';
+  const state = params.get('state') || '';
+  try {
+    if (window.opener) {
+      window.opener.location.replace(
+        '/product?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state),
+      );
+    }
+  } catch (error) { /* the module may already have gone */ }
+  try {
+    if (window.opener) {
+      window.opener.postMessage({ kind: 'kx-signin', code: code, state: state }, location.origin);
+    }
+  } catch (error) { /* same */ }
   document.getElementById('state').textContent = 'Handed back';
-  setTimeout(() => window.close(), 0);
+  // Closing in the same task as the navigation cancels it, so the window stays
+  // long enough for its opener to have the code by both routes.
+  setTimeout(() => window.close(), 1200);
 </script>
 </body></html>`;
 
 /** Issued codes, and whether they have been spent. */
 const codes = new Map();
+/** state -> code, so a module can ask for the result without a transport. */
+const flows = new Map();
 let codeSequence = 0;
 
 function readBody(request) {
@@ -243,6 +279,7 @@ const fixture = http.createServer(async (request, response) => {
     codeSequence += 1;
     const code = `code-${codeSequence}`;
     codes.set(code, { state, used: false });
+    flows.set(state, code);
     response.writeHead(303, {
       Location: `/return?code=${code}&state=${encodeURIComponent(state)}`,
       'Cache-Control': 'no-store',
@@ -253,6 +290,16 @@ const fixture = http.createServer(async (request, response) => {
 
   if (url.pathname === '/return') {
     html(response, RETURN_PAGE);
+    return;
+  }
+
+  if (url.pathname === '/flow') {
+    const code = flows.get(state);
+    if (!code) {
+      json(response, 404, { error: 'not_ready' });
+      return;
+    }
+    json(response, 200, { code });
     return;
   }
 
@@ -541,6 +588,7 @@ fixture.listen(fixturePort, '127.0.0.1');
 
     // 4. The return leg, on this machine only: a provider page, the test
     //    account, consent, the code handed back, the exchange, the session.
+    console.log('· return leg: asking the module to open its sign-in window');
     const flowState = await guestEval(guest, `window.__startSignIn()`);
     check(
       'the module reserved a window for the provider',
@@ -553,15 +601,22 @@ fixture.listen(fixturePort, '127.0.0.1');
       'the provider sign-in page',
     );
     const flow = await connect(authorizeTarget.webSocketDebuggerUrl);
+    console.log('· return leg: waiting for the provider form');
     await waitFor(flow.evaluate, `Boolean(document.getElementById('provider-form'))`, 'the provider form');
     check('the provider page opened in that window', true, authorizeTarget.url);
 
-    await flow.evaluate(`(() => {
-      document.getElementById('account').value = ${JSON.stringify(ACCOUNT.email)};
-      document.getElementById('password').value = ${JSON.stringify(ACCOUNT.password)};
-      document.getElementById('provider-form').submit();
-      return true;
-    })()`);
+    console.log('· return leg: submitting the test account');
+    // Submitting navigates, which can destroy the context mid-call; the wait
+    // below is what proves it worked.
+    await flow
+      .evaluate(`(() => {
+        document.getElementById('account').value = ${JSON.stringify(ACCOUNT.email)};
+        document.getElementById('password').value = ${JSON.stringify(ACCOUNT.password)};
+        document.getElementById('provider-form').submit();
+        return true;
+      })()`)
+      .catch(() => undefined);
+    console.log('· return leg: waiting for the consent step');
     await waitFor(flow.evaluate, `location.pathname === '/consent'`, 'the consent step');
     check('the test account signed in and reached the consent step', true, 'consent');
 
@@ -572,7 +627,9 @@ fixture.listen(fixturePort, '127.0.0.1');
       String(providerCookie) || 'no cookie visible',
     );
 
-    await flow.evaluate(`document.getElementById('allow').click(); true`);
+    console.log('· return leg: granting consent');
+    await flow.evaluate(`document.getElementById('allow').click(); true`).catch(() => undefined);
+    console.log('· return leg: waiting for the code to reach the module');
     const code = await waitFor(
       guest.evaluate,
       `window.__flow && window.__flow.code`,
@@ -608,7 +665,7 @@ fixture.listen(fixturePort, '127.0.0.1');
     );
 
     // The window that returned the code closes itself, the way an SDK's does.
-    await sleep(700);
+    await sleep(1800);
     const leftover = (await listTargets()).some(item => String(item.url).includes('/return'));
     check('the sign-in window closed itself after returning', !leftover, leftover ? 'still open' : 'closed');
 
