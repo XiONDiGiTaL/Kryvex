@@ -103,8 +103,22 @@ const MODULE_PAGE = `<!doctype html>
   window.__exchange = async (code, state) => {
     window.__flow.exchanges += 1;
     if (code) window.__flow.code = String(code);
-    if (state) window.__flow.state = String(state);
-    const response = await fetch('/token?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state));
+    // The state is the one this page instance started the sign-in with, and it
+    // is what the exchange is checked against: a callback carrying any other
+    // state is refused here, not silently traded for a session.
+    const expected = window.__flow.state;
+    if (!expected) {
+      window.__flow.error = 'no-state';
+      return false;
+    }
+    if (state && String(state) !== String(expected)) {
+      window.__flow.error = 'state-mismatch';
+      return false;
+    }
+    const url = '/token?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(expected);
+    window.__flow.lastToken = url;
+    const response = await fetch(url);
+    window.__flow.lastStatus = response.status;
     const body = await response.json().catch(() => ({}));
     if (response.ok && body.access_token) {
       document.cookie = 'kx_module=' + body.access_token + '; path=/';
