@@ -211,10 +211,11 @@ const MODULE_PAGE = `<!doctype html>
   if (params.get('code')) {
     window.__flow.code = params.get('code');
     window.__flow.callbackState = params.get('state');
-    // Only the sign-in this tab started can be completed here. A page that never
-    // started one records what arrived and leaves the code unspent.
+    // The code is recorded here and spent in exactly one place: this page's own
+    // lookup by state. A pop-up inherits a copy of this tab's sessionStorage, so
+    // if it also received the code, whoever exchanged first would spend it and
+    // the other would be refused a code it was handed.
     if (!window.__flow.state) window.__flow.error = 'no-pending-state';
-    else window.__exchangeOnce(window.__flow.code, window.__flow.callbackState);
   }
   setInterval(window.__askForResult, 400);
 </script>
