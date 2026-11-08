@@ -91,10 +91,27 @@ const MODULE_PAGE = `<!doctype html>
   // The SDK flow: reserve a window, send it to the provider, and let the
   // provider hand a code back here. This page is the module, so the exchange
   // below is the module's own return leg, not the provider's.
-  window.__flow = { state: null, code: null, token: null, error: null, exchanges: 0, attempted: false };
+  // The pending state lives in this tab's sessionStorage. A provider hands its
+  // code back by navigating this page, which replaces the instance that asked
+  // for it; any other page — a pop-up of its own — must not be able to claim
+  // that code merely by being in the same session.
+  const PENDING = 'kx-signin-state';
+  const pendingState = () => {
+    try { return sessionStorage.getItem(PENDING); } catch { return null; }
+  };
+  window.__flow = {
+    state: pendingState(),
+    code: null,
+    token: null,
+    error: null,
+    exchanges: 0,
+    attempted: false,
+    callbackState: null,
+  };
   window.__startSignIn = () => {
     const state = 'st-' + Math.random().toString(36).slice(2, 10);
     window.__flow.state = state;
+    try { sessionStorage.setItem(PENDING, state); } catch { /* no storage */ }
     window.__signinPopup = window.__openBlank('kx-oauth');
     if (!window.__signinPopup) return null;
     window.__signinPopup.location.replace('/authorize?client=fixture&state=' + encodeURIComponent(state));
@@ -123,6 +140,7 @@ const MODULE_PAGE = `<!doctype html>
     const body = await response.json().catch(() => ({}));
     if (response.ok && body.access_token) {
       document.cookie = 'kx_module=' + body.access_token + '; path=/';
+      try { sessionStorage.removeItem(PENDING); } catch { /* no storage */ }
       window.__flow.token = body.access_token;
       window.__flow.error = null;
       document.getElementById('headline').textContent = 'Signed in';
@@ -174,6 +192,7 @@ const MODULE_PAGE = `<!doctype html>
   });
   window.__askForResult = () => {
     if (window.__flow.token) return true;
+    if (!window.__flow.state) return false;
     fetch('/flow?state=' + encodeURIComponent(window.__flow.state))
       .then(response => {
         const seen = window.__flow.poll || { count: 0, status: 0 };
@@ -192,8 +211,10 @@ const MODULE_PAGE = `<!doctype html>
   if (params.get('code')) {
     window.__flow.code = params.get('code');
     window.__flow.callbackState = params.get('state');
-    if (!window.__flow.state) window.__flow.state = params.get('state');
-    window.__exchangeOnce(window.__flow.code, window.__flow.callbackState);
+    // Only the sign-in this tab started can be completed here. A page that never
+    // started one records what arrived and leaves the code unspent.
+    if (!window.__flow.state) window.__flow.error = 'no-pending-state';
+    else window.__exchangeOnce(window.__flow.code, window.__flow.callbackState);
   }
   setInterval(window.__askForResult, 400);
 </script>
@@ -347,8 +368,12 @@ const fixture = http.createServer(async (request, response) => {
 
   if (url.pathname === '/flow') {
     const code = flows.get(state);
-    logFlow({ at: 'flow', state, code: code ?? null, hit: Boolean(code) });
-    if (!code) {
+    const issued2 = code ? codes.get(code) : null;
+    // A spent code is not a result: the page that earned it already holds the
+    // session, and handing it out again only offers another page a refusal.
+    const ready = Boolean(code && issued2 && !issued2.used);
+    if (!ready) {
+      logFlow({ at: 'flow', state, code: code ?? null, spent: Boolean(issued2 && issued2.used) });
       json(response, 404, { error: 'not_ready' });
       return;
     }
