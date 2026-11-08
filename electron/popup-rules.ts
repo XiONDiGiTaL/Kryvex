@@ -64,6 +64,23 @@ export function isPopupTabCandidate(request: PopupRequest): boolean {
   return isPopupTabUrl(request.url);
 }
 
+/**
+ * A window Chromium opened before any page exists.
+ *
+ * `window.open('')`, `window.open('about:blank')` and the `srcdoc` form are how
+ * OAuth SDKs and Google Identity Services reserve a popup inside the click that
+ * started the flow — the browser then blocks the *later* `window.open`, so the
+ * empty window has to exist first and receive its address afterwards. The
+ * window has no origin of its own and inherits nothing but its opener's, which
+ * the opener already has, so allowing it grants no new privilege; every page it
+ * later loads still has to pass the popup's http(s)-only navigation guard.
+ */
+export function isBlankPopupUrl(raw: unknown): boolean {
+  if (typeof raw !== 'string') return false;
+  const trimmed = raw.trim().toLowerCase();
+  return trimmed === '' || trimmed === 'about:blank' || trimmed === 'about:srcdoc';
+}
+
 function finite(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }

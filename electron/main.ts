@@ -44,6 +44,7 @@ import { playerEmbed } from './player-embed';
 import * as lexiumProxy from './lexium-proxy';
 import { permissions } from './permissions';
 import { popupTabs } from './popup-tabs';
+import { isBlankPopupUrl } from './popup-rules';
 import { fetchFeed } from './rss';
 import { resources } from './resources';
 import { vpn } from './vpn';
@@ -311,10 +312,16 @@ function hardenWebContents(): void {
       // the opener, so they keep one. A service module gets a real child window
       // on its own persistent session; a browser tab still hands the link to
       // the system browser.
+      //
+      // A window with no page yet counts: Google Identity Services, Apple and
+      // several OAuth SDKs call `window.open('')` with no URL and write the
+      // provider's address into the window afterwards. Requiring http(s) here
+      // refused that window before it existed, which is why the button looked
+      // dead. What the window may load is decided by its own navigation guard.
       if (
         contents.getType() === 'webview' &&
         serviceSessions.isServiceSession(contents.session) &&
-        isSafeUrl(url)
+        (isSafeUrl(url) || isBlankPopupUrl(url))
       ) {
         return {
           action: 'allow',

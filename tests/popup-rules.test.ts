@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  isPopupTabCandidate,
-  isPopupTabUrl,
-  popupLabel,
-  popupPlacement,
-} from '../electron/popup-rules';
+import { isPopupTabCandidate, isPopupTabUrl, popupLabel, popupPlacement, isBlankPopupUrl } from '../electron/popup-rules';
 
 const base = {
   type: 'webview',
@@ -126,5 +121,26 @@ describe('popup label', () => {
 
   it('caps a runaway title', () => {
     expect(popupLabel('x'.repeat(400), 'https://example.com').length).toBe(100);
+  });
+});
+
+describe('isBlankPopupUrl', () => {
+  it('allows the empty window a sign-in reserves before it has a page', () => {
+    expect(isBlankPopupUrl('')).toBe(true);
+    expect(isBlankPopupUrl('about:blank')).toBe(true);
+    expect(isBlankPopupUrl('ABOUT:BLANK')).toBe(true);
+    expect(isBlankPopupUrl('  about:blank  ')).toBe(true);
+    expect(isBlankPopupUrl('about:srcdoc')).toBe(true);
+  });
+
+  it('leaves a real address, and anything else, to the URL guard', () => {
+    expect(isBlankPopupUrl('https://accounts.google.com/o/oauth2/auth')).toBe(false);
+    expect(isBlankPopupUrl('http://127.0.0.1:8126/account')).toBe(false);
+    expect(isBlankPopupUrl('javascript:alert(1)')).toBe(false);
+    expect(isBlankPopupUrl('file:///C:/Windows/System32/calc.exe')).toBe(false);
+    expect(isBlankPopupUrl('https://example.test/#about:blank')).toBe(false);
+    expect(isBlankPopupUrl(undefined)).toBe(false);
+    expect(isBlankPopupUrl(null)).toBe(false);
+    expect(isBlankPopupUrl(42)).toBe(false);
   });
 });
