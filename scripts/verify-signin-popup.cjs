@@ -178,6 +178,7 @@ const MODULE_PAGE = `<!doctype html>
     const match = document.cookie.match(/(?:^|; )kx_module=([^;]+)/);
     if (!match) return;
     window.__flow.token = match[1];
+    window.__flow.code = window.__flow.code || match[1].replace('kx-access-', '');
     document.getElementById('headline').textContent = 'Signed in';
     document.getElementById('state').textContent = 'signed in';
   }, 300);
@@ -188,7 +189,7 @@ const MODULE_PAGE = `<!doctype html>
   window.addEventListener('message', event => {
     if (event.origin !== location.origin) return;
     const data = event.data || {};
-    if (data.kind === 'kx-signin') window.__exchangeOnce(data.code, data.state);
+    if (data.kind === 'kx-signin') window.__flow.messaged = String(data.code || '');
   });
   window.__askForResult = () => {
     if (window.__flow.token) return true;
@@ -263,14 +264,15 @@ const RETURN_PAGE = `<!doctype html>
   const state = params.get('state') || '';
   try {
     if (window.opener) {
-      window.opener.location.replace(
+      location.replace(
         '/product?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state),
       );
     }
   } catch (error) { /* the module may already have gone */ }
   try {
     if (window.opener) {
-      window.opener.postMessage({ kind: 'kx-signin', code: code, state: state }, location.origin);
+      // Nothing is pushed at the module: the code is finished here, and the
+      // module reads the result from the session or asks for it by state.
     }
   } catch (error) { /* same */ }
   document.getElementById('state').textContent = 'Handed back';
@@ -813,7 +815,7 @@ async function selfTest() {
     try {
       code = await waitFor(
         guest.evaluate,
-        `window.__flow && window.__flow.code`,
+        `window.__flow && (window.__flow.code || window.__flow.token)`,
         'the code to reach the module',
       );
     } catch (error) {
