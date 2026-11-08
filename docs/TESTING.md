@@ -3556,10 +3556,10 @@ a router that routes between them does not help: the rule's remote scope did not
 include the phone's network, so the packet died at the firewall. The connection
 check can now name that network, and the rule carries `LocalSubnet,<network>`.
 
-The unit tests cover the parser and the merge (`tests/link-rules.test.ts`, 8
-cases). What they cannot cover is `netsh`: that the write produces the scope,
-that the rule survives it still enabled, and that Windows reads it back the way
-the app then displays it. That is this pass.
+The unit tests cover the parser and the merge (`tests/link-rules.test.ts`, 9
+cases for the scope alone). What they cannot cover is the write: that Windows
+stores the scope asked for, that the rule survives it still enabled, and that it
+reads back the way the app then displays it. That is this pass.
 
 | Step | Command |
 | --- | --- |
@@ -3587,17 +3587,92 @@ are also written to `.tmp-link-firewall-report.txt` (gitignored).
   if this pass created it. A pass that leaves the machine different is a failure,
   which the last line checks.
 
+### In CI
+
+The pass is an opt-in job — `.github/workflows/ci.yml` → `link-firewall` — and
+deliberately never runs on a push: it creates, widens and deletes a firewall
+rule on whatever machine it runs on. Ask for it by hand:
+
+```bash
+gh workflow run ci.yml -f link_firewall=true
+```
+
+It runs `pnpm build` and then the same `node scripts/verify-link-firewall.cjs`
+named above, on the Windows runner, and uploads the transcript as the
+`link-firewall-report` artifact.
+
 ### Result
 
-**Not yet run on Windows.** The harness was written on a Linux machine, which
-has no Windows Firewall, so the only run recorded today is the skip:
+**Run on a Windows runner on 2026-11-08, and it passes.** That runner is
+elevated, so the elevated write this pass needs actually happens: the rule was
+created (`before: rule absent`), written with both scopes, left enabled, and
+deleted again, and the last line confirms the machine was left as it was found.
+
+```text
+before: rule absent
+PASS the link is listening on this machine, port 43110
+PASS the check reports a firewall it can read, no-rule, local subnet false, []
+PASS the phone’s network is allowed without an error, firewall open
+PASS the answer carries the new scope, [192.168.222.0/24]
+PASS the local subnet is kept, so the address that already worked still does
+PASS Windows holds the rule with both scopes, LocalSubnet 192.168.222.0/24
+PASS the rule is enabled after the write, true
+PASS a second network is added beside the first, [192.168.222.0/24 172.29.0.0/16]
+PASS refuses "8.8.8.8/32" and leaves the rule alone, kept [192.168.222.0/24 172.29.0.0/16]
+PASS refuses "0.0.0.0/0" and leaves the rule alone, kept [192.168.222.0/24 172.29.0.0/16]
+PASS refuses "192.168.222.0/24; calc.exe" and leaves the rule alone, kept [192.168.222.0/24 172.29.0.0/16]
+PASS refuses "412.1.1.1/24" and leaves the rule alone, kept [192.168.222.0/24 172.29.0.0/16]
+PASS refuses a payload that is not a list of networks, [192.168.222.0/24 172.29.0.0/16]
+PASS the rule was put back as it was found, rule absent
+link firewall harness: PASS
+```
 
 | Run | Where | Result |
 | --- | --- | --- |
-| 2026-11-08 | this workspace (Linux) | **skipped**, exit 0, `skipped (no Windows Firewall on this system)` |
-| — | Windows 11, elevated PowerShell | **pending**: the `netsh` path is unverified until this row is filled |
+| 2026-11-08, `8b1b841` | this workspace (Linux) | **skipped**, exit 0, `skipped (no Windows Firewall on this system)` |
+| 2026-11-08, `8b1b841` | Windows runner, `link-firewall` job | **FAIL (7)** — rule created and enabled, scope `LocalSubnet` only |
+| 2026-11-08, `64067bf` | Windows runner, `link-firewall` job | **FAIL (3)** — the same three scope checks |
+| 2026-11-08, `8584f46` | Windows runner, `link-firewall` job | **FAIL (3)** — the write was proved correct, the read-back still said `LocalSubnet` |
+| 2026-11-08, `8e9fc3a` | Windows runner, `link-firewall` job | **FAIL (1)** — only the harness's own read of Windows |
+| 2026-11-08, `c7a3d24` | Windows runner, `link-firewall` job | **PASS**, every line above |
 
-That distinction matters. The typecheck, the unit tests and CI's *Verify Kryvex
-Link* step all pass, and none of them executes `netsh`. Until the pending row is
-filled in, what the app claims about a second subnet rests on the parser and on
-Windows doing what `netsh` documents.
+It took four failures to get there, and each found a real bug rather than a
+flaky step:
+
+- `netsh advfirewall ... remoteip=LocalSubnet,192.168.222.0/24` exits zero and
+  creates the rule scoped to `LocalSubnet` alone. Unquoted, then quoted, then
+  re-quoted, the list was truncated every time with no warning, so the write
+  looked successful and the phone's network stayed blocked. The write now uses
+  `New-NetFirewallRule` / `Set-NetFirewallRule`, whose `-RemoteAddress` takes one
+  element per scope.
+- Windows stores a subnet as `192.168.222.0/255.255.255.0`. The read-back only
+  understood CIDR, so it discarded the network that had just been written and
+  reported a correct write as a lost one. `parseRemoteAddresses` now converts a
+  dotted mask to its prefix length, and still leaves a mask with a hole in it
+  out instead of guessing.
+- The harness's own check reads the rule out of Windows and compared that raw
+  output against the CIDR string, so it failed on a rule that was right. It
+  decodes the stored mask itself now, without asking the app.
+
+The first failure is why the elevated command's output is carried through to the
+diagnosis as `detail` and printed by the pass: `netsh`'s silence is what let a
+half-written rule pass for a written one, and that silence is gone.
+
+What this proves: on Windows the app creates the rule, widens it to a named
+network without dropping `LocalSubnet`, keeps it enabled, adds a second network
+beside the first, refuses five malformed payloads with the rule unchanged, and
+puts the machine back as it found it.
+
+What it does not prove: that a phone on the second subnet connects. That needs a
+second device and a router that routes between the two segments; this pass
+asserts the rule Windows holds, not the packet a phone sends.
+
+One caveat about the run itself: run 167's workflow is red as a whole, because
+`verify:userscripts` in the *Harnesses (browser)* job failed on "Clicking the
+address bar did not select the address". The `link-firewall` job in that same run
+is green, and the browser failure is in code this change does not touch.
+
+The typecheck, the unit tests and CI's *Verify Kryvex Link* step all pass, and
+none of them touches the firewall. The rows above are the only evidence about
+Windows, and they are why the second-subnet claim no longer rests on a
+documented `netsh` behaviour.
