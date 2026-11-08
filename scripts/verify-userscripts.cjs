@@ -143,6 +143,76 @@ async function waitFor(evaluate, expression, label) {
   throw new Error(`Timed out waiting for ${label}.`);
 }
 
+/**
+ * Click the address bar the way a person does, and report what it selected.
+ *
+ * The click is dispatched at a point measured in the page, so the field has to
+ * still be at that point when the press lands. Right after a panel closes the
+ * toolbar is still settling, and a press that lands on whatever is in front of
+ * the field leaves the caret where it was — which reads exactly like the bug
+ * this check exists for. So the point is re-measured per attempt, a press is
+ * only dispatched when the field is what the point hits, and a press that never
+ * focused the field is retried rather than reported as a product failure.
+ *
+ * What is never retried is the claim itself: once the press focuses the field,
+ * the whole address must be selected, or this throws.
+ */
+async function clickAddressBar(cdp, attempts = 4) {
+  let missed = '';
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    // Leave the field first, every time: the app selects on the first click
+    // after leaving it, and a second click in a focused field is meant to place
+    // a caret. Retrying without a blur would test the wrong interaction.
+    await cdp.evaluate(
+      `(() => { const input = document.querySelector('.address-bar input');
+        input.blur(); return true; })()`,
+    );
+    await sleep(120);
+    const point = JSON.parse(
+      await cdp.evaluate(
+        `(() => { const input = document.querySelector('.address-bar input');
+          const rect = input.getBoundingClientRect();
+          const x = rect.left + rect.width * 0.5;
+          const y = rect.top + rect.height / 2;
+          const front = document.elementFromPoint(x, y);
+          return JSON.stringify({ x, y, onField: front === input || input.contains(front),
+            front: front ? String(front.className || front.tagName) : 'nothing' }); })()`,
+      ),
+    );
+    if (!point.onField) {
+      missed = `attempt ${attempt}: the point was over ${point.front}, not the address field`;
+      await sleep(150);
+      continue;
+    }
+    await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y });
+    for (const type of ['mousePressed', 'mouseReleased']) {
+      await cdp.send('Input.dispatchMouseEvent', {
+        type,
+        x: point.x,
+        y: point.y,
+        button: 'left',
+        clickCount: 1,
+      });
+    }
+    await sleep(200);
+    const state = await cdp.evaluate(
+      `(() => { const input = document.querySelector('.address-bar input');
+        return { focused: document.activeElement === input, start: input.selectionStart,
+          end: input.selectionEnd, length: input.value.length }; })()`,
+    );
+    if (!state.focused) {
+      missed = `attempt ${attempt}: the click did not focus the address field`;
+      await sleep(150);
+      continue;
+    }
+    if (state.start === 0 && state.end === state.length && state.length > 0) return state;
+    throw new Error(
+      `Clicking the address bar did not select the address (${state.start}-${state.end} of ${state.length}).`,
+    );
+  }
+  throw new Error(`The address bar could not be clicked: ${missed}.`);
+}
+
 async function stop() {
   if (!child || child.exitCode !== null) return;
   child.kill();
@@ -260,9 +330,12 @@ server.listen(fixturePort, '127.0.0.1');
     if (panel.rows !== 1 || panel.here !== 1) throw new Error('The panel did not mark the script as running here.');
     if (!panel.text.includes('Runs on this page')) throw new Error('The panel is missing the page marker.');
     if (panel.badge !== '1') throw new Error(`The toolbar badge reads ${panel.badge}.`);
-    await cdp.evaluate(`document.body.click(); true`);
-    await sleep(200);
+    // Close the panel and wait until it has actually left the DOM. A synthetic
+    // click does not run the app's `mousedown`-outside handler, so Escape is
+    // what closes it; a click dispatched while the panel is still over the
+    // toolbar would land on the panel instead of the field.
     await cdp.evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); true`);
+    await waitFor(cdp.evaluate, `!document.querySelector('.userscript-menu')`, 'the script panel to close');
 
     // Reach the churning page through the address bar, which is the surface the
     // next check needs anyway.
@@ -278,37 +351,9 @@ server.listen(fixturePort, '127.0.0.1');
 
     // A click, not a script focus: this is the interaction the report is about.
     // Clicking the address bar must select the whole address so typing replaces
-    // it, which is what every other browser does. The field still had focus
-    // from the keystrokes that opened this page, so leave it first — a click on
-    // an already-focused field is supposed to place a caret, not reselect.
-    await cdp.evaluate(`document.querySelector('.address-bar input').blur(); true`);
-    await sleep(150);
-    const box = JSON.parse(
-      await cdp.evaluate(
-        `(() => { const r = document.querySelector('.address-bar input').getBoundingClientRect();
-          return JSON.stringify({ x: r.left + r.width * 0.5, y: r.top + r.height / 2 }); })()`,
-      ),
-    );
-    for (const type of ['mousePressed', 'mouseReleased']) {
-      await cdp.send('Input.dispatchMouseEvent', {
-        type,
-        x: box.x,
-        y: box.y,
-        button: 'left',
-        clickCount: 1,
-      });
-    }
-    await sleep(250);
-    const selection = await cdp.evaluate(
-      `(() => { const input = document.querySelector('.address-bar input');
-        return { start: input.selectionStart, end: input.selectionEnd, length: input.value.length }; })()`,
-    );
+    // it, which is what every other browser does.
+    const selection = await clickAddressBar(cdp);
     console.log('selection after clicking the address bar:', JSON.stringify(selection));
-    if (selection.start !== 0 || selection.end !== selection.length || selection.length === 0) {
-      throw new Error(
-        `Clicking the address bar did not select the address (${selection.start}-${selection.end} of ${selection.length}).`,
-      );
-    }
 
     // Typing must therefore replace the address, not splice into it.
     await cdp.send('Input.insertText', { text: `http://127.0.0.1:${fixturePort}/next` });
