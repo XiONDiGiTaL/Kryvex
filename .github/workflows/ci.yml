@@ -83,8 +83,18 @@ jobs:
       # this half stays on loopback, so it runs where every push lands. It drives
       # a sign-in past the identifier field: the test account, consent, the code
       # handed back to the module, the exchange, the session and its refusals.
+      - name: Check the sign-in fixture
+        run: node scripts/verify-signin-popup.cjs --self-test
+
       - name: Verify the sign-in return leg
-        run: node scripts/verify-signin-popup.cjs --local-only
+        run: node scripts/verify-signin-popup.cjs --local-only *> .tmp-signin-return.log
+
+      # The harness prints its checks at the end of a long job log. When it fails,
+      # the last lines are repeated in a step of their own, where they are short
+      # enough to read in full.
+      - name: Show the sign-in return leg
+        if: failure()
+        run: Get-Content .tmp-signin-return.log -Tail 60
 
   # The rest of the Electron harnesses, in batches.
   #
@@ -162,7 +172,11 @@ jobs:
         run: pnpm build
 
       - name: Verify the sign-in pop-up
-        run: node scripts/verify-signin-popup.cjs
+        run: node scripts/verify-signin-popup.cjs *> .tmp-signin-popup.log
+
+      - name: Show the sign-in pop-up output
+        if: failure()
+        run: Get-Content .tmp-signin-popup.log -Tail 80
 
   # The firewall-scope pass is opt-in, and it is the one job that changes the
   # machine it runs on: it creates the Kryvex Link rule, widens it to a named

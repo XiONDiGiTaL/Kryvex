@@ -46,6 +46,8 @@ const MICROSOFT = 'https://login.live.com/';
 const PROVIDER_TIMEOUT = 75_000;
 /** The provider half reaches the internet; the return half never leaves this box. */
 const LOCAL_ONLY = process.argv.includes('--local-only') || process.env.KRYVEX_SIGNIN_LOCAL === '1';
+/** Check the loopback provider's routes without launching the app. */
+const SELF_TEST = process.argv.includes('--self-test');
 
 /**
  * The fixture account. Not a secret and not a credential: it exists only in this
@@ -100,6 +102,8 @@ const MODULE_PAGE = `<!doctype html>
   };
   window.__exchange = async (code, state) => {
     window.__flow.exchanges += 1;
+    if (code) window.__flow.code = String(code);
+    if (state) window.__flow.state = String(state);
     const response = await fetch('/token?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state));
     const body = await response.json().catch(() => ({}));
     if (response.ok && body.access_token) {
@@ -529,7 +533,98 @@ const PROVIDERS = [
 
 fixture.listen(fixturePort, '127.0.0.1');
 
+/**
+ * The provider half of the return leg, driven by plain fetch: the form, the
+ * account, consent, the code, the single exchange and both refusals. This is
+ * everything about the fixture that does not need a window, so it runs anywhere
+ * — including a CI job with no display — and leaves only the window itself to
+ * the Electron run.
+ */
+async function selfTest() {
+  const form = await fetch(`${origin}/authorize?state=st-self`);
+  const formHtml = await form.text();
+  check(
+    'the provider serves its sign-in form',
+    form.ok && formHtml.includes('id="provider-form"'),
+    `HTTP ${form.status}`,
+  );
+
+  const post = (password) =>
+    fetch(`${origin}/authorize?state=st-self`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ account: ACCOUNT.email, password }).toString(),
+      redirect: 'manual',
+    });
+
+  const accepted = await post(ACCOUNT.password);
+  check(
+    'the test account is accepted and sent to consent',
+    accepted.status === 303 && String(accepted.headers.get('location')).startsWith('/consent'),
+    `HTTP ${accepted.status}`,
+  );
+
+  const refused = await post('not-the-password');
+  check('a wrong password is refused', refused.status === 401, `HTTP ${refused.status}`);
+
+  const consent = await fetch(`${origin}/consent?state=st-self`);
+  const consentHtml = await consent.text();
+  check(
+    'the consent step is served',
+    consent.ok && consentHtml.includes('id="allow"'),
+    `HTTP ${consent.status}`,
+  );
+
+  const approved = await fetch(`${origin}/approve?state=st-self`, { redirect: 'manual' });
+  const location = String(approved.headers.get('location') ?? '');
+  check(
+    'approving mints a code for that state',
+    approved.status === 303 && location.includes('code='),
+    location || `HTTP ${approved.status}`,
+  );
+
+  const code = new URL(location, origin).searchParams.get('code') ?? '';
+  const asking = await fetch(`${origin}/flow?state=st-self`);
+  const asked = await asking.json().catch(() => ({}));
+  check(
+    'the module can ask for the code by state',
+    asking.ok && asked.code === code,
+    JSON.stringify(asked),
+  );
+
+  const exchanged = await fetch(`${origin}/token?code=${encodeURIComponent(code)}&state=st-self`);
+  const body = await exchanged.json().catch(() => ({}));
+  check(
+    'the code exchanges once for a session',
+    exchanged.ok && String(body.access_token ?? '').startsWith('kx-access-'),
+    JSON.stringify(body),
+  );
+
+  const replay = await fetch(`${origin}/token?code=${encodeURIComponent(code)}&state=st-self`);
+  check('the same code cannot be exchanged twice', replay.status === 400, `HTTP ${replay.status}`);
+
+  const forged = await fetch(`${origin}/token?code=${encodeURIComponent(code)}&state=forged`);
+  check('a code presented with another state is refused', forged.status === 400, `HTTP ${forged.status}`);
+
+  const unknown = await fetch(`${origin}/flow?state=never-issued`);
+  check('an unknown state has no result to give', unknown.status === 404, `HTTP ${unknown.status}`);
+}
+
 (async () => {
+  if (SELF_TEST) {
+    try {
+      await selfTest();
+    } finally {
+      const passed = checks.every(item => item.ok);
+      console.log(passed ? 'sign-in fixture: PASS' : 'sign-in fixture: FAIL');
+      if (!passed) process.exitCode = 1;
+      // Nothing else was started, so the listener is the only thing keeping the
+      // process alive.
+      fixture.close();
+    }
+    return;
+  }
+
   let guest = null;
   try {
     seedState();
