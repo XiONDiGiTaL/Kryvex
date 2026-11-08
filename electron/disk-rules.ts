@@ -79,20 +79,43 @@ export function protectedRoots(env: NodeJS.ProcessEnv = process.env): string[] {
   return roots.filter(Boolean).map(normalize);
 }
 
+/**
+ * The path implementation a value belongs to.
+ *
+ * This module's policy is about Windows paths, but the rules must behave the
+ * same wherever they are checked. `path.resolve` on another platform reads
+ * `C:\Users` as one relative name, so a drive root was never a root and nothing
+ * was ever "inside" anything. Choosing the implementation from the value keeps
+ * the rules identical on Windows — where `path` and `path.win32` are the same
+ * module — and makes them true everywhere else.
+ */
+type PathImpl = {
+  resolve(...parts: string[]): string;
+  relative(from: string, to: string): string;
+  isAbsolute(value: string): boolean;
+  parse(value: string): path.ParsedPath;
+};
+
+function pathFor(...values: string[]): PathImpl {
+  return values.some(value => /^[a-zA-Z]:[\\/]|^\\\\/.test(value)) ? path.win32 : path;
+}
+
 /** Case- and separator-insensitive form used for every comparison. */
 export function normalize(value: string): string {
-  return path.resolve(value).replace(/[\\/]+$/, '').toLowerCase();
+  return pathFor(value).resolve(value).replace(/[\\/]+$/, '').toLowerCase();
 }
 
 /** True when `candidate` sits strictly below `root`. */
 export function isInside(root: string, candidate: string): boolean {
-  const relative = path.relative(normalize(root), normalize(candidate));
-  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+  const impl = pathFor(root, candidate);
+  const relative = impl.relative(normalize(root), normalize(candidate));
+  return relative !== '' && !relative.startsWith('..') && !impl.isAbsolute(relative);
 }
 
 export function isDriveRoot(value: string): boolean {
-  const resolved = path.resolve(value);
-  return normalize(path.parse(resolved).root) === normalize(resolved);
+  const impl = pathFor(value);
+  const resolved = impl.resolve(value);
+  return normalize(impl.parse(resolved).root) === normalize(resolved);
 }
 
 export function isProtectedPath(value: string, roots = protectedRoots()): boolean {
@@ -110,7 +133,8 @@ export function checkDeletable(
   candidate: string,
   roots = protectedRoots(),
 ): DeletionCheck {
-  if (!path.isAbsolute(root) || !path.isAbsolute(candidate)) return { ok: false, reason: 'outside' };
+  const impl = pathFor(root, candidate);
+  if (!impl.isAbsolute(root) || !impl.isAbsolute(candidate)) return { ok: false, reason: 'outside' };
   if (isDriveRoot(root) || isDriveRoot(candidate)) return { ok: false, reason: 'drive' };
   const rootNorm = normalize(root);
   const candidateNorm = normalize(candidate);

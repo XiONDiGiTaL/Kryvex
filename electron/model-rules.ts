@@ -230,13 +230,30 @@ export function modelPath(modelsDir: string, id: string): string {
   return path.join(modelsDir, installedFileName(id));
 }
 
+/**
+ * The path implementation a value belongs to. The catalogue is installed on
+ * Windows, but containment has to mean the same thing when it is checked
+ * elsewhere: `path.resolve` on another platform reads `C:\models` as a single
+ * relative name and would answer "outside" about a file inside it.
+ */
+type PathImpl = {
+  resolve(...parts: string[]): string;
+  relative(from: string, to: string): string;
+  isAbsolute(value: string): boolean;
+};
+
+function pathFor(...values: string[]): PathImpl {
+  return values.some(value => /^[a-zA-Z]:[\\/]|^\\\\/.test(value)) ? path.win32 : path;
+}
+
 /** True only when `candidate` is a child of `dir` (after resolve). */
 export function isPathInside(dir: string, candidate: string): boolean {
-  const root = path.resolve(dir);
-  const target = path.resolve(candidate);
+  const impl = pathFor(dir, candidate);
+  const root = impl.resolve(dir);
+  const target = impl.resolve(candidate);
   if (target === root) return false;
-  const relative = path.relative(root, target);
-  return Boolean(relative) && !relative.startsWith('..') && !path.isAbsolute(relative);
+  const relative = impl.relative(root, target);
+  return Boolean(relative) && !relative.startsWith('..') && !impl.isAbsolute(relative);
 }
 
 export type VerifyFailure = 'size' | 'hash';
@@ -259,7 +276,8 @@ export function canDeleteModel(entry: InstalledModel | undefined, runningPath: s
   if (!entry || !isSafeModelId(entry.id)) return false;
   const file = modelPath(modelsDir, entry.id);
   if (!isPathInside(modelsDir, file)) return false;
-  return path.resolve(runningPath || '') !== path.resolve(file);
+  const impl = pathFor(modelsDir, runningPath, file);
+  return impl.resolve(runningPath || '') !== impl.resolve(file);
 }
 
 export function downloadPercent(received: number, total: number): number {
