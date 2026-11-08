@@ -2104,6 +2104,9 @@ export default function App() {
           onClose={() => setPaletteOpen(false)}
           onNavigate={view => navigate(view)}
           onOpenService={openService}
+          // A history entry or a bookmark opens in the Browser, which is the
+          // one surface that already knows how to make a tab out of an address.
+          onOpenUrl={url => navigate(`#/browser?url=${encodeURIComponent(url)}`)}
           onAdd={() => setDialog({ mode: 'new' })}
           onSetTheme={id => {
             updateSettingsPatch({ themeId: id });

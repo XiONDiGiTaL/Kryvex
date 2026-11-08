@@ -9,6 +9,7 @@ import type {
   StartupStatus,
   VlanStatus,
 } from './types';
+import type { SearchHit } from './search-rules';
 
 type DownloadState = 'progressing' | 'paused' | 'completed' | 'cancelled' | 'interrupted';
 
@@ -156,6 +157,10 @@ const api = {
   platform: process.platform,
   loadState: (): Promise<unknown> => ipcRenderer.invoke('kryvex:state:load'),
   saveState: (state: unknown): Promise<boolean> => ipcRenderer.invoke('kryvex:state:save', state),
+  // The local index, in main: services, history, bookmarks and downloads. The
+  // only argument is the query; no path, URL or source can be chosen here.
+  searchQuery: (query: string): Promise<SearchHit[]> =>
+    ipcRenderer.invoke('kryvex:search:query', query),
   openExternal: (url: string): Promise<boolean> => ipcRenderer.invoke('kryvex:open-external', url),
   rssFetch: (url: string): Promise<unknown> => ipcRenderer.invoke('kryvex:rss:fetch', url),
   shieldStatus: (): Promise<unknown> => ipcRenderer.invoke('kryvex:shield:status'),

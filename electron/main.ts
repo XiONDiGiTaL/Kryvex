@@ -47,6 +47,7 @@ import { popupTabs } from './popup-tabs';
 import { isBlankPopupUrl } from './popup-rules';
 import { fetchFeed } from './rss';
 import { resources } from './resources';
+import { searchLocal } from './search';
 import { vpn } from './vpn';
 import { vlanStatus } from './vlan';
 import { weather } from './weather';
@@ -541,6 +542,14 @@ function registerIpc(): void {
   ipcMain.handle('kryvex:state:load', (event) => (isShellSender(event) ? readState() : null));
   ipcMain.handle('kryvex:state:save', (event, state: unknown) =>
     isShellSender(event) ? writeState(state) : false,
+  );
+  // One query across what this machine already keeps: services, browser
+  // history, bookmarks and downloads. The index is built for the query, from
+  // the state file and the download manager, so nothing is duplicated on disk
+  // and nothing is sent anywhere. The palette adds its own commands in the
+  // renderer and shares the same ranking rules.
+  ipcMain.handle('kryvex:search:query', (event, query: unknown) =>
+    isShellSender(event) ? searchLocal({ state: readState(), downloads: downloads.list() }, query) : [],
   );
   ipcMain.handle('kryvex:assistant:probe', (event, baseUrl: unknown) =>
     isShellSender(event) ? assistant.probe(baseUrl) : { ok: false, models: [], error: 'invalid-url' },

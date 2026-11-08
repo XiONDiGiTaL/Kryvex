@@ -31,6 +31,13 @@ export type {
   ServiceMediaEvent,
   ServiceMediaState,
 } from '../electron/types';
+// One search shape for both sides: main builds the records, the palette draws
+// them, and the ranking rules are shared rather than reimplemented.
+export type {
+  SearchHit,
+  SearchItem,
+  SearchSource,
+} from '../electron/search-rules';
 export type {
   ChromiumColorScheme,
   ChromiumSettings,
@@ -1279,6 +1286,8 @@ export interface KryvexBridge {
   filesCopyText: (text: string) => Promise<boolean>;
   loadState: () => Promise<unknown>;
   saveState: (state: unknown) => Promise<boolean>;
+  /** One query across the local index; the answer is already ranked. */
+  searchQuery: (query: string) => Promise<import('../electron/search-rules').SearchHit[]>;
   openExternal: (url: string) => Promise<boolean>;
   appInfo: () => Promise<AppInfo | null>;
   rssFetch: (url: string) => Promise<RssFetchResult>;
