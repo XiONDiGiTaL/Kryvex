@@ -3813,6 +3813,17 @@ the list is still there after a reload. What it does not produce is a row from t
 local index — history, bookmarks and downloads — because a disposable profile has
 none and the harness does not invent a profile to get them.
 
+It passed on Windows at `c0107e3` (CI run 42506818554, the `Harnesses (shell)`
+job): 93 rows in the palette, every one of them carrying one of four verbs and
+each verb matching its group; Enter navigated to Settings, dispatched the capture
+action once, and changed the applied theme; the three queries came back newest
+first; Enter on one put it back in the field and left the palette open; a repeat
+moved up without a twin; the same query in another case stayed one entry; and the
+list was still there after a reload. The first run of the harness failed on the
+harness rather than the app — the reopen after Escape timed out because that key
+landed in the frame the palette unmounted — so it now presses Ctrl+K again when
+nothing happens, which is what a person does, and says so when it had to.
+
 ### The Activity Center (`tests/activity-rules.test.ts`)
 
 Recording, coalescing a repeat, the two-hundred-entry cap, clipping what a page

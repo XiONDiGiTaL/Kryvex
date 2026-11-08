@@ -1989,3 +1989,10 @@ its own tabs — and nothing from BetterDiscord is being bundled.
   sign-in pop-up" job both pass. What that covers is the test account, consent, the
   code, one exchange, the session, the session after a reload, and the two
   refusals.
+- The palette harness, in the shell batch that runs on every push, passed on
+  Windows at `c0107e3` (CI run 42506818554). In a real window it checked 93 rows
+  for a verb matching their group, pressed Enter on a navigate row, an action row
+  and a theme row and saw the route, the dispatched capture and the applied theme
+  change; then the recent searches: newest first, re-run in place by Enter, a
+  repeat moved up rather than duplicated, the same query in another case kept one
+  entry, and the list survived a reload.
