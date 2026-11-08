@@ -483,8 +483,11 @@ let fixtureServer = null;
     await sleep(300);
     await openPalette();
     await type('127.0.0.1');
+    // A history entry is titled with the host it was served from — port and all
+    // when it has one — rather than with the page's title, so the row is found
+    // by the host it names instead of by a title the app never recorded.
     await waitUntil(
-      `(document.querySelector('.palette-item .palette-label')?.textContent || '').trim() === '127.0.0.1'`,
+      `(document.querySelector('.palette-item .palette-label')?.textContent || '').trim().includes('127.0.0.1')`,
       'the visited page to lead the list',
     );
     const historyRow = flat(await rows()).find(row => row.group === 'History');
@@ -492,6 +495,10 @@ let fixtureServer = null;
     check(
       historyRow.opens === 'Opens in Browser',
       `A history row promises "${historyRow.opens}"`,
+    );
+    check(
+      historyRow.label.includes('127.0.0.1'),
+      `The history row is labelled "${historyRow.label}", which does not name the host`,
     );
     check(historyRow.hint === '127.0.0.1', `A history row is hinted as "${historyRow.hint}"`);
     check(historyRow.drawn, `The Enter hint is not drawn for "${historyRow.label}"`);
