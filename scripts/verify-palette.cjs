@@ -21,13 +21,18 @@
  *   - the list survives a reload, because it is kept in the profile.
  *
  *   - a page the app's own Browser visits becomes a history row, and Enter on
- *     it takes the Browser back to that page.
+ *     it takes the Browser back to that page;
+ *   - a file the app's own Browser downloads becomes a download row, and Enter on
+ *     it hands the file to the OS instead of opening a page.
  *
- * The visit is real: the harness serves one page from a loopback port nobody
- * else has, opens it through the same deep link the palette itself uses, and
- * waits for the app to record it before it searches. Bookmarks and downloads
- * still have no source here — a disposable profile has none, and the harness
- * does not write a state file by hand to produce them.
+ * Both are real: the harness serves one page and one file from a loopback port
+ * nobody else has, opens them through the same deep link the palette itself
+ * uses, and waits for the app to record them before it searches. It also points
+ * the app's download folder at its own disposable profile, so a run never leaves
+ * a file in the person's Downloads, and removes the file through the app at the
+ * end. A bookmark still has no source here — nothing in a fresh profile
+ * bookmarks a page, and the harness does not write a state file by hand to
+ * produce one.
  *
  * Run after `pnpm build`:
  *
@@ -59,6 +64,7 @@ const VERBS = {
   Services: 'Opens the module',
   Themes: 'Switches the theme',
   History: 'Opens in Browser',
+  Downloads: 'Shows the file',
   'Recent searches': 'Searches again',
 };
 
@@ -144,13 +150,26 @@ function launch(profile) {
   return child;
 }
 
-/** A page only this machine can serve, so the app can visit it for real. */
+/** A page and a file only this machine can serve, so the app meets both for real. */
 const FIXTURE_PAGE =
   '<!doctype html><title>Palette history fixture</title><h1>Visited in the app\'s own Browser</h1>';
+// An extension no desktop opens by itself: Enter asks the OS for the file, and
+// the OS cannot launch an editor the run would then have to close.
+const DOWNLOAD_NAME = 'kryvex-palette-proof.bin';
+const PAYLOAD = Buffer.from('Kryvex palette download proof\n'.repeat(512), 'utf8');
 
 function serve() {
   return new Promise((resolve, reject) => {
-    const server = http.createServer((_request, response) => {
+    const server = http.createServer((request, response) => {
+      if (request.url === '/palette-proof.bin') {
+        response.writeHead(200, {
+          'content-type': 'application/octet-stream',
+          'content-length': PAYLOAD.length,
+          'content-disposition': `attachment; filename="${DOWNLOAD_NAME}"`,
+        });
+        response.end(PAYLOAD);
+        return;
+      }
       response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       response.end(FIXTURE_PAGE);
     });
@@ -159,6 +178,12 @@ function serve() {
     // and nothing outside this machine can answer on it.
     server.listen(0, '127.0.0.1', () => resolve({ server, port: server.address().port }));
   });
+}
+
+/** Windows compares paths without case, so this does too. */
+function samePath(a, b) {
+  const key = value => (process.platform === 'win32' ? path.resolve(value).toLowerCase() : path.resolve(value));
+  return key(a) === key(b);
 }
 
 let child = null;
@@ -173,6 +198,23 @@ let fixtureServer = null;
     const profile = path.join(root, '.tmp-palette-profile');
     fs.rmSync(profile, { recursive: true, force: true });
     fs.mkdirSync(path.join(profile, 'local'), { recursive: true });
+    // The app saves downloads where its storage file says; pointing that at the
+    // disposable profile keeps a run out of the person's own Downloads folder.
+    // The app's own answer is checked below, so a seed it ignored cannot pass.
+    const downloadDir = path.join(profile, 'Downloads');
+    fs.mkdirSync(downloadDir, { recursive: true });
+    const userData = path.join(profile, 'Kryvex');
+    fs.mkdirSync(userData, { recursive: true });
+    fs.writeFileSync(
+      path.join(userData, 'kryvex-storage.json'),
+      JSON.stringify({
+        version: 1,
+        downloadDir,
+        downloadRoots: [downloadDir],
+        torrentRoots: [path.join(downloadDir, 'Kryvex Torrents')],
+      }),
+      'utf8',
+    );
     child = launch(profile);
 
     const page = await target(PORT);
@@ -515,8 +557,98 @@ let fixtureServer = null;
     );
     await waitUntil(loaded, 'the Browser to open the page the row promised', 15000);
 
+    // 10. A file the app's own Browser downloads is a download row, and Enter on
+    // it hands the file to the OS rather than taking the app to a page.
+    await cdp.evaluate(`location.hash = '#/home'; true`);
+    await waitUntil(`!document.querySelector('webview')`, 'the Browser to leave the screen', 15000);
+    const fetched = `http://127.0.0.1:${fixture.port}/palette-proof.bin`;
+    await cdp.evaluate(
+      `location.hash = '#/browser?url=' + encodeURIComponent(${JSON.stringify(fetched)}); true`,
+    );
+    // The manager answers only for a download that reached its last byte, so the
+    // wait is on the record's state rather than on the webview's empty page.
+    const finished = `(() => window.kryvex.downloadsList().then(records => {
+      const record = records.find(item => item.filename === ${JSON.stringify(DOWNLOAD_NAME)} && item.state === 'completed');
+      return record ? { id: record.id, filename: record.filename, savePath: record.savePath } : null;
+    }))()`;
+    await waitUntil(finished, 'the download the Browser started to finish', 30000);
+    const record = await cdp.evaluate(finished);
+    const location = await cdp.evaluate(`window.kryvex.downloadsLocation()`);
+    check(
+      location && samePath(location.path, downloadDir),
+      `The app is saving downloads to ${location?.path ?? 'nowhere'}, not the folder this run gave it`,
+    );
+    const savedBytes =
+      record.savePath && fs.existsSync(record.savePath) ? fs.statSync(record.savePath).size : -1;
+    check(
+      savedBytes === PAYLOAD.length,
+      `The app recorded "${DOWNLOAD_NAME}" but ${record.savePath || 'no path'} holds ${savedBytes} bytes, expected ${PAYLOAD.length}`,
+    );
+    console.log('download:', JSON.stringify({ ...record, bytes: savedBytes }));
+
+    await waitUntil(
+      `window.kryvex.searchQuery('palette-proof').then(hits =>
+        hits.some(hit => hit.source === 'download' && hit.title === ${JSON.stringify(DOWNLOAD_NAME)}))`,
+      'the download to reach the local index',
+      15000,
+    );
+    await cdp.evaluate(`location.hash = '#/home'; true`);
+    await waitUntil(`!document.querySelector('webview')`, 'the Browser to leave the screen', 15000);
+    await sleep(300);
+    await openPalette();
+    await type('palette-proof');
+    await waitUntil(
+      `(document.querySelector('.palette-item .palette-label')?.textContent || '').trim() === ${JSON.stringify(DOWNLOAD_NAME)}`,
+      'the downloaded file to lead the list',
+    );
+    const downloadRow = flat(await rows()).find(row => row.group === 'Downloads');
+    check(downloadRow, 'The palette found the download but drew no Downloads row');
+    check(
+      downloadRow.opens === 'Shows the file',
+      `A download row promises "${downloadRow.opens}"`,
+    );
+    check(downloadRow.hint === '127.0.0.1', `A download row is hinted as "${downloadRow.hint}"`);
+    check(downloadRow.drawn, `The Enter hint is not drawn for "${downloadRow.label}"`);
+    console.log(
+      'download row:',
+      JSON.stringify({ label: downloadRow.label, hint: downloadRow.hint, opens: downloadRow.opens }),
+    );
+
+    const stayed = await cdp.evaluate(`location.hash`);
+    await enter();
+    await waitUntil(`!document.querySelector('.palette-layer')`, 'the palette to close on Enter');
+    // What the OS does with the file is not visible to the window, so what is
+    // checked here is the branch the row took: a download row carries the URL it
+    // came from, and a row that fell through to opening one would have left the
+    // app on the Browser instead of the screen it was on.
+    await sleep(1200);
+    check(
+      (await cdp.evaluate(`location.hash`)) === stayed,
+      'Enter on a download row moved the app to another screen',
+    );
+    check(
+      !(await cdp.evaluate(`Boolean(document.querySelector('webview'))`)),
+      'Enter on a download row opened a tab',
+    );
+    check(fs.existsSync(record.savePath), 'Enter on a download row moved the file');
+    const stillListed = await cdp.evaluate(
+      `window.kryvex.downloadsList().then(records => records.some(item => item.id === ${JSON.stringify(record.id)}))`,
+    );
+    check(stillListed, 'Enter on a download row dropped it from the download list');
+
+    // Leave the folder as it was found: the run saved a real file, so it takes
+    // it away through the same app that wrote it.
+    const removed = await cdp.evaluate(
+      `window.kryvex.downloadsRemove(${JSON.stringify(record.id)}, true)`,
+    );
+    check(
+      removed && removed.ok,
+      `The download this run made could not be removed: ${removed?.message ?? 'no answer'}`,
+    );
+    check(!fs.existsSync(record.savePath), 'The removed download is still on disk');
+
     if (cdp.exceptions.length > 0) console.log('exceptions:', JSON.stringify(cdp.exceptions.slice(0, 5)));
-    console.log(`::notice title=Palette harness::${first.length} rows, ${new Set(first.map(row => row.opens)).size} verbs, ${kept.length} remembered queries, a visited page offered as history, all checks passed`);
+    console.log(`::notice title=Palette harness::${first.length} rows, ${new Set(first.map(row => row.opens)).size} verbs, ${kept.length} remembered queries, a visited page offered as history, a downloaded file offered as a download row, all checks passed`);
     cdp.close();
     console.log('palette harness: PASS');
   } catch (error) {

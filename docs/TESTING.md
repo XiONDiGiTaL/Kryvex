@@ -3813,11 +3813,20 @@ the list is still there after a reload. It also serves one page from a loopback
 port nobody else has, opens it through the deep link the app's own Browser uses,
 waits for the visit to reach the local index, and then searches for it: the History
 row promises "Opens in Browser", is hinted with the host, draws its verb, and Enter
-takes the Browser back to that page. What it does not produce is a bookmark or a
-download row, because a disposable profile has none and the harness does not write
-a state file by hand to make them.
+takes the Browser back to that page. It downloads a file of its own making from the
+same port: the Browser fetches an attachment, the download manager records it, and
+the palette offers the filename with "Shows the file" as its verb. Before any of
+that the run points the app's download folder at its disposable profile and checks
+the app agrees, so nothing lands in the person's Downloads; afterwards it removes
+the file through the app and checks it is gone. Enter on a download row closes the
+palette and leaves the app on the screen it was on, which is the branch that
+matters: a download row carries the URL it came from, and a row that fell through
+to opening one would have left for the Browser. What the OS then does with the file
+is not visible in a window, so the harness does not claim it saw that. What it does
+not produce is a bookmark row, because nothing in a fresh profile bookmarks a page
+and the harness does not write a state file by hand to make one.
 
-That last step passed on Windows at `a7fe664` (CI run 42518210534, the
+The history step passed on Windows at `a7fe664` (CI run 42518210534, the
 `Harnesses (shell)` job): the visited page led the list, its row promised "Opens in
 Browser", carried the host as its hint, drew its verb, and Enter left the palette
 closed on `#/browser?url=…` with the Browser loading that page again. Its first
