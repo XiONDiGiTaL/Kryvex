@@ -125,6 +125,32 @@ Not in this slice, and therefore still on the queue: workspaces, saved settings
 and user-script records as sources; per-source filter chips; and a dedicated
 results view with more room than a palette row.
 
+## Milestone 2, shipped (8 Nov 2026)
+
+The Activity Center, first slice. `electron/activity-rules.ts` holds the rules —
+a bounded log, coalescing a module repeating itself, read state, per-module
+grouping — and the log itself lives in the profile beside the rest of the state,
+written by the renderer only, through the atomic write path that already existed.
+
+Capture happens where the page makes the call. A service module's `<webview>` is
+given a `Notification` shim that records the attempt and still constructs the
+browser's own notification, so what the user sees is unchanged; the shell drains
+that queue and appends each entry with the module it came from. Browser tabs are
+never tapped, because a tab passes no handler. What arrives is treated as
+untrusted: every field is trimmed and capped, an entry that cannot name its
+module is dropped, and repeats inside a minute refresh the row instead of
+stacking.
+
+`#/activity` lists it: filter chips per module with unread counts, the module's
+notification switch where the log is read, mark-one and mark-all read, clear one
+module or the whole log, and a click-through that opens the module that raised
+it. Only a module in the profile can be opened.
+
+Not in this slice: grouping by day, a header badge, and per-module history
+preferences beyond the notification and mute switches that already existed. The
+remaining milestones — hibernation, backup and restore, the vault, the extension
+API — are untouched.
+
 ## In this batch
 
 - The user-script harness's address-bar click now verifies that the press
@@ -137,10 +163,17 @@ results view with more room than a palette row.
 
 ## What this audit does not claim
 
-The first search slice exists; the Activity Center, hibernation, backup and the
-vault do not. Search is exercised by unit tests over the rules and the index,
-and by nothing else yet: no harness drives a query through the running app.
-Nothing here was exercised in a running Windows build. The pop-up fix is
-unit-tested, and `scripts/verify-signin-popup.cjs` is the harness that proves it
-in a real window; it needs the internet and an opt-in CI job, so its result is
-recorded where it ran, not assumed here.
+The first slice of search and of the Activity Center exists; hibernation, backup,
+the vault and the extension API do not. Both are exercised by unit tests over
+their rules, and by nothing else yet: no harness types a query or raises a
+notification through the running app, so the palette's and the view's own
+behaviour rests on the typecheck and on reading the code. The Activity Center
+capture depends on a page calling `new Notification`, which no test drives.
+
+The pop-up fix is proven in a real window on Windows by
+`scripts/verify-signin-popup.cjs`, recorded in `docs/TESTING.md`. That harness now
+has two halves: the provider half (Google and Microsoft, opt-in, needs the
+internet) and the return half (a loopback provider with a test account, consent,
+the code, the exchange, the session and its refusals), which runs on every push.
+Neither half authenticates a person; the provider half stops at the identifier
+field, and the return half's test account exists only in the harness.

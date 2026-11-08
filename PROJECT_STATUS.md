@@ -1966,3 +1966,26 @@ performance layer, it does not apply to a webview that loads discord.com, and
 shipping it would put Kryvex on the wrong side of Discord's terms. Kryvex already
 has the legitimate analogue — a userscript engine that injects CSS and JS into
 its own tabs — and nothing from BetterDiscord is being bundled.
+
+## Batch: sign-in return leg, search memory, Activity Center (8 Nov 2026)
+
+- The sign-in harness carries its own provider on loopback, so the flow past the
+  identifier field is proven: test account, consent, the code handed back, one
+  exchange, the session, and the refusals a replay and a forged state earn. Its
+  routes are also checked without a display (`--self-test`, ten checks), and the
+  Windows job runs both the fixture check and the return leg on every push.
+  Google and Microsoft remain an opt-in run, and still stop at the identifier
+  field.
+- The palette remembers the queries that led somewhere and says, on every row,
+  what Enter will open.
+- The Activity Center exists (`#/activity`): a bounded, local log of what the
+  modules raised, per module, with unread counts, read and clear actions, the
+  module's notification switch, and click-through into the module. Capture is a
+  shim in the service page that records the attempt and still shows the real
+  notification; nothing is sent anywhere.
+- Verified locally: `pnpm typecheck` clean, `vitest run` 1239 tests in 104 files.
+- Verified on Windows by CI run 42453077880 at `7fc2347`: the "Windows" job, which
+  runs the fixture check and the return leg on every push, and the opt-in "Service
+  sign-in pop-up" job both pass. What that covers is the test account, consent, the
+  code, one exchange, the session, the session after a reload, and the two
+  refusals.

@@ -3752,6 +3752,62 @@ and the resulting session are not exercised here. The Google body was still
 reading "Loading" when it was sampled, so the host, the browser it accepted and
 the identifier field are the evidence, not a finished page.
 
+### The sign-in return leg (`--local-only`)
+
+The provider steps stop at the identifier field, so the half that matters most —
+the code coming back and the session it becomes — is proven against a loopback
+provider instead. `node scripts/verify-signin-popup.cjs --local-only`
+(`pnpm verify:signin-return`) runs it with no network at all, and the Windows job
+runs it on every push: the window the module reserved is sent to a provider page,
+a test account signs in, consent is granted, the window that received the code finishes the flow in itself, so the module either
+finds the session in its own cookie or asks the provider for the result by state,
+the module exchanges it once for a session, and that session survives the module
+reloading. Two refusals are checked from the module: a spent code and a code
+presented with another state both answer 400.
+
+The fixture's own routes are checked separately, and need no display:
+`node scripts/verify-signin-popup.cjs --self-test` (ten checks: the form, the
+account, a wrong password, consent, the minted code, the by-state lookup, the
+single exchange and both refusals). It runs on Linux and in CI before the
+Electron step, so a broken fixture is never blamed on the window.
+
+Where it runs, and what it said: the Windows job runs the fixture check and then
+the return leg on every push; the opt-in "Service sign-in pop-up" job runs both
+halves. Both passed at `7fc2347` (CI run 42453077880). Reaching that took a fix
+worth recording, because the harness was wrong rather than the app: the window that
+carries the code and the module were both trading it, and a code is single-use, so
+whichever lost the race was left holding a spent code and the run failed with
+`invalid_grant`. The window that receives the code now finishes the flow in itself
+and closes, the provider's message is recorded rather than spent, and an exchange
+happens in one page. The consequence for what is claimed: the hand-back is checked
+through the module's own by-state lookup and the session cookie, not through a
+pop-up navigating the module to the callback.
+
+What neither half proves: Google's or Microsoft's own post-identifier steps, the
+pop-up-navigates-the-opener variant of the hand-back, and a real account's session.
+The return leg proves Kryvex's side — the window, the signed-in provider page, the
+code, the exchange, the session — against a provider whose behaviour is written
+down in the harness.
+
+### Recent searches and the Enter hint (`tests/search-rules.test.ts`)
+
+The palette now remembers the queries that led somewhere: eight, newest first,
+deduplicated case-insensitively, offered when the field is empty, stored in the
+profile. Each row also says what Enter will do with it — open the view, run the
+action, open the module, open in the Browser, show the file, switch the theme,
+search again. The rules are unit-tested (`rememberSearch`,
+`sanitizeRecentSearches`: order, deduplication, the cap, junk input, whitespace,
+the 120-character cap); the rows themselves are not, and no harness drives the
+palette.
+
+### The Activity Center (`tests/activity-rules.test.ts`)
+
+Recording, coalescing a repeat, the two-hundred-entry cap, clipping what a page
+wrote, keeping modules apart, read state, clearing one module or all, grouping
+by module, and the sanitiser against a hand-edited profile: thirteen tests. The
+capture path itself (the `Notification` shim in a service page) is not covered by
+a test; it is exercised only by running a module that notifies.
+
 ## Unified search (`tests/search-rules.test.ts`)
 
 `electron/search-rules.ts` holds the query rules, scoring, ranking and the
