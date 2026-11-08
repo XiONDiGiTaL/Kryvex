@@ -178,11 +178,37 @@ async function connect(url) {
       returnByValue: true,
       userGesture: true,
     });
-    if (result.exceptionDetails) throw new Error(result.exceptionDetails.text || 'Failed.');
+    if (result.exceptionDetails) {
+      const detail = result.exceptionDetails.exception;
+      throw new Error(detail?.description || result.exceptionDetails.text || 'Failed.');
+    }
     return result.result.value;
   };
   await send('Runtime.enable');
   return { evaluate, send, close: () => socket.close() };
+}
+
+/**
+ * A guest call that survives the module being reconciled.
+ *
+ * Closing a service pop-up makes the module reload — that is the feature the
+ * pop-up fix belongs to — and a reload destroys the execution context the CDP
+ * session was using, which reads as a bare "Uncaught". Waiting for the fixture
+ * and asking once more is what keeps the next provider's check honest instead
+ * of failing the run on Kryvex doing exactly what it should.
+ */
+async function guestEval(guest, expression) {
+  try {
+    return await guest.evaluate(expression);
+  } catch {
+    await waitFor(
+      guest.evaluate,
+      `Boolean(document.getElementById('signin'))`,
+      'the fixture after a reload',
+      80,
+    );
+    return guest.evaluate(expression);
+  }
 }
 
 async function waitFor(evaluate, expression, label, attempts = 160) {
@@ -283,7 +309,7 @@ fixture.listen(fixturePort, '127.0.0.1');
     await waitFor(guest.evaluate, `Boolean(document.getElementById('signin'))`, 'the fixture page');
 
     // 1. The window a sign-in SDK opens first, with no address at all.
-    const opened = await guest.evaluate(
+    const opened = await guestEval(guest, 
       `Boolean(window.__blank = window.__blank || window.__openBlank('kx-blank-first'))`,
     );
     check('a service may open a window with no page yet', opened === true, String(opened));
@@ -306,7 +332,7 @@ fixture.listen(fixturePort, '127.0.0.1');
     );
 
     // 3. The opener may write the provider's address into it afterwards.
-    const written = await guest.evaluate(
+    const written = await guestEval(guest, 
       `(() => {
         try { window.__blank.location.replace(${JSON.stringify(GOOGLE)}); return true; }
         catch (error) { return String(error); }
@@ -316,9 +342,10 @@ fixture.listen(fixturePort, '127.0.0.1');
 
     // 4. Each provider, in its own blank window, opened the way an SDK opens it.
     const report = {};
+    const popups = [];
     for (const provider of PROVIDERS) {
       const name = `kx-${provider.id}`;
-      const created = await guest.evaluate(
+      const created = await guestEval(guest, 
         `Boolean(window['__${provider.id}'] = window['__${provider.id}'] || window.__openBlank(${JSON.stringify(name)}))`,
       );
       if (!created) {
@@ -336,7 +363,7 @@ fixture.listen(fixturePort, '127.0.0.1');
         `the ${provider.label} pop-up`,
       );
       const popup = await connect(target.webSocketDebuggerUrl);
-      await guest.evaluate(
+      await guestEval(guest, 
         `window['__${provider.id}'].location.replace(${JSON.stringify(provider.url)}); true`,
       );
 
@@ -360,15 +387,26 @@ fixture.listen(fixturePort, '127.0.0.1');
         `${state.text.trim().length} characters${state.input ? ', with an input' : ', no input'}`,
       );
 
-      await popup.evaluate(`window.close(); true`).catch(() => undefined);
-      popup.close();
+      // Left open until both providers have been checked: closing a service
+      // pop-up reconciles the module, and a reload half-way through the loop
+      // would destroy the guest context the next provider still needs.
+      popups.push(popup);
     }
 
     // 5. The window that was allowed is still only allowed to show a web page.
-    const refused = await guest.evaluate(
+    const refused = await guestEval(guest, 
       `Boolean(window.__refused('file:///C:/Windows/win.ini'))`,
     );
     check('a pop-up to a non-web address is still refused', refused === false, String(refused));
+
+    // 6. Close the windows the way a page does. The module is reconciled after
+    //    them, which is the behaviour the pop-up fix exists for; nothing is
+    //    checked past this point, so the reload cannot disturb the run.
+    for (const popup of popups) {
+      await popup.evaluate(`window.close(); true`).catch(() => undefined);
+      popup.close();
+    }
+    blank.close();
 
     const passed = checks.every(item => item.ok);
     console.log(passed ? 'sign-in pop-up harness: PASS' : 'sign-in pop-up harness: FAIL');
