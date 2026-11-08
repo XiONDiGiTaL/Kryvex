@@ -28,6 +28,17 @@ import { Icon, ServiceIcon, ThemeMark, type ThemeMarkKind } from '../components/
 import { ServiceQuickMenu } from '../components/ServiceQuickMenu';
 import { Webview, type WebviewElement, type WebviewStatus } from '../components/Webview';
 
+/**
+ * What a service page tried to notify about, as the guest reported it. The
+ * shell adds the module it came from, which the page cannot know.
+ */
+export interface StageActivityEntry {
+  title: string;
+  body: string;
+  tag: string;
+  at: number;
+}
+
 export interface StageCanvas {
   left: number;
   top: number;
@@ -59,6 +70,8 @@ interface StageProps {
   onTitle: (service: Service, title: string) => void;
   onUpdateService: (service: Service, patch: Partial<Service>) => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
+  /** What a module tried to notify about, reported from its page. */
+  onActivity?: (service: Service, entry: StageActivityEntry) => void;
   /** Detach the open module into a window over the whole app. */
   onFloat: (id: string) => void;
   /** Return a windowed module to the focused view. */
@@ -104,6 +117,7 @@ export function ServiceStage({
   onTitle,
   onUpdateService,
   onToast,
+  onActivity,
   onFloat,
   onDock,
   onWindowMove,
@@ -174,6 +188,7 @@ export function ServiceStage({
           entry && (entry.kind !== 'canvas' || canvas !== null) ? entry : null;
         return (
           <ServiceFrame
+        onActivity={onActivity}
             key={`${service.id}-${reloadTokens[service.id] ?? 0}-${engineRevision}`}
             service={service}
             active={service.id === activeId}
@@ -250,6 +265,7 @@ function ServiceFrame({
   onWindowClose,
   onWindowMinimize,
   onWindowMaximize,
+  onActivity,
 }: {
   service: Service;
   motion: WorkspaceSettings;
@@ -268,6 +284,7 @@ function ServiceFrame({
   onUpdateService: (patch: Partial<Service>) => void;
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
   onSendToVexium?: (source: import('../lib/vexium-transfer').VexiumSourceInput) => void;
+  onActivity?: (service: Service, entry: StageActivityEntry) => void;
   onFloat: () => void;
   onDock: () => void;
   onWindowMove: (dx: number, dy: number) => void;
@@ -886,6 +903,7 @@ function ServiceFrame({
             paused={!visible && pauseWhenInactive}
             controller={controller}
             onSendToVexium={onSendToVexium}
+            onActivity={entry => onActivity?.(service, entry)}
             onStatus={setStatus}
             onTitle={onTitle}
             onNavigate={url => {

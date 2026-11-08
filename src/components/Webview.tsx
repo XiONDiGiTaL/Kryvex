@@ -56,6 +56,14 @@ interface WebviewProps {
    */
   onSendToVexium?: (source: VexiumSourceInput) => void;
   /**
+   * What the page tried to notify about. Kryvex cannot read a page's
+   * `Notification` from the main process, so the guest is given a shim that
+   * records the attempt and still shows the real notification through the
+   * browser's own constructor. Only service modules ask for this; a browser tab
+   * passes nothing and is never tapped.
+   */
+  onActivity?: (entry: { title: string; body: string; tag: string; at: number }) => void;
+  /**
    * `document` is a real page load; `in-page` is the page rewriting its own URL
    * with pushState/replaceState, which a search box does on every keystroke.
    * The address bar has to tell them apart: a load replaces what is shown, an
@@ -191,6 +199,7 @@ export function Webview({
   muted = false,
   paused = false,
   onSendToVexium,
+  onActivity,
   onNavigate,
   onTitle,
   onStatus,
@@ -287,6 +296,91 @@ export function Webview({
       el.removeEventListener('did-fail-load', onFail);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Activity capture: a module's notifications, recorded where they happen.
+   *
+   * The shim is installed in the page, not in Kryvex's own renderer, because
+   * `new Notification(...)` is the page's call; the real constructor is still
+   * used, so nothing about what the user sees changes. The queue is drained on a
+   * short interval rather than pushed, because a guest has no channel to this
+   * process — the same constraint the media pause above lives with.
+   */
+  const activityRef = useRef(onActivity);
+  activityRef.current = onActivity;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !activityRef.current) return;
+    const INSTALL = `(() => {
+      if (window.__kryvexActivityInstalled) return true;
+      window.__kryvexActivityInstalled = true;
+      window.__kryvexActivity = [];
+      const Native = window.Notification;
+      if (typeof Native !== 'function') return false;
+      const record = (title, options) => {
+        try {
+          window.__kryvexActivity.push({
+            title: String(title == null ? '' : title).slice(0, 300),
+            body: String(options && options.body ? options.body : '').slice(0, 800),
+            tag: String(options && options.tag ? options.tag : '').slice(0, 80),
+            at: Date.now(),
+          });
+          if (window.__kryvexActivity.length > 40) window.__kryvexActivity.splice(0, window.__kryvexActivity.length - 40);
+        } catch (error) { /* a broken page must not lose its notification */ }
+      };
+      function KryvexNotification(title, options) {
+        record(title, options);
+        return new Native(title, options);
+      }
+      KryvexNotification.prototype = Native.prototype;
+      try { Object.setPrototypeOf(KryvexNotification, Native); } catch (error) { /* older engines */ }
+      KryvexNotification.requestPermission = Native.requestPermission
+        ? Native.requestPermission.bind(Native)
+        : () => Promise.resolve('denied');
+      try {
+        Object.defineProperty(KryvexNotification, 'permission', { get: () => Native.permission });
+      } catch (error) { /* read-only is fine */ }
+      window.Notification = KryvexNotification;
+      return true;
+    })()`;
+    let timer = 0;
+    const drain = () => {
+      try {
+        void el
+          .executeJavaScript(`window.__kryvexActivity ? window.__kryvexActivity.splice(0, 20) : []`)
+          .then(items => {
+            if (!Array.isArray(items)) return;
+            for (const item of items) {
+              if (!item || typeof item !== 'object') continue;
+              activityRef.current?.({
+                title: String((item as { title?: unknown }).title ?? ''),
+                body: String((item as { body?: unknown }).body ?? ''),
+                tag: String((item as { tag?: unknown }).tag ?? ''),
+                at: Number((item as { at?: unknown }).at ?? Date.now()),
+              });
+            }
+          })
+          .catch(() => undefined);
+      } catch {
+        /* the guest is between navigations */
+      }
+    };
+    const install = () => {
+      try {
+        void el.executeJavaScript(INSTALL).catch(() => undefined);
+      } catch {
+        /* not attached yet; dom-ready runs this again */
+      }
+      if (!timer) timer = window.setInterval(drain, 2500);
+      drain();
+    };
+    el.addEventListener('dom-ready', install);
+    install();
+    return () => {
+      el.removeEventListener('dom-ready', install);
+      if (timer) window.clearInterval(timer);
+    };
   }, []);
 
   // A guest attaches its audio output later than the React element exists, so

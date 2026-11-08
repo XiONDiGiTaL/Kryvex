@@ -34,6 +34,8 @@ const NAV: Array<{
 }> = [
   { id: 'home', label: 'Home', icon: 'home' },
   { id: 'services', label: 'Services', icon: 'layers' },
+  // What the modules raised while you were elsewhere: a log, not a feed.
+  { id: 'activity', label: 'Activity', icon: 'monitor' },
   { id: 'browser', label: 'Browser', icon: 'globe' },
   // Windows live between the browser and Vexium: a surface for services, not
   // another place to read about them.
