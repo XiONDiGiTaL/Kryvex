@@ -3809,9 +3809,13 @@ happened (the route, the captured event, the applied theme). It then proves the
 memory: the three queries come back newest first once the field is empty, Enter on
 one puts it back in the field without closing the palette, a repeat moves its entry
 up instead of adding a twin, the same query in another case is the same entry, and
-the list is still there after a reload. What it does not produce is a row from the
-local index — history, bookmarks and downloads — because a disposable profile has
-none and the harness does not invent a profile to get them.
+the list is still there after a reload. It also serves one page from a loopback
+port nobody else has, opens it through the deep link the app's own Browser uses,
+waits for the visit to reach the local index, and then searches for it: the History
+row promises "Opens in Browser", is hinted with the host, draws its verb, and Enter
+takes the Browser back to that page. What it does not produce is a bookmark or a
+download row, because a disposable profile has none and the harness does not write
+a state file by hand to make them.
 
 It passed on Windows at `c0107e3` (CI run 42506818554, the `Harnesses (shell)`
 job): 93 rows in the palette, every one of them carrying one of four verbs and

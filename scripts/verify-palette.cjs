@@ -20,10 +20,14 @@
  *   - a repeat moves an entry up instead of adding a twin, case-insensitively;
  *   - the list survives a reload, because it is kept in the profile.
  *
- * What it cannot show: the rows that come from the local index (history,
- * bookmarks, downloads). A disposable profile has none, and the harness does not
- * invent them — those rows are drawn by the same component with a verb chosen by
- * source, and their ranking is unit-tested.
+ *   - a page the app's own Browser visits becomes a history row, and Enter on
+ *     it takes the Browser back to that page.
+ *
+ * The visit is real: the harness serves one page from a loopback port nobody
+ * else has, opens it through the same deep link the palette itself uses, and
+ * waits for the app to record it before it searches. Bookmarks and downloads
+ * still have no source here — a disposable profile has none, and the harness
+ * does not write a state file by hand to produce them.
  *
  * Run after `pnpm build`:
  *
@@ -33,6 +37,7 @@
  */
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
+const http = require('node:http');
 const path = require('node:path');
 const electron = require('electron');
 
@@ -53,6 +58,7 @@ const VERBS = {
   Actions: 'Runs the action',
   Services: 'Opens the module',
   Themes: 'Switches the theme',
+  History: 'Opens in Browser',
   'Recent searches': 'Searches again',
 };
 
@@ -138,11 +144,32 @@ function launch(profile) {
   return child;
 }
 
+/** A page only this machine can serve, so the app can visit it for real. */
+const FIXTURE_PAGE =
+  '<!doctype html><title>Palette history fixture</title><h1>Visited in the app\'s own Browser</h1>';
+
+function serve() {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer((_request, response) => {
+      response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      response.end(FIXTURE_PAGE);
+    });
+    server.once('error', reject);
+    // Port 0 asks the system for a free one: two runs never fight over a port,
+    // and nothing outside this machine can answer on it.
+    server.listen(0, '127.0.0.1', () => resolve({ server, port: server.address().port }));
+  });
+}
+
 let child = null;
 let cdp = null;
+let fixtureServer = null;
 
 (async () => {
   try {
+    const fixture = await serve();
+    fixtureServer = fixture.server;
+    const visited = `http://127.0.0.1:${fixture.port}/visited`;
     const profile = path.join(root, '.tmp-palette-profile');
     fs.rmSync(profile, { recursive: true, force: true });
     fs.mkdirSync(path.join(profile, 'local'), { recursive: true });
@@ -427,8 +454,62 @@ let cdp = null;
     );
     console.log('after reload:', JSON.stringify(survived));
 
+    // 9. A page the app's own Browser visited is a history row, and Enter on it
+    // takes the Browser back to the page instead of only naming it.
+    await closePalette();
+    await cdp.evaluate(
+      `location.hash = '#/browser?url=' + encodeURIComponent(${JSON.stringify(visited)}); true`,
+    );
+    const loaded = `(() => {
+      const view = document.querySelector('webview');
+      if (!view) return false;
+      try {
+        return !view.isLoading() && view.getURL() === ${JSON.stringify(visited)};
+      } catch {
+        return false;
+      }
+    })()`;
+    await waitUntil(loaded, 'the Browser to load the fixture page', 15000);
+    // The row is drawn from the index the main process builds, so wait for the
+    // visit to reach it rather than for a pixel that may still be a start page.
+    await waitUntil(
+      `window.kryvex.searchQuery('127.0.0.1').then(hits =>
+        hits.some(hit => hit.source === 'history' && hit.url === ${JSON.stringify(visited)}))`,
+      'the visit to reach the local index',
+      15000,
+    );
+    await cdp.evaluate(`location.hash = '#/home'; true`);
+    await waitUntil(`!document.querySelector('webview')`, 'the Browser to leave the screen', 15000);
+    await sleep(300);
+    await openPalette();
+    await type('127.0.0.1');
+    await waitUntil(
+      `(document.querySelector('.palette-item .palette-label')?.textContent || '').trim() === '127.0.0.1'`,
+      'the visited page to lead the list',
+    );
+    const historyRow = flat(await rows()).find(row => row.group === 'History');
+    check(historyRow, 'The palette found the visit but drew no History row');
+    check(
+      historyRow.opens === 'Opens in Browser',
+      `A history row promises "${historyRow.opens}"`,
+    );
+    check(historyRow.hint === '127.0.0.1', `A history row is hinted as "${historyRow.hint}"`);
+    check(historyRow.drawn, `The Enter hint is not drawn for "${historyRow.label}"`);
+    console.log(
+      'history row:',
+      JSON.stringify({ label: historyRow.label, hint: historyRow.hint, opens: historyRow.opens }),
+    );
+    await enter();
+    await waitUntil(`!document.querySelector('.palette-layer')`, 'the palette to close on Enter');
+    const reopened = await cdp.evaluate(`location.hash`);
+    check(
+      reopened.startsWith('#/browser?url='),
+      `Enter on a history row left the app at ${reopened}`,
+    );
+    await waitUntil(loaded, 'the Browser to open the page the row promised', 15000);
+
     if (cdp.exceptions.length > 0) console.log('exceptions:', JSON.stringify(cdp.exceptions.slice(0, 5)));
-    console.log(`::notice title=Palette harness::${first.length} rows, ${new Set(first.map(row => row.opens)).size} verbs, ${kept.length} remembered queries, all checks passed`);
+    console.log(`::notice title=Palette harness::${first.length} rows, ${new Set(first.map(row => row.opens)).size} verbs, ${kept.length} remembered queries, a visited page offered as history, all checks passed`);
     cdp.close();
     console.log('palette harness: PASS');
   } catch (error) {
@@ -449,5 +530,6 @@ let cdp = null;
     if (child && child.exitCode === null) child.kill();
     await sleep(900);
     if (child && child.exitCode === null) child.kill('SIGKILL');
+    if (fixtureServer) fixtureServer.close();
   }
 })();
