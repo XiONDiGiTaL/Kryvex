@@ -74,6 +74,7 @@
     "audit:lifecycle": "node scripts/audit-lifecycle.cjs",
     "art:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/installer-art.ps1",
     "verify:link": "pnpm build && node scripts/verify-link.cjs",
+    "verify:link-firewall": "pnpm build && node scripts/verify-link-firewall.cjs",
     "verify:home-tools": "node scripts/verify-home-tools.cjs",
     "verify:capture-window": "node scripts/verify-capture-window.cjs",
     "verify:canvas": "node scripts/verify-workspace-placement.cjs",

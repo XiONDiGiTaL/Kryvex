@@ -3546,3 +3546,58 @@ What this does **not** cover, and should not be read into the pass: no other
 clicked through category by category in the installed app, and the twenty-two
 presets that answer `403`/`418`/`400` to a scripted client were confirmed to
 resolve, not to render.
+
+## Kryvex Link: the firewall's remote scope (after 0.9.5-hotfix.10, 2026-11-08)
+
+`LocalSubnet` was the wrong scope for the setup most people have. A phone on
+Wi-Fi and a PC on Ethernet are one network on a router that bridges them, but a
+guest SSID, a per-band subnet or a mesh node in router mode puts them on two, and
+a router that routes between them does not help: the rule's remote scope did not
+include the phone's network, so the packet died at the firewall. The connection
+check can now name that network, and the rule carries `LocalSubnet,<network>`.
+
+The unit tests cover the parser and the merge (`tests/link-rules.test.ts`, 8
+cases). What they cannot cover is `netsh`: that the write produces the scope,
+that the rule survives it still enabled, and that Windows reads it back the way
+the app then displays it. That is this pass.
+
+| Step | Command |
+| --- | --- |
+| Build the desktop app | `pnpm build` |
+| Verify the firewall scope | `node scripts/verify-link-firewall.cjs` (`pnpm verify:link-firewall`) |
+
+Run it from an **elevated PowerShell**. The app writes the rule through its own
+`Start-Process -Verb RunAs`, so an unelevated shell would put a UAC dialog in
+front of every step; the pass says so and skips rather than pretend. Its lines
+are also written to `.tmp-link-firewall-report.txt` (gitignored).
+
+### What it asserts
+
+- The link is listening and the check can read the firewall at all.
+- Allowing `192.168.222.0/24` returns a scope that carries it, with
+  `localSubnet` still true — the address that already worked keeps working.
+- The same scope read **out of Windows**, through
+  `Get-NetFirewallAddressFilter`, with the rule still enabled.
+- A second network (`172.29.0.0/16`) is added beside the first, not in place of
+  it.
+- `8.8.8.8/32`, `0.0.0.0/0`, `192.168.222.0/24; calc.exe`, `412.1.1.1/24` and a
+  payload that is not a list are each refused with the rule unchanged, so
+  nothing invalid reaches the elevated command line.
+- The rule is put back exactly as it was found: restored if it existed, deleted
+  if this pass created it. A pass that leaves the machine different is a failure,
+  which the last line checks.
+
+### Result
+
+**Not yet run on Windows.** The harness was written on a Linux machine, which
+has no Windows Firewall, so the only run recorded today is the skip:
+
+| Run | Where | Result |
+| --- | --- | --- |
+| 2026-11-08 | this workspace (Linux) | **skipped**, exit 0, `skipped (no Windows Firewall on this system)` |
+| — | Windows 11, elevated PowerShell | **pending**: the `netsh` path is unverified until this row is filled |
+
+That distinction matters. The typecheck, the unit tests and CI's *Verify Kryvex
+Link* step all pass, and none of them executes `netsh`. Until the pending row is
+filled in, what the app claims about a second subnet rests on the parser and on
+Windows doing what `netsh` documents.
