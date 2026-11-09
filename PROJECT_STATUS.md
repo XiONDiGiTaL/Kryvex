@@ -2009,3 +2009,8 @@ its own tabs — and nothing from BetterDiscord is being bundled.
   from, so a row that fell through to opening one would have left for the Browser —
   and the run removes the file through the app afterwards. That passed on Windows at
   `bfee69f` (CI run 42537580121).
+  It bookmarks that page too, through the button in the tab strip once the page has
+  reported its own title, so the row carries the captured title rather than the
+  host: "Opens in Browser", hinted with the host, verb drawn, and Enter leaves the
+  palette on `#/browser?url=…` with the Browser loading that page again. That passed
+  on Windows at `f563a03` (CI run 42538267049).

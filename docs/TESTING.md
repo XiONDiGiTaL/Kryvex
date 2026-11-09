@@ -3844,6 +3844,12 @@ the file" as its hint. Enter closed the palette and left the app on the screen i
 was on, and the run then removed the file through the app, so the download folder
 was empty again afterwards.
 
+The bookmark step passed on Windows at `f563a03` (CI run 42538267049, the
+`Harnesses (shell)` job): the page reported its own title, the button in the tab
+strip saved it, and the palette offered a row labelled with that title instead of
+the host, promising "Opens in Browser" and hinted with the host. Enter closed the
+palette on `#/browser?url=…` and the Browser loaded the page again.
+
 It passed on Windows at `c0107e3` (CI run 42506818554, the `Harnesses (shell)`
 job): 93 rows in the palette, every one of them carrying one of four verbs and
 each verb matching its group; Enter navigated to Settings, dispatched the capture
