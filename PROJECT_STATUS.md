@@ -1991,9 +1991,14 @@ select round-trip, both sheet shapes, and a generated sheet for each of the 81
 themes with no `@import`, `url(`, `expression(` or malformed hex; the full suite
 passes at 1261 tests in 106 files, both typecheck projects are clean, and
 `scripts/audit-i18n.cjs` finds no unwrapped strings, with the translation ratchet
-unmoved. Not verified: the module itself. No Electron binary runs in this Linux
-environment, so `insertCSS` was never called on a real guest and nothing was
-painted; the sheet is proven generated, not proven to render.
+unmoved. The sheet also renders: `scripts/verify-service-appearance.cjs`
+(`pnpm verify:appearance`) drove the Appearance control in a live guest and read
+Arcade's `rgb(5, 6, 7)` backdrop, `rgb(236, 237, 239)` text and
+`rgb(63, 128, 255)` links back out of it, the same values after following a link,
+Mars's `rgb(18, 8, 7)` when pinned, and the fixture's own colours again after
+Site colours. That run is Linux under Xvfb; Windows has not executed it. The
+Discord sheet is still unrendered: `discord.com` is HSTS-preloaded, so a mapped
+local fixture cannot answer it, and its contents rest on the unit test.
 
 ## Batch: sign-in return leg, search memory, Activity Center (8 Nov 2026)
 

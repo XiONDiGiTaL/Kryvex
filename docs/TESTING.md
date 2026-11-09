@@ -3954,8 +3954,34 @@ the choice is stored on the service record.
 | `tsc --noEmit -p tsconfig.electron.json` | exit 0 |
 | `node scripts/audit-i18n.cjs` | no hardcoded UI strings in 61 renderer files |
 
-Not verified: the insertion itself. There is no Electron binary in this Linux
-environment, so `insertCSS` was never called on a real guest, no page was painted
-and the Appearance control was never seen. The sheet is proven to be generated and
-sanitised, not proven to render. The first place to check it is a Discord module
-on Windows: Services → a module's `⋯` → Appearance.
+### In a real guest (`pnpm verify:appearance`)
+
+A unit test cannot see `insertCSS`: it only exists on an attached `webview`.
+`scripts/verify-service-appearance.cjs` writes a service pointed at a local fixture
+into a throwaway profile, drives the Appearance control the way the panel does
+(set the `<select>`'s value, dispatch its `change` event), and reads the guest back
+with `executeJavaScript`. The fixture pins its own colours, so a computed colour
+that changes is the sheet and nothing else.
+
+| Step | What the guest computed |
+| --- | --- |
+| Before any appearance | `background-color: rgb(244, 244, 244)`, `color: rgb(16, 16, 16)`, link `rgb(11, 87, 208)` |
+| Arcade | `rgb(5, 6, 7)`, text `rgb(236, 237, 239)`, link `rgb(63, 128, 255)`, `scrollbar-color: rgb(27, 31, 38) rgb(5, 6, 7)` |
+| Arcade, after following the fixture's link to `/two` | the same values, so the sheet was dropped and re-inserted on `dom-ready` |
+| Pinned `theme:mars` | `rgb(18, 8, 7)`, link `rgb(217, 88, 59)`, `scrollbar-color: rgb(74, 42, 34) rgb(18, 8, 7)` |
+| Site colours again | back to the fixture's own colours and `scrollbar-color: auto`, so `removeInsertedCSS` removed the sheet |
+
+The service record is read back through `window.kryvex.loadState()`:
+`{"skin":"arcade"}` after the pick, and no `appearance` after Off, which is what
+carries the choice across a restart.
+
+| Command | Result |
+| --- | --- |
+| `pnpm verify:appearance` on Linux, under Xvfb, Electron 44.9.3 | **PASS**, the values above exactly |
+
+What is not covered: the Discord sheet in a guest. `discord.com` is on Chromium's
+HSTS preload list, so the `--host-resolver-rules` mapping a local fixture would
+need is upgraded to HTTPS before the request and cannot serve it; that sheet's
+contents and host matching stay with the unit test. Windows is also unrun: the
+run above is Linux/Xvfb with the same Chromium, and no Windows machine has
+executed this harness yet.

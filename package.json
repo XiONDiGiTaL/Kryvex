@@ -89,6 +89,7 @@
     "verify:flycast": "electron scripts/verify-flycast.cjs",
     "verify:netplay": "electron scripts/verify-netplay.cjs",
     "verify:couch": "pnpm build && node scripts/verify-couch-coop.cjs",
+    "verify:appearance": "pnpm build && node scripts/verify-service-appearance.cjs",
     "verify:userscripts": "pnpm build && node scripts/verify-userscripts.cjs"
   },
   "build": {

@@ -495,3 +495,11 @@ Why CSS and not a userscript: a service keeps a signed-in profile, and
 entering the page, not code, which is why this is allowed where injection is not.
 The preference is stored on the service record, so it survives a restart and a
 reinstall of the module.
+
+
+The harness `scripts/verify-service-appearance.cjs` (`pnpm verify:appearance`)
+proves the sheet in a live guest: Arcade and a pinned Mars theme change the
+fixture's computed colours, the sheet is still there after following a link, and
+Site colours returns the page to its own palette. The Discord sheet cannot be
+reached that way, because Chromium's HSTS preload upgrades `discord.com` to
+HTTPS; its contents are covered by `tests/service-appearance.test.ts`.
