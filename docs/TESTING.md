@@ -3379,7 +3379,9 @@ for the whole run because the five run beside each other.
 `verify:appearance` joined the `services` batch on 2026-11-09, after that run.
 It boots the same disposable profile and serves its fixture on loopback, so it
 needs nothing the batch does not already carry. The table above is left as the
-record of the run it describes; this harness has not yet run on a runner.
+record of the run it describes. Its first runner run is 42657714636 of
+2026-11-09: the `services` shard printed `PASS verify:appearance (23.9s)` and
+the job is green.
 
 ### The two runner failures, both in the check
 
@@ -3983,12 +3985,13 @@ carries the choice across a restart.
 | Command | Result |
 | --- | --- |
 | `pnpm verify:appearance` on Linux, under Xvfb, Electron 44.9.3 | **PASS**, the values above exactly |
+| `pnpm verify:appearance` on `windows-latest`, run 42657714636 | **PASS** in 23.9 s at `c2a505a`, the same values |
 
 What is not covered: the Discord sheet in a guest. `discord.com` is on Chromium's
 HSTS preload list, so the `--host-resolver-rules` mapping a local fixture would
 need is upgraded to HTTPS before the request and cannot serve it; that sheet's
-contents and host matching stay with the unit test. Windows is also unrun: the
-run above is Linux/Xvfb with the same Chromium, and no Windows machine has
-executed this harness yet. It sits in the `services` CI batch, so the first push
-to `main` after this lands runs it there; this paragraph stays Linux until a
-runner run is recorded.
+contents and host matching stay with the unit test. Windows is no longer the gap:
+run 42657714636 on `windows-latest` (Windows Server 2025, Electron 44.9.3)
+printed the same computed values as the Linux run and `PASS verify:appearance
+(23.9s)`, inside a green `Harnesses (services)` job at `c2a505a`. The harness
+sits in the `services` CI batch, so every push to `main` runs it there.
