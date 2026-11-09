@@ -1996,7 +1996,9 @@ unmoved. The sheet also renders: `scripts/verify-service-appearance.cjs`
 Arcade's `rgb(5, 6, 7)` backdrop, `rgb(236, 237, 239)` text and
 `rgb(63, 128, 255)` links back out of it, the same values after following a link,
 Mars's `rgb(18, 8, 7)` when pinned, and the fixture's own colours again after
-Site colours. That run is Linux under Xvfb; Windows has not executed it. The
+Site colours. That run is Linux under Xvfb; Windows has not executed it. The harness is in the
+`services` CI batch, so a push to `main` runs it on Windows; no Windows result is
+recorded yet. The
 Discord sheet is still unrendered: `discord.com` is HSTS-preloaded, so a mapped
 local fixture cannot answer it, and its contents rest on the unit test.
 

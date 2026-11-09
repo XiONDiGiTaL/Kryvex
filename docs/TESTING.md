@@ -3376,6 +3376,11 @@ All twenty-three pass in both places. Run 40557385084 is green on every job: the
 main one in 1m25s, the batches between 43 s and 1m52s, and 3m20s of wall clock
 for the whole run because the five run beside each other.
 
+`verify:appearance` joined the `services` batch on 2026-11-09, after that run.
+It boots the same disposable profile and serves its fixture on loopback, so it
+needs nothing the batch does not already carry. The table above is left as the
+record of the run it describes; this harness has not yet run on a runner.
+
 ### The two runner failures, both in the check
 
 The matrix's first run (40554739880) passed four batches and failed `browser`;
@@ -3984,4 +3989,6 @@ HSTS preload list, so the `--host-resolver-rules` mapping a local fixture would
 need is upgraded to HTTPS before the request and cannot serve it; that sheet's
 contents and host matching stay with the unit test. Windows is also unrun: the
 run above is Linux/Xvfb with the same Chromium, and no Windows machine has
-executed this harness yet.
+executed this harness yet. It sits in the `services` CI batch, so the first push
+to `main` after this lands runs it there; this paragraph stays Linux until a
+runner run is recorded.
