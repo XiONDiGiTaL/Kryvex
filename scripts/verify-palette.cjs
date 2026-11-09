@@ -702,18 +702,55 @@ let fixtureServer = null;
       `Boolean(document.querySelector('[aria-label="Bookmark this page"]:not([disabled])'))`;
     const bookmarkSaved = `Boolean(document.querySelector('[aria-label="Remove bookmark"]'))`;
     await waitUntil(readyToBookmark, 'the bookmark button to offer the page', 15000);
-    // A press can be dropped when it lands in the same frame as a re-layout, and
-    // the strip flips this button the moment a press registers. Pressing again
-    // while it still offers to bookmark the page is the same action a person
-    // would repeat, and cannot undo a bookmark that was already saved.
+    // A press can be dropped when it lands in the same frame as a re-layout, and a
+    // window narrower than the strip draws this button past its right edge, where
+    // a click has nowhere to land. So a point inside the window is clicked, and a
+    // button drawn outside it is reached with the keyboard. Both are actions a
+    // person has, and neither can undo a saved bookmark, because a press only
+    // happens while the strip still offers to bookmark the page.
     let presses = 0;
     while (presses < 4 && !(await cdp.evaluate(bookmarkSaved))) {
-      await clickOn('[aria-label="Bookmark this page"]');
+      const point = await cdp.evaluate(`(() => {
+        const button = document.querySelector('[aria-label="Bookmark this page"]');
+        if (!button) return null;
+        const rect = button.getBoundingClientRect();
+        const x = rect.x + rect.width / 2;
+        const y = rect.y + rect.height / 2;
+        return {
+          x,
+          y,
+          drawn: rect.width > 0 && rect.height > 0,
+          inWindow: x >= 0 && y >= 0 && x <= window.innerWidth && y <= window.innerHeight,
+          window: window.innerWidth + 'x' + window.innerHeight,
+        };
+      })()`);
+      check(point && point.drawn, 'The window is not drawing the bookmark button');
+      if (point.inWindow) {
+        await clickOn('[aria-label="Bookmark this page"]');
+      } else {
+        const focused = await cdp.evaluate(`(() => {
+          const button = document.querySelector('[aria-label="Bookmark this page"]');
+          button.focus();
+          return document.activeElement === button;
+        })()`);
+        check(focused, 'The bookmark button could not be focused for a key press');
+        await key('Enter', 'Enter', 13);
+      }
       presses += 1;
+      console.log(
+        'bookmark press',
+        presses,
+        JSON.stringify({
+          x: Math.round(point.x),
+          y: Math.round(point.y),
+          inWindow: point.inWindow,
+          window: point.window,
+        }),
+      );
       try {
         await waitUntil(bookmarkSaved, 'the strip to draw the bookmark it saved', 3000);
       } catch {
-        // Still offering to bookmark the page: that press was dropped.
+        // Still offering to bookmark the page: that press did not land.
       }
     }
     const flipped = await cdp.evaluate(bookmarkSaved);
