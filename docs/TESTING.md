@@ -3977,6 +3977,9 @@ that changes is the sheet and nothing else.
 | Arcade, after following the fixture's link to `/two` | the same values, so the sheet was dropped and re-inserted on `dom-ready` |
 | Pinned `theme:mars` | `rgb(18, 8, 7)`, link `rgb(217, 88, 59)`, `scrollbar-color: rgb(74, 42, 34) rgb(18, 8, 7)` |
 | Site colours again | back to the fixture's own colours and `scrollbar-color: auto`, so `removeInsertedCSS` removed the sheet |
+| Discord fixture, before any appearance | `--background-primary: #313338`, `--brand-500: #5865f2`, link `rgb(0, 168, 252)`, page `rgb(49, 51, 56)` |
+| Arcade on the Discord fixture | body `rgb(5, 6, 7)`, page `rgb(12, 14, 17)`, `--background-primary: #0c0e11`, `--background-secondary: #050607`, text `#ecedef`, link `rgb(63, 128, 255)`, `--brand-500: #3f80ff`, `--scrollbar-auto-thumb: #1b1f26`, and `scrollbar-color: auto`, so the generic sheet did not paint |
+| Site colours on the Discord fixture | `--background-primary: #313338`, `--brand-500: #5865f2`, link back to `rgb(0, 168, 252)` |
 
 The service record is read back through `window.kryvex.loadState()`:
 `{"skin":"arcade"}` after the pick, and no `appearance` after Off, which is what
@@ -3986,12 +3989,19 @@ carries the choice across a restart.
 | --- | --- |
 | `pnpm verify:appearance` on Linux, under Xvfb, Electron 44.9.3 | **PASS**, the values above exactly |
 | `pnpm verify:appearance` on `windows-latest`, run 42657714636 | **PASS** in 23.9 s at `c2a505a`, the same values |
+| `pnpm verify:appearance` on `windows-latest`, run 42664188604 | **PASS** in 23.8 s at `7c7d6d9`, the Discord readings above included |
 
-What is not covered: the Discord sheet in a guest. `discord.com` is on Chromium's
-HSTS preload list, so the `--host-resolver-rules` mapping a local fixture would
-need is upgraded to HTTPS before the request and cannot serve it; that sheet's
-contents and host matching stay with the unit test. Windows is no longer the gap:
-run 42657714636 on `windows-latest` (Windows Server 2025, Electron 44.9.3)
-printed the same computed values as the Linux run and `PASS verify:appearance
-(23.9s)`, inside a green `Harnesses (services)` job at `c2a505a`. The harness
-sits in the `services` CI batch, so every push to `main` runs it there.
+The Discord sheet is covered too, on a page served at `discord.com` itself.
+Chromium upgrades the HSTS-preloaded host, so the fixture answers over TLS on a
+loopback port, `--host-resolver-rules` maps `discord.com` to that port, and
+`--ignore-certificate-errors-spki-list` trusts only the fixture certificate's
+SPKI hash, in the same throwaway process and profile. The page publishes Discord's
+own properties, and the run read them back out of the guest. The certificate and
+key in `scripts/fixtures` are a throwaway pair made for that page.
+
+Windows is not the gap either: run 42657714636 on `windows-latest` (Windows Server
+2025, Electron 44.9.3) printed the same computed values as the Linux run and
+`PASS verify:appearance (23.9s)`, inside a green `Harnesses (services)` job at
+`c2a505a`. The harness sits in the `services` CI batch, so every push to `main`
+runs it there; run 42664188604 repeated everything at `7c7d6d9` and printed
+`PASS verify:appearance (23.8s)` in the `services` shard.

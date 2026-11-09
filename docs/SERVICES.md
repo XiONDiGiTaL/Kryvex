@@ -500,6 +500,7 @@ reinstall of the module.
 The harness `scripts/verify-service-appearance.cjs` (`pnpm verify:appearance`)
 proves the sheet in a live guest: Arcade and a pinned Mars theme change the
 fixture's computed colours, the sheet is still there after following a link, and
-Site colours returns the page to its own palette. The Discord sheet cannot be
-reached that way, because Chromium's HSTS preload upgrades `discord.com` to
-HTTPS; its contents are covered by `tests/service-appearance.test.ts`.
+Site colours returns the page to its own palette. The Discord sheet is proven the
+same way, on a fixture served over TLS at `discord.com` with the host mapped to
+loopback and only the fixture certificate pinned: Discord's own properties change
+while `scrollbar-color` stays `auto`, so the generic sheet is not what painted.
