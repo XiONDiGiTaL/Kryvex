@@ -223,9 +223,14 @@ let fixtureServer = null;
     cdp = await connect(page.webSocketDebuggerUrl);
 
     const waitUntil = async (expression, label, timeout = 8000) => {
-      const deadline = Date.now() + timeout;
+      const started = Date.now();
+      const deadline = started + timeout;
       while (Date.now() < deadline) {
-        if (await cdp.evaluate(expression)) return;
+        if (await cdp.evaluate(expression)) {
+          const spent = Date.now() - started;
+          if (spent * 2 > timeout) console.log(`slow wait: ${label} took ${spent}ms of ${timeout}ms`);
+          return;
+        }
         await sleep(150);
       }
       const seen = await cdp
@@ -682,20 +687,14 @@ let fixtureServer = null;
     );
     await waitUntil(loaded, 'the Browser to load the fixture page again', 15000);
     // A bookmark is saved with the page's own title, so the title has to arrive
-    // before the button is pressed; without it the row would carry the host.
+    // before the button is pressed; without it the row would carry the host. The
+    // strip draws the very state the button copies, so a drawn title is proof the
+    // press will carry it — no fixed pause on a guest that may be ahead of it.
     await waitUntil(
-      `(() => {
-        const view = document.querySelector('webview');
-        try {
-          return Boolean(view) && view.getTitle() === ${JSON.stringify(pageTitle)};
-        } catch {
-          return false;
-        }
-      })()`,
-      'the fixture page to report its title',
+      `(document.querySelector('.tab.is-active .tab-title')?.textContent || '').trim() === ${JSON.stringify(pageTitle)}`,
+      'the tab strip to draw the page title',
       15000,
     );
-    await sleep(400);
     await clickOn('[aria-label="Bookmark this page"]');
     const bookmarked = `(() => window.kryvex.searchQuery('fixture').then(hits => {
       const hit = hits.find(item => item.source === 'bookmark' && item.url === ${JSON.stringify(visited)});
