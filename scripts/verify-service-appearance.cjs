@@ -585,11 +585,14 @@ async function stop() {
         discordOff.link === 'rgb(0, 168, 252)',
       `Discord kept its tint after Off (${JSON.stringify(discordOff)}).`,
     );
-    check(
-      (await savedAppearance(cdp, DISCORD.id)) === null,
-      'The Discord record still holds an appearance after Off.',
-    );
     console.log('after Off on Discord:', JSON.stringify(discordOff));
+    // The record is written on a debounce, like the two reads above.
+    await sleep(500);
+    const savedDiscordOff = await savedAppearance(cdp, DISCORD.id);
+    check(
+      savedDiscordOff === null,
+      `The Discord record still holds ${JSON.stringify(savedDiscordOff)} after Off.`,
+    );
 
     cdp.close();
     await stop();
