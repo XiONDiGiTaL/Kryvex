@@ -2002,3 +2002,10 @@ its own tabs — and nothing from BetterDiscord is being bundled.
   "Opens in Browser" verb, the host as its hint, the verb drawn, and Enter leaving
   the palette on `#/browser?url=…` with the Browser loading that page again. That
   passed on Windows at `a7fe664` (CI run 42518210534).
+  It downloads a file of its own making too: the Browser fetches an attachment from
+  that port, the app saves it into the folder the run pointed it at, and the palette
+  offers the filename with "Shows the file" as its hint. Enter must close the
+  palette and leave the app where it was — a download row carries the URL it came
+  from, so a row that fell through to opening one would have left for the Browser —
+  and the run removes the file through the app afterwards. That passed on Windows at
+  `bfee69f` (CI run 42537580121).

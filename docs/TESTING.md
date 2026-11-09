@@ -3834,6 +3834,13 @@ attempt failed on the harness rather than the app — it asked for a row labelle
 `127.0.0.1`, while the app titles a history entry with the host it was served from,
 port included.
 
+The download step passed on Windows at `bfee69f` (CI run 42537580121, the
+`Harnesses (shell)` job): the Browser fetched the attachment, the app saved it into
+the folder this run had given it, and the palette offered the filename with "Shows
+the file" as its hint. Enter closed the palette and left the app on the screen it
+was on, and the run then removed the file through the app, so the download folder
+was empty again afterwards.
+
 It passed on Windows at `c0107e3` (CI run 42506818554, the `Harnesses (shell)`
 job): 93 rows in the palette, every one of them carrying one of four verbs and
 each verb matching its group; Enter navigated to Settings, dispatched the capture
