@@ -3823,8 +3823,11 @@ palette and leaves the app on the screen it was on, which is the branch that
 matters: a download row carries the URL it came from, and a row that fell through
 to opening one would have left for the Browser. What the OS then does with the file
 is not visible in a window, so the harness does not claim it saw that. What it does
-not produce is a bookmark row, because nothing in a fresh profile bookmarks a page
-and the harness does not write a state file by hand to make one.
+not produce is nothing: it bookmarks that page through the button in the tab strip,
+once the page has reported its own title, and the row then arrives labelled with
+that title rather than the host, promises "Opens in Browser", and opens the page
+again on Enter. Every row it checks came from the app doing the thing; the harness
+writes no history, bookmark or download record by hand.
 
 The history step passed on Windows at `a7fe664` (CI run 42518210534, the
 `Harnesses (shell)` job): the visited page led the list, its row promised "Opens in

@@ -23,16 +23,17 @@
  *   - a page the app's own Browser visits becomes a history row, and Enter on
  *     it takes the Browser back to that page;
  *   - a file the app's own Browser downloads becomes a download row, and Enter on
- *     it hands the file to the OS instead of opening a page.
+ *     it hands the file to the OS instead of opening a page;
+ *   - a page the app's own Browser bookmarks becomes a bookmark row, and Enter on
+ *     it opens that page again.
  *
- * Both are real: the harness serves one page and one file from a loopback port
- * nobody else has, opens them through the same deep link the palette itself
- * uses, and waits for the app to record them before it searches. It also points
- * the app's download folder at its own disposable profile, so a run never leaves
- * a file in the person's Downloads, and removes the file through the app at the
- * end. A bookmark still has no source here — nothing in a fresh profile
- * bookmarks a page, and the harness does not write a state file by hand to
- * produce one.
+ * All three are real: the harness serves one page and one file from a loopback
+ * port nobody else has, opens them through the same deep link the palette itself
+ * uses, bookmarks the page with the button in the tab strip, and waits for each
+ * to reach the app's index before it searches. It also points the app's download
+ * folder at its own disposable profile, so a run never leaves a file in the
+ * person's Downloads, and removes the file through the app at the end. No row it
+ * checks is written into a state file by hand.
  *
  * Run after `pnpm build`:
  *
@@ -64,6 +65,7 @@ const VERBS = {
   Services: 'Opens the module',
   Themes: 'Switches the theme',
   History: 'Opens in Browser',
+  Bookmarks: 'Opens in Browser',
   Downloads: 'Shows the file',
   'Recent searches': 'Searches again',
 };
@@ -283,6 +285,31 @@ let fixtureServer = null;
       await sleep(250);
     };
     const type = text => cdp.send('Input.insertText', { text });
+    const clickOn = async selector => {
+      const box = await cdp.evaluate(`(() => {
+        const node = document.querySelector(${JSON.stringify(selector)});
+        if (!node) return null;
+        const rect = node.getBoundingClientRect();
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, width: rect.width, height: rect.height };
+      })()`);
+      check(box && box.width > 0 && box.height > 0, `The window is not drawing ${selector}`);
+      const point = { x: box.x, y: box.y };
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point, button: 'none' });
+      await cdp.send('Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        ...point,
+        button: 'left',
+        buttons: 1,
+        clickCount: 1,
+      });
+      await cdp.send('Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        ...point,
+        button: 'left',
+        buttons: 0,
+        clickCount: 1,
+      });
+    };
     const rows = () =>
       cdp.evaluate(`(() => {
         if (!document.querySelector('.palette-layer')) return null;
@@ -647,8 +674,73 @@ let fixtureServer = null;
     );
     check(!fs.existsSync(record.savePath), 'The removed download is still on disk');
 
+    // 11. A page the app's own Browser bookmarks is a bookmark row, and Enter on
+    // it opens that page again.
+    const pageTitle = 'Palette history fixture';
+    await cdp.evaluate(
+      `location.hash = '#/browser?url=' + encodeURIComponent(${JSON.stringify(visited)}); true`,
+    );
+    await waitUntil(loaded, 'the Browser to load the fixture page again', 15000);
+    // A bookmark is saved with the page's own title, so the title has to arrive
+    // before the button is pressed; without it the row would carry the host.
+    await waitUntil(
+      `(() => {
+        const view = document.querySelector('webview');
+        try {
+          return Boolean(view) && view.getTitle() === ${JSON.stringify(pageTitle)};
+        } catch {
+          return false;
+        }
+      })()`,
+      'the fixture page to report its title',
+      15000,
+    );
+    await sleep(400);
+    await clickOn('[aria-label="Bookmark this page"]');
+    const bookmarked = `(() => window.kryvex.searchQuery('fixture').then(hits => {
+      const hit = hits.find(item => item.source === 'bookmark' && item.url === ${JSON.stringify(visited)});
+      return hit ? { title: hit.title, subtitle: hit.subtitle } : null;
+    }))()`;
+    await waitUntil(bookmarked, 'the bookmark to reach the local index', 15000);
+    const savedBookmark = await cdp.evaluate(bookmarked);
+    check(
+      savedBookmark.title === pageTitle,
+      `The bookmark is titled "${savedBookmark.title}", expected the page's own title`,
+    );
+    console.log('bookmark:', JSON.stringify(savedBookmark));
+
+    await cdp.evaluate(`location.hash = '#/home'; true`);
+    await waitUntil(`!document.querySelector('webview')`, 'the Browser to leave the screen', 15000);
+    await sleep(300);
+    await openPalette();
+    await type('fixture');
+    await waitUntil(
+      `(document.querySelector('.palette-item .palette-label')?.textContent || '').trim() === ${JSON.stringify(pageTitle)}`,
+      'the bookmark to lead the list',
+    );
+    const bookmarkRow = flat(await rows()).find(row => row.group === 'Bookmarks');
+    check(bookmarkRow, 'The palette found the bookmark but drew no Bookmarks row');
+    check(
+      bookmarkRow.opens === 'Opens in Browser',
+      `A bookmark row promises "${bookmarkRow.opens}"`,
+    );
+    check(bookmarkRow.hint === '127.0.0.1', `A bookmark row is hinted as "${bookmarkRow.hint}"`);
+    check(bookmarkRow.drawn, `The Enter hint is not drawn for "${bookmarkRow.label}"`);
+    console.log(
+      'bookmark row:',
+      JSON.stringify({ label: bookmarkRow.label, hint: bookmarkRow.hint, opens: bookmarkRow.opens }),
+    );
+    await enter();
+    await waitUntil(`!document.querySelector('.palette-layer')`, 'the palette to close on Enter');
+    const bookmarkTarget = await cdp.evaluate(`location.hash`);
+    check(
+      bookmarkTarget.startsWith('#/browser?url='),
+      `Enter on a bookmark row left the app at ${bookmarkTarget}`,
+    );
+    await waitUntil(loaded, 'the Browser to open the bookmarked page', 15000);
+
     if (cdp.exceptions.length > 0) console.log('exceptions:', JSON.stringify(cdp.exceptions.slice(0, 5)));
-    console.log(`::notice title=Palette harness::${first.length} rows, ${new Set(first.map(row => row.opens)).size} verbs, ${kept.length} remembered queries, a visited page offered as history, a downloaded file offered as a download row, all checks passed`);
+    console.log(`::notice title=Palette harness::${first.length} rows, ${new Set(first.map(row => row.opens)).size} verbs, ${kept.length} remembered queries, a visited page offered as history, a downloaded file offered as a download row, a bookmarked page offered as a bookmark, all checks passed`);
     cdp.close();
     console.log('palette harness: PASS');
   } catch (error) {
