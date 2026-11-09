@@ -37,7 +37,7 @@ const electron = require('electron');
 
 const root = path.resolve(__dirname, '..');
 const profile = path.join(root, '.tmp-appearance-profile');
-const port = Number(process.env.KRYVEX_CDP_PORT || 9361);
+const port = Number(process.env.KRYVEX_CDP_PORT || 9367);
 const fixturePort = Number(process.env.KRYVEX_APPEARANCE_PORT || 8167);
 
 const SERVICE = { id: 'harness-appearance', name: 'Harness Appearance' };
