@@ -120,6 +120,21 @@ export interface LifecycleSettings {
   overrides: Partial<Record<LifecycleServiceId, LifecycleMode>>;
 }
 
+/**
+ * A CSS-only recolouring for one service's page.
+ *
+ * Kryvex inserts a stylesheet into the guest; no script is evaluated in a
+ * signed-in session. `follow` tracks the shell's active theme, `graphite` and
+ * `arcade` are fixed skins, and `theme` pins one catalogue theme by id.
+ */
+export type ServiceAppearanceSkin = 'off' | 'follow' | 'graphite' | 'arcade' | 'theme';
+
+export interface ServiceAppearance {
+  skin: ServiceAppearanceSkin;
+  /** Catalogue theme id; only read when `skin` is 'theme'. */
+  themeId?: string;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -147,6 +162,8 @@ export interface Service {
    * to look for the same service. Set on either record to allow the copy.
    */
   multipleInstances?: boolean;
+  /** Colours this module's page. Absent means the site keeps its own. */
+  appearance?: ServiceAppearance;
 }
 
 export interface Bookmark {

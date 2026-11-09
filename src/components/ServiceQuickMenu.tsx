@@ -1,5 +1,7 @@
 import type { Service, ServicePersistence } from '../types';
 import { useT } from '../lib/i18n';
+import { FAMILY_LABELS, THEMES, THEME_FAMILIES } from '../lib/themes';
+import { appearanceValueFor, parseAppearanceValue } from '../lib/service-appearance';
 import { OptionsPopover, OPTIONS_CLOSE_EVENT } from './OptionsPopover';
 import { Icon } from './ui';
 
@@ -107,6 +109,36 @@ export function ServiceQuickMenu({
         >
           <span />
         </button>
+      </div>
+
+      {/*
+        A stylesheet, not a script: the module keeps a signed-in profile, so the
+        picker only chooses a palette that Kryvex inserts with `insertCSS`.
+      */}
+      <div className="service-quick-select">
+        <div>
+          <strong>{t('Appearance')}</strong>
+          <span>{t('CSS only: recolours this service and never runs a script in its page.')}</span>
+        </div>
+        <select
+          value={appearanceValueFor(service.appearance)}
+          aria-label={t('Appearance for {name}', { name: service.name })}
+          onChange={event => onChange({ appearance: parseAppearanceValue(event.target.value) })}
+        >
+          <option value="off">{t('Site colours')}</option>
+          <option value="follow">{t('Follow the app theme')}</option>
+          <option value="graphite">{t('Kryvex Graphite')}</option>
+          <option value="arcade">{t('Arcade')}</option>
+          {THEME_FAMILIES.map(family => (
+            <optgroup key={family} label={t(FAMILY_LABELS[family])}>
+              {THEMES.filter(theme => (theme.family ?? 'core') === family).map(theme => (
+                <option key={theme.id} value={`theme:${theme.id}`}>
+                  {t(theme.name)}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
       </div>
 
       {manage ? (

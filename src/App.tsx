@@ -1646,6 +1646,8 @@ export default function App() {
           canvas={route.view === 'workspace' ? canvas : null}
           windows={windows}
           motion={state.settings.workspace}
+          themeId={state.settings.themeId}
+          customTheme={state.settings.customTheme}
           onBack={() => navigate('services')}
           onEdit={service => setDialog({ mode: 'edit', service })}
           onDelete={deleteService}

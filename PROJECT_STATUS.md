@@ -1973,18 +1973,27 @@ The part of it a webview can honestly take is the theme, because a BetterDiscord
 theme is a stylesheet. `docs/userscripts/discord-theme.user.js` recolours Discord
 through the CSS custom properties that client already publishes, fetches no font,
 image or stylesheet, and installs through the user-script engine that already
-ships; it applies to `discord.com` and `discordapp.com` and nothing else. It does
-**not** reach the Discord module: a service module keeps a signed-in profile and
-`electron/userscripts.ts` refuses to attach to one, so the theme works in a
-browser tab while the module keeps Discord's own colours.
+ships; it applies to `discord.com` and `discordapp.com` and nothing else.
 
-Verified: the engine's own parser accepts the shipped file, the matcher accepts
-the Discord hosts and rejects a lookalike, and the file wrapped exactly as the
-manager wraps it inserts one stylesheet, updates it in place instead of stacking
-copies, and paints before `DOMContentLoaded` (`tests/discord-theme.test.ts`, five
-tests); `node --check` on the file and `tsc --noEmit` are clean. Not verified: the
-colours themselves. No browser rendered Discord with this sheet, so the palette is
-plausible, not seen.
+The module takes the same palette by a different route. **Appearance** in a
+service's options panel sets a CSS-only sheet that the renderer hands to
+`webview.insertCSS` (`src/lib/service-appearance.ts`): `follow` tracks the shell's
+active theme, so a planet theme dresses Discord exactly as it dresses Kryvex;
+`graphite` is this userscript's palette and `arcade` is xiondigital.net/arcade's
+blue on near-black; any catalogue theme can be pinned by id. Discord is recoloured
+exactly through its own variables, while any other site gets a smaller sheet for
+backdrop, ink, links, selection and scrollbars. No script enters a module:
+`electron/userscripts.ts` still refuses a service session.
+
+Verified: 17 unit tests over the rules and the sheets
+(`tests/service-appearance.test.ts`), covering sanitising, host matching, the
+select round-trip, both sheet shapes, and a generated sheet for each of the 81
+themes with no `@import`, `url(`, `expression(` or malformed hex; the full suite
+passes at 1261 tests in 106 files, both typecheck projects are clean, and
+`scripts/audit-i18n.cjs` finds no unwrapped strings, with the translation ratchet
+unmoved. Not verified: the module itself. No Electron binary runs in this Linux
+environment, so `insertCSS` was never called on a real guest and nothing was
+painted; the sheet is proven generated, not proven to render.
 
 ## Batch: sign-in return leg, search memory, Activity Center (8 Nov 2026)
 

@@ -21,6 +21,8 @@ export interface WebviewElement extends HTMLElement {
   setAudioMuted: (muted: boolean) => void;
   isAudioMuted: () => boolean;
   executeJavaScript: (code: string) => Promise<unknown>;
+  insertCSS: (css: string) => Promise<string>;
+  removeInsertedCSS: (key: string) => Promise<void>;
 }
 
 export interface WebviewStatus {
@@ -73,6 +75,12 @@ interface WebviewProps {
   onTitle?: (title: string) => void;
   onStatus?: (status: WebviewStatus) => void;
   onFound?: (result: FindResult) => void;
+  /**
+   * A stylesheet for this page, applied with `insertCSS` and dropped when the
+   * module navigates. CSS only: a service keeps a signed-in profile, so no
+   * script is ever evaluated in it.
+   */
+  overrideCss?: string;
 }
 
 interface CapturePoint {
@@ -204,6 +212,7 @@ export function Webview({
   onTitle,
   onStatus,
   onFound,
+  overrideCss,
 }: WebviewProps) {
   const ref = useRef<WebviewElement | null>(null);
   const initial = useRef({ src, partition, allowPopups });
@@ -431,6 +440,63 @@ export function Webview({
     el.addEventListener('dom-ready', apply);
     return () => el.removeEventListener('dom-ready', apply);
   }, [muted, paused]);
+
+  /**
+   * The per-service stylesheet.
+   *
+   * `insertCSS` is the only way in: a module keeps a signed-in profile, so the
+   * sheet is CSS and nothing else. It belongs to the current document, so it is
+   * dropped and re-applied on every `dom-ready`, which is what carries a theme
+   * through navigation rather than only until the first link is followed.
+   */
+  const overrideRef = useRef(overrideCss);
+  overrideRef.current = overrideCss;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let key: string | null = null;
+    let disposed = false;
+    const drop = () => {
+      if (key === null) return;
+      const leaving = key;
+      key = null;
+      try {
+        void el.removeInsertedCSS(leaving).catch(() => undefined);
+      } catch {
+        /* the guest may be between navigations */
+      }
+    };
+    const apply = () => {
+      drop();
+      const css = overrideRef.current;
+      if (!css) return;
+      try {
+        void el
+          .insertCSS(css)
+          .then(inserted => {
+            if (disposed) {
+              try {
+                void el.removeInsertedCSS(inserted).catch(() => undefined);
+              } catch {
+                /* detached */
+              }
+              return;
+            }
+            key = inserted;
+          })
+          .catch(() => undefined);
+      } catch {
+        /* not attached yet; dom-ready runs this again */
+      }
+    };
+    el.addEventListener('dom-ready', apply);
+    apply();
+    return () => {
+      disposed = true;
+      el.removeEventListener('dom-ready', apply);
+      drop();
+    };
+  }, [overrideCss]);
 
   /**
    * Send to Vexium: a menu over the right-clicked page.

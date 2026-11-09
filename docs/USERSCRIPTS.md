@@ -120,8 +120,9 @@ was painted on.
 It also does not reach the Discord module. A service module keeps a signed-in
 profile, and the manager refuses to attach to one (`electron/userscripts.ts`), so
 scripts run in browser tabs only — open `discord.com` in a tab to see the theme.
-The module keeps Discord's own colours, which is the boundary this engine has
-had since it shipped.
+The module gets the same palette through its own **Appearance** setting, which
+inserts CSS and no script (see [SERVICES.md](SERVICES.md)); the engine boundary
+above still holds for anything executable.
 
 ## What was checked
 

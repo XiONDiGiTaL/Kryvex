@@ -2005,6 +2005,39 @@ body[data-player-bar='1'] .media-dock.is-floating {
   font-weight: 550;
 }
 
+/* The per-service appearance picker. A stylesheet is the only thing that can
+   reach a signed-in module, so the control stays a plain select over palettes. */
+.service-quick-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.service-quick-select strong {
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.service-quick-select span {
+  display: block;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.service-quick-select select {
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
 .service-quick-row span {
   font-size: 9.5px;
   line-height: 1.4;

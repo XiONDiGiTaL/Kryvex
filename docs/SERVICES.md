@@ -464,3 +464,34 @@ MSC's blue mark sits on a light plate like the other dark glyphs. GetYourGuide
 and Amtrak were left out of this batch because both refuse every scripted
 request, including their own favicon, and shipping a preset the catalogue cannot
 draw a mark for would break the one-mark-per-preset rule the icon check enforces.
+
+## Appearance: CSS only, per service
+
+A module's page can be recoloured, and the only thing that reaches the guest is a
+stylesheet. **Appearance** in a service's options panel (`⋯`) picks one of:
+
+- **Site colours** — the default; nothing is inserted.
+- **Follow the app theme** — the shell's active theme, Custom included, so a
+  planet theme dresses the module exactly as it dresses Kryvex.
+- **Kryvex Graphite** — the palette shipped in
+  `docs/userscripts/discord-theme.user.js`.
+- **Arcade** — the blue-on-black palette taken from xiondigital.net/arcade
+  (`--bg #050607`, `--panel #0c0e11`, `--blue #3f80ff`).
+- **Any catalogue theme** — the full periodic table, pinned by id.
+
+`src/lib/service-appearance.ts` builds the sheet; `src/components/Webview.tsx`
+hands it to `webview.insertCSS` and removes it when the choice changes. A
+stylesheet belongs to the document, so it is re-applied on every `dom-ready`:
+following a link does not lose the theme.
+
+Two sheets exist because two kinds of page do. Discord publishes its own custom
+properties (`--background-primary`, `--brand-500`, …), so it is recoloured
+exactly. Every other site gets a smaller sheet that changes the backdrop, the
+default ink, links, selection and scrollbars; it does not claim to redesign a
+page it has never seen, and it does not touch layout.
+
+Why CSS and not a userscript: a service keeps a signed-in profile, and
+`electron/userscripts.ts` refuses to attach to one. `insertCSS` is a stylesheet
+entering the page, not code, which is why this is allowed where injection is not.
+The preference is stored on the service record, so it survives a restart and a
+reinstall of the module.

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Service, WorkspaceSettings } from '../types';
+import type { CustomTheme, Service, WorkspaceSettings } from '../types';
+import { buildServiceCss, appearanceTargetFor } from '../lib/service-appearance';
+import { getTheme } from '../lib/themes';
 import { floatWindowStyle, type ResizeDirection } from '../lib/floating';
 import {
   canvasWindowStyle,
@@ -63,6 +65,9 @@ interface StageProps {
   windows: WindowMap;
   /** How a window arrives and leaves: chosen on the Workspace itself. */
   motion: WorkspaceSettings;
+  /** The shell's theme, so a module can follow it or borrow one of its tools. */
+  themeId: string;
+  customTheme?: CustomTheme;
   onBack: () => void;
   onEdit: (service: Service) => void;
   onDelete: (service: Service) => void;
@@ -110,6 +115,8 @@ export function ServiceStage({
   canvas,
   windows,
   motion,
+  themeId,
+  customTheme,
   onBack,
   onEdit,
   onDelete,
@@ -129,6 +136,8 @@ export function ServiceStage({
   onSendToVexium,
 }: StageProps) {
   const t = useT();
+  // Resolved once: every frame builds its sheet from the same palette.
+  const appearanceTheme = getTheme(themeId, customTheme);
   const active = services.find(service => service.id === activeId) ?? null;
   const open = openIds
     .map(id => services.find(service => service.id === id))
@@ -198,6 +207,11 @@ export function ServiceStage({
             notifications={notifications}
             mark={mark}
             motion={motion}
+            appearanceCss={buildServiceCss(service.appearance, {
+              target: appearanceTargetFor(service.url),
+              theme: appearanceTheme,
+              customTheme,
+            })}
             onBack={onBack}
             onEdit={onEdit}
             onDelete={onDelete}
@@ -249,6 +263,7 @@ function ServiceFrame({
   notifications,
   mark = 'kx',
   motion,
+  appearanceCss,
   onBack,
   onEdit,
   onDelete,
@@ -269,6 +284,8 @@ function ServiceFrame({
 }: {
   service: Service;
   motion: WorkspaceSettings;
+  /** The stylesheet this module's page takes, or an empty string. */
+  appearanceCss: string;
   active: boolean;
   /** The window record for this module, or null when it fills the stage. */
   box: ServiceWindow | null;
@@ -906,6 +923,7 @@ function ServiceFrame({
             onActivity={entry => onActivity?.(service, entry)}
             onStatus={setStatus}
             onTitle={onTitle}
+            overrideCss={appearanceCss}
             onNavigate={url => {
               setCurrentUrl(url);
               if (active && url !== service.url) {

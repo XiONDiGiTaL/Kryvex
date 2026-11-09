@@ -3918,3 +3918,44 @@ whether the palette looks right, and whether Discord's current markup still read
 these variables, is unobserved. It also does not reach the Discord module because
 `electron/userscripts.ts` returns early for a service session, so the theme applies
 in a browser tab only.
+
+## Per-service appearance, CSS only (2026-11-09)
+
+A module keeps a signed-in profile and `electron/userscripts.ts` refuses to attach
+to one, so a stylesheet is the only way in: `insertCSS` is CSS entering the page,
+not code. **Appearance** in a service's options panel chooses `follow` (the
+shell's active theme), `graphite` (the shipped userscript palette), `arcade`
+(xiondigital.net/arcade's blue on near-black) or any catalogue theme by id, and
+the choice is stored on the service record.
+
+`tests/service-appearance.test.ts` covers the rules rather than a copy of them:
+
+- Sanitising: off, unknown and missing values become no appearance; a pinned theme
+  survives only when the catalogue knows the id; `{skin:'custom'}` and a `theme`
+  pick with no id are dropped.
+- The select value round-trips every valid choice and folds a stale theme id into
+  off.
+- Host matching: `discord.com`, `canary.discord.com` and `discordapp.com` are
+  Discord; `discord.com.evil.test`, `notdiscord.com` and a malformed URL are not.
+- Sheets: the Discord sheet carries `--background-primary`, `--brand-500`,
+  `--interactive-muted` and the scrollbar variables; the generic sheet carries
+  backdrop, ink, links, selection and `scrollbar-color`, and no Discord variable.
+- Every one of the 81 catalogue themes produces a sheet under the cap with no
+  `undefined`, no `@import`, no `url(`, no `expression(`, no `javascript:` and no
+  malformed short hex; `follow` reproduces the active theme's accent, `custom`
+  resolves from the profile's own palette, and Graphite and Arcade match their
+  pinned values.
+
+| Command | Result |
+| --- | --- |
+| `vitest run` | 1261 tests in 106 files, all pass |
+| `vitest run tests/i18n-coverage.test.ts` | 12/12; the ratchet did not grow |
+| `tsc --noEmit -p tsconfig.json` | exit 0 |
+| `tsc --noEmit -p tsconfig.electron.json` | exit 0 |
+| `node scripts/audit-i18n.cjs` | no hardcoded UI strings in 61 renderer files |
+
+Not verified: the insertion itself. There is no Electron binary in this Linux
+environment, so `insertCSS` was never called on a real guest, no page was painted
+and the Appearance control was never seen. The sheet is proven to be generated and
+sanitised, not proven to render. The first place to check it is a Discord module
+on Windows: Services → a module's `⋯` → Appearance.
