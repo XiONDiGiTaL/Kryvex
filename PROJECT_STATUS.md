@@ -2000,8 +2000,11 @@ Site colours. That run is Linux under Xvfb. Windows is covered too: run 42657714
 `windows-latest` (2026-11-09, `c2a505a`) ran the harness in the `services` CI
 batch and printed `PASS verify:appearance (23.9s)` with the same values, so every
 push to `main` keeps that evidence current. The
-Discord sheet is still unrendered: `discord.com` is HSTS-preloaded, so a mapped
-local fixture cannot answer it, and its contents rest on the unit test.
+Discord sheet is covered too: run 42664188604 at `7c7d6d9` served a fixture over
+TLS at `discord.com` with only the fixture certificate pinned, and read Arcade's
+`--background-primary: #0c0e11`, `--brand-500: #3f80ff`, a `rgb(5, 6, 7)` body
+and `rgb(63, 128, 255)` links out of the guest while `scrollbar-color` stayed
+`auto`, so the generic sheet did not paint; Site colours restored the fixture.
 
 ## Batch: sign-in return leg, search memory, Activity Center (8 Nov 2026)
 
