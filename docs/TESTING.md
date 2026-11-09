@@ -3881,3 +3881,40 @@ matters most: a second term narrows the list instead of widening it.
 What they do not cover: the palette's own rendering, and a query travelling
 through IPC into the running app. No harness drives that yet; the palette change
 is typechecked and unit-tested at the rule level only.
+
+## BetterDiscord theming, as far as a webview can take it (2026-11-09)
+
+BetterDiscord cannot be bundled: the loader patches Discord's own ASAR and expects
+Discord's client modules to exist around it, so shipping it would mean
+redistributing Discord's proprietary client. What a webview can take from it is the
+theme, because a BetterDiscord theme is a stylesheet.
+
+`docs/userscripts/discord-theme.user.js` is checked against the engine's own rules
+rather than a copy of them (`tests/discord-theme.test.ts`), reading the shipped file
+from disk:
+
+- `parseUserscript` accepts it: name `Discord Theme (Kryvex)`, version `1.0.0`,
+  `document-end`, and exactly the three `@match` patterns for `discord.com`,
+  `*.discord.com` and `*.discordapp.com`.
+- `appliesTo` accepts `https://discord.com/app`, a channel URL and
+  `canary.discord.com`, and rejects `https://example.com/` and the lookalike
+  `https://discord.com.evil.test/`. `hostsOf` lists those three hosts and no more.
+- The file is wrapped by `wrapUserscript`, the same wrapper the manager hands to
+  `executeJavaScript`, and run against a fake document: it appends one
+  `<style id="kryvex-discord-theme">` whose sheet carries the palette
+  (`--background-primary: #181b23`, `--brand-500: #8b7cf6`,
+  `--text-normal: #e6e8ee`), contains no `url(` and no `@import`, a second run
+  updates that element instead of adding one, and a document still `loading` both
+  paints immediately and subscribes to `DOMContentLoaded`.
+
+| Command | Result |
+| --- | --- |
+| `vitest run tests/discord-theme.test.ts` | 5/5 pass |
+| `node --check docs/userscripts/discord-theme.user.js` | exit 0. This is the check that catches a typed first draft: the engine evaluates the file as plain JavaScript, not TypeScript. |
+| `tsc --noEmit -p tsconfig.json` | exit 0 |
+
+Not verified: the colours. No browser rendered Discord's client with this sheet, so
+whether the palette looks right, and whether Discord's current markup still reads
+these variables, is unobserved. It also does not reach the Discord module because
+`electron/userscripts.ts` returns early for a service session, so the theme applies
+in a browser tab only.

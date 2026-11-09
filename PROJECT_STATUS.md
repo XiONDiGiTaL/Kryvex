@@ -1962,10 +1962,29 @@ its source, which we did not — its source is public and was read directly.
 
 **BetterDiscord.** It is a client mod loader: it patches Discord's own ASAR,
 injects `betterdiscord.asar` and runs community plugins and themes. It is not a
-performance layer, it does not apply to a webview that loads discord.com, and
-shipping it would put Kryvex on the wrong side of Discord's terms. Kryvex already
-has the legitimate analogue — a userscript engine that injects CSS and JS into
-its own tabs — and nothing from BetterDiscord is being bundled.
+performance layer, and it cannot be applied to a webview that loads discord.com.
+Nor can it be baked in: the loader contains no Discord code, it expects Discord's
+own modules and webpack graph to exist around it, so shipping it would mean
+redistributing Discord's proprietary client, and shipping it alone would ship
+something that cannot run. Nothing from BetterDiscord is bundled and Kryvex does
+not patch Discord's client.
+
+The part of it a webview can honestly take is the theme, because a BetterDiscord
+theme is a stylesheet. `docs/userscripts/discord-theme.user.js` recolours Discord
+through the CSS custom properties that client already publishes, fetches no font,
+image or stylesheet, and installs through the user-script engine that already
+ships; it applies to `discord.com` and `discordapp.com` and nothing else. It does
+**not** reach the Discord module: a service module keeps a signed-in profile and
+`electron/userscripts.ts` refuses to attach to one, so the theme works in a
+browser tab while the module keeps Discord's own colours.
+
+Verified: the engine's own parser accepts the shipped file, the matcher accepts
+the Discord hosts and rejects a lookalike, and the file wrapped exactly as the
+manager wraps it inserts one stylesheet, updates it in place instead of stacking
+copies, and paints before `DOMContentLoaded` (`tests/discord-theme.test.ts`, five
+tests); `node --check` on the file and `tsc --noEmit` are clean. Not verified: the
+colours themselves. No browser rendered Discord with this sheet, so the palette is
+plausible, not seen.
 
 ## Batch: sign-in return leg, search memory, Activity Center (8 Nov 2026)
 
