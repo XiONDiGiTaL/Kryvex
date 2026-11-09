@@ -94,6 +94,7 @@ import { CATEGORIES, DEFAULT_COLOR, starterState } from './services';
 import { normalizeHex } from './color';
 import { themeGallerySeenValue } from './theme-gallery';
 import { isThemeId, sanitizeCustomTheme } from './themes';
+import { sanitizeServiceAppearance } from './service-appearance';
 import { hostOf, isHttpUrl } from './url';
 import { sanitizeFeeds } from './rss';
 import { normalizeWidgetAreas, normalizeWidgetOrder } from './home-widgets';
@@ -137,6 +138,7 @@ function sanitizeService(raw: unknown): Service | null {
     : name.charAt(0).toUpperCase();
   const icon =
     typeof raw.icon === 'string' && raw.icon in BRAND_ICONS ? (raw.icon as Service['icon']) : undefined;
+  const appearance = sanitizeServiceAppearance(raw.appearance);
   return {
     id,
     name,
@@ -152,6 +154,7 @@ function sanitizeService(raw: unknown): Service | null {
     ...(raw.notifications === false ? { notifications: false } : {}),
     ...(raw.persistence === 'pause' ? { persistence: 'pause' as const } : {}),
     ...(raw.multipleInstances === true ? { multipleInstances: true as const } : {}),
+    ...(appearance ? { appearance } : {}),
   };
 }
 

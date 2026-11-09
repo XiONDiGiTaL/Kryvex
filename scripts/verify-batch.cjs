@@ -37,6 +37,7 @@ const BATCHES = {
   services: [
     'verify:services',
     'verify:service-ux',
+    'verify:appearance',
     'verify:signin-fold',
     'verify:updater',
     'verify:downloads',

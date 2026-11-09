@@ -1962,10 +1962,46 @@ its source, which we did not — its source is public and was read directly.
 
 **BetterDiscord.** It is a client mod loader: it patches Discord's own ASAR,
 injects `betterdiscord.asar` and runs community plugins and themes. It is not a
-performance layer, it does not apply to a webview that loads discord.com, and
-shipping it would put Kryvex on the wrong side of Discord's terms. Kryvex already
-has the legitimate analogue — a userscript engine that injects CSS and JS into
-its own tabs — and nothing from BetterDiscord is being bundled.
+performance layer, and it cannot be applied to a webview that loads discord.com.
+Nor can it be baked in: the loader contains no Discord code, it expects Discord's
+own modules and webpack graph to exist around it, so shipping it would mean
+redistributing Discord's proprietary client, and shipping it alone would ship
+something that cannot run. Nothing from BetterDiscord is bundled and Kryvex does
+not patch Discord's client.
+
+The part of it a webview can honestly take is the theme, because a BetterDiscord
+theme is a stylesheet. `docs/userscripts/discord-theme.user.js` recolours Discord
+through the CSS custom properties that client already publishes, fetches no font,
+image or stylesheet, and installs through the user-script engine that already
+ships; it applies to `discord.com` and `discordapp.com` and nothing else.
+
+The module takes the same palette by a different route. **Appearance** in a
+service's options panel sets a CSS-only sheet that the renderer hands to
+`webview.insertCSS` (`src/lib/service-appearance.ts`): `follow` tracks the shell's
+active theme, so a planet theme dresses Discord exactly as it dresses Kryvex;
+`graphite` is this userscript's palette and `arcade` is xiondigital.net/arcade's
+blue on near-black; any catalogue theme can be pinned by id. Discord is recoloured
+exactly through its own variables, while any other site gets a smaller sheet for
+backdrop, ink, links, selection and scrollbars. No script enters a module:
+`electron/userscripts.ts` still refuses a service session.
+
+Verified: 17 unit tests over the rules and the sheets
+(`tests/service-appearance.test.ts`), covering sanitising, host matching, the
+select round-trip, both sheet shapes, and a generated sheet for each of the 81
+themes with no `@import`, `url(`, `expression(` or malformed hex; the full suite
+passes at 1261 tests in 106 files, both typecheck projects are clean, and
+`scripts/audit-i18n.cjs` finds no unwrapped strings, with the translation ratchet
+unmoved. The sheet also renders: `scripts/verify-service-appearance.cjs`
+(`pnpm verify:appearance`) drove the Appearance control in a live guest and read
+Arcade's `rgb(5, 6, 7)` backdrop, `rgb(236, 237, 239)` text and
+`rgb(63, 128, 255)` links back out of it, the same values after following a link,
+Mars's `rgb(18, 8, 7)` when pinned, and the fixture's own colours again after
+Site colours. That run is Linux under Xvfb. Windows is covered too: run 42657714636 on
+`windows-latest` (2026-11-09, `c2a505a`) ran the harness in the `services` CI
+batch and printed `PASS verify:appearance (23.9s)` with the same values, so every
+push to `main` keeps that evidence current. The
+Discord sheet is still unrendered: `discord.com` is HSTS-preloaded, so a mapped
+local fixture cannot answer it, and its contents rest on the unit test.
 
 ## Batch: sign-in return leg, search memory, Activity Center (8 Nov 2026)
 

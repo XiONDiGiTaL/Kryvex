@@ -3376,6 +3376,13 @@ All twenty-three pass in both places. Run 40557385084 is green on every job: the
 main one in 1m25s, the batches between 43 s and 1m52s, and 3m20s of wall clock
 for the whole run because the five run beside each other.
 
+`verify:appearance` joined the `services` batch on 2026-11-09, after that run.
+It boots the same disposable profile and serves its fixture on loopback, so it
+needs nothing the batch does not already carry. The table above is left as the
+record of the run it describes. Its first runner run is 42657714636 of
+2026-11-09: the `services` shard printed `PASS verify:appearance (23.9s)` and
+the job is green.
+
 ### The two runner failures, both in the check
 
 The matrix's first run (40554739880) passed four batches and failed `browser`;
@@ -3881,3 +3888,110 @@ matters most: a second term narrows the list instead of widening it.
 What they do not cover: the palette's own rendering, and a query travelling
 through IPC into the running app. No harness drives that yet; the palette change
 is typechecked and unit-tested at the rule level only.
+
+## BetterDiscord theming, as far as a webview can take it (2026-11-09)
+
+BetterDiscord cannot be bundled: the loader patches Discord's own ASAR and expects
+Discord's client modules to exist around it, so shipping it would mean
+redistributing Discord's proprietary client. What a webview can take from it is the
+theme, because a BetterDiscord theme is a stylesheet.
+
+`docs/userscripts/discord-theme.user.js` is checked against the engine's own rules
+rather than a copy of them (`tests/discord-theme.test.ts`), reading the shipped file
+from disk:
+
+- `parseUserscript` accepts it: name `Discord Theme (Kryvex)`, version `1.0.0`,
+  `document-end`, and exactly the three `@match` patterns for `discord.com`,
+  `*.discord.com` and `*.discordapp.com`.
+- `appliesTo` accepts `https://discord.com/app`, a channel URL and
+  `canary.discord.com`, and rejects `https://example.com/` and the lookalike
+  `https://discord.com.evil.test/`. `hostsOf` lists those three hosts and no more.
+- The file is wrapped by `wrapUserscript`, the same wrapper the manager hands to
+  `executeJavaScript`, and run against a fake document: it appends one
+  `<style id="kryvex-discord-theme">` whose sheet carries the palette
+  (`--background-primary: #181b23`, `--brand-500: #8b7cf6`,
+  `--text-normal: #e6e8ee`), contains no `url(` and no `@import`, a second run
+  updates that element instead of adding one, and a document still `loading` both
+  paints immediately and subscribes to `DOMContentLoaded`.
+
+| Command | Result |
+| --- | --- |
+| `vitest run tests/discord-theme.test.ts` | 5/5 pass |
+| `node --check docs/userscripts/discord-theme.user.js` | exit 0. This is the check that catches a typed first draft: the engine evaluates the file as plain JavaScript, not TypeScript. |
+| `tsc --noEmit -p tsconfig.json` | exit 0 |
+
+Not verified: the colours. No browser rendered Discord's client with this sheet, so
+whether the palette looks right, and whether Discord's current markup still reads
+these variables, is unobserved. It also does not reach the Discord module because
+`electron/userscripts.ts` returns early for a service session, so the theme applies
+in a browser tab only.
+
+## Per-service appearance, CSS only (2026-11-09)
+
+A module keeps a signed-in profile and `electron/userscripts.ts` refuses to attach
+to one, so a stylesheet is the only way in: `insertCSS` is CSS entering the page,
+not code. **Appearance** in a service's options panel chooses `follow` (the
+shell's active theme), `graphite` (the shipped userscript palette), `arcade`
+(xiondigital.net/arcade's blue on near-black) or any catalogue theme by id, and
+the choice is stored on the service record.
+
+`tests/service-appearance.test.ts` covers the rules rather than a copy of them:
+
+- Sanitising: off, unknown and missing values become no appearance; a pinned theme
+  survives only when the catalogue knows the id; `{skin:'custom'}` and a `theme`
+  pick with no id are dropped.
+- The select value round-trips every valid choice and folds a stale theme id into
+  off.
+- Host matching: `discord.com`, `canary.discord.com` and `discordapp.com` are
+  Discord; `discord.com.evil.test`, `notdiscord.com` and a malformed URL are not.
+- Sheets: the Discord sheet carries `--background-primary`, `--brand-500`,
+  `--interactive-muted` and the scrollbar variables; the generic sheet carries
+  backdrop, ink, links, selection and `scrollbar-color`, and no Discord variable.
+- Every one of the 81 catalogue themes produces a sheet under the cap with no
+  `undefined`, no `@import`, no `url(`, no `expression(`, no `javascript:` and no
+  malformed short hex; `follow` reproduces the active theme's accent, `custom`
+  resolves from the profile's own palette, and Graphite and Arcade match their
+  pinned values.
+
+| Command | Result |
+| --- | --- |
+| `vitest run` | 1261 tests in 106 files, all pass |
+| `vitest run tests/i18n-coverage.test.ts` | 12/12; the ratchet did not grow |
+| `tsc --noEmit -p tsconfig.json` | exit 0 |
+| `tsc --noEmit -p tsconfig.electron.json` | exit 0 |
+| `node scripts/audit-i18n.cjs` | no hardcoded UI strings in 61 renderer files |
+
+### In a real guest (`pnpm verify:appearance`)
+
+A unit test cannot see `insertCSS`: it only exists on an attached `webview`.
+`scripts/verify-service-appearance.cjs` writes a service pointed at a local fixture
+into a throwaway profile, drives the Appearance control the way the panel does
+(set the `<select>`'s value, dispatch its `change` event), and reads the guest back
+with `executeJavaScript`. The fixture pins its own colours, so a computed colour
+that changes is the sheet and nothing else.
+
+| Step | What the guest computed |
+| --- | --- |
+| Before any appearance | `background-color: rgb(244, 244, 244)`, `color: rgb(16, 16, 16)`, link `rgb(11, 87, 208)` |
+| Arcade | `rgb(5, 6, 7)`, text `rgb(236, 237, 239)`, link `rgb(63, 128, 255)`, `scrollbar-color: rgb(27, 31, 38) rgb(5, 6, 7)` |
+| Arcade, after following the fixture's link to `/two` | the same values, so the sheet was dropped and re-inserted on `dom-ready` |
+| Pinned `theme:mars` | `rgb(18, 8, 7)`, link `rgb(217, 88, 59)`, `scrollbar-color: rgb(74, 42, 34) rgb(18, 8, 7)` |
+| Site colours again | back to the fixture's own colours and `scrollbar-color: auto`, so `removeInsertedCSS` removed the sheet |
+
+The service record is read back through `window.kryvex.loadState()`:
+`{"skin":"arcade"}` after the pick, and no `appearance` after Off, which is what
+carries the choice across a restart.
+
+| Command | Result |
+| --- | --- |
+| `pnpm verify:appearance` on Linux, under Xvfb, Electron 44.9.3 | **PASS**, the values above exactly |
+| `pnpm verify:appearance` on `windows-latest`, run 42657714636 | **PASS** in 23.9 s at `c2a505a`, the same values |
+
+What is not covered: the Discord sheet in a guest. `discord.com` is on Chromium's
+HSTS preload list, so the `--host-resolver-rules` mapping a local fixture would
+need is upgraded to HTTPS before the request and cannot serve it; that sheet's
+contents and host matching stay with the unit test. Windows is no longer the gap:
+run 42657714636 on `windows-latest` (Windows Server 2025, Electron 44.9.3)
+printed the same computed values as the Linux run and `PASS verify:appearance
+(23.9s)`, inside a green `Harnesses (services)` job at `c2a505a`. The harness
+sits in the `services` CI batch, so every push to `main` runs it there.

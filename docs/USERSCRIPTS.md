@@ -103,6 +103,27 @@ Kryvex hosts none of these libraries and audits none of them. The install path
 fetches whatever address you give it, and a page that is HTML rather than a
 script is rejected with an explanation instead of being stored.
 
+## A theme you can install
+
+[`discord-theme.user.js`](userscripts/discord-theme.user.js) is a real script, not
+a sample: it recolours Discord's web client through the CSS custom properties
+that client already publishes, with the whole palette in one object at the top of
+the file. It installs through **Settings → User scripts → Install from file**
+like any other script.
+
+What it is not is a client mod. BetterDiscord reaches Discord by replacing the
+desktop client's `app.asar` and loading its own plugin runtime into that process;
+a theme only paints. The recolouring needs nothing from Discord's internals, and
+this file fetches no font, image or stylesheet, so it cannot report the page it
+was painted on.
+
+It also does not reach the Discord module. A service module keeps a signed-in
+profile, and the manager refuses to attach to one (`electron/userscripts.ts`), so
+scripts run in browser tabs only — open `discord.com` in a tab to see the theme.
+The module gets the same palette through its own **Appearance** setting, which
+inserts CSS and no script (see [SERVICES.md](SERVICES.md)); the engine boundary
+above still holds for anything executable.
+
 ## What was checked
 
 [`scripts/verify-userscripts.cjs`](../scripts/verify-userscripts.cjs) drives the
