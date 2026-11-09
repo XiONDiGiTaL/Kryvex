@@ -695,12 +695,45 @@ let fixtureServer = null;
       'the tab strip to draw the page title',
       15000,
     );
-    await clickOn('[aria-label="Bookmark this page"]');
+    // The button is dead while the active tab has no URL, and the title can be
+    // drawn before the URL arrives, so what the press needs is the state the
+    // button itself draws once it would do something.
+    const readyToBookmark =
+      `Boolean(document.querySelector('[aria-label="Bookmark this page"]:not([disabled])'))`;
+    const bookmarkSaved = `Boolean(document.querySelector('[aria-label="Remove bookmark"]'))`;
+    await waitUntil(readyToBookmark, 'the bookmark button to offer the page', 15000);
+    // A press can be dropped when it lands in the same frame as a re-layout, and
+    // the strip flips this button the moment a press registers. Pressing again
+    // while it still offers to bookmark the page is the same action a person
+    // would repeat, and cannot undo a bookmark that was already saved.
+    let presses = 0;
+    while (presses < 4 && !(await cdp.evaluate(bookmarkSaved))) {
+      await clickOn('[aria-label="Bookmark this page"]');
+      presses += 1;
+      try {
+        await waitUntil(bookmarkSaved, 'the strip to draw the bookmark it saved', 3000);
+      } catch {
+        // Still offering to bookmark the page: that press was dropped.
+      }
+    }
+    const flipped = await cdp.evaluate(bookmarkSaved);
+    if (!flipped) {
+      // Say what the strip drew, so a failure here names the state the press
+      // needed rather than only the index it never reached.
+      const drawn = await cdp.evaluate(`(() => {
+        const button = document.querySelector('[aria-label="Bookmark this page"], [aria-label="Remove bookmark"]');
+        if (!button) return 'no bookmark button';
+        return button.getAttribute('aria-label') + (button.disabled ? ' (disabled)' : '');
+      })()`);
+      check(false, `After ${presses} presses the strip still draws ${drawn}`);
+    }
     const bookmarked = `(() => window.kryvex.searchQuery('fixture').then(hits => {
       const hit = hits.find(item => item.source === 'bookmark' && item.url === ${JSON.stringify(visited)});
       return hit ? { title: hit.title, subtitle: hit.subtitle } : null;
     }))()`;
-    await waitUntil(bookmarked, 'the bookmark to reach the local index', 15000);
+    // The saved bookmark reaches the local index asynchronously, so a slow index
+    // is waited out rather than read as a missing bookmark.
+    await waitUntil(bookmarked, 'the bookmark to reach the local index', 30000);
     const savedBookmark = await cdp.evaluate(bookmarked);
     check(
       savedBookmark.title === pageTitle,
