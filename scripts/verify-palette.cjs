@@ -245,10 +245,47 @@ let fixtureServer = null;
         .catch(() => 'the window did not answer');
       throw new Error(`Timed out waiting for ${label} (${seen})`);
     };
-    // `text` matters for keys whose effect comes from the keypress they produce: a
-    // bare key-down reaches keydown handlers (the palette shortcut), but a button
-    // is activated by Enter's keypress, so Enter needs the text.
-    const key = async (name, code, vk, modifiers = 0, text) => {
+    /**
+     * Dismiss the first-run theme sheet if it is up, the way a person would: the
+     * sheet covers the whole window, so a real press on the tab strip while it is
+     * there lands on the sheet instead of the button.
+     */
+    const dismissFirstRunSheet = `(() => {
+      const layer = document.querySelector('.theme-gallery-layer');
+      if (!layer) return 'absent';
+      const skip = document.querySelector('[data-shot="gallery-skip"]');
+      if (skip) { skip.click(); return 'skipped'; }
+      const close = layer.querySelector('.icon-btn');
+      if (close) { close.click(); return 'closed'; }
+      return 'stuck';
+    })()`;
+
+    /**
+     * Dismiss the first-run theme sheet, and stay with it while the window
+     * settles. The sheet mounts a moment after the shell does, so one dismissal
+     * right after launch can run before the sheet exists and leave it over the
+     * tab strip for every later press.
+     */
+    const settleFirstRunSheet = async (settleMs = 2500) => {
+      let dismissals = 0;
+      const deadline = Date.now() + settleMs;
+      while (Date.now() < deadline) {
+        if ((await cdp.evaluate(dismissFirstRunSheet)) !== 'absent') dismissals += 1;
+        await sleep(150);
+      }
+      let state = 'absent';
+      for (let attempt = 0; attempt < 25; attempt += 1) {
+        state = await cdp.evaluate(dismissFirstRunSheet);
+        if (state === 'absent') {
+          console.log('first-run sheet: cleared after', dismissals, 'dismissal(s)');
+          return;
+        }
+        dismissals += 1;
+        await sleep(200);
+      }
+      throw new Error(`The first-run theme sheet would not close (last state "${state}").`);
+    };
+    const key = async (name, code, vk, modifiers = 0) => {
       const base = {
         key: name,
         code,
@@ -256,11 +293,7 @@ let fixtureServer = null;
         nativeVirtualKeyCode: vk,
         modifiers,
       };
-      await cdp.send('Input.dispatchKeyEvent', {
-        type: 'keyDown',
-        ...base,
-        ...(text ? { text, unmodifiedText: text } : {}),
-      });
+      await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...base });
       await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...base });
     };
     const enter = () => key('Enter', 'Enter', 13);
@@ -335,19 +368,9 @@ let fixtureServer = null;
 
     await waitUntil(`Boolean(document.querySelector('.app'))`, 'the app', 30000);
 
-    // A disposable profile opens on the first-run theme sheet. A person picks a
-    // theme to leave it, so the harness does the same before it presses a key.
-    if (await cdp.evaluate(`Boolean(document.querySelector('.theme-gallery-layer'))`)) {
-      await cdp.evaluate(`(() => {
-        const keep = document.querySelector('[data-shot="gallery-skip"]');
-        if (keep) keep.click();
-        return true;
-      })()`);
-      await waitUntil(
-        `!document.querySelector('.theme-gallery-layer')`,
-        'the first-run sheet to close',
-      );
-    }
+    // A disposable profile opens on the first-run theme sheet. A person leaves it
+    // before touching the tab strip, and keeps it gone while the window settles.
+    await settleFirstRunSheet();
 
     // 1. Ctrl+K opens it, and every row says what Enter will do.
     await openPalette();
@@ -686,14 +709,17 @@ let fixtureServer = null;
     await waitUntil(readyToBookmark, 'the bookmark button to offer the page', 15000);
     // A press can be dropped when it lands in the same frame as a re-layout, and
     // when the strip is squeezed the button's middle can be over something else.
-    // So the button's box is hit-tested at several points: a point that really is
-    // the button is clicked, and a box with no such point is reached by focusing
-    // the button and pressing Enter, which is the other path a person has. A
-    // press only happens while the strip still offers to bookmark the page, so a
-    // saved bookmark can never be undone here. The last resort is labelled
-    // "scripted" in the log: it proves the button's handler, not its reach.
+    // So the button's box is hit-tested at several points and a point that really
+    // is the button is pressed. What the harness may not do is paper over a covered
+    // button: no key press and no scripted activation stands in for the click, so a
+    // box with no reachable point fails here and names what is over it. A press
+    // only happens while the strip still offers to bookmark the page, so a saved
+    // bookmark can never be undone here.
     let presses = 0;
     while (presses < 4 && !(await cdp.evaluate(bookmarkSaved))) {
+      // A sheet that mounted after launch covers the window, so it is dismissed
+      // rather than read as the button missing its press.
+      await settleFirstRunSheet(0);
       const hit = await cdp.evaluate(`(() => {
         const button = document.querySelector('[aria-label="Bookmark this page"]');
         if (!button) return null;
@@ -732,20 +758,11 @@ let fixtureServer = null;
       })()`);
       check(hit && hit.drawn, 'The window is not drawing the bookmark button');
       const reachable = hit.points.find(point => point.onButton);
-      // The first press takes the path a person would find at that point, the
-      // second takes the other one, and only then does a scripted activation run.
-      const path =
-        presses === 0
-          ? reachable
-            ? 'pointer'
-            : 'keyboard'
-          : presses === 1
-            ? reachable
-              ? 'keyboard'
-              : 'pointer'
-            : 'scripted';
-      let how = path;
-      if (path === 'pointer' && reachable) {
+      check(
+        reachable,
+        `No point on the bookmark button is reachable; it is under ${hit.covering.join(', ') || 'nothing'}`,
+      );
+      if (reachable) {
         const at = { x: reachable.x, y: reachable.y };
         await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...at, button: 'none' });
         await cdp.send('Input.dispatchMouseEvent', {
@@ -762,25 +779,12 @@ let fixtureServer = null;
           buttons: 0,
           clickCount: 1,
         });
-      } else if (path === 'scripted') {
-        await cdp.evaluate(
-          `document.querySelector('[aria-label="Bookmark this page"]').click(); true`,
-        );
-      } else {
-        const focused = await cdp.evaluate(`(() => {
-          const button = document.querySelector('[aria-label="Bookmark this page"]');
-          button.focus();
-          return document.activeElement === button;
-        })()`);
-        check(focused, 'The bookmark button could not be focused for a key press');
-        await key('Enter', 'Enter', 13, 0, '\r');
-        how = 'keyboard';
       }
       presses += 1;
       console.log(
         'bookmark press',
         presses,
-        how,
+        'pointer',
         JSON.stringify({
           point: reachable ? { x: reachable.x, y: reachable.y } : null,
           covering: hit.covering,
