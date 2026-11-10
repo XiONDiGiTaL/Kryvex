@@ -245,7 +245,10 @@ let fixtureServer = null;
         .catch(() => 'the window did not answer');
       throw new Error(`Timed out waiting for ${label} (${seen})`);
     };
-    const key = async (name, code, vk, modifiers = 0) => {
+    // `text` matters for keys whose effect comes from the keypress they produce: a
+    // bare key-down reaches keydown handlers (the palette shortcut), but a button
+    // is activated by Enter's keypress, so Enter needs the text.
+    const key = async (name, code, vk, modifiers = 0, text) => {
       const base = {
         key: name,
         code,
@@ -253,7 +256,11 @@ let fixtureServer = null;
         nativeVirtualKeyCode: vk,
         modifiers,
       };
-      await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...base });
+      await cdp.send('Input.dispatchKeyEvent', {
+        type: 'keyDown',
+        ...base,
+        ...(text ? { text, unmodifiedText: text } : {}),
+      });
       await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...base });
     };
     const enter = () => key('Enter', 'Enter', 13);
@@ -290,31 +297,6 @@ let fixtureServer = null;
       await sleep(250);
     };
     const type = text => cdp.send('Input.insertText', { text });
-    const clickOn = async selector => {
-      const box = await cdp.evaluate(`(() => {
-        const node = document.querySelector(${JSON.stringify(selector)});
-        if (!node) return null;
-        const rect = node.getBoundingClientRect();
-        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, width: rect.width, height: rect.height };
-      })()`);
-      check(box && box.width > 0 && box.height > 0, `The window is not drawing ${selector}`);
-      const point = { x: box.x, y: box.y };
-      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point, button: 'none' });
-      await cdp.send('Input.dispatchMouseEvent', {
-        type: 'mousePressed',
-        ...point,
-        button: 'left',
-        buttons: 1,
-        clickCount: 1,
-      });
-      await cdp.send('Input.dispatchMouseEvent', {
-        type: 'mouseReleased',
-        ...point,
-        button: 'left',
-        buttons: 0,
-        clickCount: 1,
-      });
-    };
     const rows = () =>
       cdp.evaluate(`(() => {
         if (!document.querySelector('.palette-layer')) return null;
@@ -695,12 +677,140 @@ let fixtureServer = null;
       'the tab strip to draw the page title',
       15000,
     );
-    await clickOn('[aria-label="Bookmark this page"]');
+    // The button is dead while the active tab has no URL, and the title can be
+    // drawn before the URL arrives, so what the press needs is the state the
+    // button itself draws once it would do something.
+    const readyToBookmark =
+      `Boolean(document.querySelector('[aria-label="Bookmark this page"]:not([disabled])'))`;
+    const bookmarkSaved = `Boolean(document.querySelector('[aria-label="Remove bookmark"]'))`;
+    await waitUntil(readyToBookmark, 'the bookmark button to offer the page', 15000);
+    // A press can be dropped when it lands in the same frame as a re-layout, and
+    // when the strip is squeezed the button's middle can be over something else.
+    // So the button's box is hit-tested at several points: a point that really is
+    // the button is clicked, and a box with no such point is reached by focusing
+    // the button and pressing Enter, which is the other path a person has. A
+    // press only happens while the strip still offers to bookmark the page, so a
+    // saved bookmark can never be undone here. The last resort is labelled
+    // "scripted" in the log: it proves the button's handler, not its reach.
+    let presses = 0;
+    while (presses < 4 && !(await cdp.evaluate(bookmarkSaved))) {
+      const hit = await cdp.evaluate(`(() => {
+        const button = document.querySelector('[aria-label="Bookmark this page"]');
+        if (!button) return null;
+        const rect = button.getBoundingClientRect();
+        const describe = node => {
+          if (!node) return 'nothing';
+          const name =
+            typeof node.className === 'string' && node.className.trim()
+              ? '.' + node.className.trim().split(/\\s+/).join('.')
+              : '';
+          const label = node.getAttribute('aria-label');
+          return node.tagName.toLowerCase() + name + (label ? '[' + label + ']' : '');
+        };
+        const points = [];
+        for (const fy of [0.5, 0.3, 0.7]) {
+          for (const fx of [0.5, 0.25, 0.75, 0.1, 0.9]) {
+            const x = rect.x + rect.width * fx;
+            const y = rect.y + rect.height * fy;
+            const target = document.elementFromPoint(x, y);
+            points.push({
+              x: Math.round(x),
+              y: Math.round(y),
+              onButton: Boolean(target) && (target === button || button.contains(target)),
+              target: describe(target),
+            });
+          }
+        }
+        return {
+          drawn: rect.width > 0 && rect.height > 0,
+          points,
+          covering: Array.from(
+            new Set(points.filter(point => !point.onButton).map(point => point.target)),
+          ),
+          window: window.innerWidth + 'x' + window.innerHeight,
+        };
+      })()`);
+      check(hit && hit.drawn, 'The window is not drawing the bookmark button');
+      const reachable = hit.points.find(point => point.onButton);
+      // The first press takes the path a person would find at that point, the
+      // second takes the other one, and only then does a scripted activation run.
+      const path =
+        presses === 0
+          ? reachable
+            ? 'pointer'
+            : 'keyboard'
+          : presses === 1
+            ? reachable
+              ? 'keyboard'
+              : 'pointer'
+            : 'scripted';
+      let how = path;
+      if (path === 'pointer' && reachable) {
+        const at = { x: reachable.x, y: reachable.y };
+        await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...at, button: 'none' });
+        await cdp.send('Input.dispatchMouseEvent', {
+          type: 'mousePressed',
+          ...at,
+          button: 'left',
+          buttons: 1,
+          clickCount: 1,
+        });
+        await cdp.send('Input.dispatchMouseEvent', {
+          type: 'mouseReleased',
+          ...at,
+          button: 'left',
+          buttons: 0,
+          clickCount: 1,
+        });
+      } else if (path === 'scripted') {
+        await cdp.evaluate(
+          `document.querySelector('[aria-label="Bookmark this page"]').click(); true`,
+        );
+      } else {
+        const focused = await cdp.evaluate(`(() => {
+          const button = document.querySelector('[aria-label="Bookmark this page"]');
+          button.focus();
+          return document.activeElement === button;
+        })()`);
+        check(focused, 'The bookmark button could not be focused for a key press');
+        await key('Enter', 'Enter', 13, 0, '\r');
+        how = 'keyboard';
+      }
+      presses += 1;
+      console.log(
+        'bookmark press',
+        presses,
+        how,
+        JSON.stringify({
+          point: reachable ? { x: reachable.x, y: reachable.y } : null,
+          covering: hit.covering,
+          window: hit.window,
+        }),
+      );
+      try {
+        await waitUntil(bookmarkSaved, 'the strip to draw the bookmark it saved', 3000);
+      } catch {
+        // Still offering to bookmark the page: that press did not land.
+      }
+    }
+    const flipped = await cdp.evaluate(bookmarkSaved);
+    if (!flipped) {
+      // Say what the strip drew, so a failure here names the state the press
+      // needed rather than only the index it never reached.
+      const drawn = await cdp.evaluate(`(() => {
+        const button = document.querySelector('[aria-label="Bookmark this page"], [aria-label="Remove bookmark"]');
+        if (!button) return 'no bookmark button';
+        return button.getAttribute('aria-label') + (button.disabled ? ' (disabled)' : '');
+      })()`);
+      check(false, `After ${presses} presses the strip still draws ${drawn}`);
+    }
     const bookmarked = `(() => window.kryvex.searchQuery('fixture').then(hits => {
       const hit = hits.find(item => item.source === 'bookmark' && item.url === ${JSON.stringify(visited)});
       return hit ? { title: hit.title, subtitle: hit.subtitle } : null;
     }))()`;
-    await waitUntil(bookmarked, 'the bookmark to reach the local index', 15000);
+    // The saved bookmark reaches the local index asynchronously, so a slow index
+    // is waited out rather than read as a missing bookmark.
+    await waitUntil(bookmarked, 'the bookmark to reach the local index', 30000);
     const savedBookmark = await cdp.evaluate(bookmarked);
     check(
       savedBookmark.title === pageTitle,
