@@ -144,6 +144,48 @@ async function waitFor(evaluate, expression, label) {
 }
 
 /**
+ * Dismiss the first-run theme sheet if it is up. It covers the whole window,
+ * so while it is there a real click on the toolbar lands on the sheet instead.
+ */
+const dismissThemeGallery = `(() => {
+  const layer = document.querySelector('.theme-gallery-layer');
+  if (!layer) return 'absent';
+  const skip = document.querySelector('[data-shot="gallery-skip"]');
+  if (skip) { skip.click(); return 'skipped'; }
+  const close = layer.querySelector('.icon-btn');
+  if (close) { close.click(); return 'closed'; }
+  return 'stuck';
+})()`;
+
+/**
+ * Wait until the toolbar is what a click at the address field's point hits.
+ *
+ * On a fresh profile the theme sheet mounts a moment after the shell does, so a
+ * single dismissal right after launch can run before the sheet exists and leave
+ * it up for every later click. This keeps dismissing and re-measuring instead.
+ */
+async function waitForToolbar(cdp) {
+  let dismissals = 0;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    if ((await cdp.evaluate(dismissThemeGallery)) !== 'absent') dismissals += 1;
+    const ready = await cdp.evaluate(
+      `(() => { const input = document.querySelector('.address-bar input');
+        if (!input) return false;
+        const rect = input.getBoundingClientRect();
+        if (rect.width < 1 || rect.height < 1) return false;
+        const front = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        return Boolean(front) && (front === input || input.contains(front)); })()`,
+    );
+    if (ready) {
+      console.log('first-run sheet: cleared after', dismissals, 'dismissal(s)');
+      return;
+    }
+    await sleep(200);
+  }
+  throw new Error('The toolbar never came out from under the first-run theme sheet.');
+}
+
+/**
  * Click the address bar the way a person does, and report what it selected.
  *
  * The click is dispatched at a point measured in the page, so the field has to
@@ -160,6 +202,9 @@ async function waitFor(evaluate, expression, label) {
 async function clickAddressBar(cdp, attempts = 4) {
   let missed = '';
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    // A sheet that came up after launch is dismissed the way a person does,
+    // rather than counted as the field missing the click.
+    await cdp.evaluate(dismissThemeGallery);
     // Leave the field first, every time: the app selects on the first click
     // after leaving it, and a second click in a focused field is meant to place
     // a caret. Retrying without a blur would test the wrong interaction.
@@ -235,15 +280,10 @@ server.listen(fixturePort, '127.0.0.1');
     await waitFor(cdp.evaluate, `Boolean(document.querySelector('.app'))`, 'shell');
     // A fresh profile opens the first-run theme sheet, which sits over the
     // whole window. A person dismisses it before touching the toolbar; the
-    // harness has to do the same or every real click lands on the scrim.
-    await cdp.evaluate(
-      `(() => { const skip = document.querySelector('[data-shot="gallery-skip"]');
-        if (skip) { skip.click(); return 'skipped'; }
-        const close = document.querySelector('.theme-gallery-layer .icon-btn');
-        if (close) { close.click(); return 'closed'; }
-        return 'absent'; })()`,
-    );
-    await sleep(400);
+    // harness has to do the same, and stay with it until the toolbar is the
+    // thing a click actually reaches, or every later real click lands on the
+    // sheet.
+    await waitForToolbar(cdp);
 
     const installed = await cdp.evaluate(
       `(async () => { const result = await window.kryvex.userscriptsInstallText(${JSON.stringify(
