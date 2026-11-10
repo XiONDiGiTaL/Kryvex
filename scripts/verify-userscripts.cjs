@@ -158,31 +158,32 @@ const dismissThemeGallery = `(() => {
 })()`;
 
 /**
- * Wait until the toolbar is what a click at the address field's point hits.
+ * Dismiss the first-run theme sheet, and stay with it while the window settles.
  *
- * On a fresh profile the theme sheet mounts a moment after the shell does, so a
- * single dismissal right after launch can run before the sheet exists and leave
- * it up for every later click. This keeps dismissing and re-measuring instead.
+ * On a fresh profile the sheet mounts a moment after the shell does, so one
+ * dismissal right after launch can run before the sheet exists and leave it up
+ * for every later click; on a slower machine that is exactly what the failing
+ * run showed. This watches through a short settle window, dismissing the sheet
+ * whenever it is there, then returns only once it has stayed away.
  */
-async function waitForToolbar(cdp) {
+async function settleFirstRunSheet(cdp, settleMs = 2500) {
   let dismissals = 0;
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  const deadline = Date.now() + settleMs;
+  while (Date.now() < deadline) {
     if ((await cdp.evaluate(dismissThemeGallery)) !== 'absent') dismissals += 1;
-    const ready = await cdp.evaluate(
-      `(() => { const input = document.querySelector('.address-bar input');
-        if (!input) return false;
-        const rect = input.getBoundingClientRect();
-        if (rect.width < 1 || rect.height < 1) return false;
-        const front = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-        return Boolean(front) && (front === input || input.contains(front)); })()`,
-    );
-    if (ready) {
+    await sleep(150);
+  }
+  let state = 'absent';
+  for (let attempt = 0; attempt < 25; attempt += 1) {
+    state = await cdp.evaluate(dismissThemeGallery);
+    if (state === 'absent') {
       console.log('first-run sheet: cleared after', dismissals, 'dismissal(s)');
       return;
     }
+    dismissals += 1;
     await sleep(200);
   }
-  throw new Error('The toolbar never came out from under the first-run theme sheet.');
+  throw new Error(`The first-run theme sheet would not close (last state "${state}").`);
 }
 
 /**
@@ -279,11 +280,10 @@ server.listen(fixturePort, '127.0.0.1');
     const cdp = await connect(page.webSocketDebuggerUrl);
     await waitFor(cdp.evaluate, `Boolean(document.querySelector('.app'))`, 'shell');
     // A fresh profile opens the first-run theme sheet, which sits over the
-    // whole window. A person dismisses it before touching the toolbar; the
-    // harness has to do the same, and stay with it until the toolbar is the
-    // thing a click actually reaches, or every later real click lands on the
-    // sheet.
-    await waitForToolbar(cdp);
+    // whole window. A person dismisses it before touching the toolbar, and keeps
+    // it dismissed while the window settles, or a later real click lands on the
+    // sheet instead of the toolbar.
+    await settleFirstRunSheet(cdp);
 
     const installed = await cdp.evaluate(
       `(async () => { const result = await window.kryvex.userscriptsInstallText(${JSON.stringify(
