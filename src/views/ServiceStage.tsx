@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CustomTheme, Service, WorkspaceSettings } from '../types';
 import { buildServiceCss, appearanceTargetFor } from '../lib/service-appearance';
 import { getTheme } from '../lib/themes';
@@ -89,11 +89,29 @@ interface StageProps {
   onWindowMaximize: (id: string) => void;
   /** Send to Vexium for a module page: its selection, or the whole page. */
   onSendToVexium?: (source: import('../lib/vexium-transfer').VexiumSourceInput) => void;
-  /** Every open module's guest, so the shell can hand a link to one by id. */
-  controllers?: MutableRefObject<Map<string, WebviewElement | null>>;
+  /** A link another page handed to one of the modules, by module id. */
+  linkTarget?: { serviceId: string; url: string; token: number } | null;
   /** Installed services a page or a link can be sent to. */
   sendTargets?: { id: string; name: string }[];
   onSendTo?: (serviceId: string, url: string) => void;
+}
+
+/**
+ * Whether a guest has finished the load it started with.
+ *
+ * A webview reports `dom-ready` for the blank document it is born with, which is
+ * not the page: a navigation sent then aborts the address it is already loading.
+ * Only once a real address is in and the guest is idle is it safe to hand over.
+ */
+function guestSettled(element: WebviewElement): boolean {
+  try {
+    const url = element.getURL();
+    if (!url || url.startsWith('about:')) return false;
+    const loading = (element as WebviewElement & { isLoading?: () => boolean }).isLoading;
+    return typeof loading === 'function' ? !loading.call(element) : true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -139,7 +157,7 @@ export function ServiceStage({
   onWindowMinimize,
   onWindowMaximize,
   onSendToVexium,
-  controllers,
+  linkTarget,
   sendTargets,
   onSendTo,
 }: StageProps) {
@@ -238,7 +256,7 @@ export function ServiceStage({
             onWindowClose={() => onWindowClose(service.id)}
             onWindowMinimize={() => onWindowMinimize(service.id)}
             onWindowMaximize={() => onWindowMaximize(service.id)}
-            controllers={controllers}
+            link={linkTarget && linkTarget.serviceId === service.id ? linkTarget : undefined}
             sendTargets={sendTargets}
             onSendTo={onSendTo}
           />
@@ -292,7 +310,7 @@ function ServiceFrame({
   onWindowMinimize,
   onWindowMaximize,
   onActivity,
-  controllers,
+  link,
   sendTargets,
   onSendTo,
 }: {
@@ -324,26 +342,13 @@ function ServiceFrame({
   onWindowClose: () => void;
   onWindowMinimize: () => void;
   onWindowMaximize: () => void;
-  controllers?: MutableRefObject<Map<string, WebviewElement | null>>;
+  /** A link handed over by another page, to load once this frame is settled. */
+  link?: { url: string; token: number };
   sendTargets?: { id: string; name: string }[];
   onSendTo?: (serviceId: string, url: string) => void;
 }) {
   const t = useT();
-  // The frame's guest is also published to the shell, so a link can be handed
-  // to a module by id without the stage having to know who asked for it.
-  const local = useRef<WebviewElement | null>(null);
-  const controller = useMemo<MutableRefObject<WebviewElement | null>>(
-    () => ({
-      get current() {
-        return controllers ? (controllers.current.get(service.id) ?? null) : local.current;
-      },
-      set current(value) {
-        local.current = value;
-        controllers?.current.set(service.id, value);
-      },
-    }),
-    [controllers, service.id],
-  );
+  const controller = useRef<WebviewElement | null>(null);
   // A canvas window is never "active": the active route is the Workspace, not a
   // service. Visibility, not activation, drives loading, probing and pausing.
   const isWindow = box?.kind === 'canvas';
@@ -373,6 +378,48 @@ function ServiceFrame({
   useEffect(() => {
     setCurrentUrl(service.url);
   }, [service.url]);
+
+  /**
+   * A link handed over by another page.
+   *
+   * It waits for this frame to finish the load it started with, because a guest
+   * navigated mid-load keeps the address it was already going to and drops the
+   * hand-over, which is how a module used to arrive on its home page instead of
+   * the link. `status` is no guide here: the guest reports ready for its own
+   * blank document before the page is anywhere near loaded.
+   */
+  const [pendingLink, setPendingLink] = useState<{ url: string; token: number } | null>(null);
+  useEffect(() => {
+    if (link) setPendingLink(link);
+  }, [link]);
+  useEffect(() => {
+    if (!pendingLink || !isElectron) return;
+    let alive = true;
+    let timer = 0;
+    let tries = 0;
+    const handOver = () => {
+      if (!alive) return;
+      const element = controller.current;
+      if (!element || !guestSettled(element)) {
+        // A parked module has no guest to load into, and a frame still attaching
+        // has nothing to give the address to. Both are worth waiting out.
+        tries += 1;
+        if (tries <= 80) timer = window.setTimeout(handOver, 120);
+        return;
+      }
+      setPendingLink(null);
+      try {
+        void element.loadURL(pendingLink.url).catch(() => undefined);
+      } catch {
+        /* the guest can detach between the check and the load */
+      }
+    };
+    handOver();
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, [pendingLink, isElectron]);
 
   // A parked frame is transparent, not display:none, so the browser no longer
   // removes focus for us. Drop it explicitly or keystrokes could keep landing

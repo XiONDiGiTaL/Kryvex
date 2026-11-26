@@ -571,31 +571,32 @@ export default function App() {
     [navigate],
   );
 
-  /** Every open module's guest, by service id, so the shell can hand one a link. */
-  const serviceControllers = useRef<
-    Map<string, import('./components/Webview').WebviewElement | null>
-  >(new Map());
+  /**
+   * A link handed to a module by another page.
+   *
+   * It is a request, not a command: the module has to be in front first, and a
+   * module that was never opened has no frame at all yet. The token makes one
+   * request distinguishable from the next, so sending the same address twice
+   * still loads it twice.
+   */
+  const [linkTarget, setLinkTarget] = useState<{
+    serviceId: string;
+    url: string;
+    token: number;
+  } | null>(null);
 
   /**
-   * Hands a link to an installed service: the module comes to the front and its
-   * guest loads the address. A module that was never opened has no guest yet,
-   * so the address waits for the frame to exist instead of being dropped.
+   * Hands a link to an installed service: the module comes to the front, and its
+   * frame loads the address once it has settled. Navigating a guest that is
+   * still attaching aborts the load it started with, which is how a module used
+   * to arrive on a blank page instead of the link.
    */
   const sendLinkToService = useCallback(
     (serviceId: string, url: string) => {
       const target = state.services.find(service => service.id === serviceId);
       if (!target || !url) return;
       openService(target);
-      const attempt = (left: number) => {
-        const guest = serviceControllers.current.get(serviceId);
-        if (guest) {
-          void guest.loadURL(url).catch(() => undefined);
-          return;
-        }
-        if (left <= 0) return;
-        window.setTimeout(() => attempt(left - 1), 60);
-      };
-      attempt(60);
+      setLinkTarget({ serviceId, url, token: Date.now() });
     },
     [openService, state.services],
   );
@@ -1702,7 +1703,7 @@ export default function App() {
               }),
             )
           }
-          controllers={serviceControllers}
+          linkTarget={linkTarget}
           sendTargets={state.services.map(service => ({ id: service.id, name: service.name }))}
           onSendTo={sendLinkToService}
           onTitle={handleServiceTitle}
