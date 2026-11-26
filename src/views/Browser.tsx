@@ -29,6 +29,14 @@ import {
   type WebviewElement,
   type WebviewStatus,
 } from '../components/Webview';
+import { PageContextMenu } from '../components/PageContextMenu';
+import {
+  closeOthersIds,
+  closeRightIds,
+  orderTabs,
+  tabMenuItems,
+} from '../lib/tab-menu';
+import type { PageMenuItem } from '../lib/page-menu';
 
 export type BrowserPanel = 'downloads' | 'history' | 'bookmarks';
 
@@ -191,6 +199,8 @@ export function Browser({
   /** Installed user scripts, read from the main process on demand. */
   const [scripts, setScripts] = useState<UserscriptRecord[]>([]);
   const [scriptMenuOpen, setScriptMenuOpen] = useState(false);
+  /** The tab whose right-click menu is open, and where it was opened. */
+  const [tabMenu, setTabMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const scriptMenuRef = useRef<HTMLDivElement | null>(null);
   const scriptsOnPage = currentUrl
     ? scripts.filter(record => record.enabled && appliesTo(record, currentUrl)).length
@@ -752,6 +762,85 @@ export function Browser({
     window.setTimeout(() => void window.kryvex?.browserClearTab(`browser-${id}`), 250);
   }
 
+  /**
+   * Closes several tabs at once with the cleanup a single close does: the
+   * guest, its controller and its in-memory partition all go. The tab in front
+   * keeps its place when it survives; when it is one of the closed ones the last
+   * remaining tab takes over, exactly as a single close does.
+   */
+  function closeTabs(ids: string[]) {
+    if (ids.length === 0) return;
+    const gone = new Set(ids);
+    const remaining = tabs.filter(tab => !gone.has(tab.id));
+    setTabs(remaining);
+    if (activeTabId && gone.has(activeTabId)) {
+      setActiveTabId(remaining[remaining.length - 1]?.id ?? null);
+    }
+    for (const id of ids) {
+      controllers.current.delete(id);
+      window.setTimeout(() => void window.kryvex?.browserClearTab(`browser-${id}`), 250);
+    }
+  }
+
+  /** A copy of the tab, placed beside it, the way Chromium's Duplicate works. */
+  function duplicateTab(id: string) {
+    const at = tabs.findIndex(tab => tab.id === id);
+    const source = at < 0 ? null : tabs[at];
+    if (!source || !source.url) return;
+    const copy: BrowserTab = {
+      id: makeId('t'),
+      url: source.url,
+      title: source.title,
+      ...(source.private ? { private: true } : {}),
+      ...(source.pinned ? { pinned: true } : {}),
+      ...(source.muted ? { muted: true } : {}),
+    };
+    const next = [...tabs];
+    next.splice(at + 1, 0, copy);
+    setTabs(orderTabs(next));
+    setActiveTabId(copy.id);
+  }
+
+  /** Pinning keeps a tab at the front of the strip and out of "close others". */
+  function togglePin(id: string) {
+    setTabs(current =>
+      orderTabs(current.map(tab => (tab.id === id ? { ...tab, pinned: !tab.pinned } : tab))),
+    );
+  }
+
+  /** The guest reads `muted` from its own prop, so this outlives navigation. */
+  function toggleMute(id: string) {
+    setTabs(current => current.map(tab => (tab.id === id ? { ...tab, muted: !tab.muted } : tab)));
+  }
+
+  function runTabMenu(item: PageMenuItem, tab: BrowserTab) {
+    switch (item.id) {
+      case 'reload':
+        controllers.current.get(tab.id)?.reload();
+        return;
+      case 'duplicate':
+        duplicateTab(tab.id);
+        return;
+      case 'pin':
+        togglePin(tab.id);
+        return;
+      case 'mute':
+        toggleMute(tab.id);
+        return;
+      case 'close':
+        closeTab(tab.id);
+        return;
+      case 'close-others':
+        closeTabs(closeOthersIds(tabs, tab.id));
+        return;
+      case 'close-right':
+        closeTabs(closeRightIds(tabs, tab.id));
+        return;
+      default:
+        return;
+    }
+  }
+
   function recordVisit(url: string, title?: string) {
     if (!isHttpUrl(url)) return;
     onAddHistory({
@@ -963,7 +1052,11 @@ export function Browser({
             key={tab.id}
             className={`tab ${tab.id === activeTabId ? 'is-active' : ''} ${
               tab.private ? 'is-private' : ''
-            }`}
+            } ${tab.pinned ? 'is-pinned' : ''}`}
+            onContextMenu={event => {
+              event.preventDefault();
+              setTabMenu({ id: tab.id, x: event.clientX, y: event.clientY });
+            }}
           >
             <button
               role="tab"
@@ -979,6 +1072,16 @@ export function Browser({
               ) : (
                 <span className="tab-dot" aria-hidden="true" />
               )}
+              {tab.pinned ? (
+                <span className="tab-mark" aria-hidden="true">
+                  <Icon name="pin" size={10} />
+                </span>
+              ) : null}
+              {tab.muted ? (
+                <span className="tab-mark is-quiet" aria-hidden="true">
+                  <Icon name="mute" size={10} />
+                </span>
+              ) : null}
               <span className="tab-title">
                 {tab.title || t(tab.private ? 'New private tab' : 'New tab')}
               </span>
@@ -1019,6 +1122,27 @@ export function Browser({
             </button>
           </div>
         ))}
+        {tabMenu
+          ? (() => {
+              const tab = tabs.find(item => item.id === tabMenu.id);
+              if (!tab) return null;
+              return (
+                <PageContextMenu
+                  items={tabMenuItems({
+                    hasPage: Boolean(tab.url),
+                    pinned: Boolean(tab.pinned),
+                    muted: Boolean(tab.muted),
+                    hasOthers: tabs.length > 1,
+                    hasRight: closeRightIds(tabs, tab.id).length > 0,
+                  })}
+                  header={tab.title || hostOf(tab.url) || t('New tab')}
+                  point={{ x: tabMenu.x, y: tabMenu.y }}
+                  onPick={item => runTabMenu(item, tab)}
+                  onClose={() => setTabMenu(null)}
+                />
+              );
+            })()
+          : null}
         <button
           className="new-tab-btn"
           onClick={() => newTab()}
@@ -1606,6 +1730,7 @@ export function Browser({
                       // them into in-app tabs; without this Electron refuses
                       // window.open before the handler is consulted.
                       allowPopups
+                      muted={Boolean(tab.muted)}
                       onSendToVexium={onSendToVexium}
                       sendTargets={sendTargets}
                       onSendTo={onSendTo}

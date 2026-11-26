@@ -1025,6 +1025,10 @@ export interface BrowserTab {
   title: string;
   /** Private tabs are memory-only: no history, no saved session. */
   private?: boolean;
+  /** Pinned tabs stay at the front and survive "close others". */
+  pinned?: boolean;
+  /** A muted tab keeps its page but not its sound. */
+  muted?: boolean;
 }
 
 export interface RssFeed {

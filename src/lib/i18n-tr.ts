@@ -1297,4 +1297,11 @@ export const turkishCopy: Record<string, string> = {
     'Saved to {path}.': '{path} konumuna kaydedildi.',
     'The page could not be saved.': 'Sayfa kaydedilemedi.',
     'That page is no longer open.': 'O sayfa artık açık değil.',
+    Duplicate: 'Çoğalt',
+    'Pin tab': 'Sekmeyi sabitle',
+    'Unpin tab': 'Sabitlemeyi kaldır',
+    'Mute tab': 'Sekmeyi sessize al',
+    'Unmute tab': 'Sekmenin sesini aç',
+    'Close others': 'Diğerlerini kapat',
+    'Close tabs to the right': 'Sağdaki sekmeleri kapat',
 };

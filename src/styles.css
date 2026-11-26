@@ -2396,6 +2396,19 @@ kbd {
   background: var(--accent);
 }
 
+/* Pinning and muting are state a reader has to be able to see at a glance, so
+   each one takes a small mark beside the dot rather than a menu trip. */
+.tab-mark {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  flex: none;
+}
+
+.tab-mark.is-quiet {
+  color: var(--ink-faint);
+}
+
 .tab-title {
   overflow: hidden;
   text-overflow: ellipsis;
