@@ -29,10 +29,10 @@ public class SaveDialogWindow {
   [DllImport("user32.dll")] public static extern int GetClassName(IntPtr hWnd, StringBuilder sb, int max);
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
   [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll")] static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
   [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
-  [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
   [DllImport("user32.dll")] static extern bool AttachThreadInput(uint attach, uint attachTo, bool on);
   [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
   [DllImport("user32.dll")] static extern bool BringWindowToTop(IntPtr hWnd);
@@ -181,6 +181,25 @@ if ($TargetPath) {
 $save = Find-Control -Dialog $dialog -Id '1' -ClassName 'Button'
 if (-not $save -or -not (Click-Center -Element $save)) {
   [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+}
+
+# A click on a Save the dialog still considers unavailable does nothing, and the
+# dialog then sits there holding the right name, which reads as success to every
+# caller. Commit with Enter instead, and only say accepted once the window is
+# gone: an app that never sees the dialog close never finishes the save.
+for ($attempt = 0; $attempt -lt 4 -and [SaveDialogWindow]::IsWindow($handle); $attempt += 1) {
+  [SaveDialogWindow]::Raise($handle)
+  Start-Sleep -Milliseconds 250
+  [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+  Start-Sleep -Milliseconds 700
+}
+# The window is gone a moment after it accepts, not the instant Enter lands.
+for ($wait = 0; $wait -lt 15 -and [SaveDialogWindow]::IsWindow($handle); $wait += 1) {
+  Start-Sleep -Milliseconds 200
+}
+if ([SaveDialogWindow]::IsWindow($handle)) {
+  Write-Output "still-open field=[$field]"
+  exit 6
 }
 
 Write-Output "accepted field=[$field]"
