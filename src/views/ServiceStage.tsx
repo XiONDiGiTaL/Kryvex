@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import type { CustomTheme, Service, WorkspaceSettings } from '../types';
 import { buildServiceCss, appearanceTargetFor } from '../lib/service-appearance';
 import { getTheme } from '../lib/themes';
@@ -89,6 +89,11 @@ interface StageProps {
   onWindowMaximize: (id: string) => void;
   /** Send to Vexium for a module page: its selection, or the whole page. */
   onSendToVexium?: (source: import('../lib/vexium-transfer').VexiumSourceInput) => void;
+  /** Every open module's guest, so the shell can hand a link to one by id. */
+  controllers?: MutableRefObject<Map<string, WebviewElement | null>>;
+  /** Installed services a page or a link can be sent to. */
+  sendTargets?: { id: string; name: string }[];
+  onSendTo?: (serviceId: string, url: string) => void;
 }
 
 /**
@@ -134,6 +139,9 @@ export function ServiceStage({
   onWindowMinimize,
   onWindowMaximize,
   onSendToVexium,
+  controllers,
+  sendTargets,
+  onSendTo,
 }: StageProps) {
   const t = useT();
   // Resolved once: every frame builds its sheet from the same palette.
@@ -230,6 +238,9 @@ export function ServiceStage({
             onWindowClose={() => onWindowClose(service.id)}
             onWindowMinimize={() => onWindowMinimize(service.id)}
             onWindowMaximize={() => onWindowMaximize(service.id)}
+            controllers={controllers}
+            sendTargets={sendTargets}
+            onSendTo={onSendTo}
           />
         );
       })}
@@ -281,6 +292,9 @@ function ServiceFrame({
   onWindowMinimize,
   onWindowMaximize,
   onActivity,
+  controllers,
+  sendTargets,
+  onSendTo,
 }: {
   service: Service;
   motion: WorkspaceSettings;
@@ -310,9 +324,26 @@ function ServiceFrame({
   onWindowClose: () => void;
   onWindowMinimize: () => void;
   onWindowMaximize: () => void;
+  controllers?: MutableRefObject<Map<string, WebviewElement | null>>;
+  sendTargets?: { id: string; name: string }[];
+  onSendTo?: (serviceId: string, url: string) => void;
 }) {
   const t = useT();
-  const controller = useRef<WebviewElement | null>(null);
+  // The frame's guest is also published to the shell, so a link can be handed
+  // to a module by id without the stage having to know who asked for it.
+  const local = useRef<WebviewElement | null>(null);
+  const controller = useMemo<MutableRefObject<WebviewElement | null>>(
+    () => ({
+      get current() {
+        return controllers ? (controllers.current.get(service.id) ?? null) : local.current;
+      },
+      set current(value) {
+        local.current = value;
+        controllers?.current.set(service.id, value);
+      },
+    }),
+    [controllers, service.id],
+  );
   // A canvas window is never "active": the active route is the Workspace, not a
   // service. Visibility, not activation, drives loading, probing and pausing.
   const isWindow = box?.kind === 'canvas';
@@ -921,6 +952,9 @@ function ServiceFrame({
             controller={controller}
             onSendToVexium={onSendToVexium}
             onActivity={entry => onActivity?.(service, entry)}
+            sendTargets={sendTargets}
+            onSendTo={onSendTo}
+            onToast={onToast}
             onStatus={setStatus}
             onTitle={onTitle}
             overrideCss={appearanceCss}

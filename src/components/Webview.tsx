@@ -1,8 +1,17 @@
 import { createElement, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { createPortal } from 'react-dom';
 import { useT } from '../lib/i18n';
 import { pageSource, readPage, readSelection, selectionSource } from '../lib/vexium-capture';
 import type { VexiumSourceInput } from '../lib/vexium-transfer';
+import { openExternalUrl } from '../lib/external';
+import {
+  pageMenuEntries,
+  pageMenuHeader,
+  type PageMenuContext,
+  type PageMenuItem,
+  type PageMenuTarget,
+} from '../lib/page-menu';
+import { stepZoom } from '../lib/zoom';
+import { PageContextMenu } from './PageContextMenu';
 
 export interface WebviewElement extends HTMLElement {
   goBack: () => void;
@@ -23,6 +32,18 @@ export interface WebviewElement extends HTMLElement {
   executeJavaScript: (code: string) => Promise<unknown>;
   insertCSS: (css: string) => Promise<string>;
   removeInsertedCSS: (key: string) => Promise<void>;
+  /** The guest's own process id, which the main process turns into a handle. */
+  getWebContentsId: () => number;
+  undo: () => void;
+  redo: () => void;
+  cut: () => void;
+  copy: () => void;
+  paste: () => void;
+  selectAll: () => void;
+  copyImageAt: (x: number, y: number) => void;
+  print: (options?: Record<string, unknown>) => void;
+  openDevTools: () => void;
+  capturePage: () => Promise<{ toDataURL: () => string }>;
 }
 
 export interface WebviewStatus {
@@ -36,6 +57,8 @@ export interface FindResult {
   matches: number;
   activeMatch: number;
 }
+
+type Tone = 'info' | 'success' | 'warning' | 'danger';
 
 interface WebviewProps {
   src: string;
@@ -81,111 +104,42 @@ interface WebviewProps {
    * script is ever evaluated in it.
    */
   overrideCss?: string;
+  /** Installed services the page can be handed to, offered under Send to…. */
+  sendTargets?: PageMenuTarget[];
+  onSendTo?: (serviceId: string, url: string) => void;
+  /**
+   * Opens a URL in a new Kryvex browser tab. Only the browser passes this, so
+   * its presence is also what tells the menu it is looking at a tab: a service
+   * frame has no tab to open and gets no such entry.
+   */
+  onOpenTab?: (url: string) => void;
+  onToast?: (message: string, tone?: Tone) => void;
 }
 
-interface CapturePoint {
+interface MenuPoint {
   x: number;
   y: number;
-  selection: string;
-  host: string;
+  /** The click inside the guest, which copying an image needs. */
+  guestX: number;
+  guestY: number;
+  context: PageMenuContext;
 }
 
-/**
- * The menu shown over a right-clicked selection.
- *
- * It reuses the shell's own context-menu styling rather than Electron's native
- * menu, so it follows the theme and the language like the rest of Kryvex.
- * Only the actions that make sense for the click are offered: a selection
- * that exists gets the two selection entries, a page without one gets the
- * whole-page entry alone.
- */
-function CaptureMenu({
-  point,
-  onPick,
-  onClose,
-}: {
-  point: CapturePoint;
-  onPick: (mode: 'selection' | 'selection-and-page' | 'page') => void;
-  onClose: () => void;
-}) {
-  const t = useT();
-  const menu = useRef<HTMLDivElement | null>(null);
-  const [position, setPosition] = useState({ x: point.x, y: point.y });
-
-  useEffect(() => {
-    const node = menu.current;
-    if (!node) return;
-    const rect = node.getBoundingClientRect();
-    const margin = 10;
-    setPosition({
-      x: Math.max(margin, Math.min(point.x, window.innerWidth - rect.width - margin)),
-      y: Math.max(margin, Math.min(point.y, window.innerHeight - rect.height - margin)),
-    });
-    node.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-      }
-    };
-    const onPointer = (event: PointerEvent) => {
-      if (!menu.current?.contains(event.target as Node)) onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('pointerdown', onPointer, true);
-    window.addEventListener('blur', onClose);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('pointerdown', onPointer, true);
-      window.removeEventListener('blur', onClose);
-    };
-  }, [onClose, point.x, point.y]);
-
-  const item = (label: string, mode: 'selection' | 'selection-and-page' | 'page') => (
-    <button
-      type="button"
-      role="menuitem"
-      className="service-context-item"
-      onClick={() => {
-        onPick(mode);
-        onClose();
-      }}
-    >
-      <span className="service-context-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}>
-          <path d="M12 3v4M12 17v4M3 12h4M17 12h4" strokeLinecap="round" />
-          <path d="m6.3 6.3 2.8 2.8m5.8 5.8 2.8 2.8m0-11.4-2.8 2.8m-5.8 5.8-2.8 2.8" strokeLinecap="round" />
-        </svg>
-      </span>
-      <span className="service-context-copy">
-        <strong>{label}</strong>
-      </span>
-    </button>
-  );
-
-  return createPortal(
-    <div
-      ref={menu}
-      className="service-context"
-      style={{ left: position.x, top: position.y }}
-      role="menu"
-      aria-label={t('Send to Vexium')}
-    >
-      <header className="service-context-head">
-        <span className="service-context-title">{t('Send to Vexium')}</span>
-        <span className="mono service-context-host">{point.host}</span>
-      </header>
-      <div className="service-context-sep" role="separator" />
-      {point.selection.trim()
-        ? item(t('Send selection to Vexium'), 'selection')
-        : null}
-      {point.selection.trim()
-        ? item(t('Send page and selection to Vexium'), 'selection-and-page')
-        : null}
-      {item(t('Send the whole page to Vexium'), 'page')}
-    </div>,
-    document.body,
-  );
+/** Text to the system clipboard, through the shell's own bridge first. */
+async function copyText(text: string): Promise<boolean> {
+  if (!text) return false;
+  try {
+    const bridge = window.kryvex;
+    if (bridge?.filesCopyText) return await bridge.filesCopyText(text);
+  } catch {
+    /* the bridge refused; the browser clipboard is the fallback */
+  }
+  try {
+    await navigator.clipboard?.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -213,14 +167,24 @@ export function Webview({
   onStatus,
   onFound,
   overrideCss,
+  sendTargets,
+  onSendTo,
+  onOpenTab,
+  onToast,
 }: WebviewProps) {
+  const t = useT();
   const ref = useRef<WebviewElement | null>(null);
   const initial = useRef({ src, partition, allowPopups });
-  const [capture, setCapture] = useState<CapturePoint | null>(null);
+  const [menu, setMenu] = useState<MenuPoint | null>(null);
   // The handler is kept in a ref so the guest listeners never need to be
   // torn down when a parent re-renders with a new callback identity.
   const sendRef = useRef(onSendToVexium);
   sendRef.current = onSendToVexium;
+  // Same trick for the tab opener: the menu listener subscribes once, but it
+  // must see whether this page is a tab and which tab opener is current.
+  const tabRef = useRef(onOpenTab);
+  tabRef.current = onOpenTab;
+  const loadingRef = useRef(true);
 
   useEffect(() => {
     const el = ref.current;
@@ -241,6 +205,7 @@ export function Webview({
     el.addEventListener('dom-ready', attach, { once: true });
 
     const readStatus = (loading: boolean, error: string | null = null) => {
+      loadingRef.current = loading;
       // did-start-loading can arrive before dom-ready, and the guest methods
       // throw until then. Reporting "no history" is accurate at that point.
       let canGoBack = false;
@@ -499,38 +464,79 @@ export function Webview({
   }, [overrideCss]);
 
   /**
-   * Send to Vexium: a menu over the right-clicked page.
+   * The right-click menu.
    *
-   * Electron reports the selection with the click, so the menu can show only
-   * the entries that apply without reading the page first. The content itself
-   * is read when an entry is chosen, which keeps a right-click cheap and makes
-   * sure the user's latest selection is what travels.
+   * Electron reports what was under the pointer with the click: a selection, a
+   * link, an image, an editable field. The menu is built from that report, so
+   * it never offers an action the click cannot complete, and the page itself is
+   * only read when an entry that needs its text is chosen.
    */
   useEffect(() => {
     const el = ref.current;
-    if (!el || !onSendToVexium) return;
+    if (!el) return;
     const onMenu = (event: Event) => {
       const params = (event as Event & {
-        params?: { x?: number; y?: number; selectionText?: string };
+        params?: {
+          x?: number;
+          y?: number;
+          linkURL?: string;
+          srcURL?: string;
+          mediaType?: string;
+          selectionText?: string;
+          isEditable?: boolean;
+        };
       }).params;
       if (!params) return;
       const rect = el.getBoundingClientRect();
+      let url = '';
+      try {
+        url = el.getURL();
+      } catch {
+        url = '';
+      }
       let host = '';
       try {
-        host = new URL(el.getURL()).host;
+        host = new URL(url).host;
       } catch {
         host = '';
       }
-      setCapture({
+      let canGoBack = false;
+      let canGoForward = false;
+      let zoom = 1;
+      try {
+        canGoBack = el.canGoBack();
+        canGoForward = el.canGoForward();
+      } catch {
+        /* the guest is between navigations */
+      }
+      try {
+        zoom = el.getZoomFactor();
+      } catch {
+        /* the guest is between navigations */
+      }
+      setMenu({
         x: rect.left + Number(params.x ?? 0),
         y: rect.top + Number(params.y ?? 0),
-        selection: String(params.selectionText ?? ''),
-        host,
+        guestX: Number(params.x ?? 0),
+        guestY: Number(params.y ?? 0),
+        context: {
+          browser: Boolean(tabRef.current),
+          url,
+          host,
+          selection: String(params.selectionText ?? ''),
+          linkUrl: String(params.linkURL ?? ''),
+          imageUrl: params.mediaType === 'image' ? String(params.srcURL ?? '') : '',
+          isEditable: Boolean(params.isEditable),
+          canGoBack,
+          canGoForward,
+          loading: loadingRef.current,
+          zoom,
+        },
       });
     };
     el.addEventListener('context-menu', onMenu);
     return () => el.removeEventListener('context-menu', onMenu);
-  }, [onSendToVexium]);
+  }, []);
 
   async function pick(mode: 'selection' | 'selection-and-page' | 'page') {
     const el = ref.current;
@@ -550,6 +556,150 @@ export function Webview({
     send(selectionSource({ title, url: el.getURL() }, selection, mode === 'selection-and-page'));
   }
 
+  const say = (
+    message: string,
+    tone: Tone = 'info',
+    vars?: Record<string, string>,
+  ) => onToast?.(t(message, vars), tone);
+
+  /** Runs one entry the menu offered, against the click it was built for. */
+  async function run(item: PageMenuItem) {
+    const el = ref.current;
+    const point = menu;
+    if (!el || !point) return;
+    const context = point.context;
+    const guest = (action: () => void) => {
+      try {
+        action();
+      } catch {
+        /* the guest can detach between the click and the action */
+      }
+    };
+
+    if (item.id.startsWith('send:')) {
+      const target = item.id.slice('send:'.length);
+      onSendTo?.(target, context.linkUrl || context.url);
+      return;
+    }
+
+    switch (item.id) {
+      case 'back':
+        guest(() => el.goBack());
+        return;
+      case 'forward':
+        guest(() => el.goForward());
+        return;
+      case 'reload':
+        guest(() => el.reload());
+        return;
+      case 'stop':
+        guest(() => el.stop());
+        return;
+      case 'undo':
+        guest(() => el.undo());
+        return;
+      case 'redo':
+        guest(() => el.redo());
+        return;
+      case 'cut':
+        guest(() => el.cut());
+        return;
+      case 'paste':
+        guest(() => el.paste());
+        return;
+      case 'select-all':
+        guest(() => el.selectAll());
+        return;
+      case 'copy': {
+        const copied = await copyText(context.selection);
+        say(copied ? 'Copied to the clipboard.' : 'The clipboard refused the text.', copied ? 'info' : 'danger');
+        return;
+      }
+      case 'copy-link':
+      case 'copy-image-address':
+      case 'copy-url':
+        say(
+          (await copyText(
+            item.id === 'copy-url' ? context.url : item.id === 'copy-link' ? context.linkUrl : context.imageUrl,
+          ))
+            ? 'Copied to the clipboard.'
+            : 'The clipboard refused the text.',
+        );
+        return;
+      case 'copy-image':
+        guest(() => el.copyImageAt(point.guestX, point.guestY));
+        return;
+      case 'share-link':
+        say((await copyText(context.url)) ? 'Link copied. Paste it anywhere.' : 'The clipboard refused the text.');
+        return;
+      case 'open-link-tab':
+        if (context.linkUrl) onOpenTab?.(context.linkUrl);
+        return;
+      case 'open-image-tab':
+        if (context.imageUrl) onOpenTab?.(context.imageUrl);
+        return;
+      case 'open-link-external':
+        openExternalUrl(context.linkUrl);
+        return;
+      case 'open-external':
+        openExternalUrl(context.url);
+        return;
+      case 'view-source':
+        if (context.url) onOpenTab?.(`view-source:${context.url}`);
+        return;
+      case 'zoom-in':
+        guest(() => el.setZoomFactor(stepZoom(context.zoom, 1)));
+        return;
+      case 'zoom-out':
+        guest(() => el.setZoomFactor(stepZoom(context.zoom, -1)));
+        return;
+      case 'zoom-reset':
+        guest(() => el.setZoomFactor(1));
+        return;
+      case 'print':
+        guest(() => el.print());
+        return;
+      case 'inspect':
+        guest(() => el.openDevTools());
+        return;
+      case 'save-page': {
+        const bridge = window.kryvex;
+        if (!bridge?.pageSave) return;
+        const result = await bridge.pageSave({
+          webContentsId: el.getWebContentsId(),
+          suggested: context.host || 'page',
+        });
+        if (result.ok) say('Saved to {path}.', 'success', { path: result.path ?? '' });
+        else if (!result.cancelled) say('The page could not be saved.', 'danger');
+        return;
+      }
+      case 'screenshot': {
+        const bridge = window.kryvex;
+        if (!bridge?.captureSave) return;
+        const shot = await el.capturePage();
+        const result = await bridge.captureSave({
+          data: shot.toDataURL(),
+          name: context.host || 'page',
+          kind: 'shot',
+        });
+        if (result.ok) say('Screenshot saved to {path}.', 'success', { path: result.path ?? '' });
+        else if (!result.cancelled) say('The screenshot could not be saved.', 'danger');
+        return;
+      }
+      case 'vexium-selection':
+        if (sendRef.current) void pick('selection');
+        return;
+      case 'vexium-selection-page':
+        if (sendRef.current) void pick('selection-and-page');
+        return;
+      case 'vexium-page':
+        if (sendRef.current) void pick('page');
+        return;
+      default:
+        return;
+    }
+  }
+
   return (
     <>
       {createElement('webview', {
@@ -564,8 +714,14 @@ export function Webview({
         webpreferences: 'contextIsolation=yes, nodeIntegration=no, sandbox=yes',
         style: { width: '100%', height: '100%' },
       })}
-      {capture && sendRef.current ? (
-        <CaptureMenu point={capture} onPick={mode => void pick(mode)} onClose={() => setCapture(null)} />
+      {menu ? (
+        <PageContextMenu
+          items={pageMenuEntries(menu.context, sendTargets ?? [])}
+          header={pageMenuHeader(menu.context)}
+          point={{ x: menu.x, y: menu.y }}
+          onPick={item => void run(item)}
+          onClose={() => setMenu(null)}
+        />
       ) : null}
     </>
   );

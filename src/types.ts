@@ -1574,6 +1574,14 @@ export interface KryvexBridge {
   }) => Promise<CaptureSaveResult>;
   /** Put a PNG capture on the system clipboard. */
   captureCopy: (data: string) => Promise<boolean>;
+  /**
+   * Saves a page the way Chromium does: the dialog chooses the folder, and the
+   * renderer only names the guest it is looking at.
+   */
+  pageSave: (request: {
+    webContentsId: number;
+    suggested: string;
+  }) => Promise<{ ok: boolean; path?: string; cancelled?: boolean; message?: string }>;
   /** Reveal a saved capture in Explorer. */
   captureReveal: (path: string) => Promise<boolean>;
   /** Show a fresh capture in its own preview window, like a snipping tool. */

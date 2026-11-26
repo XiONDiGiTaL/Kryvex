@@ -7,6 +7,7 @@ import {
   screen,
   session,
   shell,
+  webContents,
   type WebContents,
 } from 'electron';
 import fs from 'node:fs';
@@ -898,6 +899,46 @@ function registerIpc(): void {
   ipcMain.handle('kryvex:capture:reveal', (event, target: unknown) =>
     isShellSender(event) ? captureTools.reveal(target) : false,
   );
+  // A page the user asked to keep, saved the way Chromium saves one: the dialog
+  // returns the path and the guest is found by the id its own webview reported,
+  // so nothing here accepts a path from the renderer.
+  ipcMain.handle('kryvex:page:save', async (event, request: unknown) => {
+    if (!isShellSender(event)) return { ok: false, message: 'Untrusted sender.' };
+    const body = (request ?? {}) as { webContentsId?: unknown; suggested?: unknown };
+    const id = typeof body.webContentsId === 'number' ? body.webContentsId : 0;
+    const guest = id > 0 ? webContents.fromId(id) : null;
+    if (!guest || guest.isDestroyed()) {
+      return { ok: false, message: 'That page is no longer open.' };
+    }
+    const suggested =
+      typeof body.suggested === 'string' && body.suggested.trim()
+        ? body.suggested.trim().replace(/[\/:*?"<>|]+/g, '-')
+        : 'page';
+    const options = {
+      title: 'Save page',
+      defaultPath: path.join(
+        app.getPath('downloads'),
+        /\.html?$/i.test(suggested) ? suggested : `${suggested}.html`,
+      ),
+      filters: [{ name: 'Web page, complete', extensions: ['html'] }],
+      properties: ['createDirectory' as const, 'showOverwriteConfirmation' as const],
+    };
+    const picked =
+      mainWindow && !mainWindow.isDestroyed()
+        ? await dialog.showSaveDialog(mainWindow, options)
+        : await dialog.showSaveDialog(options);
+    if (picked.canceled || !picked.filePath) return { ok: false, cancelled: true };
+    const target = /\.html?$/i.test(picked.filePath) ? picked.filePath : `${picked.filePath}.html`;
+    try {
+      await guest.savePage(target, 'HTMLComplete');
+      return { ok: true, path: target };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : 'The page could not be saved.',
+      };
+    }
+  });
   // File Forge and Canvas: the bytes stay in the renderer, and this is the only
   // place a path, a name or a rename comes from. Nothing here accepts a path the
   // user did not choose in a dialog of this session.

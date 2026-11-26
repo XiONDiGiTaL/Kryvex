@@ -496,6 +496,7 @@ const api = {
   captureSave: (request: unknown): Promise<unknown> =>
     ipcRenderer.invoke('kryvex:capture:save', request),
   captureCopy: (data: string): Promise<boolean> => ipcRenderer.invoke('kryvex:capture:copy', data),
+  pageSave: (request: unknown): Promise<unknown> => ipcRenderer.invoke('kryvex:page:save', request),
   // Kryvex's file boundary: a pick, a written copy, a batch rename. Every path
   // crosses a native dialog first and every payload is sniffed in the main
   // process before it is written.

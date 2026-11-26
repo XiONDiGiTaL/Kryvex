@@ -571,6 +571,35 @@ export default function App() {
     [navigate],
   );
 
+  /** Every open module's guest, by service id, so the shell can hand one a link. */
+  const serviceControllers = useRef<
+    Map<string, import('./components/Webview').WebviewElement | null>
+  >(new Map());
+
+  /**
+   * Hands a link to an installed service: the module comes to the front and its
+   * guest loads the address. A module that was never opened has no guest yet,
+   * so the address waits for the frame to exist instead of being dropped.
+   */
+  const sendLinkToService = useCallback(
+    (serviceId: string, url: string) => {
+      const target = state.services.find(service => service.id === serviceId);
+      if (!target || !url) return;
+      openService(target);
+      const attempt = (left: number) => {
+        const guest = serviceControllers.current.get(serviceId);
+        if (guest) {
+          void guest.loadURL(url).catch(() => undefined);
+          return;
+        }
+        if (left <= 0) return;
+        window.setTimeout(() => attempt(left - 1), 60);
+      };
+      attempt(60);
+    },
+    [openService, state.services],
+  );
+
   // A deep link or a restored hash must mount the module it points at.
   useEffect(() => {
     if (!route.serviceId) return;
@@ -1673,6 +1702,9 @@ export default function App() {
               }),
             )
           }
+          controllers={serviceControllers}
+          sendTargets={state.services.map(service => ({ id: service.id, name: service.name }))}
+          onSendTo={sendLinkToService}
           onTitle={handleServiceTitle}
           onUpdateService={updateServiceFlags}
           onToast={pushToast}
@@ -2083,6 +2115,8 @@ export default function App() {
             mark={themeMark}
             feeds={state.feeds}
             onSendToVexium={sendToVexium}
+            sendTargets={state.services.map(service => ({ id: service.id, name: service.name }))}
+            onSendTo={sendLinkToService}
             onAddFeeds={addFeeds}
             onRemoveFeed={removeFeed}
             onAddBookmark={addBookmark}

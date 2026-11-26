@@ -144,6 +144,8 @@ export function Browser({
   onClearHistory,
   onToast,
   onSendToVexium,
+  sendTargets,
+  onSendTo,
 }: {
   state: PersistedState;
   tabs: BrowserTab[];
@@ -168,6 +170,9 @@ export function Browser({
   onToast: (message: string, tone?: 'info' | 'success' | 'warning' | 'danger') => void;
   /** Send to Vexium for the page in front: selection first, then the page. */
   onSendToVexium?: (source: VexiumSourceInput) => void;
+  /** Installed services this page or one of its links can be handed to. */
+  sendTargets?: { id: string; name: string }[];
+  onSendTo?: (serviceId: string, url: string) => void;
 }) {
   const { t, locale } = useI18n();
   // Popup tabs live in the main process: each one is a real popup window the
@@ -1602,6 +1607,16 @@ export function Browser({
                       // window.open before the handler is consulted.
                       allowPopups
                       onSendToVexium={onSendToVexium}
+                      sendTargets={sendTargets}
+                      onSendTo={onSendTo}
+                      onToast={onToast}
+                      onOpenTab={url => {
+                        // A link from the page is a new tab, not a replacement
+                        // of the one the reader is already on.
+                        const id = makeId('t');
+                        setTabs(current => [...current, { id, url, title: hostOf(url) }]);
+                        setActiveTabId(id);
+                      }}
                       controller={{
                         get current() {
                           return controllers.current.get(tab.id) ?? null;
