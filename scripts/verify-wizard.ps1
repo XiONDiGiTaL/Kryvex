@@ -107,6 +107,19 @@ function Get-Controls {
   return @($controls | Sort-Object top, left)
 }
 
+# What a page says is not frozen while the page is up: the install-location page
+# fills in, and re-reads, its free-space line ("Space available: 99.0 GB"), and a
+# progress line counts up. Compared raw, those updates read as the dialog having
+# advanced, so the page was deleted as unphotographable. A page is therefore
+# identified by what it is rather than by what its readouts currently say: the
+# controls the dialog holds (id and class, which do not change while a page is
+# up), its buttons, and its heading -- with numbers masked, since a figure that
+# ticks is still the same page.
+function ConvertTo-StableText {
+  param([string]$Text)
+  return ($Text -replace '\d+', '#')
+}
+
 function Get-Page {
   param([IntPtr]$Root, $Controls)
   $texts = New-Object System.Collections.ArrayList
@@ -127,7 +140,11 @@ function Get-Page {
     texts       = $uniqueTexts
     buttons     = $uniqueButtons
     controls    = $Controls
-    signature   = (($uniqueTexts + $uniqueButtons) -join "`u{1f}")
+    signature   = ((
+      @($Controls | ForEach-Object { "$($_.class)#$($_.id)" } | Sort-Object) +
+      @($uniqueButtons | ForEach-Object { ConvertTo-StableText $_ }) +
+      @(ConvertTo-StableText $uniqueTexts[0])
+    ) -join "`u{1f}")
   }
 }
 
