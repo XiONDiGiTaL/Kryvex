@@ -39,6 +39,7 @@ export interface WebviewElement extends HTMLElement {
   cut: () => void;
   copy: () => void;
   paste: () => void;
+  pasteAndMatchStyle: () => void;
   selectAll: () => void;
   copyImageAt: (x: number, y: number) => void;
   print: (options?: Record<string, unknown>) => void;
@@ -605,7 +606,19 @@ export function Webview({
         guest(() => el.cut());
         return;
       case 'paste':
-        guest(() => el.paste());
+        // The menu is drawn by the shell, so choosing an entry hands focus away
+        // from the guest: the field has to be given it back first, or the paste
+        // lands in a document that no longer has a focused element.
+        guest(() => {
+          el.focus();
+          el.paste();
+        });
+        return;
+      case 'paste-match':
+        guest(() => {
+          el.focus();
+          el.pasteAndMatchStyle();
+        });
         return;
       case 'select-all':
         guest(() => el.selectAll());

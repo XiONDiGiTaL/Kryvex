@@ -1272,6 +1272,7 @@ export const turkishCopy: Record<string, string> = {
     'Page options': 'Sayfa seçenekleri',
     'Cut': 'Kes',
     'Paste': 'Yapıştır',
+    'Paste and match style': 'Yapıştır ve stili eşleştir',
     'Stop': 'Durdur',
     'Copy link address': 'Bağlantı adresini kopyala',
     'Open link in a new tab': 'Bağlantıyı yeni sekmede aç',

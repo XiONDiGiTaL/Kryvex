@@ -30,6 +30,7 @@ describe('page right-click menu', () => {
   it('offers the page its own actions when nothing was clicked', () => {
     const items = pageMenuEntries(context());
     expect(ids(items)).toEqual([
+      'select-all',
       'back',
       'forward',
       'reload',
@@ -53,7 +54,7 @@ describe('page right-click menu', () => {
 
   it('adds the text entries for a selection and keeps Vexium with them', () => {
     const items = pageMenuEntries(context({ selection: '  a quoted line  ' }));
-    expect(ids(items).slice(0, 2)).toEqual(['copy', 'back']);
+    expect(ids(items).slice(0, 3)).toEqual(['copy', 'select-all', 'back']);
     expect(ids(items)).toContain('vexium-selection');
     expect(ids(items)).toContain('vexium-selection-page');
     expect(ids(items)).toContain('vexium-page');
@@ -61,15 +62,43 @@ describe('page right-click menu', () => {
 
   it('gives an editable field the edit entries without a Vexium selection', () => {
     const items = pageMenuEntries(context({ isEditable: true }));
-    expect(ids(items).slice(0, 6)).toEqual([
+    expect(ids(items).slice(0, 7)).toEqual([
       'undo',
       'redo',
       'copy',
       'cut',
       'paste',
+      'paste-match',
       'select-all',
     ]);
     expect(ids(items)).not.toContain('vexium-selection');
+  });
+
+  it('greys Copy and Cut in a field with nothing highlighted, and pastes only into a field', () => {
+    const empty = pageMenuEntries(context({ isEditable: true }));
+    expect(find(empty, 'copy')?.disabled).toBe(true);
+    expect(find(empty, 'cut')?.disabled).toBe(true);
+    expect(find(empty, 'paste')?.disabled).toBeFalsy();
+    expect(find(empty, 'paste-match')?.disabled).toBeFalsy();
+
+    const highlighted = pageMenuEntries(context({ isEditable: true, selection: 'a word' }));
+    expect(find(highlighted, 'copy')?.disabled).toBeFalsy();
+    expect(find(highlighted, 'cut')?.disabled).toBeFalsy();
+
+    // Text highlighted on a page that cannot be edited is copied, never pasted
+    // into: the menu does not offer an action the page would drop.
+    const page = ids(pageMenuEntries(context({ selection: 'a word' })));
+    expect(page).toContain('copy');
+    expect(page).not.toContain('cut');
+    expect(page).not.toContain('paste');
+    expect(page).not.toContain('paste-match');
+  });
+
+  it('offers Select all on any page, and never without one', () => {
+    expect(ids(pageMenuEntries(context()))).toContain('select-all');
+    expect(ids(pageMenuEntries(context({ selection: 'a word' })))).toContain('select-all');
+    expect(ids(pageMenuEntries(context({ isEditable: true })))).toContain('select-all');
+    expect(ids(pageMenuEntries(context({ url: '' })))).not.toContain('select-all');
   });
 
   it('offers the link entries for a clicked link, in that order', () => {

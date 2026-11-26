@@ -85,11 +85,23 @@ export function pageMenuEntries(
     editing.push({ id: 'redo', label: 'Redo', hint: 'Ctrl+Y' });
   }
   if (text || context.isEditable) {
-    editing.push({ id: 'copy', label: 'Copy', hint: 'Ctrl+C' });
+    // A field with nothing highlighted has nothing to copy or cut, and an entry
+    // that would empty the clipboard is better greyed than removed: its place in
+    // the group is what tells a person where the action lives.
+    editing.push({ id: 'copy', label: 'Copy', hint: 'Ctrl+C', disabled: !text });
   }
   if (context.isEditable) {
-    editing.push({ id: 'cut', label: 'Cut', hint: 'Ctrl+X' });
+    editing.push({ id: 'cut', label: 'Cut', hint: 'Ctrl+X', disabled: !text });
     editing.push({ id: 'paste', label: 'Paste', hint: 'Ctrl+V' });
+    editing.push({
+      id: 'paste-match',
+      label: 'Paste and match style',
+      hint: 'Ctrl+Shift+V',
+    });
+  }
+  // Select all belongs to the document, not to a field: a highlighted paragraph
+  // can be selected from too, and so can a page with nothing highlighted yet.
+  if (page || context.isEditable) {
     editing.push({ id: 'select-all', label: 'Select all', hint: 'Ctrl+A' });
   }
   group(editing);

@@ -38,12 +38,24 @@ const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>Menu Lab</
   <h1>Menu Lab</h1>
   <p id="prose">A paragraph a person can select before right-clicking it.</p>
   <p><a id="go" href="/link-target">A link worth sending somewhere</a></p>
-  <img id="pic" alt="a small tile" width="64" height="64"
-       src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%233f80ff'/%3E%3C/svg%3E">
+  <p><input id="field" placeholder="Type here" style="font:inherit;width:260px;padding:6px"></p>
+  <img id="pic" alt="a small tile" width="64" height="64" src="/pic.png">
 </body></html>`;
+
+// A one-pixel PNG, stood up on its own path so the image click is a real
+// image with a real address rather than a data: URL.
+const PIC = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
 
 async function serve() {
   const server = http.createServer((request, response) => {
+    if (request.url === '/pic.png') {
+      response.writeHead(200, { 'content-type': 'image/png', 'content-length': PIC.length });
+      response.end(PIC);
+      return;
+    }
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(PAGE);
   });
@@ -240,6 +252,45 @@ async function clickItem(client, label) {
   await sleep(240);
 }
 
+/** The middle of an element, checked to be the thing a click would land on. */
+async function aimAt(client, selector) {
+  const point = await client.evaluate(`(() => {
+    const node = document.querySelector(${JSON.stringify(selector)});
+    if (!node) return null;
+    const rect = node.getBoundingClientRect();
+    const x = Math.round(rect.left + rect.width / 2);
+    const y = Math.round(rect.top + rect.height / 2);
+    return { x, y, hit: document.elementFromPoint(x, y) === node };
+  })()`);
+  if (!point || !point.hit) throw new Error(`Nothing clickable at ${selector}.`);
+  return point;
+}
+
+/** Highlights the paragraph and says where to right-click inside it. */
+async function selectParagraph(client) {
+  const point = await client.evaluate(`(() => {
+    const prose = document.getElementById('prose');
+    const range = document.createRange();
+    range.selectNodeContents(prose);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    const rect = prose.getBoundingClientRect();
+    return { x: Math.round(rect.left + 8), y: Math.round(rect.top + rect.height / 2) };
+  })()`);
+  if (!point) throw new Error('There is no paragraph to highlight.');
+  return point;
+}
+
+async function closeMenu(client) {
+  await client.evaluate(
+    `(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true; })()`,
+  );
+  await sleep(220);
+}
+
+const disabledOf = (menu, label) => menu.items.find(item => item.label === label)?.disabled;
+
 /** A real right-click, through the input pipeline rather than a DOM event. */
 async function rightClick(client, x, y) {
   await client.send('Input.dispatchMouseEvent', {
@@ -373,7 +424,74 @@ async function main() {
   console.log('service geometry', JSON.stringify(await menuGeometry(client)));
   await shot(client, 'verify-page-context-service');
 
-  // 2. Send link to… the other module: it must come forward and load the link.
+  // 2. A field and an image: the editing entries, and a real Copy then Paste.
+  await closeMenu(client);
+  const fieldPoint = await aimAt(alpha, '#field');
+  await rightClick(alpha, fieldPoint.x, fieldPoint.y);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.page-context'))`, 6000, 'the field menu');
+  const fieldMenu = await menuSnapshot(client);
+  const fieldLabels = labels(fieldMenu);
+  console.log('field menu:', fieldLabels.join(' | '));
+
+  check(fieldLabels.includes('Undo') && fieldLabels.includes('Redo'), 'a field offers Undo and Redo');
+  check(fieldLabels.includes('Cut'), 'a field offers Cut');
+  check(fieldLabels.includes('Copy'), 'a field offers Copy');
+  check(fieldLabels.includes('Paste'), 'a field offers Paste');
+  check(fieldLabels.includes('Paste and match style'), 'a field offers Paste and match style');
+  check(fieldLabels.includes('Select all'), 'a field offers Select all');
+  check(disabledOf(fieldMenu, 'Copy') === true, 'Copy is greyed in a field with nothing highlighted');
+  check(disabledOf(fieldMenu, 'Cut') === true, 'Cut is greyed in a field with nothing highlighted');
+  await shot(client, 'verify-page-context-field');
+
+  // Highlight a paragraph, copy it through the menu, then paste it into the
+  // field through the menu: the two entries have to be one hand-off.
+  const prosePoint = await selectParagraph(alpha);
+  await rightClick(alpha, prosePoint.x, prosePoint.y);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.page-context'))`, 6000, 'the selection menu');
+  const selectionMenu = await menuSnapshot(client);
+  const selectionLabels = labels(selectionMenu);
+  check(selectionLabels.includes('Copy'), 'a highlighted paragraph offers Copy');
+  check(!disabledOf(selectionMenu, 'Copy'), 'Copy is live for a highlighted paragraph');
+  check(!selectionLabels.includes('Paste'), 'a page that cannot be edited is not offered a paste');
+  check(selectionLabels.includes('Select all'), 'a highlighted paragraph still offers Select all');
+  await clickItem(client, 'Copy');
+
+  await rightClick(alpha, fieldPoint.x, fieldPoint.y);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.page-context'))`, 6000, 'the field menu again');
+  await clickItem(client, 'Paste');
+  await sleep(600);
+  const pasteState = await alpha.evaluate(`({
+    value: document.getElementById('field').value,
+    active: document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : null,
+    highlighted: String(window.getSelection()).slice(0, 40),
+  })`);
+  console.log('paste state', JSON.stringify(pasteState));
+  const pasted = pasteState.value;
+  check(
+    typeof pasted === 'string' && pasted.includes('A paragraph'),
+    `Paste put the copied paragraph in the field (${JSON.stringify(pasted).slice(0, 50)})`,
+  );
+
+  await closeMenu(client);
+  const picPoint = await aimAt(alpha, '#pic');
+  await rightClick(alpha, picPoint.x, picPoint.y);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.page-context'))`, 6000, 'the image menu');
+  const serviceImageMenu = await menuSnapshot(client);
+  const serviceImageLabels = labels(serviceImageMenu);
+  console.log('image menu:', serviceImageLabels.join(' | '));
+  check(serviceImageLabels.includes('Copy image'), 'an image offers Copy image');
+  check(serviceImageLabels.includes('Copy image address'), 'an image offers Copy image address');
+  check(!serviceImageLabels.includes('Open image in a new tab'), 'a service frame cannot open an image in a tab');
+  await shot(client, 'verify-page-context-image');
+  await closeMenu(client);
+
+  // The hand-over below needs a link click, and the image check closed its
+  // menu: take the link again so the entry is there to choose.
+  const linkAgain = await aimAtLink(alpha);
+  await rightClick(alpha, linkAgain.x, linkAgain.y);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.page-context'))`, 6000, 'the link menu again');
+
+  // 3. Send link to… the other module: it must come forward and load the link.
   await clickItem(client, 'Send link to…');
   const submenu = await menuSnapshot(client);
   check(
@@ -400,7 +518,7 @@ async function main() {
   if (!sent) throw new Error('The Beta module never loaded the link that was sent to it.');
   check(true, 'the Beta guest loaded the link that was sent to it');
 
-  // 3. A Kryvex browser tab: the same menu, plus the tab-only entries.
+  // 4. A Kryvex browser tab: the same menu, plus the tab-only entries.
   await client.evaluate(
     `window.location.hash = '#/browser?url=' + encodeURIComponent(${JSON.stringify(`${origin}/browser`)}); true;`,
   );
@@ -420,6 +538,20 @@ async function main() {
   check(tabPageLabels.includes('Inspect'), 'a browser tab can open DevTools');
   await shot(client, 'verify-page-context-browser');
 
+  await closeMenu(client);
+  const tabImagePoint = await aimAt(browser, '#pic');
+  await rightClick(browser, tabImagePoint.x, tabImagePoint.y);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.page-context'))`, 6000, 'the tab image menu');
+  const tabImageMenu = await menuSnapshot(client);
+  const tabImageLabels = labels(tabImageMenu);
+  check(tabImageLabels.includes('Open image in a new tab'), 'a browser tab opens a clicked image in a new tab');
+  check(tabImageLabels.includes('Copy image'), 'a browser tab still offers Copy image');
+  await closeMenu(client);
+
+  // The link menu is opened again for the entry this section is about.
+  const linkPoint = await aimAt(browser, '#go');
+  await rightClick(browser, linkPoint.x, linkPoint.y);
+  await waitFor(client.evaluate, `Boolean(document.querySelector('.page-context'))`, 6000, 'the tab link menu');
   await clickItem(client, 'Open link in a new tab');
   const grew = await waitFor(
     client.evaluate,
@@ -435,7 +567,7 @@ async function main() {
   check(grew === true && tabCount >= 2, `Open link in a new tab added a tab (${tabCount} in the strip)`);
   check(atLink >= 1, 'the new tab is loaded on the link');
 
-  // 4. The tab strip's own menu.
+  // 5. The tab strip's own menu.
   await client.evaluate(`(() => {
     const tab = document.querySelector('.tab-strip .tab');
     const box = tab.getBoundingClientRect();
@@ -495,7 +627,10 @@ async function main() {
   await shot(client, 'verify-tab-context-muted');
 
   console.log(`\ncontext menus: PASS (${lines.length} checks)`);
-  console.log('screenshots: verify-page-context-service.png, verify-page-context-browser.png, verify-tab-context.png');
+  console.log(
+    'screenshots: verify-page-context-service.png, verify-page-context-field.png, ' +
+      'verify-page-context-image.png, verify-page-context-browser.png, verify-tab-context.png',
+  );
   await stop();
   server.close();
   process.exit(0);
