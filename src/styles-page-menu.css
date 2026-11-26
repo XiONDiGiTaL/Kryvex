@@ -6,7 +6,11 @@
 
 .page-context {
   width: min(292px, 90vw);
-  max-height: min(72vh, 560px);
+  /* The full page menu runs to 22 entries, and a 560px cap put the whole
+     Send-to-Vexium group below the fold on a 900px window, where it read as
+     missing rather than as scrollable. It may use the window; it scrolls only
+     when the window itself is too short for it. */
+  max-height: calc(100vh - 20px);
   overflow-y: auto;
   overscroll-behavior: contain;
 }

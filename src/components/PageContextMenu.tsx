@@ -33,16 +33,24 @@ export function PageContextMenu({
   const [flipped, setFlipped] = useState(false);
 
   // Measure after paint so a menu opened near an edge flips inward instead of
-  // leaving the viewport.
+  // leaving the viewport, and keep measuring: a longer translation or a font
+  // that lands late makes the menu taller than it was on its first frame, and a
+  // menu measured once then grew past the bottom edge of the window.
   useLayoutEffect(() => {
     const node = menu.current;
     if (!node) return;
-    const rect = node.getBoundingClientRect();
-    const margin = 10;
-    setPosition({
-      x: Math.max(margin, Math.min(point.x, window.innerWidth - rect.width - margin)),
-      y: Math.max(margin, Math.min(point.y, window.innerHeight - rect.height - margin)),
-    });
+    const place = () => {
+      const rect = node.getBoundingClientRect();
+      const margin = 10;
+      setPosition({
+        x: Math.max(margin, Math.min(point.x, window.innerWidth - rect.width - margin)),
+        y: Math.max(margin, Math.min(point.y, window.innerHeight - rect.height - margin)),
+      });
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(node);
+    return () => observer.disconnect();
   }, [point.x, point.y]);
 
   // A submenu opens to the right; when there is no room there it opens to the
