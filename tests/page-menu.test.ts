@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  imageSuggestedName,
   pageMenuEntries,
   pageMenuHeader,
   type PageMenuContext,
@@ -139,12 +140,26 @@ describe('page right-click menu', () => {
     expect(tab).toContain('view-source');
   });
 
-  it('offers copy image and its address for an image, and nothing for a video', () => {
+  it('offers save, copy image and its address for an image, and nothing for a video', () => {
     const image = ids(pageMenuEntries(context({ imageUrl: 'https://example.com/p.png' })));
     expect(image).toContain('copy-image');
     expect(image).toContain('copy-image-address');
+    expect(image).toContain('save-image');
+    // Saving sits with the image entries, before the clipboard pair.
+    expect(image.indexOf('save-image')).toBeLessThan(image.indexOf('copy-image'));
     // `imageUrl` is only set for a mediaType of image, so a video click has none.
-    expect(ids(pageMenuEntries(context()))).not.toContain('copy-image');
+    const video = ids(pageMenuEntries(context()));
+    expect(video).not.toContain('copy-image');
+    expect(video).not.toContain('save-image');
+  });
+
+  it('names a saved image after its own file, and falls back when it has none', () => {
+    expect(imageSuggestedName('https://example.com/media/holiday%20photo.png')).toBe(
+      'holiday photo.png',
+    );
+    expect(imageSuggestedName('https://example.com/pic.jpg?v=2')).toBe('pic.jpg');
+    expect(imageSuggestedName('data:image/png;base64,AAAA')).toBe('image');
+    expect(imageSuggestedName('not a url')).toBe('image');
   });
 
   it('reports where the page can go and whether it is loading', () => {

@@ -4,6 +4,7 @@ import {
   dialog,
   ipcMain,
   nativeImage,
+  net,
   screen,
   session,
   shell,
@@ -936,6 +937,76 @@ function registerIpc(): void {
       return {
         ok: false,
         message: error instanceof Error ? error.message : 'The page could not be saved.',
+      };
+    }
+  });
+  // An image the user asked to keep. The dialog is the page save's, opened in
+  // the folder Kryvex already downloads to, and the bytes are fetched here so a
+  // page cannot hand the shell a path or a file. Only an http(s) address or an
+  // inline image is fetched: anything else is not an image the page offered.
+  ipcMain.handle('kryvex:image:save', async (event, request: unknown) => {
+    if (!isShellSender(event)) return { ok: false, message: 'Untrusted sender.' };
+    const body = (request ?? {}) as { url?: unknown; suggested?: unknown };
+    const address = typeof body.url === 'string' ? body.url.trim() : '';
+    const inline = /^data:image\/([a-z0-9.+-]+);base64,/i.exec(address);
+    if (!inline && !/^https?:\/\//i.test(address)) {
+      return { ok: false, message: 'That address is not an image.' };
+    }
+    // The path is asked for before the bytes are fetched: the dialog is what a
+    // right-click promises, and a slow or unreachable host must not leave the
+    // shell sitting with a menu closed and nothing on screen.
+    const fromUrl = /\.(png|jpe?g|gif|webp|avif|bmp|svg|ico)(?:[?#]|$)/i.exec(address);
+    const offeredType = inline ? `image/${inline[1].toLowerCase()}` : '';
+    const known: Record<string, string> = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'image/avif': 'avif',
+      'image/bmp': 'bmp',
+      'image/svg+xml': 'svg',
+      'image/x-icon': 'ico',
+    };
+    const offered = typeof body.suggested === 'string' ? body.suggested.trim() : '';
+    const cleaned = (offered || 'image').replace(/[\\/:*?"<>|]+/g, '-');
+    const guessed = known[offeredType] ?? (fromUrl ? fromUrl[1].toLowerCase().replace('jpeg', 'jpg') : 'png');
+    const named = /\.[a-z0-9]{2,5}$/i.test(cleaned) ? cleaned : `${cleaned}.${guessed}`;
+    const picked =
+      mainWindow && !mainWindow.isDestroyed()
+        ? await dialog.showSaveDialog(mainWindow, {
+            title: 'Save image',
+            defaultPath: path.join(downloads.directory(), named),
+            properties: ['createDirectory' as const, 'showOverwriteConfirmation' as const],
+          })
+        : await dialog.showSaveDialog({
+            title: 'Save image',
+            defaultPath: path.join(downloads.directory(), named),
+            properties: ['createDirectory' as const, 'showOverwriteConfirmation' as const],
+          });
+    if (picked.canceled || !picked.filePath) return { ok: false, cancelled: true };
+    let bytes: Buffer;
+    try {
+      if (inline) {
+        bytes = Buffer.from(address.slice(inline[0].length), 'base64');
+      } else {
+        const response = await net.fetch(address, { signal: AbortSignal.timeout(20000) });
+        if (!response.ok) return { ok: false, message: `The image answered ${response.status}.` };
+        bytes = Buffer.from(await response.arrayBuffer());
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : 'The image could not be fetched.',
+      };
+    }
+    if (bytes.byteLength === 0) return { ok: false, message: 'The image was empty.' };
+    try {
+      fs.writeFileSync(picked.filePath, bytes);
+      return { ok: true, path: picked.filePath };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : 'The image could not be saved.',
       };
     }
   });

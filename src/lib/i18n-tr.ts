@@ -1280,6 +1280,8 @@ export const turkishCopy: Record<string, string> = {
     'Open image in a new tab': 'Görseli yeni sekmede aç',
     'Copy image': 'Görseli kopyala',
     'Copy image address': 'Görsel adresini kopyala',
+    'Save image as…': 'Görseli farklı kaydet…',
+    'The image could not be saved.': 'Görsel kaydedilemedi.',
     'Copy page URL': 'Sayfa adresini kopyala',
     'Share link': 'Bağlantıyı paylaş',
     'Save page as…': 'Sayfayı farklı kaydet…',

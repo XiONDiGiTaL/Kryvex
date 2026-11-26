@@ -122,6 +122,9 @@ export function pageMenuEntries(
   const onImage: PageMenuItem[] = [];
   if (image) {
     if (context.browser) onImage.push({ id: 'open-image-tab', label: 'Open image in a new tab' });
+    // No shortcut is shown: Ctrl+S saves the page, not the picture under the
+    // pointer, and a hint that presses the wrong thing is worse than none.
+    onImage.push({ id: 'save-image', label: 'Save image as…' });
     onImage.push({ id: 'copy-image', label: 'Copy image' });
     onImage.push({ id: 'copy-image-address', label: 'Copy image address' });
   }
@@ -181,4 +184,23 @@ export function pageMenuEntries(
   return groups.flatMap((items, index) =>
     items.map((item, at) => (index > 0 && at === 0 ? { ...item, separatorBefore: true } : item)),
   );
+}
+
+/**
+ * The name a save dialog starts from for an image: its own file name, cleaned
+ * of anything Windows would refuse. An inline image has no name of its own.
+ */
+export function imageSuggestedName(url: string): string {
+  const address = url.trim();
+  if (!address || address.startsWith('data:')) return 'image';
+  let name = '';
+  try {
+    const parsed = new URL(address);
+    name = decodeURIComponent(parsed.pathname.split('/').filter(Boolean).pop() ?? '');
+  } catch {
+    return 'image';
+  }
+  const clean = name.replace(/[^\w.\- ]+/g, '-').trim();
+  if (!clean) return 'image';
+  return clean.length > 60 ? clean.slice(-60) : clean;
 }

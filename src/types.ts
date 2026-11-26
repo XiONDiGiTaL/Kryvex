@@ -1586,6 +1586,14 @@ export interface KryvexBridge {
     webContentsId: number;
     suggested: string;
   }) => Promise<{ ok: boolean; path?: string; cancelled?: boolean; message?: string }>;
+  /**
+   * Saves the image a right-click landed on. The dialog chooses the folder and
+   * the bytes are fetched by the main process.
+   */
+  imageSave: (request: {
+    url: string;
+    suggested: string;
+  }) => Promise<{ ok: boolean; path?: string; cancelled?: boolean; message?: string }>;
   /** Reveal a saved capture in Explorer. */
   captureReveal: (path: string) => Promise<boolean>;
   /** Show a fresh capture in its own preview window, like a snipping tool. */

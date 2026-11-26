@@ -4,6 +4,7 @@ import { pageSource, readPage, readSelection, selectionSource } from '../lib/vex
 import type { VexiumSourceInput } from '../lib/vexium-transfer';
 import { openExternalUrl } from '../lib/external';
 import {
+  imageSuggestedName,
   pageMenuEntries,
   pageMenuHeader,
   type PageMenuContext,
@@ -642,6 +643,17 @@ export function Webview({
       case 'copy-image':
         guest(() => el.copyImageAt(point.guestX, point.guestY));
         return;
+      case 'save-image': {
+        const bridge = window.kryvex;
+        if (!bridge?.imageSave || !context.imageUrl) return;
+        const result = await bridge.imageSave({
+          url: context.imageUrl,
+          suggested: imageSuggestedName(context.imageUrl),
+        });
+        if (result.ok) say('Saved to {path}.', 'success', { path: result.path ?? '' });
+        else if (!result.cancelled) say('The image could not be saved.', 'danger');
+        return;
+      }
       case 'share-link':
         say((await copyText(context.url)) ? 'Link copied. Paste it anywhere.' : 'The clipboard refused the text.');
         return;

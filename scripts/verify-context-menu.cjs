@@ -17,7 +17,7 @@
  *
  *   node scripts/verify-context-menu.cjs
  */
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const http = require('node:http');
 const os = require('node:os');
@@ -483,7 +483,63 @@ async function main() {
   check(serviceImageLabels.includes('Copy image address'), 'an image offers Copy image address');
   check(!serviceImageLabels.includes('Open image in a new tab'), 'a service frame cannot open an image in a tab');
   await shot(client, 'verify-page-context-image');
+
+  // The channel refuses an address that is not an image: a page cannot name a
+  // path of its own choosing this way.
+  const refused = await client.evaluate(
+    `window.kryvex.imageSave({ url: 'file:///C:/Windows/win.ini', suggested: 'x.png' })`,
+  );
+  check(
+    Boolean(refused) && refused.ok === false,
+    'Save image as… refuses an address that is not an image',
+  );
+
+  // Save image as…: the native dialog is filled the way a person fills it, and
+  // the file that lands is the image itself.
+  const kept = path.join(profile, 'saved-image.png');
+  await clickItem(client, 'Save image as…');
+  const dialog = spawnSync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-File',
+      path.join(__dirname, 'save-dialog.ps1'),
+      '-AppPid',
+      String(children[0].pid),
+      '-TargetPath',
+      kept,
+    ],
+    { encoding: 'utf8', timeout: 60000 },
+  );
+  check(
+    /accepted/.test(dialog.stdout || ''),
+    `the native save dialog was filled and accepted (${(dialog.stdout || dialog.stderr || '').trim().slice(0, 80)})`,
+  );
+  // The dialog closes before the write does, so the file is waited for rather
+  // than read the instant the helper returns.
+  let landed = false;
+  for (let attempt = 0; attempt < 40 && !landed; attempt += 1) {
+    landed = fs.existsSync(kept) && fs.statSync(kept).size > 0;
+    if (!landed) await sleep(250);
+  }
+  const savedBytes = fs.existsSync(kept) ? fs.readFileSync(kept) : Buffer.alloc(0);
+  check(landed, `Save image as… wrote the file (${savedBytes.length} bytes)`);
+  const pngMagic = savedBytes.subarray(0, 8);
+  check(
+    pngMagic.equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+    'the saved file is the PNG the page served, not a placeholder',
+  );
+  const toasts = await client.evaluate(
+    `[...document.querySelectorAll('.toast')].map(node => node.textContent.trim()).slice(-2)`,
+  );
+  check(
+    toasts.some(text => text.includes('Saved to')),
+    `the shell says where the image went (${JSON.stringify(toasts.slice(-1))})`,
+  );
   await closeMenu(client);
+
 
   // The hand-over below needs a link click, and the image check closed its
   // menu: take the link again so the entry is there to choose.

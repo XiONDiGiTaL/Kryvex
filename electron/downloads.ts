@@ -60,6 +60,11 @@ class DownloadManager {
   private torrentFileHandler: ((filePath: string) => void) | null = null;
   private initialized = false;
 
+  /** Where Kryvex keeps downloads: the folder chosen in Settings, else Downloads. */
+  directory(): string {
+    return downloadsDir();
+  }
+
   /** Load completed history once the ready event has made userData available. */
   init(): void {
     if (this.initialized) return;
