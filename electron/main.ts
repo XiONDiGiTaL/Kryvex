@@ -944,6 +944,10 @@ function registerIpc(): void {
   // the folder Kryvex already downloads to, and the bytes are fetched here so a
   // page cannot hand the shell a path or a file. Only an http(s) address or an
   // inline image is fetched: anything else is not an image the page offered.
+  // A right-click is not a promise about size: a page can point an <img> at
+  // something far larger than a picture, and the bytes are held in memory
+  // before they are written. 64 MB is well past any image this menu keeps.
+  const MAX_IMAGE_BYTES = 64 * 1024 * 1024;
   ipcMain.handle('kryvex:image:save', async (event, request: unknown) => {
     if (!isShellSender(event)) return { ok: false, message: 'Untrusted sender.' };
     const body = (request ?? {}) as { url?: unknown; suggested?: unknown };
@@ -991,6 +995,10 @@ function registerIpc(): void {
       } else {
         const response = await net.fetch(address, { signal: AbortSignal.timeout(20000) });
         if (!response.ok) return { ok: false, message: `The image answered ${response.status}.` };
+        const declared = Number(response.headers.get('content-length') ?? '');
+        if (Number.isFinite(declared) && declared > MAX_IMAGE_BYTES) {
+          return { ok: false, message: 'That image is too large to save.' };
+        }
         bytes = Buffer.from(await response.arrayBuffer());
       }
     } catch (error) {
@@ -1000,6 +1008,10 @@ function registerIpc(): void {
       };
     }
     if (bytes.byteLength === 0) return { ok: false, message: 'The image was empty.' };
+    // Content-Length is a claim, not a fact, so the size is checked again here.
+    if (bytes.byteLength > MAX_IMAGE_BYTES) {
+      return { ok: false, message: 'That image is too large to save.' };
+    }
     try {
       fs.writeFileSync(picked.filePath, bytes);
       return { ok: true, path: picked.filePath };
