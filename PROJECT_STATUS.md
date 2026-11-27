@@ -28,6 +28,30 @@ mark use the name. The identity is fully tokenized, so a rename is cheap. No
 domain purchase, store listing or paid brand spend without counsel clearance.
 See `docs/ENGINEERING_DECISIONS.md` (ED-002). Gatherium is the fallback name.
 
+## Prepared (2026-11-27, 0.9.5-hotfix.11)
+
+`package.json` is at **0.9.5-hotfix.11**, its record exists and its installer
+wizard capture is committed, but nothing is published: no tag has been pushed.
+`main` carries this version; `releases/latest` still answers
+`v0.9.5-hotfix.10`.
+
+The batch is the one the context menus were missing. Right-clicking a page now
+offers what a browser's menu offers — copy, cut and paste, back and forward, a
+link's address, image and page saves, print, screenshot, zoom, source, inspect,
+and Send to… for every installed service — built from what was actually clicked,
+in a service frame and in a browser tab alike. A tab strip entry duplicates,
+pins, mutes and closes; an image can be saved through the app's own save dialog.
+The same weeks carry the palette's search across services, history, bookmarks and
+downloads, the Activity Center, the service sign-in return leg, stylesheet
+theming for a service, the phone link's firewall scope, and the repair of two
+harnesses that had been reporting green without doing their work. Full record:
+[RELEASE_0.9.5-hotfix.11.md](docs/RELEASE_0.9.5-hotfix.11.md).
+
+`pnpm typecheck`, `pnpm test`, `pnpm build`, the i18n audit, the context-menu
+harness and `node scripts/check-release-record.cjs --all` were run on the Windows
+machine that prepared this record, and all pass. Nothing is live until the
+`v0.9.5-hotfix.11` tag runs the Release workflow.
+
 ## Released (2026-11-07, 0.9.5-hotfix.10)
 
 The `v0.9.5-hotfix.10` tag ran the Release workflow and published a stable
